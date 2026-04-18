@@ -1,0 +1,2 @@
+FIND products p1
+FILTER 0 = p1.unit_price - count(p1.units_in_stock)

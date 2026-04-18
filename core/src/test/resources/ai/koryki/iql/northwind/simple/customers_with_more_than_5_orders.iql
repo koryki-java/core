@@ -1,0 +1,12 @@
+// find customers having more than 5 orders,
+// sort descending by count
+
+SELECT
+    customers c
+        OUT c.company_name cn
+        GROUP c.company_name
+        JOIN same_customer orders o
+            OUT count(o.order_id) ordercount
+            HAVING count(o.order_id) > 5
+            ORDER count(o.order_id) DESC
+        OWNER

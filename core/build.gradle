@@ -1,0 +1,111 @@
+plugins {
+    id 'java'
+    alias(libs.plugins.jacoco)
+    alias(libs.plugins.antlr)
+    id 'maven-publish'
+}
+
+java {
+    withSourcesJar() // Optional: Creates the sources JAR
+    withJavadocJar() // Optional: Creates the Javadoc JAR
+}
+
+
+dependencies {
+
+    antlr libs.antlr4
+
+    implementation(libs.antlr4.runtime)
+
+    implementation libs.jackson.databind
+
+    testImplementation project(':northwind')
+    testImplementation project(':duckdb')
+
+
+    // JUnit
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly libs.junit.platform.launcher
+}
+
+sourceSets.main.java.srcDirs += ['src/main/antlr/iql']
+sourceSets.main.java.srcDirs += ['src/main/antlr/kql']
+sourceSets.main.java.srcDirs += ['build/generated-src/antlr/main/']
+
+tasks.named('sourcesJar').configure {
+    // Declares that 'sourcesJar' cannot run until 'generateGrammarSource' has finished.
+    dependsOn ':core:generateGrammarSourceIql'
+    dependsOn ':core:generateGrammarSourceKql'
+    dependsOn ':core:copyFromProducer'
+}
+
+test {
+
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+}
+
+tasks.named("compileJava") {
+    dependsOn tasks.named("generateGrammarSourceIql")
+    dependsOn tasks.named("generateGrammarSourceKql")
+}
+
+tasks.named("javadoc") {
+    dependsOn tasks.named("generateGrammarSourceIql")
+    dependsOn tasks.named("generateGrammarSourceKql")
+}
+
+tasks.register("generateGrammarSourceIql", AntlrTask) {
+    source = fileTree("src/main/antlr/iql") {
+        include '*.g4'
+    }
+    outputDirectory = file("build/generated-src/antlr/main/ai/koryki/iql")
+    maxHeapSize = "128m"
+    arguments += ["-visitor", "-long-messages", "-package", "ai.koryki.iql"]
+}
+
+tasks.register("generateGrammarSourceKql", AntlrTask) {
+    source = fileTree("src/main/antlr/kql") {
+        include '*.g4'
+    }
+    outputDirectory = file("build/generated-src/antlr/main/ai/koryki/kql")
+    maxHeapSize = "128m"
+    arguments += ["-visitor", "-long-messages", "-package", "ai.koryki.kql"]
+}
+
+jar {
+    // Set the strategy to EXCLUDE (keeps the first file encountered, ignores duplicates)
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+sourcesJar {
+    // Set the strategy to EXCLUDE (keeps the first file encountered, ignores duplicates)
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+publishing {
+    publications {
+        // Define the publication for this subproject
+        mavenJava(MavenPublication) {
+            // The 'java' component includes the main JAR artifact and its transitive dependencies
+            from components.java
+
+            // Optionally, override the artifact ID (defaults to project name: 'api')
+            artifactId = 'koryki-core'
+        }
+    }
+}
+
+tasks.register("copyFromProducer", Copy) {
+    from(project(":core").layout.projectDirectory.dir("src/main/antlr"))
+    into(layout.projectDirectory.dir("src/main/resources/ai/koryki"))
+}
+
+tasks.named("processResources") {
+    dependsOn("copyFromProducer")
+}

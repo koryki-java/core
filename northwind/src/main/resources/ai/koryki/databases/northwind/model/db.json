@@ -1,0 +1,1199 @@
+{
+  "name" : "northwind",
+  "label" : null,
+  "comment" : null,
+  "description" : "The northwind database stores salaries for the northwind company.\nNorthwind sells products to other customer companies and buys products from supplier companies.\nNorthwind employees manage orders and ship products via shippers to customers.",
+  "tables" : [ {
+    "name" : "categories",
+    "label" : "Category",
+    "comment" : "Organizes products into different categories.",
+    "description" : null,
+    "columns" : [ {
+      "name" : "category_id",
+      "label" : "Id",
+      "comment" : "A surrogate primary key that uniquely identifies a category.",
+      "genericType" : "smallint",
+      "dialectType" : "smallint",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 1
+    }, {
+      "name" : "category_name",
+      "label" : "Name",
+      "comment" : "Name of a category",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "description",
+      "label" : "Description",
+      "comment" : "Description of a category",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "picture",
+      "label" : "Picture",
+      "comment" : "A picture to visualize the category",
+      "genericType" : "blob",
+      "dialectType" : "binary large object",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "root_category_id",
+      "label" : "Root category",
+      "comment" : "Root",
+      "genericType" : "smallint",
+      "dialectType" : "smallint",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "super_category_id",
+      "label" : "Super",
+      "comment" : "Super category",
+      "genericType" : "smallint",
+      "dialectType" : "smallint",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    } ]
+  }, {
+    "name" : "customers",
+    "label" : "Customer",
+    "comment" : "Contains information about the company's customers, with fields like company_name, contact_name.",
+    "description" : null,
+    "columns" : [ {
+      "name" : "customer_id",
+      "label" : "Id",
+      "comment" : "A surrogate primary key used to uniquely identify each customer.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 1
+    }, {
+      "name" : "company_name",
+      "label" : "Name",
+      "comment" : "The cusomers company name",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "contact_name",
+      "label" : "Contact",
+      "comment" : "Name of a contact person",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "contact_title",
+      "label" : "Title",
+      "comment" : "The title or role the contact person has in the customer company (e.g. Owner, Sales Representative, Marketing Manager).",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "address",
+      "label" : "Address",
+      "comment" : "The first address line of the customer.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "city",
+      "label" : "City",
+      "comment" : "The city of the customer address.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "region",
+      "label" : "Region",
+      "comment" : "The region of the customer address.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "postal_code",
+      "label" : "Postal code",
+      "comment" : "The postal code of the customer address.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "country",
+      "label" : "Country",
+      "comment" : "The country of the customer address.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "phone",
+      "label" : "Phone",
+      "comment" : "The telephone number to call the contact person.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "fax",
+      "label" : "Fax",
+      "comment" : "The fax number to call the contact person.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    } ]
+  }, {
+    "name" : "customer_customer_demo",
+    "label" : "Customer-Demo",
+    "comment" : "Stores the relationships between customer and costomer demographics.",
+    "description" : null,
+    "columns" : [ {
+      "name" : "customer_id",
+      "label" : "Customer Id",
+      "comment" : "A foreign key identifying the customer.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 1
+    }, {
+      "name" : "customer_type_id",
+      "label" : "Type-Id",
+      "comment" : "A foreign key identifying the customer demographic.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 2
+    } ]
+  }, {
+    "name" : "customer_demographics",
+    "label" : "Customer Demographics",
+    "comment" : "A customer democraphics describes customer segments, e.g. Retail, Wholesale, Corporate, etc.",
+    "description" : null,
+    "columns" : [ {
+      "name" : "customer_type_id",
+      "label" : "Id",
+      "comment" : "A surrogate primary key used to uniquely identify each customer demographic.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 1
+    }, {
+      "name" : "customer_desc",
+      "label" : "Description",
+      "comment" : "A description to the customer demographic.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    } ]
+  }, {
+    "name" : "employees",
+    "label" : "Employee",
+    "comment" : "Stores employee information, such as their names and titles.",
+    "description" : null,
+    "columns" : [ {
+      "name" : "employee_id",
+      "label" : null,
+      "comment" : "A surrogate primary key used to uniquely identify each employee.",
+      "genericType" : "smallint",
+      "dialectType" : "smallint",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 1
+    }, {
+      "name" : "last_name",
+      "label" : "Last Name",
+      "comment" : "Last name of employee.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "first_name",
+      "label" : "First Name",
+      "comment" : "First name of employee.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "title",
+      "label" : "Title",
+      "comment" : "The title or role the employee has in the company",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "title_of_courtesy",
+      "label" : "Courtesy",
+      "comment" : "The employees courtesy",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "birth_date",
+      "label" : "Date of Birth",
+      "comment" : "The employees date of birth.",
+      "genericType" : "date",
+      "dialectType" : "date",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "hire_date",
+      "label" : "Hire Date",
+      "comment" : "The date the employee was hired.",
+      "genericType" : "date",
+      "dialectType" : "date",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "address",
+      "label" : "Address",
+      "comment" : "The address line of the employee.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "city",
+      "label" : "City",
+      "comment" : "The city of the employee address",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "region",
+      "label" : "Region",
+      "comment" : "The region of the employee address.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "postal_code",
+      "label" : "Postal Code",
+      "comment" : "The postal code of the employee address.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "country",
+      "label" : "Country",
+      "comment" : "The country of the employee address",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "home_phone",
+      "label" : "Phone",
+      "comment" : "The telephone number of the employee.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "extension",
+      "label" : "Extension",
+      "comment" : "",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "photo",
+      "label" : "Phota",
+      "comment" : "The portrait photo of the employee",
+      "genericType" : "blob",
+      "dialectType" : "binary large object",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "notes",
+      "label" : "Notes",
+      "comment" : "Notes to the employee",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "reports_to",
+      "label" : "Reports To",
+      "comment" : "A foreign key identifying the supervisor (employee) the employee is reporting to.",
+      "genericType" : "smallint",
+      "dialectType" : "smallint",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "photo_path",
+      "label" : "Path",
+      "comment" : "Path or URL to the photo",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    } ]
+  }, {
+    "name" : "employee_territories",
+    "label" : "Employee-Territory",
+    "comment" : "Stores the relationships between employees and territories.",
+    "description" : null,
+    "columns" : [ {
+      "name" : "employee_id",
+      "label" : "Employee Id",
+      "comment" : "A foreign key identifying the employee.",
+      "genericType" : "smallint",
+      "dialectType" : "smallint",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 1
+    }, {
+      "name" : "territory_id",
+      "label" : "Territory Id",
+      "comment" : "A foreign key identifying the territory.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 2
+    } ]
+  }, {
+    "name" : "orders",
+    "label" : "Order",
+    "comment" : "Holds records of customer orders, including OrderID, OrderDate, and CustomerID.",
+    "description" : null,
+    "columns" : [ {
+      "name" : "order_id",
+      "label" : "Id",
+      "comment" : "A surrogate primary key used to uniquely identify each order.",
+      "genericType" : "smallint",
+      "dialectType" : "smallint",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 1
+    }, {
+      "name" : "customer_id",
+      "label" : "Customer Id",
+      "comment" : "A foreign key identifying the customer.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "employee_id",
+      "label" : "Employee Id",
+      "comment" : "A foreign key identifying the employee.",
+      "genericType" : "smallint",
+      "dialectType" : "smallint",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "order_date",
+      "label" : "Order Date",
+      "comment" : null,
+      "genericType" : "date",
+      "dialectType" : "date",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "required_date",
+      "label" : "Required Date",
+      "comment" : "The date the customer requires the order",
+      "genericType" : "date",
+      "dialectType" : "date",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "shipped_date",
+      "label" : "Shipped Date",
+      "comment" : "The date the order is shipped.",
+      "genericType" : "date",
+      "dialectType" : "date",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "ship_via",
+      "label" : "Via",
+      "comment" : "A foreign key identifying the shipper.",
+      "genericType" : "smallint",
+      "dialectType" : "smallint",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "freight",
+      "label" : "Freight",
+      "comment" : "The shipping freight.",
+      "genericType" : "real",
+      "dialectType" : "real",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "ship_name",
+      "label" : "Ship Name",
+      "comment" : "The name of the company to ship the order to.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "ship_address",
+      "label" : "Ship Address",
+      "comment" : "The address of the company the ship goes to.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "ship_city",
+      "label" : "Ship City",
+      "comment" : "The city of the company the ship goes to.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "ship_region",
+      "label" : "Ship Region",
+      "comment" : "The region of the company the ship goes to.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "ship_postal_code",
+      "label" : "Ship Postal Code",
+      "comment" : null,
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : "The postal code of the company the ship goes to.",
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "ship_country",
+      "label" : "Ship Country",
+      "comment" : null,
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : "The country of the company the ship goes to.",
+      "nullable" : true,
+      "pkPos" : 0
+    } ]
+  }, {
+    "name" : "order_details",
+    "label" : "Order Details",
+    "comment" : "Links orders to products, detailing which products are included in each order.",
+    "description" : null,
+    "columns" : [ {
+      "name" : "order_id",
+      "label" : "Order Id",
+      "comment" : "A foreign key identifying the order.",
+      "genericType" : "smallint",
+      "dialectType" : "smallint",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 1
+    }, {
+      "name" : "product_id",
+      "label" : "Product Id",
+      "comment" : "A foreign key identifying the product.",
+      "genericType" : "smallint",
+      "dialectType" : "smallint",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 2
+    }, {
+      "name" : "unit_price",
+      "label" : "Unit Price",
+      "comment" : "The unit price valid to the order.",
+      "genericType" : "real",
+      "dialectType" : "real",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "quantity",
+      "label" : "Quantity",
+      "comment" : "The quantity of the order.",
+      "genericType" : "smallint",
+      "dialectType" : "smallint",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "discount",
+      "label" : "Discount",
+      "comment" : "The discount to the order.",
+      "genericType" : "real",
+      "dialectType" : "real",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 0
+    } ]
+  }, {
+    "name" : "products",
+    "label" : "Product",
+    "comment" : "Stores details about products, including name, supplier, category, and unit price.",
+    "description" : null,
+    "columns" : [ {
+      "name" : "product_id",
+      "label" : "Id",
+      "comment" : "A surrogate primary key used to uniquely identify each product.",
+      "genericType" : "smallint",
+      "dialectType" : "smallint",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 1
+    }, {
+      "name" : "product_name",
+      "label" : "Product name",
+      "comment" : "The name of the product.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "supplier_id",
+      "label" : "Supplier Id",
+      "comment" : "A foreign key identifying the supplier.",
+      "genericType" : "smallint",
+      "dialectType" : "smallint",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "category_id",
+      "label" : "Category Id",
+      "comment" : "A foreign key identifying the category.",
+      "genericType" : "smallint",
+      "dialectType" : "smallint",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "quantity_per_unit",
+      "label" : "Quantity per Unit",
+      "comment" : "The quantity per unit the product is sold.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "unit_price",
+      "label" : "Unit price",
+      "comment" : "The unit price the product is sold before discount.",
+      "genericType" : "real",
+      "dialectType" : "real",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "units_in_stock",
+      "label" : "in Stock",
+      "comment" : "The units in stock.",
+      "genericType" : "smallint",
+      "dialectType" : "smallint",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "units_on_order",
+      "label" : "in Order",
+      "comment" : "The units on order.",
+      "genericType" : "smallint",
+      "dialectType" : "smallint",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "reorder_level",
+      "label" : "Reoder Level",
+      "comment" : "Minimum units on stock before ordering new products.",
+      "genericType" : "smallint",
+      "dialectType" : "smallint",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "discontinued",
+      "label" : "Discontinued",
+      "comment" : "Signs whether the product is discontinued",
+      "genericType" : "integer",
+      "dialectType" : "integer",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 0
+    } ]
+  }, {
+    "name" : "region",
+    "label" : "Region",
+    "comment" : "The region products are sold to.",
+    "description" : null,
+    "columns" : [ {
+      "name" : "region_id",
+      "label" : "Id",
+      "comment" : "A surrogate primary key used to uniquely identify each region.",
+      "genericType" : "smallint",
+      "dialectType" : "smallint",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 1
+    }, {
+      "name" : "region_description",
+      "label" : "Description",
+      "comment" : "A description to the region.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 0
+    } ]
+  }, {
+    "name" : "shippers",
+    "label" : "Shipper",
+    "comment" : "Stores information to shippers.",
+    "description" : null,
+    "columns" : [ {
+      "name" : "shipper_id",
+      "label" : "Id",
+      "comment" : "A surrogate primary key used to uniquely identify each shipper.",
+      "genericType" : "smallint",
+      "dialectType" : "smallint",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 1
+    }, {
+      "name" : "company_name",
+      "label" : "Name",
+      "comment" : "The name of the shipping company.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "phone",
+      "label" : "Phone",
+      "comment" : "The telephone number.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    } ]
+  }, {
+    "name" : "suppliers",
+    "label" : "Supplier",
+    "comment" : "Stores information about suppliers delivering products.",
+    "description" : null,
+    "columns" : [ {
+      "name" : "supplier_id",
+      "label" : null,
+      "comment" : "A surrogate primary key used to uniquely identify each supplier.",
+      "genericType" : "smallint",
+      "dialectType" : "smallint",
+      "description" : "Id",
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "company_name",
+      "label" : "Name",
+      "comment" : "The name of the suppliers company.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "contact_name",
+      "label" : "Contact",
+      "comment" : "The name of the person to get in contact to the supplier.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "contact_title",
+      "label" : "Title",
+      "comment" : "The title or role of the person to get in contact to the supplier.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "address",
+      "label" : "Address",
+      "comment" : "Address of the contact person.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "city",
+      "label" : "City",
+      "comment" : "City of the contact person.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "region",
+      "label" : "Region",
+      "comment" : "Region of the supplier.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "postal_code",
+      "label" : "Postal Code",
+      "comment" : "Postal code of the supplier.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "country",
+      "label" : "Country",
+      "comment" : "Country for the supplier.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "phone",
+      "label" : "Phone",
+      "comment" : "Telephone number of the contact person.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "fax",
+      "label" : "Fax",
+      "comment" : "Fax number of the company.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "homepage",
+      "label" : "Homepage",
+      "comment" : "Homepage of the supplier company.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    } ]
+  }, {
+    "name" : "territories",
+    "label" : "Territory",
+    "comment" : "Stores Territories.",
+    "description" : null,
+    "columns" : [ {
+      "name" : "territory_id",
+      "label" : "Id",
+      "comment" : "A surrogate primary key used to uniquely identify each territory.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 1
+    }, {
+      "name" : "territory_description",
+      "label" : "Description",
+      "comment" : "Description of the territory.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "region_id",
+      "label" : "Region Id",
+      "comment" : "A foreign key identifying the region.",
+      "genericType" : "smallint",
+      "dialectType" : "smallint",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 0
+    } ]
+  }, {
+    "name" : "us_states",
+    "label" : "US States",
+    "comment" : "Stores US states",
+    "description" : null,
+    "columns" : [ {
+      "name" : "state_id",
+      "label" : "Id",
+      "comment" : "A surrogate primary key used to uniquely identify each us state.",
+      "genericType" : "smallint",
+      "dialectType" : "smallint",
+      "description" : null,
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "state_name",
+      "label" : "Name",
+      "comment" : "Name of the State.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "state_abbr",
+      "label" : "Abbr",
+      "comment" : "Abbreviation to the state.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    }, {
+      "name" : "state_region",
+      "label" : "State-Region",
+      "comment" : "The states region.",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "description" : null,
+      "nullable" : true,
+      "pkPos" : 0
+    } ]
+  } ],
+  "relations" : [ {
+    "name" : "pk_categories",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "categories",
+    "endTable" : "categories",
+    "symmetric" : true,
+    "startColumns" : [ "category_id" ],
+    "endColumns" : [ "category_id" ]
+  }, {
+    "name" : "fk_categories_categories_root",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "categories",
+    "endTable" : "categories",
+    "symmetric" : false,
+    "startColumns" : [ "root_category_id" ],
+    "endColumns" : [ "category_id" ]
+  }, {
+    "name" : "fk_categories_categories_super",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "categories",
+    "endTable" : "categories",
+    "symmetric" : false,
+    "startColumns" : [ "super_category_id" ],
+    "endColumns" : [ "category_id" ]
+  }, {
+    "name" : "pk_customers",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "customers",
+    "endTable" : "customers",
+    "symmetric" : true,
+    "startColumns" : [ "customer_id" ],
+    "endColumns" : [ "customer_id" ]
+  }, {
+    "name" : "pk_customer_customer_demo",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "customer_customer_demo",
+    "endTable" : "customer_customer_demo",
+    "symmetric" : true,
+    "startColumns" : [ "customer_id", "customer_type_id" ],
+    "endColumns" : [ "customer_id", "customer_type_id" ]
+  }, {
+    "name" : "fk_customer_customer_demo_customers",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "customer_customer_demo",
+    "endTable" : "customers",
+    "symmetric" : true,
+    "startColumns" : [ "customer_id" ],
+    "endColumns" : [ "customer_id" ]
+  }, {
+    "name" : "fk_customer_customer_demo_customer_demographics",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "customer_customer_demo",
+    "endTable" : "customer_demographics",
+    "symmetric" : true,
+    "startColumns" : [ "customer_type_id" ],
+    "endColumns" : [ "customer_type_id" ]
+  }, {
+    "name" : "pk_customer_demographics",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "customer_demographics",
+    "endTable" : "customer_demographics",
+    "symmetric" : true,
+    "startColumns" : [ "customer_type_id" ],
+    "endColumns" : [ "customer_type_id" ]
+  }, {
+    "name" : "pk_employees",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "employees",
+    "endTable" : "employees",
+    "symmetric" : true,
+    "startColumns" : [ "employee_id" ],
+    "endColumns" : [ "employee_id" ]
+  }, {
+    "name" : "fk_employees_employees",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "employees",
+    "endTable" : "employees",
+    "symmetric" : false,
+    "startColumns" : [ "reports_to" ],
+    "endColumns" : [ "employee_id" ]
+  }, {
+    "name" : "pk_employee_territories",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "employee_territories",
+    "endTable" : "employee_territories",
+    "symmetric" : true,
+    "startColumns" : [ "employee_id", "territory_id" ],
+    "endColumns" : [ "employee_id", "territory_id" ]
+  }, {
+    "name" : "fk_employee_territories_employees",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "employee_territories",
+    "endTable" : "employees",
+    "symmetric" : true,
+    "startColumns" : [ "employee_id" ],
+    "endColumns" : [ "employee_id" ]
+  }, {
+    "name" : "fk_employee_territories_territories",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "employee_territories",
+    "endTable" : "territories",
+    "symmetric" : true,
+    "startColumns" : [ "territory_id" ],
+    "endColumns" : [ "territory_id" ]
+  }, {
+    "name" : "pk_orders",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "orders",
+    "endTable" : "orders",
+    "symmetric" : true,
+    "startColumns" : [ "order_id" ],
+    "endColumns" : [ "order_id" ]
+  }, {
+    "name" : "fk_orders_customers",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "orders",
+    "endTable" : "customers",
+    "symmetric" : true,
+    "startColumns" : [ "customer_id" ],
+    "endColumns" : [ "customer_id" ]
+  }, {
+    "name" : "fk_orders_employees",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "orders",
+    "endTable" : "employees",
+    "symmetric" : true,
+    "startColumns" : [ "employee_id" ],
+    "endColumns" : [ "employee_id" ]
+  }, {
+    "name" : "fk_orders_shippers",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "orders",
+    "endTable" : "shippers",
+    "symmetric" : true,
+    "startColumns" : [ "ship_via" ],
+    "endColumns" : [ "shipper_id" ]
+  }, {
+    "name" : "pk_order_details",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "order_details",
+    "endTable" : "order_details",
+    "symmetric" : true,
+    "startColumns" : [ "order_id", "product_id" ],
+    "endColumns" : [ "order_id", "product_id" ]
+  }, {
+    "name" : "fk_order_details_orders",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "order_details",
+    "endTable" : "orders",
+    "symmetric" : true,
+    "startColumns" : [ "order_id" ],
+    "endColumns" : [ "order_id" ]
+  }, {
+    "name" : "fk_order_details_products",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "order_details",
+    "endTable" : "products",
+    "symmetric" : true,
+    "startColumns" : [ "product_id" ],
+    "endColumns" : [ "product_id" ]
+  }, {
+    "name" : "pk_products",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "products",
+    "endTable" : "products",
+    "symmetric" : true,
+    "startColumns" : [ "product_id" ],
+    "endColumns" : [ "product_id" ]
+  }, {
+    "name" : "fk_products_categories",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "products",
+    "endTable" : "categories",
+    "symmetric" : true,
+    "startColumns" : [ "category_id" ],
+    "endColumns" : [ "category_id" ]
+  }, {
+    "name" : "fk_products_suppliers",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "products",
+    "endTable" : "suppliers",
+    "symmetric" : true,
+    "startColumns" : [ "supplier_id" ],
+    "endColumns" : [ "supplier_id" ]
+  }, {
+    "name" : "pk_region",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "region",
+    "endTable" : "region",
+    "symmetric" : true,
+    "startColumns" : [ "region_id" ],
+    "endColumns" : [ "region_id" ]
+  }, {
+    "name" : "pk_shippers",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "shippers",
+    "endTable" : "shippers",
+    "symmetric" : true,
+    "startColumns" : [ "shipper_id" ],
+    "endColumns" : [ "shipper_id" ]
+  }, {
+    "name" : "pk_suppliers",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "suppliers",
+    "endTable" : "suppliers",
+    "symmetric" : true,
+    "startColumns" : [ "supplier_id" ],
+    "endColumns" : [ "supplier_id" ]
+  }, {
+    "name" : "pk_territories",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "territories",
+    "endTable" : "territories",
+    "symmetric" : true,
+    "startColumns" : [ "territory_id" ],
+    "endColumns" : [ "territory_id" ]
+  }, {
+    "name" : "fk_territories_region",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "territories",
+    "endTable" : "region",
+    "symmetric" : true,
+    "startColumns" : [ "region_id" ],
+    "endColumns" : [ "region_id" ]
+  }, {
+    "name" : "pk_usstates",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "us_states",
+    "endTable" : "us_states",
+    "symmetric" : true,
+    "startColumns" : [ "state_id" ],
+    "endColumns" : [ "state_id" ]
+  } ]
+}

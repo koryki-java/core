@@ -1,0 +1,24 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+}
+
+rootProject.version = '0.1.0'
+
+
+
+rootProject.allprojects {
+
+    version = rootProject.version
+
+    group = 'ai.koryki.core'
+
+    tasks.withType(Javadoc).configureEach {
+        options.addStringOption('Xdoclint:-missing', '-quiet')
+    }
+
+    java {
+        withSourcesJar() // Optional: Creates the sources JAR
+        withJavadocJar() // Optional: Creates the Javadoc JAR
+    }
+}

@@ -1,0 +1,15 @@
+// Find customers who have placed more than 10 orders in January 2023,
+// return companyname and count, sort by count.
+
+SELECT
+ customers c
+  OUT c.company_name 1
+  GROUP c.company_name 1
+  JOIN same_customer orders o
+    OUT count(o.order_id) 2
+    FILTER
+      o.order_date BETWEEN DATE '2023-01-01' AND DATE '2023-12-31'
+    HAVING 
+     count(o.order_id) > 10
+    ORDER count(o.order_id) DESC 2
+  OWNER

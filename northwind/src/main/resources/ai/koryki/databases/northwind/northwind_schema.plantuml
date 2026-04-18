@@ -1,0 +1,154 @@
+@startuml
+entity  "categories" as categories {
+category_id
+category_name
+description
+picture
+root_category_id
+super_category_id
+}
+entity  "customers" as customers {
+customer_id
+company_name
+contact_name
+contact_title
+address
+city
+region
+postal_code
+country
+phone
+fax
+}
+entity  "customer_customer_demo" as customer_customer_demo {
+customer_id
+customer_type_id
+}
+entity  "customer_demographics" as customer_demographics {
+customer_type_id
+customer_desc
+}
+entity  "employees" as employees {
+employee_id
+last_name
+first_name
+title
+title_of_courtesy
+birth_date
+hire_date
+address
+city
+region
+postal_code
+country
+home_phone
+extension
+photo
+notes
+reports_to
+photo_path
+}
+entity  "employee_territories" as employee_territories {
+employee_id
+territory_id
+}
+entity  "orders" as orders {
+order_id
+customer_id
+employee_id
+order_date
+required_date
+shipped_date
+ship_via
+freight
+ship_name
+ship_address
+ship_city
+ship_region
+ship_postal_code
+ship_country
+}
+entity  "order_details" as order_details {
+order_id
+product_id
+unit_price
+quantity
+discount
+}
+entity  "products" as products {
+product_id
+product_name
+supplier_id
+category_id
+quantity_per_unit
+unit_price
+units_in_stock
+units_on_order
+reorder_level
+discontinued
+}
+entity  "region" as region {
+region_id
+region_description
+}
+entity  "shippers" as shippers {
+shipper_id
+company_name
+phone
+}
+entity  "suppliers" as suppliers {
+supplier_id
+company_name
+contact_name
+contact_title
+address
+city
+region
+postal_code
+country
+phone
+fax
+homepage
+}
+entity  "territories" as territories {
+territory_id
+territory_description
+region_id
+}
+entity  "us_states" as us_states {
+state_id
+state_name
+state_abbr
+state_region
+}
+
+categories ..> categories : fk_categories_categories_root
+
+categories ..> categories : fk_categories_categories_super
+
+customer_customer_demo .. customers : fk_customer_customer_demo_customers
+
+customer_customer_demo .. customer_demographics : fk_customer_customer_demo_customer_demographics
+
+employees ..> employees : fk_employees_employees
+
+employee_territories .. employees : fk_employee_territories_employees
+
+employee_territories .. territories : fk_employee_territories_territories
+
+orders .. customers : fk_orders_customers
+
+orders .. employees : fk_orders_employees
+
+orders .. shippers : fk_orders_shippers
+
+order_details .. orders : fk_order_details_orders
+
+order_details .. products : fk_order_details_products
+
+products .. categories : fk_products_categories
+
+products .. suppliers : fk_products_suppliers
+
+territories .. region : fk_territories_region
+@enduml

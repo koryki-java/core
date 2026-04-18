@@ -1,0 +1,130 @@
+@startuml
+entity  "categories" as categories {
+category_name
+description
+picture
+}
+entity  "customers" as customers {
+company_name
+contact_name
+contact_title
+address
+city
+region
+postal_code
+country
+phone
+fax
+}
+entity  "customer_customer_demo" as customer_customer_demo {
+}
+entity  "customer_demographics" as customer_demographics {
+customer_desc
+}
+entity  "employees" as employees {
+last_name
+first_name
+title
+title_of_courtesy
+birth_date
+hire_date
+address
+city
+region
+postal_code
+country
+home_phone
+extension
+photo
+notes
+reports_to
+photo_path
+}
+entity  "employee_territories" as employee_territories {
+}
+entity  "orders" as orders {
+order_date
+required_date
+shipped_date
+ship_via
+freight
+ship_name
+ship_address
+ship_city
+ship_region
+ship_postal_code
+ship_country
+}
+entity  "order_details" as order_details {
+unit_price
+quantity
+discount
+}
+entity  "products" as products {
+product_name
+quantity_per_unit
+unit_price
+units_in_stock
+units_on_order
+reorder_level
+discontinued
+}
+entity  "region" as region {
+region_description
+}
+entity  "shippers" as shippers {
+company_name
+phone
+}
+entity  "suppliers" as suppliers {
+company_name
+contact_name
+contact_title
+address
+city
+region
+postal_code
+country
+phone
+fax
+homepage
+}
+entity  "territories" as territories {
+territory_description
+}
+entity  "us_states" as us_states {
+state_name
+state_abbr
+state_region
+}
+
+categories ..> categories : parent_category
+
+employees ..> employees : reports_to
+
+categories ..> categories : root_category
+
+products .. categories : same_category
+
+customer_customer_demo .. customers : same_customer
+
+orders .. customers : same_customer
+
+customer_customer_demo .. customer_demographics : same_customer_demographic
+
+employee_territories .. employees : same_employee
+
+orders .. employees : same_employee
+
+order_details .. orders : same_order
+
+order_details .. products : same_product
+
+territories .. region : same_region
+
+orders .. shippers : same_shipper
+
+products .. suppliers : same_supplier
+
+employee_territories .. territories : same_territory
+@enduml

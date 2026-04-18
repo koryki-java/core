@@ -1,0 +1,57 @@
+{
+  "name" : "oraview",
+  "label" : "Ora-View",
+  "description" : "Sample schema to test dialect-specific names not suitable to KQL or IQL identifiers.",
+  "tables" : [ {
+    "name" : "v$user",
+    "label" : "User-view",
+    "columns" : [ {
+      "name" : "username",
+      "label" : "Username",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "_id",
+      "label" : "Id",
+      "genericType" : "smallint",
+      "dialectType" : "smallint",
+      "nullable" : false,
+      "pkPos" : 1
+    } ]
+  }, {
+    "name" : "v$session",
+    "label" : "Session-view",
+    "columns" : [ {
+      "name" : "username",
+      "label" : "Username",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "serial#",
+      "label" : "Serial",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "SID",
+      "label" : "SID",
+      "genericType" : "varchar",
+      "dialectType" : "character varying",
+      "nullable" : false,
+      "pkPos" : 1
+    } ]
+  } ],
+  "relations" : [ {
+    "name" : "fk_user",
+    "startTable" : "v$user",
+    "endTable" : "v$session",
+    "symmetric" : true,
+    "startColumns" : [ "username" ],
+    "endColumns" : [ "username" ]
+  } ]
+}

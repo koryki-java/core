@@ -1,0 +1,39 @@
+{
+  "name" : "oraview",
+  "label" : "Ora-View",
+  "description" : "Sample schema to test dialect-specific names not suitable to KQL or IQL identifiers.",
+  "entities" : [ {
+    "name" : "vduser",
+    "label" : "User-view",
+    "table" : "v$user",
+    "attributes" : [ {
+      "name" : "username",
+      "label" : "Username"
+    }, {
+      "name" : "id",
+      "label" : "Id",
+      "column" : "_id"
+    } ]
+  }, {
+    "name" : "vdsession",
+    "label" : "Session-view",
+    "table" : "v$session",
+    "attributes" : [ {
+      "name" : "username",
+      "label" : "Username"
+    }, {
+      "name" : "serial#",
+      "label" : "Serial",
+      "column" : "serial#"
+    }, {
+      "name" : "sid",
+      "label" : "SID",
+      "column" : "SID"
+    } ]
+  } ],
+  "links" : [ {
+    "name" : "same_user",
+    "comment" : "both tables refer to the same user record",
+    "relations" : [ "fk_user" ]
+  } ]
+}

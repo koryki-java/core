@@ -1,0 +1,60 @@
+{
+    "suppliers" : {
+      "name" : "suppliers",
+      "columns" : {
+        "country" : "country",
+        "contact_name" : "contact_name",
+        "address" : "address",
+        "phone" : "phone",
+        "city" : "city",
+        "company_name" : "company_name",
+        "region" : "region",
+        "fax" : "fax",
+        "postal_code" : "postal_code",
+        "contact_title" : "contact_title",
+        "supplier_id" : "supplier_id",
+        "homepage" : "homepage"
+      }
+    },
+    "order_details" : {
+      "name" : "order_details",
+      "columns" : {
+        "quantity" : "quantity",
+        "product_id" : "product_id",
+        "discount" : "discount",
+        "unit_price" : "unit_price",
+        "order_id" : "order_id"
+      }
+    },
+    "products" : {
+      "name" : "products",
+      "columns" : {
+        "reorder_level" : "reorder_level",
+        "category_id" : "category_id",
+        "units_on_order" : "units_on_order",
+        "units_in_stock" : "units_in_stock",
+        "product_id" : "product_id",
+        "quantity_per_unit" : "quantity_per_unit",
+        "discontinued" : "discontinued",
+        "unit_price" : "unit_price",
+        "product_name" : "product_name",
+        "supplier_id" : "supplier_id"
+      }
+    },
+    "customers" : {
+      "name" : "customers",
+      "columns" : {
+        "country" : "country",
+        "contact_name" : "contact_name",
+        "address" : "address",
+        "phone" : "phone",
+        "city" : "city",
+        "company_name" : "company_name",
+        "customer_id" : "customer_id",
+        "region" : "region",
+        "fax" : "fax",
+        "postal_code" : "postal_code",
+        "contact_title" : "contact_title"
+      }
+    }
+  }

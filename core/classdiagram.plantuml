@@ -1,0 +1,28 @@
+@startuml
+
+
+
+
+class KQLTranspiler {
+    aggregate
+    resolver
+    ---
+    KQLTranspiler(InputStream kql, Resolver resolver, Aggregat aggregate)
+}
+
+class Engine<C extends ResultConsumer<?>> {
+
+    Database<C> database;
+    resolver
+    renderer
+    ---
+    C executeKQL(kql, Function<KQLTranspiler, C> processor, Consumer<Statement> stmtConsumer)
+}
+
+class Database<C extends ResultConsumer<?>> {
+}
+
+class ResultConsumer<C extends ColumnInfo> {
+}
+
+@enduml

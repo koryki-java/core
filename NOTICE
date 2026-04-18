@@ -1,0 +1,11 @@
+NOTICE
+------
+
+Third-Party Content
+-------------------
+
+This project includes a modified version of the Microsoft Northwind sample database.
+Modifications by Johannes Zemlin, 2025.
+
+Original database © Microsoft Corporation, available at:
+https://github.com/microsoft/sql-server-samples

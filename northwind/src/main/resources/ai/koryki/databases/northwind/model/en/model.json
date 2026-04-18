@@ -1,0 +1,584 @@
+{
+  "name" : "northwind",
+  "label" : null,
+  "comment" : null,
+  "description" : "The northwind database stores salaries for the northwind company.\nNorthwind sells products to other customer companies and buys products from supplier companies.\nNorthwind employees manage orders and ship products via shippers to customers.",
+  "entities" : [ {
+    "name" : "categories",
+    "label" : "Category",
+    "comment" : "Organizes products into different categories.",
+    "description" : null,
+    "attributes" : [ {
+      "name" : "category_id",
+      "label" : "Id",
+      "comment" : "A surrogate primary key that uniquely identifies a category.",
+      "description" : null
+    }, {
+      "name" : "category_name",
+      "label" : "Name",
+      "comment" : "Name of a category",
+      "description" : null
+    }, {
+      "name" : "description",
+      "label" : "Description",
+      "comment" : "Description of a category",
+      "description" : null
+    }, {
+      "name" : "picture",
+      "label" : "Picture",
+      "comment" : "A picture to visualize the category",
+      "description" : null
+    } ]
+  }, {
+    "name" : "customers",
+    "label" : "Customer",
+    "comment" : "Contains information about the company's customers, with fields like company_name, contact_name.",
+    "description" : null,
+    "attributes" : [ {
+      "name" : "customer_id",
+      "label" : "Id",
+      "comment" : "A surrogate primary key used to uniquely identify each customer.",
+      "description" : null
+    }, {
+      "name" : "company_name",
+      "label" : "Name",
+      "comment" : "The cusomers company name",
+      "description" : null
+    }, {
+      "name" : "contact_name",
+      "label" : "Contact",
+      "comment" : "Name of a contact person",
+      "description" : null
+    }, {
+      "name" : "contact_title",
+      "label" : "Title",
+      "comment" : "The title or role the contact person has in the customer company (e.g. Owner, Sales Representative, Marketing Manager).",
+      "description" : null
+    }, {
+      "name" : "address",
+      "label" : "Address",
+      "comment" : "The first address line of the customer.",
+      "description" : null
+    }, {
+      "name" : "city",
+      "label" : "City",
+      "comment" : "The city of the customer address.",
+      "description" : null
+    }, {
+      "name" : "region",
+      "label" : "Region",
+      "comment" : "The region of the customer address.",
+      "description" : null
+    }, {
+      "name" : "postal_code",
+      "label" : "Postal code",
+      "comment" : "The postal code of the customer address.",
+      "description" : null
+    }, {
+      "name" : "country",
+      "label" : "Country",
+      "comment" : "The country of the customer address.",
+      "description" : null
+    }, {
+      "name" : "phone",
+      "label" : "Phone",
+      "comment" : "The telephone number to call the contact person.",
+      "description" : null
+    }, {
+      "name" : "fax",
+      "label" : "Fax",
+      "comment" : "The fax number to call the contact person.",
+      "description" : null
+    } ]
+  }, {
+    "name" : "customer_customer_demo",
+    "label" : "Customer-Demo",
+    "comment" : "Stores the relationships between customer and costomer demographics.",
+    "description" : null,
+    "attributes" : [ {
+      "name" : "customer_id",
+      "label" : "Customer Id",
+      "comment" : "A foreign key identifying the customer.",
+      "description" : null
+    }, {
+      "name" : "customer_type_id",
+      "label" : "Type-Id",
+      "comment" : "A foreign key identifying the customer demographic.",
+      "description" : null
+    } ]
+  }, {
+    "name" : "customer_demographics",
+    "label" : "Customer Demographics",
+    "comment" : "A customer democraphics describes customer segments, e.g. Retail, Wholesale, Corporate, etc.",
+    "description" : null,
+    "attributes" : [ {
+      "name" : "customer_desc",
+      "label" : "Description",
+      "comment" : "A description to the customer demographic.",
+      "description" : null
+    } ]
+  }, {
+    "name" : "employees",
+    "label" : "Employee",
+    "comment" : "Stores employee information, such as their names and titles.",
+    "description" : null,
+    "attributes" : [ {
+      "name" : "employee_id",
+      "label" : null,
+      "comment" : "A surrogate primary key used to uniquely identify each employee.",
+      "description" : null
+    }, {
+      "name" : "last_name",
+      "label" : "Last Name",
+      "comment" : "Last name of employee.",
+      "description" : null
+    }, {
+      "name" : "first_name",
+      "label" : "First Name",
+      "comment" : "First name of employee.",
+      "description" : null
+    }, {
+      "name" : "title",
+      "label" : "Title",
+      "comment" : "The title or role the employee has in the company",
+      "description" : null
+    }, {
+      "name" : "title_of_courtesy",
+      "label" : "Courtesy",
+      "comment" : "The employees courtesy",
+      "description" : null
+    }, {
+      "name" : "birth_date",
+      "label" : "Date of Birth",
+      "comment" : "The employees date of birth.",
+      "description" : null
+    }, {
+      "name" : "hire_date",
+      "label" : "Hire Date",
+      "comment" : "The date the employee was hired.",
+      "description" : null
+    }, {
+      "name" : "address",
+      "label" : "Address",
+      "comment" : "The address line of the employee.",
+      "description" : null
+    }, {
+      "name" : "city",
+      "label" : "City",
+      "comment" : "The city of the employee address",
+      "description" : null
+    }, {
+      "name" : "region",
+      "label" : "Region",
+      "comment" : "The region of the employee address.",
+      "description" : null
+    }, {
+      "name" : "postal_code",
+      "label" : "Postal Code",
+      "comment" : "The postal code of the employee address.",
+      "description" : null
+    }, {
+      "name" : "country",
+      "label" : "Country",
+      "comment" : "The country of the employee address",
+      "description" : null
+    }, {
+      "name" : "home_phone",
+      "label" : "Phone",
+      "comment" : "The telephone number of the employee.",
+      "description" : null
+    }, {
+      "name" : "extension",
+      "label" : "Extension",
+      "comment" : "",
+      "description" : null
+    }, {
+      "name" : "photo",
+      "label" : "Phota",
+      "comment" : "The portrait photo of the employee",
+      "description" : null
+    }, {
+      "name" : "notes",
+      "label" : "Notes",
+      "comment" : "Notes to the employee",
+      "description" : null
+    }, {
+      "name" : "photo_path",
+      "label" : "Path",
+      "comment" : "Path or URL to the photo",
+      "description" : null
+    } ]
+  }, {
+    "name" : "employee_territories",
+    "label" : "Employee-Territory",
+    "comment" : "Stores the relationships between employees and territories.",
+    "description" : null,
+    "attributes" : [ {
+      "name" : "employee_id",
+      "label" : "Employee Id",
+      "comment" : "A foreign key identifying the employee.",
+      "description" : null
+    }, {
+      "name" : "territory_id",
+      "label" : "Territory Id",
+      "comment" : "A foreign key identifying the territory.",
+      "description" : null
+    } ]
+  }, {
+    "name" : "orders",
+    "label" : "Order",
+    "comment" : "Holds records of customer orders, including OrderID, OrderDate, and CustomerID.",
+    "description" : null,
+    "attributes" : [ {
+      "name" : "order_id",
+      "label" : "Id",
+      "comment" : "A surrogate primary key used to uniquely identify each order.",
+      "description" : null
+    }, {
+      "name" : "order_date",
+      "label" : "Order Date",
+      "comment" : null,
+      "description" : null
+    }, {
+      "name" : "required_date",
+      "label" : "Required Date",
+      "comment" : "The date the customer requires the order",
+      "description" : null
+    }, {
+      "name" : "shipped_date",
+      "label" : "Shipped Date",
+      "comment" : "The date the order is shipped.",
+      "description" : null
+    }, {
+      "name" : "ship_via",
+      "label" : "Via",
+      "comment" : "A foreign key identifying the shipper.",
+      "description" : null
+    }, {
+      "name" : "freight",
+      "label" : "Freight",
+      "comment" : "The shipping freight.",
+      "description" : null
+    }, {
+      "name" : "ship_name",
+      "label" : "Ship Name",
+      "comment" : "The name of the company to ship the order to.",
+      "description" : null
+    }, {
+      "name" : "ship_address",
+      "label" : "Ship Address",
+      "comment" : "The address of the company the ship goes to.",
+      "description" : null
+    }, {
+      "name" : "ship_city",
+      "label" : "Ship City",
+      "comment" : "The city of the company the ship goes to.",
+      "description" : null
+    }, {
+      "name" : "ship_region",
+      "label" : "Ship Region",
+      "comment" : "The region of the company the ship goes to.",
+      "description" : null
+    }, {
+      "name" : "ship_postal_code",
+      "label" : "Ship Postal Code",
+      "comment" : null,
+      "description" : "The postal code of the company the ship goes to."
+    }, {
+      "name" : "ship_country",
+      "label" : "Ship Country",
+      "comment" : null,
+      "description" : "The country of the company the ship goes to."
+    } ]
+  }, {
+    "name" : "order_details",
+    "label" : "Order Details",
+    "comment" : "Links orders to products, detailing which products are included in each order.",
+    "description" : null,
+    "attributes" : [ {
+      "name" : "unit_price",
+      "label" : "Unit Price",
+      "comment" : "The unit price valid to the order.",
+      "description" : null
+    }, {
+      "name" : "quantity",
+      "label" : "Quantity",
+      "comment" : "The quantity of the order.",
+      "description" : null
+    }, {
+      "name" : "discount",
+      "label" : "Discount",
+      "comment" : "The discount to the order.",
+      "description" : null
+    } ]
+  }, {
+    "name" : "products",
+    "label" : "Product",
+    "comment" : "Stores details about products, including name, supplier, category, and unit price.",
+    "description" : null,
+    "attributes" : [ {
+      "name" : "product_id",
+      "label" : "Id",
+      "comment" : "A surrogate primary key used to uniquely identify each product.",
+      "description" : null
+    }, {
+      "name" : "product_name",
+      "label" : "Product name",
+      "comment" : "The name of the product.",
+      "description" : null
+    }, {
+      "name" : "quantity_per_unit",
+      "label" : "Quantity per Unit",
+      "comment" : "The quantity per unit the product is sold.",
+      "description" : null
+    }, {
+      "name" : "unit_price",
+      "label" : "Unit price",
+      "comment" : "The unit price the product is sold before discount.",
+      "description" : null
+    }, {
+      "name" : "units_in_stock",
+      "label" : "in Stock",
+      "comment" : "The units in stock.",
+      "description" : null
+    }, {
+      "name" : "units_on_order",
+      "label" : "in Order",
+      "comment" : "The units on order.",
+      "description" : null
+    }, {
+      "name" : "reorder_level",
+      "label" : "Reoder Level",
+      "comment" : "Minimum units on stock before ordering new products.",
+      "description" : null
+    }, {
+      "name" : "discontinued",
+      "label" : "Discontinued",
+      "comment" : "Signs whether the product is discontinued",
+      "description" : null
+    } ]
+  }, {
+    "name" : "region",
+    "label" : "Region",
+    "comment" : "The region products are sold to.",
+    "description" : null,
+    "attributes" : [ {
+      "name" : "region_id",
+      "label" : "Id",
+      "comment" : "A surrogate primary key used to uniquely identify each region.",
+      "description" : null
+    }, {
+      "name" : "region_description",
+      "label" : "Description",
+      "comment" : "A description to the region.",
+      "description" : null
+    } ]
+  }, {
+    "name" : "shippers",
+    "label" : "Shipper",
+    "comment" : "Stores information to shippers.",
+    "description" : null,
+    "attributes" : [ {
+      "name" : "shipper_id",
+      "label" : "Id",
+      "comment" : "A surrogate primary key used to uniquely identify each shipper.",
+      "description" : null
+    }, {
+      "name" : "company_name",
+      "label" : "Name",
+      "comment" : "The name of the shipping company.",
+      "description" : null
+    }, {
+      "name" : "phone",
+      "label" : "Phone",
+      "comment" : "The telephone number.",
+      "description" : null
+    } ]
+  }, {
+    "name" : "suppliers",
+    "label" : "Supplier",
+    "comment" : "Stores information about suppliers delivering products.",
+    "description" : null,
+    "attributes" : [ {
+      "name" : "supplier_id",
+      "label" : null,
+      "comment" : "A surrogate primary key used to uniquely identify each supplier.",
+      "description" : "Id"
+    }, {
+      "name" : "company_name",
+      "label" : "Name",
+      "comment" : "The name of the suppliers company.",
+      "description" : null
+    }, {
+      "name" : "contact_name",
+      "label" : "Contact",
+      "comment" : "The name of the person to get in contact to the supplier.",
+      "description" : null
+    }, {
+      "name" : "contact_title",
+      "label" : "Title",
+      "comment" : "The title or role of the person to get in contact to the supplier.",
+      "description" : null
+    }, {
+      "name" : "address",
+      "label" : "Address",
+      "comment" : "Address of the contact person.",
+      "description" : null
+    }, {
+      "name" : "city",
+      "label" : "City",
+      "comment" : "City of the contact person.",
+      "description" : null
+    }, {
+      "name" : "region",
+      "label" : "Region",
+      "comment" : "Region of the supplier.",
+      "description" : null
+    }, {
+      "name" : "postal_code",
+      "label" : "Postal Code",
+      "comment" : "Postal code of the supplier.",
+      "description" : null
+    }, {
+      "name" : "country",
+      "label" : "Country",
+      "comment" : "Country for the supplier.",
+      "description" : null
+    }, {
+      "name" : "phone",
+      "label" : "Phone",
+      "comment" : "Telephone number of the contact person.",
+      "description" : null
+    }, {
+      "name" : "fax",
+      "label" : "Fax",
+      "comment" : "Fax number of the company.",
+      "description" : null
+    }, {
+      "name" : "homepage",
+      "label" : "Homepage",
+      "comment" : "Homepage of the supplier company.",
+      "description" : null
+    } ]
+  }, {
+    "name" : "territories",
+    "label" : "Territory",
+    "comment" : "Stores Territories.",
+    "description" : null,
+    "attributes" : [ {
+      "name" : "territory_id",
+      "label" : "Id",
+      "comment" : "A surrogate primary key used to uniquely identify each territory.",
+      "description" : null
+    }, {
+      "name" : "territory_description",
+      "label" : "Description",
+      "comment" : "Description of the territory.",
+      "description" : null
+    } ]
+  } ],
+  "links" : [ {
+    "name" : "same_product",
+    "comment" : "both tables refer to the same product data record",
+    "description" : null,
+    "relations" : [ "fk_order_details_products", "pk_products" ]
+  }, {
+    "name" : "same_customer_demographic",
+    "comment" : "both tables refer to the same customer-demographic data record",
+    "description" : null,
+    "relations" : [ "fk_customer_customer_demo_customer_demographics", "pk_customer_demographics" ]
+  }, {
+    "name" : "same_shipper",
+    "comment" : "both tables refer to the same shipper data record",
+    "description" : null,
+    "relations" : [ "fk_orders_shippers", "pk_shippers" ]
+  }, {
+    "name" : "root_category_of",
+    "comment" : "The category is the topmost root category of the second category",
+    "description" : "The link is directed, order of categories matter. The first category is the root category.",
+    "relations" : [ "fk_categories_categories_root" ]
+  }, {
+    "name" : "belongs_to_root",
+    "nature" : "inverse",
+    "comment" : "The category is a direct or indirect subcategory for the second category (root category)",
+    "description" : "The link is directed, order of categories matter. The second category is the root category.",
+    "relations" : [ "fk_categories_categories_root" ]
+  }, {
+    "name" : "same_supplier",
+    "comment" : "both tables refer to the same supplier data record",
+    "description" : null,
+    "relations" : [ "fk_products_suppliers", "pk_suppliers" ]
+  }, {
+    "name" : "same_employee",
+    "comment" : "both tables refer to the same employee data record",
+    "description" : null,
+    "relations" : [ "fk_employee_territories_employees", "fk_orders_employees", "pk_employees" ]
+  }, {
+    "name" : "same_territory",
+    "comment" : "both tables refer to the same territory data record",
+    "description" : null,
+    "relations" : [ "fk_employee_territories_territories", "pk_territories" ]
+  }, {
+    "name" : "same_customer_customer_demo",
+    "comment" : "both tables refer to the same customer-demographic data record",
+    "description" : null,
+    "relations" : [ "pk_customer_customer_demo" ]
+  }, {
+    "name" : "same_us_state",
+    "comment" : "both tables refer to the same state data record",
+    "description" : null,
+    "relations" : [ "pk_usstates" ]
+  }, {
+    "name" : "same_region",
+    "comment" : "both tables refer to the same region data record",
+    "description" : null,
+    "relations" : [ "fk_territories_region", "pk_region" ]
+  }, {
+    "name" : "same_order_detail",
+    "comment" : "both tables refer to the same order-detail data record",
+    "description" : null,
+    "relations" : [ "pk_order_details" ]
+  }, {
+    "name" : "reports_to",
+    "comment" : "the first employee reports to the second employee.",
+    "description" : "The link is directed, order of employees matter. The first employee is team member, the second employee is the supervisor.",
+    "relations" : [ "fk_employees_employees" ]
+  }, {
+    "name" : "supervisor_of",
+    "nature" : "inverse",
+    "comment" : "the first employee is supervisor of the second employee.",
+    "description" : "The link is directed, order of employees matter. The first employee is team leader, the second employee is team member.",
+    "relations" : [ "fk_employees_employees" ]
+  }, {
+    "name" : "parent_of",
+    "comment" : "this first category is a supercategory of the second.",
+    "description" : "The link is directed, order of categories matter. Root categories have no parent categories",
+    "relations" : [ "fk_categories_categories_super" ]
+  }, {
+    "name" : "child_of",
+    "nature" : "inverse",
+    "comment" : "this first category is a subcategory of the second.",
+    "description" : "The link is directed, order of categories matter. Root categories have not parent categories",
+    "relations" : [ "fk_categories_categories_super" ]
+  }, {
+    "name" : "same_employee_territory",
+    "comment" : "both tables refer to the same territory data record",
+    "description" : null,
+    "relations" : [ "pk_employee_territories" ]
+  }, {
+    "name" : "same_category",
+    "comment" : "both tables refer to the same category data record",
+    "description" : null,
+    "relations" : [ "fk_products_categories", "pk_categories" ]
+  }, {
+    "name" : "same_order",
+    "comment" : "both tables refer to the same order data record",
+    "description" : null,
+    "relations" : [ "fk_order_details_orders", "pk_orders" ]
+  }, {
+    "name" : "same_customer",
+    "comment" : "both tables refer to the same customer data record",
+    "description" : null,
+    "relations" : [ "fk_customer_customer_demo_customers", "fk_orders_customers", "pk_customers" ]
+  } ]
+}

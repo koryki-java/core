@@ -1,0 +1,52 @@
+[versions]
+
+antlr = "4.13.2"
+jackson = "2.21.2"
+junit = "5.9.2"
+
+duckdb = "0.10.2"
+h2database = "2.4.240"
+postgresql = "42.7.9"
+snowflake = "3.16.1"
+oracle = "23.3.0.23.09"
+
+spring-boot = "3.5.5"
+spring-dependency-management = "1.1.7"
+arrow = "18.1.0"
+
+[plugins]
+jacoco = { id = "jacoco" }
+
+antlr = { id = "org.gradle.antlr"}
+
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
+spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "spring-dependency-management" }
+
+[libraries]
+
+
+org-apache-arrow-vector = { module = "org.apache.arrow:arrow-vector", version.ref = "arrow" }
+org-apache-arrow-memory-netty = { module = "org.apache.arrow:arrow-memory-netty", version.ref = "arrow" }
+org-apache-arrow-memory-core = { module = "org.apache.arrow:arrow-memory-core", version.ref = "arrow" }
+org-apache-arrow-arrow-c-data = { module = "org.apache.arrow:arrow-c-data", version.ref = "arrow" }
+
+duckdb = { module = "org.duckdb:duckdb_jdbc", version.ref = "duckdb" }
+h2database = { module = "com.h2database:h2", version.ref = "h2database" }
+postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
+snowflake = { module = "net.snowflake:snowflake-jdbc", version.ref = "snowflake" }
+oracle = { module = "com.oracle.database.jdbc:ojdbc11", version.ref = "oracle" }
+
+antlr4 = { module = "org.antlr:antlr4", version.ref = "antlr" }
+antlr4-runtime = { module = "org.antlr:antlr4-runtime", version.ref = "antlr" }
+
+jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
+jackson-core = { module = "com.fasterxml.jackson.core:jackson-core", version.ref = "jackson" }
+jackson-annotations = { module = "com.fasterxml.jackson.core:jackson-annotations", version.ref = "jackson" }
+
+
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" } # version comes from BOM
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" } # version comes from BOM
+
+[bundles]
+

@@ -1,0 +1,52 @@
+@startuml
+
+
+actor user as "User"
+actor databaseexpert as "Expert"
+
+component mcphost as "MCP-Host\nAI-Application"{
+
+component mcpclient as "MCP-Client"{
+}
+
+}
+
+component mcpserver as "koryki.ai\nMCP-Server"  #FF9800{
+}
+
+
+database database as "Database" {
+}
+
+
+note "AI responses with kql:\nFIND customers c, orders o \nFILTER count(o) > 10 \n  AND o.order_date BETWEEN DATE '2023-01-01' AND DATE '2023-01-31'\nFETCH c.company_name, count(o) DESC" as userquery #2196F3
+
+note "Enrich queries and transpile \ninto SQL." as mcpservernote #2196F3
+
+note "Ask question: \n'Find customers who have placed \nmore than 10 orders in January 2023, \nreturn companyname and count, sort by count.'" as usernote #2196F3
+
+
+
+note "kql grammar description, semantic layer, \ndefinitions of links, usage hints, etc." as doc  #FF9800
+
+
+
+doc ~right~> mcpserver
+databaseexpert --down-> doc
+
+mcphost .[hidden]left.> userquery
+'mcpclient .[hidden]left.> userquery
+
+user <-down-> mcphost
+
+
+mcpclient <.down.> mcpserver
+
+mcpservernote .[hidden]left.> mcpserver
+usernote .[hidden]left.> user
+
+mcpserver <..> database
+
+
+
+@enduml

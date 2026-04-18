@@ -1,0 +1,727 @@
+{
+  "name" : "northwind",
+  "label" : null,
+  "comment" : null,
+  "description" : "Die northwind Databenbank speichert Verkäufe für die Northwind Firma.\nNorthwind verkauft Produkte an andere Kundenfirmen und kauft Produkte bei Herstellerfirmen ein.\nNorthwind Mitarbeiter bearbeiten Bestellungne und versenden die Produkte über Spediteure an die Kunden.",
+  "entities" : [ {
+    "name" : "kategorien",
+    "label" : "Kategorie",
+    "comment" : "Produkte werden in Kategorien verwaltet.",
+    "description" : null,
+    "table" : "categories",
+    "attributes" : [ {
+      "name" : "kategorie_id",
+      "label" : "Id",
+      "comment" : "Die eindeutige Kategorie Id.",
+      "description" : null,
+      "column" : "category_id"
+    }, {
+      "name" : "kategorie_name",
+      "label" : "Name",
+      "comment" : "Name der Kategorie",
+      "description" : null,
+      "column" : "category_name"
+    }, {
+      "name" : "beschreibung",
+      "label" : "Beschreibung",
+      "comment" : "Beschreibung der Kategorie",
+      "description" : null,
+      "column" : "description"
+    }, {
+      "name" : "bild",
+      "label" : "Bild",
+      "comment" : "Ein Bild um die Kategorie zu veranschaulichen",
+      "description" : null,
+      "column" : "picture"
+    } ]
+  }, {
+    "name" : "kunden",
+    "label" : "Kunde",
+    "comment" : "Speichert Information zu den Firmen der Kunden mit Feldern wie firma, kontakt_name.",
+    "description" : null,
+    "table" : "customers",
+    "attributes" : [ {
+      "name" : "kunden_id",
+      "label" : "Id",
+      "comment" : "Die eindeutige Kundennummer.",
+      "description" : null,
+      "column" : "customer_id"
+    }, {
+      "name" : "firma",
+      "label" : "Firma",
+      "comment" : "Der Firmenname des Kunden",
+      "description" : null,
+      "column" : "company_name"
+    }, {
+      "name" : "kontakt_name",
+      "label" : "Kontakt",
+      "comment" : "Name der Kontaktperson",
+      "description" : null,
+      "column" : "contact_name"
+    }, {
+      "name" : "kontakt_titel",
+      "label" : "Titel",
+      "comment" : "Der Titel der Kontaktperson,  (z.B. Owner, Sales Representative, Marketing Manager).",
+      "description" : null,
+      "column" : "contact_title"
+    }, {
+      "name" : "adresse",
+      "label" : "Adresse",
+      "comment" : "Anschrift des Kunden.",
+      "description" : null,
+      "column" : "address"
+    }, {
+      "name" : "stadt",
+      "label" : "Stadt",
+      "comment" : "Stadt der Kundenanschrift.",
+      "description" : null,
+      "column" : "city"
+    }, {
+      "name" : "region",
+      "label" : "Region",
+      "comment" : "Region der Kundenanschrift.",
+      "description" : null,
+      "column" : "region"
+    }, {
+      "name" : "plz",
+      "label" : "PLZ",
+      "comment" : "Postleitzahl der Kundenanschrift.",
+      "description" : null,
+      "column" : "postal_code"
+    }, {
+      "name" : "land",
+      "label" : "Land",
+      "comment" : "Land der Kundenanschrift.",
+      "description" : null,
+      "column" : "country"
+    }, {
+      "name" : "telefon",
+      "label" : "Telefon",
+      "comment" : "Telefonnummer der Kontaktperson.",
+      "description" : null,
+      "column" : "phone"
+    }, {
+      "name" : "fax",
+      "label" : "Fax",
+      "comment" : "Faxnummer der Kontaktperson.",
+      "description" : null,
+      "column" : "fax"
+    } ]
+  }, {
+    "name" : "kunde_segment",
+    "label" : "Segment",
+    "comment" : "Speichert das Kundesegment.",
+    "description" : null,
+    "table" : "customer_customer_demo",
+    "attributes" : [ {
+      "name" : "kunde_id",
+      "label" : "Id",
+      "comment" : "Der Fremdschlüssel zum Kunden.",
+      "description" : null,
+      "column" : "customer_id"
+    }, {
+      "name" : "kunden_typ_id",
+      "label" : "Typ Id",
+      "comment" : "Fremdschlüssel zum Kundentyp.",
+      "description" : null,
+      "column" : "customer_type_id"
+    } ]
+  }, {
+    "name" : "kundensegment",
+    "label" : "Kundensegment",
+    "comment" : "Das Kundensegment, z.B. Retail, Wholesale, Corporate, etc.",
+    "description" : null,
+    "table" : "customer_demographics",
+    "attributes" : [ {
+      "name" : "kundenbeschreiubng",
+      "label" : "Beschreibung",
+      "comment" : "Die Beschreibung des Kundensegments.",
+      "description" : null,
+      "column" : "kundenbeschreiubng"
+    } ]
+  }, {
+    "name" : "mitarbeiter",
+    "label" : "Mitarbeiter",
+    "comment" : "Speichert die Information zu Mitarbeitern wie Namen und Titel.",
+    "description" : null,
+    "table" : "employees",
+    "attributes" : [ {
+      "name" : "mitarbeiter_id",
+      "label" : "Id",
+      "comment" : "Die eindeutige Mitarbeiternummer.",
+      "description" : null,
+      "column" : "employee_id"
+    }, {
+      "name" : "nachname",
+      "label" : "Nachname",
+      "comment" : "Nachname des Mitarbeiters.",
+      "description" : null,
+      "column" : "last_name"
+    }, {
+      "name" : "vorname",
+      "label" : "Vorname",
+      "comment" : "Vorname des Mitarbeiters.",
+      "description" : null,
+      "column" : "first_name"
+    }, {
+      "name" : "titel",
+      "label" : "Titel",
+      "comment" : "Titel des Mitarbeiters für die Rolle in der Firma.",
+      "description" : null,
+      "column" : "title"
+    }, {
+      "name" : "anrede",
+      "label" : "Anrede",
+      "comment" : "Die Anrede",
+      "description" : null,
+      "column" : "title_of_courtesy"
+    }, {
+      "name" : "geburtsdatum",
+      "label" : "Geburtsdatum",
+      "comment" : "Geburtsdatum des Mitarbeiters.",
+      "description" : null,
+      "column" : "birth_date"
+    }, {
+      "name" : "einstellungsdatum",
+      "label" : "Einstellungsdatum",
+      "comment" : "Einstellungsdatum des Mitarbeiters.",
+      "description" : null,
+      "column" : "hire_date"
+    }, {
+      "name" : "adresse",
+      "label" : "Adresse",
+      "comment" : "Anschrift des Mitarbeiters.",
+      "description" : null,
+      "column" : "address"
+    }, {
+      "name" : "stadt",
+      "label" : "Stadt",
+      "comment" : "Stadt der Mitarbeiteranschrift",
+      "description" : null,
+      "column" : "city"
+    }, {
+      "name" : "region",
+      "label" : "Region",
+      "comment" : "Region Mitarbeiteranschrift",
+      "description" : null,
+      "column" : "region"
+    }, {
+      "name" : "plz",
+      "label" : "PLZ",
+      "comment" : "Postleitzahl Mitarbeiteranschrift.",
+      "description" : null,
+      "column" : "postal_code"
+    }, {
+      "name" : "land",
+      "label" : "Land",
+      "comment" : "Land Mitarbeiteranschrift",
+      "description" : null,
+      "column" : "country"
+    }, {
+      "name" : "telefon_privat",
+      "label" : "Telefon",
+      "comment" : "private Telefonnummer des Mitarbeiters.",
+      "description" : null,
+      "column" : "home_phone"
+    }, {
+      "name" : "ergaenzung",
+      "label" : "Ergänzung",
+      "comment" : "ergänzende Information zum Mitarbeiter",
+      "description" : null,
+      "column" : "extension"
+    }, {
+      "name" : "foto",
+      "label" : "Foto",
+      "comment" : "Portraitfoto des Mitarbeiters",
+      "description" : null,
+      "column" : "photo"
+    }, {
+      "name" : "notiz",
+      "label" : "Notiz",
+      "comment" : "Notizen zum Mitarbeiter",
+      "description" : null,
+      "column" : "notes"
+    }, {
+      "name" : "foto_pfad",
+      "label" : "Pfad",
+      "comment" : "URL zum Foto",
+      "description" : null,
+      "column" : "photo_path"
+    } ]
+  }, {
+    "name" : "mitarbeiter_gebiet",
+    "label" : "Mitarbeiter-Gebiet",
+    "comment" : "Speichert die Zuordnung von Mitarbeiten zu Gebieten.",
+    "description" : null,
+    "table" : "employee_territories",
+    "attributes" : [ {
+      "name" : "mitarbeiter_id",
+      "label" : "Mitarbeiter Id",
+      "comment" : "Der Fremdschlüssel zum Mitarbeiter.",
+      "description" : null,
+      "column" : "employee_id"
+    }, {
+      "name" : "gebiet_id",
+      "label" : "Gebiet Id",
+      "comment" : "Der Fremdschlüssel zum Gebiet.",
+      "description" : null,
+      "column" : "territory_id"
+    } ]
+  }, {
+    "name" : "bestellungen",
+    "label" : "Bestellung",
+    "comment" : "Bestellung zu Kunden, Fremdschlüssel zur Bestellung und Kunden.",
+    "description" : null,
+    "table" : "orders",
+    "attributes" : [ {
+      "name" : "bestell_id",
+      "label" : "Id",
+      "comment" : "Die eindeutige Bestellnummer.",
+      "description" : null,
+      "column" : "order_id"
+    }, {
+      "name" : "bestelldatum",
+      "label" : "Bestelldatum",
+      "comment" : "Das Bestelldatum",
+      "description" : null,
+      "column" : "order_date"
+    }, {
+      "name" : "wunsch_datum",
+      "label" : "Wunschdatum",
+      "comment" : "Das Datum für die gewünschte Lieferung",
+      "description" : null,
+      "column" : "required_date"
+    }, {
+      "name" : "versand_datum",
+      "label" : "Versand Datum",
+      "comment" : "Das Versanddatum.",
+      "description" : null,
+      "column" : "shipped_date"
+    }, {
+      "name" : "spediteur_via",
+      "label" : "Via",
+      "comment" : "Der Fremdschlüssel zum Spediteur.",
+      "description" : null,
+      "column" : "ship_via"
+    }, {
+      "name" : "gewicht",
+      "label" : "Gewicht",
+      "comment" : "Das Frachtgewicht.",
+      "description" : null,
+      "column" : "freight"
+    }, {
+      "name" : "spediteur",
+      "label" : "Spediteur",
+      "comment" : "Name des Spediteur.",
+      "description" : null,
+      "column" : "ship_name"
+    }, {
+      "name" : "versand_adresse",
+      "label" : "Versandadresse",
+      "comment" : "Versandadresse, erste Zeile.",
+      "description" : null,
+      "column" : "ship_address"
+    }, {
+      "name" : "versand_stadt",
+      "label" : "Stad",
+      "comment" : "Stadt der Versandadresse.",
+      "description" : null,
+      "column" : "ship_country"
+    }, {
+      "name" : "versand_region",
+      "label" : "Region",
+      "comment" : "Region Versandadresse.",
+      "description" : null,
+      "column" : "ship_region"
+    }, {
+      "name" : "versand_plz",
+      "label" : "PLZ",
+      "comment" : null,
+      "description" : "Postleitzahl Versandadresse.",
+      "column" : "ship_postal_code"
+    } ]
+  }, {
+    "name" : "bestellposition",
+    "label" : "Bestellposition",
+    "comment" : "Die Bestelolposition verknüpft die Bestellung mit den Produkten und weiteren Informationen zur Bestellung",
+    "description" : null,
+    "table" : "order_details",
+    "attributes" : [ {
+      "name" : "preis_je_einheit",
+      "label" : "Preis je Einheit",
+      "comment" : "Preis je Einheit.",
+      "description" : null,
+      "column" : "unit_price"
+    }, {
+      "name" : "menge",
+      "label" : "Menge",
+      "comment" : "Anzahl der bestellten Einheiten.",
+      "description" : null,
+      "column" : "quantity"
+    }, {
+      "name" : "rabatt",
+      "label" : "Rabatt",
+      "comment" : "Der gewährte Rabatt für das Produkt in dieser Bestellung.",
+      "description" : null,
+      "column" : "discount"
+    } ]
+  }, {
+    "name" : "produkte",
+    "label" : "Produkt",
+    "comment" : "Speichert Produkte einschließlich Namen, Lieferanten, Kategorie und Preis je Einheit",
+    "description" : null,
+    "table" : "products",
+    "attributes" : [ {
+      "name" : "produkt_id",
+      "label" : "Id",
+      "comment" : "Die eindeutige Produktnummer.",
+      "description" : null,
+      "column" : "product_id"
+    }, {
+      "name" : "produkt_name",
+      "label" : "Name",
+      "comment" : "Produktname",
+      "description" : null,
+      "column" : "product_name"
+    }, {
+      "name" : "menge_je_einheit",
+      "label" : "Menge je Einheit",
+      "comment" : "Menge je Einheit.",
+      "description" : null,
+      "column" : "quantity_per_unit"
+    }, {
+      "name" : "preis_je_einheit",
+      "label" : "Preis je Einheit",
+      "comment" : "Preis je Einheit",
+      "description" : null,
+      "column" : "unit_price"
+    }, {
+      "name" : "anzahl_im_lager",
+      "label" : "im Lager",
+      "comment" : "Anzahl Einheiten im Lager.",
+      "description" : null,
+      "column" : "units_in_stock"
+    }, {
+      "name" : "anzahl_in_bestellung",
+      "label" : "in Bestellung",
+      "comment" : "Anzahl der bestellten Einheiten.",
+      "description" : null,
+      "column" : "units_on_order"
+    }, {
+      "name" : "bestell_level",
+      "label" : "Bestelllevel",
+      "comment" : "Anzahl der minimalen Einheiten im Lager bevor das Produkt beim Lieferanten neu bestellt werden soll",
+      "description" : null,
+      "column" : "reorder_level"
+    }, {
+      "name" : "ausgelistet",
+      "label" : "ausgelistet",
+      "comment" : "Gibt an ob das Produkt noch lieferbar ist, ausgelistete Produkte sind nicht lieferbar",
+      "description" : null,
+      "column" : "discontinued"
+    } ]
+  }, {
+    "name" : "region",
+    "label" : "Region",
+    "comment" : "Die Region in der das Produkt verkauft wird",
+    "description" : null,
+    "table" : "region",
+    "attributes" : [ {
+      "name" : "region_id",
+      "label" : "Id",
+      "comment" : "Die eindeutige Id der Region.",
+      "description" : null,
+      "column" : "region_id"
+    }, {
+      "name" : "region_beschreibung",
+      "label" : "Beschreibung",
+      "comment" : "Beschreibung Region",
+      "description" : null,
+      "column" : "region_description"
+    } ]
+  }, {
+    "name" : "spediteur",
+    "label" : "Spediteur",
+    "comment" : "Speichert die Information zu Spediteuren",
+    "description" : null,
+    "table" : "shippers",
+    "attributes" : [ {
+      "name" : "spediteur_id",
+      "label" : "Id",
+      "comment" : "Die eindeutige Id des Spediteurs.",
+      "description" : null,
+      "column" : "shipper_id"
+    }, {
+      "name" : "firma",
+      "label" : null,
+      "comment" : "Firmenname des Spediteur",
+      "description" : null,
+      "column" : "company_name"
+    }, {
+      "name" : "telefon",
+      "label" : "Telefon",
+      "comment" : "Telefonnummer.",
+      "description" : null,
+      "column" : "phone"
+    } ]
+  }, {
+    "name" : "hersteller",
+    "label" : "Hersteller",
+    "comment" : "Speichert die Hersteller für Produkte",
+    "description" : null,
+    "table" : "suppliers",
+    "attributes" : [ {
+      "name" : "hersteller_id",
+      "label" : "Id",
+      "comment" : "Die eindeutige Herstellerid.",
+      "description" : null,
+      "column" : "supplier_id"
+    }, {
+      "name" : "firma",
+      "label" : "Firma",
+      "comment" : "Firmenname des Herstellers",
+      "description" : null,
+      "column" : "company_name"
+    }, {
+      "name" : "kontakt",
+      "label" : "Kontakt",
+      "comment" : "Name des Ansprechpartners, Kontaktperson",
+      "description" : null,
+      "column" : "contact_name"
+    }, {
+      "name" : "kontakt_titel",
+      "label" : "Titel",
+      "comment" : "Titel der Kontaktperson",
+      "description" : null,
+      "column" : "contact_title"
+    }, {
+      "name" : "adresse",
+      "label" : "Adresse",
+      "comment" : "Adresse der Kontaktperson",
+      "description" : null,
+      "column" : "address"
+    }, {
+      "name" : "stadt",
+      "label" : "Stadt",
+      "comment" : "Stadt der Adresse der Kontaktperson",
+      "description" : null,
+      "column" : "city"
+    }, {
+      "name" : "region",
+      "label" : "Region",
+      "comment" : "Region des Herstellers.",
+      "description" : null,
+      "column" : "region"
+    }, {
+      "name" : "plz",
+      "label" : "PLZ",
+      "comment" : "Postleitzahl des Herstellers.",
+      "description" : null,
+      "column" : "postal_code"
+    }, {
+      "name" : "land",
+      "label" : "Land",
+      "comment" : "Land des Herstellers for the supplier.",
+      "description" : null,
+      "column" : "country"
+    }, {
+      "name" : "telefon",
+      "label" : null,
+      "comment" : "Telefonnummer der Kontaktperson des Herstellers",
+      "description" : null,
+      "column" : "phone"
+    }, {
+      "name" : "fax",
+      "label" : "FAX",
+      "comment" : "Faxnummer des Herstellers.",
+      "description" : null,
+      "column" : "fax"
+    }, {
+      "name" : "homepage",
+      "label" : "Homepage",
+      "comment" : "Homepage des Herstellers.",
+      "description" : null,
+      "column" : "homepage"
+    } ]
+  }, {
+    "name" : "gebiete",
+    "label" : "Gebiet",
+    "comment" : "Speichert die Gebiete.",
+    "description" : null,
+    "table" : "territories",
+    "attributes" : [ {
+      "name" : "gebiet_id",
+      "label" : "Id",
+      "comment" : "Die eindeutige Id für das Gebiet.",
+      "description" : null,
+      "column" : "territory_id"
+    }, {
+      "name" : "gebiet_beschreibung",
+      "label" : "Beschreibung",
+      "comment" : "Description of the territory.",
+      "description" : null,
+      "column" : "territory_description"
+    } ]
+  } ],
+  "links" : [ {
+    "name" : "gleiches_produkt",
+    "label" : null,
+    "base" : "same_product",
+    "comment" : "Beide Datensätze verweisen auf das gleiche Produkt",
+    "description" : null,
+    "nature" : null,
+    "relations" : [ "fk_order_details_products", "pk_products" ]
+  }, {
+    "name" : "gleiches_kundensegment",
+    "label" : null,
+    "base" : "same_customer_demographics",
+    "comment" : "Beide Datensätze verweisen auf das gleiche Kundensegment",
+    "description" : null,
+    "nature" : null,
+    "relations" : [ "fk_customer_customer_demo_customer_demographics", "pk_customer_demographics" ]
+  }, {
+    "name" : "gleicher_spediteur",
+    "label" : null,
+    "base" : "same_shipper",
+    "comment" : "both tables refer to the same shipper data record",
+    "description" : null,
+    "nature" : null,
+    "relations" : [ "fk_orders_shippers", "pk_shippers" ]
+  }, {
+    "name" : "basiskategorie",
+    "label" : null,
+    "base" : "root_category",
+    "comment" : "Die erste Kategorie ist Basiskategorie der zweiten Kategorie.",
+    "description" : "Die Verknüpfung ist gerichtet. Die erste Kategorie ist die Basiskategorie..",
+    "nature" : null,
+    "relations" : [ "fk_categories_categories_root" ]
+  }, {
+    "name" : "gehoert_zu",
+    "label" : null,
+    "base" : "belongs_to_root",
+    "comment" : "Die erste Kategorie is direkt oder indirekt eine Unterkategorie der zweiten Kategorie (Basiskategorie)",
+    "description" : "Die Verknüpfung ist gerichtet. Die zweite Kategorie ist die Basiskategorie.",
+    "nature" : "inverse",
+    "relations" : [ "fk_categories_categories_root" ]
+  }, {
+    "name" : "gleicher_lieferant",
+    "label" : null,
+    "base" : "same_supplier",
+    "comment" : "Beide Datensätze verweisen auf den gleichen Lieferanten",
+    "description" : null,
+    "nature" : null,
+    "relations" : [ "fk_products_suppliers", "pk_suppliers" ]
+  }, {
+    "name" : "gleicher_mitarbeiter",
+    "label" : null,
+    "base" : "same_employee",
+    "comment" : "Beide Datensätze verweisen auf den gleichen Mitarbeiter",
+    "description" : null,
+    "nature" : null,
+    "relations" : [ "fk_employee_territories_employees", "fk_orders_employees", "pk_employees" ]
+  }, {
+    "name" : "gleiches_gebiet",
+    "label" : null,
+    "base" : "same_territory",
+    "comment" : "Beide Datensätze verweisen auf das gleiche Gebiet",
+    "description" : null,
+    "nature" : null,
+    "relations" : [ "fk_employee_territories_territories", "pk_territories" ]
+  }, {
+    "name" : "gleiches_kunden_kundensegment",
+    "label" : null,
+    "base" : "same_customer_customer_demo",
+    "comment" : "Beide Datensätze verweisen auf das gleiche Kunden-Kundensegment",
+    "description" : null,
+    "nature" : null,
+    "relations" : [ "pk_customer_customer_demo" ]
+  }, {
+    "name" : "gleicher_staat",
+    "label" : null,
+    "base" : "same_us_state",
+    "comment" : "Beide Datensätze verweisen auf den gleichen Staat",
+    "description" : null,
+    "nature" : null,
+    "relations" : [ "pk_usstates" ]
+  }, {
+    "name" : "gleiche_region",
+    "label" : null,
+    "base" : "same_region",
+    "comment" : "Beide Datensätze verweisen auf die gleiche Region",
+    "description" : null,
+    "nature" : null,
+    "relations" : [ "fk_territories_region", "pk_region" ]
+  }, {
+    "name" : "gleiche_bestelldetails",
+    "label" : null,
+    "base" : "same_order_detail",
+    "comment" : "Beide Datensätze verweisen auf die gleiche Bestellposition",
+    "description" : null,
+    "nature" : null,
+    "relations" : [ "pk_order_details" ]
+  }, {
+    "name" : "berichtet_an",
+    "label" : null,
+    "base" : "reports_to",
+    "comment" : "Der erste Mitarbeiter berichtet an den zweiten Mirarbeiter.",
+    "description" : "Die Verknüpfung ist gerichtet. Der erste Mitarbeiter ist Teammitglied, der zweite Mitarbeiter ist Teamleader.",
+    "nature" : null,
+    "relations" : [ "fk_employees_employees" ]
+  }, {
+    "name" : "vorgesetzter_von",
+    "label" : null,
+    "base" : "supervisor_of",
+    "comment" : "Der erste Mitarbeiter ist der Vorgesetzte des zweiten Mitarbeiters.",
+    "description" : "Die Verknüpfung ist gerichtet. Der erste Mitarbeiter ist Teamleader, der zweite Mitarbeiter ist Teammitglied.",
+    "nature" : "inverse",
+    "relations" : [ "fk_employees_employees" ]
+  }, {
+    "name" : "uebergeordnete_kategorie",
+    "label" : null,
+    "base" : "parent_of",
+    "comment" : "Die erste Kategorie ist der zweiten Kategorie übergeordnet.",
+    "description" : "Die Verknüpfung ist gerichtet. Basiskategorien haben keine Elternkategorie",
+    "nature" : null,
+    "relations" : [ "fk_categories_categories_super" ]
+  }, {
+    "name" : "kind_von",
+    "label" : null,
+    "base" : "child_of",
+    "comment" : "Die erste Kategorie ist eine Unterkategorie der zweiten.",
+    "description" : "Die Verknüpfung ist gerichtet. Basiskategorien haben keine Elternkategorie",
+    "nature" : "inverse",
+    "relations" : [ "fk_categories_categories_super" ]
+  }, {
+    "name" : "gleiches_mitarbeitergebiet",
+    "label" : null,
+    "base" : "same_employee_territory",
+    "comment" : "Beide Datensätze verweisen auf das gleiche Mitarbeitergebiet",
+    "description" : null,
+    "nature" : null,
+    "relations" : [ "pk_employee_territories" ]
+  }, {
+    "name" : "gleiche_kategorie",
+    "label" : null,
+    "base" : "same_category",
+    "comment" : "Beide Datensätze verweisen auf die gleiche Kategorie",
+    "description" : null,
+    "nature" : null,
+    "relations" : [ "fk_products_categories", "pk_categories" ]
+  }, {
+    "name" : "gleiche_bestellung",
+    "label" : null,
+    "base" : "same_order",
+    "comment" : "Beide Datensätze verweisen auf die gleiche Bestellung",
+    "description" : null,
+    "nature" : null,
+    "relations" : [ "fk_order_details_orders", "pk_orders" ]
+  }, {
+    "name" : "gleicher_kunde",
+    "label" : null,
+    "base" : "same_customer",
+    "comment" : "Beide Datensätze verweisen auf den gleichen Kundendatensatz",
+    "description" : null,
+    "nature" : null,
+    "relations" : [ "fk_customer_customer_demo_customers", "fk_orders_customers", "pk_customers" ]
+  } ]
+}

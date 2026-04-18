@@ -1,0 +1,6 @@
+// Find customers who have placed more than 10 orders in January 2023,
+// return companyname and count, sort by count.
+
+FIND kunden c, c bestellungen o
+FILTER count(o) > 10 AND o.bestelldatum BETWEEN DATE '2023-01-01' AND DATE '2023-12-31'
+FETCH c.firma, count(o) DESC
