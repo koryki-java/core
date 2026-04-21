@@ -88,10 +88,6 @@ public class Model {
         this.entities = new ArrayList<>(entities);
     }
 
-    public void addEntity(Entity table) {
-        this.entities.add(table);
-    }
-
     public Optional<Entity> getEntity(String name) {
         return entities.stream().filter(t -> t.getName().equals(name)).findFirst();
     }

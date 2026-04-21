@@ -100,11 +100,8 @@ public class Entity {
         return table;
     }
 
-    public String getDialectTable() {
-        return table != null ? table : name;
-    }
 
-//    public void setTable(String table) {
-//        this.table = table;
-//    }
+    public void setTable(String table) {
+        this.table = table;
+    }
 }

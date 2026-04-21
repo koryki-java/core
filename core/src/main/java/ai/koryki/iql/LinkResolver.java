@@ -257,14 +257,14 @@ public class LinkResolver {
 
     // approved
     public Optional<String> getDialectTable(String entity) {
-        return model.getEntity(entity).map(Entity::getDialectTable);
+        return model.getEntity(entity).map(LinkResolver::getDialectTable);
     }
 
     // approved
     public Optional<String> getDialectColumn(String entity, String attribute) {
         return model.getEntity(entity).
                 flatMap(e -> e.getAttributes().stream().filter(a -> a.getName().equals(attribute)).findFirst())
-                .map(Attribute::getDialectColumn);
+                .map(LinkResolver::getDialectColumn);
     }
 
     // approved
@@ -274,17 +274,17 @@ public class LinkResolver {
 
             TableDictionary dictionary = new TableDictionary();
 
-            String dialectTable = e.getDialectTable();
+            String dialectTable = getDialectTable(e);
 
             Entity te = to.getEntities().stream()
-                    .filter(t -> t.getDialectTable().equals(dialectTable)).findFirst()
+                    .filter(t -> getDialectTable(t).equals(dialectTable)).findFirst()
                     .orElseThrow(() -> new RuntimeException("No value present " + dialectTable));
             dictionary.setName(te.getName());
 
             dictionary.setColumns(e.getAttributes().stream().collect(Collectors.toMap(Attribute::getName, a -> {
-                String dialectColumn = a.getDialectColumn();
+                String dialectColumn = getDialectColumn(a);
                 return te.getAttributes().stream()
-                        .filter(aa -> aa.getDialectColumn().equals(dialectColumn)).findFirst()
+                        .filter(aa -> getDialectColumn(aa).equals(dialectColumn)).findFirst()
                         .orElseThrow(() -> new RuntimeException("No value present " + dialectColumn))
                         .getName();
             })));
@@ -300,6 +300,14 @@ public class LinkResolver {
 
         }));
         return new DictionaryTranslator(toLink, toSchema);
+    }
+
+    public static String getDialectTable(Entity entity) {
+        return entity.getTable() != null ? entity.getTable() : entity.getName();
+    }
+
+    public static String getDialectColumn(Attribute attribute) {
+        return attribute.getColumn() != null ? attribute.getColumn() : attribute.getName();
     }
 
 //    public DictionaryTranslator reverseDictionary() {
