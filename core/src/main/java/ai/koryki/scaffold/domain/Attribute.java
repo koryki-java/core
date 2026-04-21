@@ -75,7 +75,12 @@ public class Attribute {
         return column;
     }
 
-    public void setColumn(String column) {
-        this.column = column;
+//    public void setColumn(String column) {
+//        this.column = column;
+//    }
+
+    public String getDialectColumn() {
+        return column != null ? column : name;
     }
+
 }

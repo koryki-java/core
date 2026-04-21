@@ -65,8 +65,11 @@ public class JdbcDatabase<C extends ResultProcessor<?>> implements Database<C> {
             while (r.next()) {
 
                 List<Object> row = new ArrayList<>();
+
+
                 for (int i = 0; i < meta.getColumnCount(); i++) {
-                    row.add(read(r, i + 1));
+
+                    row.add(read(r, i + 1, meta.getColumnType(i + 1)));
                 }
 
                 if (!processor.append(row)) {
@@ -82,11 +85,39 @@ public class JdbcDatabase<C extends ResultProcessor<?>> implements Database<C> {
     Calendar CAL = Calendar.getInstance(TimeZone.getTimeZone(ZONE));
 
 
-    static Object read(ResultSet rs, int i) throws SQLException {
+    static Object read(ResultSet rs, int i, int type) throws SQLException {
 
-        Object v = rs.getObject(i);
+        Object v;
 
-        if (v == null) {
+        switch (type) {
+
+            case Types.DECIMAL:
+            case Types.NUMERIC:
+                v = rs.getBigDecimal(i); break;
+
+            case Types.FLOAT:
+            case Types.DOUBLE:
+                v = rs.getDouble(i);break;
+
+            case Types.INTEGER:
+            case Types.BIGINT:
+                v = rs.getLong(i);break;
+
+            case Types.VARCHAR:
+            case Types.CHAR:
+                v = rs.getString(i);break;
+
+            case Types.DATE:
+                v = rs.getDate(i).toLocalDate();break;
+
+            case Types.TIMESTAMP:
+                v = rs.getTimestamp(i).toInstant();break;
+
+            default:
+                v = rs.getObject(i);break;
+        }
+
+        if (rs.wasNull()) {
             return null;
         }
 

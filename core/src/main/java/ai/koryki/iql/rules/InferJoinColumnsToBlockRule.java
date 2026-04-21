@@ -103,12 +103,12 @@ public class InferJoinColumnsToBlockRule {
         String startTable = start.getName();
         String endTable = end.getName();
 
-        boolean b1 = resolver.isTableInDatabase(startTable);
+        boolean b1 = resolver.isEntity(startTable);
         Source s = b1 ? start : blockIdToLeadingTableMap.get(startTable);
         startTable = s.getName();
         startTable = Identifier.normal(Identifier.lowercase, startTable);
 
-        boolean b2 = resolver.isTableInDatabase(endTable);
+        boolean b2 = resolver.isEntity(endTable);
         Source e = b2 ? end : blockIdToLeadingTableMap.get(end.getName());
 
         endTable = Identifier.normal(Identifier.lowercase, e.getName());

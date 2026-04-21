@@ -5,13 +5,14 @@ import ai.koryki.databases.cases.CSVAssert;
 import ai.koryki.databases.cases.StableFormatInfo;
 import ai.koryki.databases.northwind.NorthwindService;
 import ai.koryki.databases.northwind.duckdb.NorthwindDuckdb;
-import ai.koryki.duckdb.JdbcSelectRenderer;
+import ai.koryki.duckdb.SqlQueryRenderer;
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.jdbc.ColumnInfo;
 import ai.koryki.jdbc.Database;
 import ai.koryki.jdbc.ListResult;
 import ai.koryki.scaffold.Util;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -20,6 +21,7 @@ import java.io.IOException;
 import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.stream.Stream;
 
 public class EngineTest {
@@ -36,7 +38,7 @@ public class EngineTest {
 
         resolver = NorthwindService.resolver();
         database = NorthwindDuckdb.northwind();
-        engine = new Engine<>(database, resolver, new JdbcSelectRenderer(), StableFormatInfo::new);
+        engine = new Engine<>(database, resolver, new SqlQueryRenderer(), StableFormatInfo::new);
     }
 
     static Stream<Path> testFiles() throws IOException {
@@ -51,6 +53,14 @@ public class EngineTest {
 
         test(kql);
     }
+
+//    @Test
+//    void test1() throws IOException {
+//
+//        Path kql = Paths.get("/Users/johanneszemlin/IdeaProjects/koryki-java/core/core/src/test/resources/ai/koryki/kql/northwind/privatetest/window/window_in_block.kql");
+//        test(kql);
+//    }
+
 
     private static void test(Path kql) throws IOException {
 

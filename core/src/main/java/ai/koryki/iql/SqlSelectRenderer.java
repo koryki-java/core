@@ -39,18 +39,18 @@ public class SqlSelectRenderer {
     public static final String DESC = "DESC";
     public static final String SELECT = "SELECT";
 
-    private final Identifier idendifier = Identifier.lowercase;
+    private final Identifier identifier;
 
     protected LinkResolver resolver;
     private FunctionRenderer functionRenderer;
     protected IQLVisibilityContext visibilityContext;
     private Map<Object, RuleContext> iqlToContext;
 
-    public SqlSelectRenderer(Map<Object, RuleContext> iqlToContext,
+    public SqlSelectRenderer(Identifier identifier, Map<Object, RuleContext> iqlToContext,
                              LinkResolver resolver,
                              IQLVisibilityContext visibilityContext,
                              FunctionRenderer functionRenderer) {
-
+        this.identifier = identifier;
         this.iqlToContext = iqlToContext;
         this.resolver = resolver;
         this.visibilityContext = visibilityContext;
@@ -150,14 +150,18 @@ public class SqlSelectRenderer {
         return l;
     }
 
-    protected String toSql(Source table, int indent) {
+    protected String toSql(Source source, int indent) {
         StringBuilder b = new StringBuilder();
 
-        b.append(normal(resolver.getModel().getTable(table.getName())));
-        if (table.getAlias() != null) {
-            b.append(" " + normal(table.getAlias()));
+        b.append(normal(toSql(source)));
+        if (source.getAlias() != null) {
+            b.append(" ").append(normal(source.getAlias()));
         }
         return b.toString();
+    }
+
+    protected String toSql(Source source) {
+        return resolver.getDialectTable(source.getName()).orElse(source.getName());
     }
 
     protected String toSql(Out out, int indent) {
@@ -533,7 +537,7 @@ public class SqlSelectRenderer {
     protected SqlSelectRenderer subSelect(Map<Object, RuleContext> iqlToContext, Object child) {
 
 
-        SqlSelectRenderer s2s = new SqlSelectRenderer(iqlToContext, resolver, visibilityContext.child(child), functionRenderer);
+        SqlSelectRenderer s2s = new SqlSelectRenderer(identifier, iqlToContext, resolver, visibilityContext.child(child), functionRenderer);
         return s2s;
     }
 
@@ -623,8 +627,8 @@ public class SqlSelectRenderer {
         StringBuilder b = new StringBuilder();
         b.append(indent(indent));
 
-        Source startBlock = visibilityContext.getLeadingTable(startName);
-        Source endBlock = visibilityContext.getLeadingTable(endName);
+        Source startBlock = visibilityContext.getLeadingSource(startName);
+        Source endBlock = visibilityContext.getLeadingSource(endName);
 
         List<String> lines = new ArrayList<>();
 
@@ -663,23 +667,27 @@ public class SqlSelectRenderer {
         }
         for (Out o : blockTable.getOut()) {
             Field column = o.getExpression().getField();
-            if (column != null && getTranslatedColumn(blockTable, column).equals(translatedJoinCol)) {
-                return o.getHeader() != null ? o.getHeader() : getTranslatedColumn(blockTable, column);
+            if (column != null && getTranslatedField(blockTable, column).equals(translatedJoinCol)) {
+                return o.getHeader() != null ? o.getHeader() : getTranslatedField(blockTable, column);
             }
         }
         throw new KorykiaiException("missing joinColumn: " + translatedJoinCol + " " + blockTable.getAlias());
     }
 
-    private String getTranslatedColumn(Source table, Field column) {
+    private String getTranslatedField(Source source, Field field) {
 
-        Source b = visibilityContext.getLeadingTable(table.getName());
+        Source b = visibilityContext.getLeadingSource(source.getName());
 
-        String tablename = b != null ? b.getName() : table.getName();
-        String c = resolver.getModel().getColumn(tablename, column.getName());
-        if (c == null) {
-            throw new KorykiaiException("unknow column " + table.getAlias() + " " + table.getName() + "." + column.getName());
+        String sourcename = b != null ? b.getName() : source.getName();
+        String f = toSql(sourcename, field);
+        if (f == null) {
+            throw new KorykiaiException("unknow field " + source.getAlias() + " " + source.getName() + "." + field.getName());
         }
-        return c;
+        return f;
+    }
+
+    private String toSql(String sourcename, Field field) {
+        return resolver.getDialectColumn(sourcename, field.getName()).orElse(field.getName());
     }
 
     protected String toSql(List<Expression> expression, int indent) {
@@ -734,18 +742,18 @@ public class SqlSelectRenderer {
         return "DATE '" + expression.getLocalDate() + "'";
     }
 
-    protected String toSql(Field column, int indent) {
+    protected String toSql(Field field, int indent) {
         StringBuilder b = new StringBuilder();
-        if (column.getAlias() != null) {
-            b.append(normal(column.getAlias()) + ".");
+        if (field.getAlias() != null) {
+            b.append(normal(field.getAlias())).append(".");
         }
 
-        Source table = visibilityContext.getSource(column.getAlias());
+        Source table = visibilityContext.getSource(field.getAlias());
         if (table == null) {
-            throw new RuntimeException(column.getAlias());
+            throw new RuntimeException(field.getAlias());
         }
 
-        b.append(normal(getTranslatedColumn(table, column)));
+        b.append(normal(getTranslatedField(table, field)));
         return b.toString();
     }
 
@@ -797,7 +805,7 @@ public class SqlSelectRenderer {
     }
 
     private String normal(String text) {
-        return Identifier.normal(idendifier, text);
+        return Identifier.normal(identifier, text);
     }
 
     private String normal(int l, String text) {
@@ -826,27 +834,25 @@ public class SqlSelectRenderer {
     }
 
 
-    protected String getTable(String tableName) {
-        if (resolver.isTableInDatabase(tableName)) {
-            return tableName;
+    protected String getSource(String source) {
+        if (resolver.isEntity(source)) {
+            return source;
         }
-        ;
 
-
-        Source b = visibilityContext.getLeadingTable(tableName);
+        Source b = visibilityContext.getLeadingSource(source);
         if (b != null) {
             return b.getName();
         }
-        throw new KorykiaiException("can't find start: " + tableName);
+        throw new KorykiaiException("can't find source: " + source);
     }
 
 
     protected Relation getRelation(Range range, String startName, String endName, String crit, String msg, String right) {
-        String startTable = getTable(startName);
-        String endTable = getTable(endName);
+        String startSource = getSource(startName);
+        String endSource = getSource(endName);
 
 
-        Optional<Relation> o = resolver.findRelation(range, Identifier.normal(Identifier.lowercase, startTable), Identifier.normal(Identifier.lowercase, endTable), crit);
+        Optional<Relation> o = resolver.findRelation(range, Identifier.normal(Identifier.lowercase, startSource), Identifier.normal(Identifier.lowercase, endSource), crit);
 
         if (!o.isPresent()) {
             throw new KorykiaiException(msg + " " + crit + " " + right);
@@ -859,4 +865,7 @@ public class SqlSelectRenderer {
         return functionRenderer;
     }
 
+    public Identifier getIdentifier() {
+        return identifier;
+    }
 }

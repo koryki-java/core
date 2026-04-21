@@ -58,23 +58,23 @@ public class IQLVisibilityContext {
         return new IQLVisibilityContext(blockIdToBlockMap, blockIdToLeadingSourceMap, childToAliasesMap, childMap);
     }
 
-    public Source getLeadingTable(String tableName) {
-        return blockIdToLeadingSourceMap.get(tableName);
+    public Source getLeadingSource(String source) {
+        return blockIdToLeadingSourceMap.get(source);
     }
 
     public Source getSource(String alias) {
         return aliasToSourceMap.get(alias);
     }
 
-    public Block getBlock(String name) {
-        return blockIdToBlockMap.get(name);
-    }
-
-    public Source rootTable(Source table) {
-        Source leadingBlockTable = getLeadingTable(table.getName());
-        if (leadingBlockTable != null) {
-            return getLeadingTable(leadingBlockTable.getName());
-        }
-        return table;
-    }
+//    public Block getBlock(String name) {
+//        return blockIdToBlockMap.get(name);
+//    }
+//
+//    public Source rootTable(Source table) {
+//        Source leadingBlockTable = getLeadingSource(table.getName());
+//        if (leadingBlockTable != null) {
+//            return getLeadingSource(leadingBlockTable.getName());
+//        }
+//        return table;
+//    }
 }

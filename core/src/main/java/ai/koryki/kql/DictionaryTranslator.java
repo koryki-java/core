@@ -21,8 +21,8 @@ import java.util.Map;
 
 public class DictionaryTranslator implements Translator {
 
-    private Map<String, String> ld;
-    private Map<String, TableDictionary> sd;
+    private final Map<String, String> ld;
+    private final Map<String, TableDictionary> sd;
 
     public DictionaryTranslator(Map<String, String> ld, Map<String, TableDictionary> sd) {
         this.ld = ld;
@@ -53,4 +53,11 @@ public class DictionaryTranslator implements Translator {
     }
 
 
+    public Map<String, String> getLinkDictionary() {
+        return ld;
+    }
+
+    public Map<String, TableDictionary> getSchemaDictionary() {
+        return sd;
+    }
 }

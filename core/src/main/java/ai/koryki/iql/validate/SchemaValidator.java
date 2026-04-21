@@ -62,24 +62,24 @@ public class SchemaValidator implements Collector<List<Violation>> {
     }
 
     @Override
-    public boolean visit(Deque<Object> deque, Field column) {
+    public boolean visit(Deque<Object> deque, Field field) {
 
-        Source selectTable = aliasToTable.get(column.getAlias());
+        Source selectTable = aliasToTable.get(field.getAlias());
         if (selectTable == null) {
-           violations.add(new Violation(column, Range.range(iqlToContext.get(column)), "unknown alias " + column.getAlias()));
+           violations.add(new Violation(field, Range.range(iqlToContext.get(field)), "unknown alias " + field.getAlias()));
         } else {
             Select select = blockIdToSelectMap.get(selectTable.getName());
             if (select != null) {
                 List<Out> outs = SqlQueryRenderer.collectOut(select);
-                if (outs.stream().filter(o -> match(column, o)).findFirst().isPresent()) {
+                if (outs.stream().filter(o -> match(field, o)).findFirst().isPresent()) {
                     return true;
                 } else {
-                    violations.add(new Violation(column, Range.range(iqlToContext.get(column)), "unknown header " + column.getName()));
+                    violations.add(new Violation(field, Range.range(iqlToContext.get(field)), "unknown header " + field.getName()));
                 }
             } else {
                 Optional<ai.koryki.scaffold.domain.Entity> optional = resolver.getModel().getEntity(selectTable.getName());
                 if (!optional.isPresent()) {
-                    violations.add(new Violation(column, Range.range(iqlToContext.get(column)), "invalid table " + selectTable.getName()));
+                    violations.add(new Violation(field, Range.range(iqlToContext.get(field)), "invalid table " + selectTable.getName()));
                 }
             }
         }

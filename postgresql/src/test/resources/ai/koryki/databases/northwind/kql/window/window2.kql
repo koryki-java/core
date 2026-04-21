@@ -1,0 +1,22 @@
+WITH base AS (
+FIND order_details d, d orders o, d products p, o customers c
+FILTER o.order_date BETWEEN DATE '2023-01-01' AND DATE '2023-12-31' AND c.company_name LIKE 'C%'
+FETCH
+o.order_id ASC,
+p.product_name ASC,
+c.company_name,
+d.unit_price,
+d.quantity,
+d.unit_price * d.quantity product_total,
+sum(d.unit_price * d.quantity) OVER(PARTITION o.order_id ORDER o.order_id) order_total
+)
+FIND base b
+FETCH
+b.order_id ASC,
+b.product_name ASC,
+b.company_name,
+b.unit_price,
+b.quantity,
+b.product_total,
+b.order_total,
+b.product_total / b.order_total

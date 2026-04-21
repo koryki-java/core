@@ -18,6 +18,10 @@ package ai.koryki.iql;
 
 import ai.koryki.antlr.Range;
 import ai.koryki.antlr.RangeException;
+import ai.koryki.kql.DictionaryTranslator;
+import ai.koryki.kql.TableDictionary;
+import ai.koryki.scaffold.domain.Attribute;
+import ai.koryki.scaffold.domain.Entity;
 import ai.koryki.scaffold.domain.Link;
 import ai.koryki.scaffold.domain.Model;
 import ai.koryki.scaffold.schema.Relation;
@@ -83,10 +87,8 @@ public class LinkResolver {
         return relation.getEndTable().equals(model.getTable(e));
     }
 
-    public boolean isTableInDatabase(String table) {
-        String s = SqlQueryRenderer.strip(table);
-
-        return model.getEntity(s).isPresent();
+    public boolean isEntity(String entity) {
+        return model.getEntity(entity).isPresent();
     }
 
     public boolean isInverse(String link) {
@@ -248,4 +250,78 @@ public class LinkResolver {
     public Map<String, Link> getLinkMap() {
         return linkMap;
     }
+
+    // approved
+    public Optional<String> getDialectTable(String entity) {
+        return model.getEntity(entity).map(Entity::getDialectTable);
+    }
+
+    // approved
+    public Optional<String> getDialectColumn(String entity, String attribute) {
+        return model.getEntity(entity).
+                flatMap(e -> e.getAttributes().stream().filter(a -> a.getName().equals(attribute)).findFirst())
+                .map(Attribute::getDialectColumn);
+    }
+
+    // approved
+    public static DictionaryTranslator dictionary(Model from, Model to) {
+
+        Map<String, TableDictionary> toSchema = from.getEntities().stream().collect(Collectors.toMap(Entity::getName, (e) -> {
+
+            TableDictionary dictionary = new TableDictionary();
+
+            String dialectTable = e.getDialectTable();
+
+            Entity te = to.getEntities().stream()
+                    .filter(t -> t.getDialectTable().equals(dialectTable)).findFirst()
+                    .orElseThrow(() -> new RuntimeException("No value present " + dialectTable));
+            dictionary.setName(te.getName());
+
+            dictionary.setColumns(e.getAttributes().stream().collect(Collectors.toMap(Attribute::getName, a -> {
+                String dialectColumn = a.getDialectColumn();
+                return te.getAttributes().stream()
+                        .filter(aa -> aa.getDialectColumn().equals(dialectColumn)).findFirst()
+                        .orElseThrow(() -> new RuntimeException("No value present " + dialectColumn))
+                        .getName();
+            })));
+            return dictionary;
+        }));
+        Map<String, String> toLink = from.getLinks().stream().collect(Collectors.toMap(Link::getName, (l) -> {
+            String base = l.getBase() != null ? l.getBase() : l.getName();
+            return to.getLinks().stream()
+                    .filter(tl -> (tl.getBase() != null ? tl.getBase() : tl.getName()).equals(base))
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("No value present " + base))
+                    .getName();
+
+        }));
+        return new DictionaryTranslator(toLink, toSchema);
+    }
+
+//    public DictionaryTranslator reverseDictionary() {
+//        DictionaryTranslator d = dictionary();
+//        return new DictionaryTranslator(swapMap(d.getLinkDictionary()), swapDictionary(d.getSchemaDictionary()));
+//    }
+//
+//    private static Map<String, TableDictionary> swapDictionary(Map<String, TableDictionary> map) {
+//
+//        Map<String, TableDictionary> s = new HashMap<>();
+//        map.forEach((k, v) -> {
+//            String n = v.getName();
+//
+//            TableDictionary d = new TableDictionary();
+//            d.setName(k);
+//            d.setColumns(swapMap(v.getColumns()));
+//            s.put(n, d);
+//
+//        });
+//        return s;
+//    }
+//
+//    private static Map<String, String> swapMap(Map<String, String> map) {
+//        Map<String, String> s = new HashMap<>();
+//        map.forEach((k, v) -> s.put(v, k));
+//        return s;
+//    }
+
 }

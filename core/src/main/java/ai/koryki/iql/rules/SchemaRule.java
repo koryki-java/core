@@ -1,7 +1,9 @@
 package ai.koryki.iql.rules;
 
 import ai.koryki.iql.Visitor;
+import ai.koryki.iql.Walker;
 import ai.koryki.iql.query.Field;
+import ai.koryki.iql.query.Query;
 import ai.koryki.iql.query.Source;
 import ai.koryki.scaffold.domain.Model;
 
@@ -13,6 +15,13 @@ public class SchemaRule {
 
     public SchemaRule(Model model) {
         this.model = model;
+    }
+
+    public void apply(Query query) {
+
+        SchemaRule.SchemaVisitor v = new SchemaRule.SchemaVisitor(model);
+        new Walker().walk(query, v);
+
     }
 
     private static class SchemaVisitor implements Visitor {

@@ -55,7 +55,7 @@ public class TranslateTest {
 //    @Test
 //    void test1() throws IOException {
 //
-//        Path kql = Paths.get("src/test/resources/ai/koryki/kql/northwind/privatetest/identity/block_find_fetch_join_count_identity.kql");
+//        Path kql = Paths.get("/Users/johanneszemlin/IdeaProjects/koryki-java/core/core/src/test/resources/ai/koryki/kql/northwind/simple/customersmorethan10ordersin2023.kql");
 //        test(kql);
 //    }
 
@@ -68,25 +68,25 @@ public class TranslateTest {
 
         LinkResolver resolverDe = NorthwindService.resolver(Locale.GERMAN);
 
-        Map<String, String> de2enLink = resolverDe.getModel().getLinks().stream().collect(Collectors.toMap(Link::getName, Link::getBase));
+//        Map<String, String> de2enLink = resolverDe.getModel().getLinks().stream().collect(Collectors.toMap(Link::getName, Link::getBase));
+//
+//        Map<String, TableDictionary> de2enSchema = resolverDe.getModel().getEntities().stream().collect(Collectors.toMap(Entity::getName, (e) -> {
+//
+//            TableDictionary t = new TableDictionary();
+//            t.setName(e.getDialectTable());
+//            t.setColumns(e.getAttributes().stream().collect(Collectors.toMap(Attribute::getName, Attribute::getColumn)));
+//            return t;
+//        }));
+//
+//        Map<String, String> en2deLink = LinkResolver.swapMap(de2enLink);
+//        Map<String, TableDictionary> en2deSchema = LinkResolver.swapDictionary(de2enSchema);
 
-        Map<String, TableDictionary> de2enSchema = resolverDe.getModel().getEntities().stream().collect(Collectors.toMap(Entity::getName, (e) -> {
+        DictionaryTranslator dt = LinkResolver.dictionary(resolverEn.getModel(), resolverDe.getModel()) ;
 
-            TableDictionary t = new TableDictionary();
-            t.setName(e.getTable());
-            t.setColumns(e.getAttributes().stream().collect(Collectors.toMap(Attribute::getName, Attribute::getColumn)));
-            return t;
-        }));
-
-        Map<String, String> en2deLink = Translator.swapMap(de2enLink);
-        Map<String, TableDictionary> en2deSchema = Translator.swapDictionary(de2enSchema);
-
-        DictionaryTranslator dt = new DictionaryTranslator(en2deLink, en2deSchema);
-
-        ai.koryki.kql.KQLFormatter formatter2de = new ai.koryki.kql.KQLFormatter(ctx, transpilerEn.getDescription(), resolverEn, dt);
+        KQLFormatter formatter2de = new KQLFormatter(ctx, transpilerEn.getDescription(), resolverEn, dt);
         String kqlDe = formatter2de.format();
 
-        ai.koryki.kql.KQLTranspiler transpilerDe = new ai.koryki.kql.KQLTranspiler(kqlDe, resolverDe);
+        KQLTranspiler transpilerDe = new KQLTranspiler(kqlDe, resolverDe);
 
         String sql = transpilerDe.getSql(new SqlQueryRenderer(new FunctionRenderer() {}));
         assertNotNull(sql);

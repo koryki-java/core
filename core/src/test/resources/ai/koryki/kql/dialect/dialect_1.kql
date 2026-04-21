@@ -1,0 +1,2 @@
+FIND vdsession s
+FETCH s.serial, s.sid

@@ -34,8 +34,8 @@ public enum Identifier {
     /** lowercaseQuoted is valid for PostgreSQL */
     lowercaseQuoted(true, true);
 
-    private boolean q;
-    private boolean l;
+    private final boolean q;
+    private final boolean l;
 
     Identifier(boolean quoted, boolean lower) {
         q = quoted;

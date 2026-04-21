@@ -48,8 +48,8 @@ public class BlockRecursionDetector implements Collector<Boolean> {
         String startTable = start.getName();
         String endTable = end.getName();
 
-        boolean b1 = resolver.isTableInDatabase(startTable);
-        boolean b2 = resolver.isTableInDatabase(endTable);
+        boolean b1 = resolver.isEntity(startTable);
+        boolean b2 = resolver.isEntity(endTable);
 
         recursive |= !b1 || !b2;
     }

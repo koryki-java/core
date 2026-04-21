@@ -41,6 +41,7 @@ public class Rules {
     }
     
     public Map<String, Source> apply() {
+        new SchemaRule(resolver.getModel()).apply(query);
         new PushOutRule().apply(query);
         new InferJoinColumnsToBlockRule(query, resolver, blockIdToLeadingTableMap, iqlToContext).apply();
         new HavingRule(aggregat, query).apply();
