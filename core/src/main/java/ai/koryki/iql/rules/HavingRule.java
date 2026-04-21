@@ -33,10 +33,10 @@ import java.util.stream.Collectors;
  */
 public class HavingRule {
 
-    private Query query;
-    private Aggregate aggregat;
-    public HavingRule(Aggregate aggregat, Query query) {
-        this.aggregat = aggregat;
+    private final Query query;
+    private final Aggregate aggregat;
+    public HavingRule(Aggregate aggregate, Query query) {
+        this.aggregat = aggregate;
         this.query = query;
     }
 
@@ -48,9 +48,9 @@ public class HavingRule {
 
     private static class HavingVisitor implements Visitor {
 
-        private Aggregate aggregat;
-        public HavingVisitor(Aggregate aggregat) {
-            this.aggregat = aggregat;
+        private final Aggregate aggregate;
+        public HavingVisitor(Aggregate aggregate) {
+            this.aggregate = aggregate;
         }
 
         @Override
@@ -94,7 +94,7 @@ public class HavingRule {
             boolean h =
                     logical.isValue() &&
                             logical.getUnaryRelationalExpression().getOp() != null &&
-                            isAggregat(logical, aggregat);
+                            isAggregat(logical, aggregate);
             return h;
         }
     }

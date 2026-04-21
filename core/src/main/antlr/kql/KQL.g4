@@ -121,9 +121,9 @@ function
 ;
 
 // check, if stronger constraints are useful
-// 1. most common aggregat functions: SUM, AVG, COUNT, MIN, MAX, ROW_NUMBER, LAG, LEAD
+// 1. most common aggregate functions: SUM, AVG, COUNT, MIN, MAX, ROW_NUMBER, LAG, LEAD
 // 2. No ORDER BY outside window-function
-// 3. avoid mixing aggregat and window-function, enforce to use CTE/block
+// 3. avoid mixing aggregate and window-function, enforce to use CTE/block
 window
     : OVER LEFT_PAREN (PARTITION partitionex+=expression (COMMA partitionex+=expression)*)? (ORDER orderex+=expression (COMMA orderex+=expression)* (ASC|DESC)? )? frame? RIGHT_PAREN
    ;

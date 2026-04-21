@@ -32,7 +32,7 @@ import java.util.*;
  */
 public class IdentityRule {
 
-    private LinkResolver resolver;
+    private final LinkResolver resolver;
     private final Map<String, Source> blockIdToLeadingTableMap;
 
     public IdentityRule(Map<String, Source> blockIdToLeadingTableMap, LinkResolver resolver) {
@@ -49,8 +49,8 @@ public class IdentityRule {
 
     private static class IdentityVisitor implements Visitor {
 
-        private LinkResolver resolver;
-        private Map<String, Source> blockIdToLeadingSourceMap;
+        private final LinkResolver resolver;
+        private final Map<String, Source> blockIdToLeadingSourceMap;
 
         public IdentityVisitor(Map<String, Source> blockIdToLeadingSourceMap, LinkResolver resolver) {
 
@@ -81,7 +81,6 @@ public class IdentityRule {
                 String h = blockSource.getOut().stream().filter(o -> o.getHeader() != null && o.getExpression().getField() != null && o.getExpression().getField().getName().equals(column)).map(o -> o.getHeader()).findFirst().orElse(null);
 
                 if (h != null) {
-                    //enrichBlocksource(blockSource, h);
                     return h;
                 } else {
                     enrichBlocksource(blockSource, column);
@@ -109,8 +108,6 @@ public class IdentityRule {
                     expression.setIdentity(null);
                     return col;
                 }
-
-
 
                 if (col != null) {
 

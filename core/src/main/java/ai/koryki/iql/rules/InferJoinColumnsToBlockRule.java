@@ -34,10 +34,10 @@ import java.util.Optional;
  */
 public class InferJoinColumnsToBlockRule {
 
-    private LinkResolver resolver;
-    private Query query;
-    private Map<String, Source> blockIdToLeadingTableMap;
-    private Map<Object, RuleContext> iqlToContext;
+    private final LinkResolver resolver;
+    private final Query query;
+    private final Map<String, Source> blockIdToLeadingTableMap;
+    private final Map<Object, RuleContext> iqlToContext;
 
     public InferJoinColumnsToBlockRule(Query query, LinkResolver resolver, Map<String, Source> blockIdToLeadingTableMap,
                                        Map<Object, RuleContext> iqlToContext) {
@@ -113,34 +113,30 @@ public class InferJoinColumnsToBlockRule {
 
         endTable = Identifier.normal(Identifier.lowercase, e.getName());
 
-        try {
-            Optional<Relation> o = resolver.findRelation(Range.range(iqlToContext.get(start)), startTable, endTable, crit);
-            if (!o.isPresent()) {
-                throw new KorykiaiException(msg +  " " + crit + " " + right.getName());
-            }
 
-            // no need to extend out from previous set.
-            Relation r = o.get();
+        Optional<Relation> o = resolver.findRelation(Range.range(iqlToContext.get(start)), startTable, endTable, crit);
+        if (o.isEmpty()) {
+            throw new KorykiaiException(msg +  " " + crit + " " + right.getName());
+        }
 
-            if (!b1) {
-                List<String> cols = r.getStartColumns();
-                if (block != null) {
-                    enhanceOut(block.getSet(), cols);
-                } else {
-                    enhanceOut(s, cols);
-                }
+        // no need to extend out from previous set.
+        Relation r = o.get();
+
+        if (!b1) {
+            List<String> cols = r.getStartColumns();
+            if (block != null) {
+                enhanceOut(block.getSet(), cols);
+            } else {
+                enhanceOut(s, cols);
             }
-            if (!b2) {
-                List<String> cols = r.getEndColumns();
-                if (block != null) {
-                    enhanceOut(block.getSet(), cols);
-                } else {
-                    enhanceOut(e, cols);
-                }
+        }
+        if (!b2) {
+            List<String> cols = r.getEndColumns();
+            if (block != null) {
+                enhanceOut(block.getSet(), cols);
+            } else {
+                enhanceOut(e, cols);
             }
-        } catch (RangeException ex) {
-            //ex.setRange(Range.range(iqlToContext.get(start)));
-            throw ex;
         }
     }
 
