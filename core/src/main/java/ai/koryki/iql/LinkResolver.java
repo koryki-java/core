@@ -310,30 +310,4 @@ public class LinkResolver {
         return attribute.getColumn() != null ? attribute.getColumn() : attribute.getName();
     }
 
-//    public DictionaryTranslator reverseDictionary() {
-//        DictionaryTranslator d = dictionary();
-//        return new DictionaryTranslator(swapMap(d.getLinkDictionary()), swapDictionary(d.getSchemaDictionary()));
-//    }
-//
-//    private static Map<String, TableDictionary> swapDictionary(Map<String, TableDictionary> map) {
-//
-//        Map<String, TableDictionary> s = new HashMap<>();
-//        map.forEach((k, v) -> {
-//            String n = v.getName();
-//
-//            TableDictionary d = new TableDictionary();
-//            d.setName(k);
-//            d.setColumns(swapMap(v.getColumns()));
-//            s.put(n, d);
-//
-//        });
-//        return s;
-//    }
-//
-//    private static Map<String, String> swapMap(Map<String, String> map) {
-//        Map<String, String> s = new HashMap<>();
-//        map.forEach((k, v) -> s.put(v, k));
-//        return s;
-//    }
-
 }
