@@ -110,11 +110,11 @@ public class SqlQueryRenderer implements SqlRenderer {
             return out.getHeader();
         } else if (out.getExpression().getField() != null) {
 
-            Field c = out.getExpression().getField();
-            Source t = v.getSource(c.getAlias());
-            Source b = v.getLeadingSource(t.getName());
-            String tablename = b != null ? b.getName() : t.getName();
-            String header = resolver.getModel().getColumn(tablename, c.getName());
+            Field f = out.getExpression().getField();
+            Source s = v.getSource(f.getAlias());
+            Source b = v.getLeadingSource(s.getName());
+            String sourcename = b != null ? b.getName() : s.getName();
+            String header = resolver.getDialectColumn(sourcename, f.getName()).orElse(f.getName());
             return header;
         } else {
             throw new KorykiaiException("missing column-header");

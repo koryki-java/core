@@ -27,6 +27,7 @@ import ai.koryki.scaffold.domain.Model;
 import ai.koryki.scaffold.schema.Relation;
 import ai.koryki.scaffold.schema.Schema;
 
+import javax.naming.spi.Resolver;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -57,34 +58,37 @@ public class LinkResolver {
 
     private List<Relation> _listTypedAligned(String crit, String start, String end) {
 
-        List<Relation> rl = db.linkRelations(model.getTable(start), model.getTable(end), crit);
+
+        List<Relation> rl = db.linkRelations(getDialectTable(start).orElseThrow(() -> new RuntimeException(start)), getDialectTable(end).orElseThrow(() -> new RuntimeException(end)), crit);
         return rl;
     }
 
     private List<Relation> _listTypedReverse(String crit, String start, String end) {
 
-        List<Relation> rl =db.linkRelations(model.getTable(end), model.getTable(start), crit);
+        List<Relation> rl = db.linkRelations(
+                getDialectTable(end).orElseThrow(() -> new RuntimeException(end)), 
+                getDialectTable(start).orElseThrow(() -> new RuntimeException(start)), crit);
         return rl;
     }
 
     private List<Relation> _listUntypedAligned(String crit, String start, String end) {
 
-        List<Relation> rl =db.linkRelations(model.getTable(start), model.getTable(end));
+        List<Relation> rl =db.linkRelations(getDialectTable(start).orElseThrow(() -> new RuntimeException(start)), getDialectTable(end).orElseThrow(() -> new RuntimeException(end)));
         return strict && crit != null ? Collections.emptyList() : rl;
     }
 
     private List<Relation> _listUntypedReverse(String crit, String start, String end) {
 
-        List<Relation> rl =db.linkRelations(model.getTable(end), model.getTable(start));
+        List<Relation> rl =db.linkRelations(getDialectTable(end).orElseThrow(() -> new RuntimeException(end)), getDialectTable(start).orElseThrow(() -> new RuntimeException(start)));
         return strict && crit != null ? Collections.emptyList() : rl;
     }
 
-    private boolean compareStart(String s, Relation relation) {
-        return relation.getStartTable().equals(model.getTable(s));
+    private boolean compareStart(String start, Relation relation) {
+        return relation.getStartTable().equals(getDialectTable(start).orElseThrow(() -> new RuntimeException(start)));
     }
 
-    private boolean compareEnd(String e, Relation relation) {
-        return relation.getEndTable().equals(model.getTable(e));
+    private boolean compareEnd(String end, Relation relation) {
+        return relation.getEndTable().equals(getDialectTable(end).orElseThrow(() -> new RuntimeException(end)));
     }
 
     public boolean isEntity(String entity) {

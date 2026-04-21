@@ -32,8 +32,6 @@ public class SchemaRule {
         }
         public boolean visit(Deque<Object> deque, Source source) {
 
-            model.getTable(source.getName());
-
             return true;
         }
 

@@ -96,35 +96,6 @@ public class Model {
         return entities.stream().filter(t -> t.getName().equals(name)).findFirst();
     }
 
-    public String getTable(String entity) {
-        Optional<Entity> entity1 = getEntity(entity);
-        if (entity1.isEmpty()) {
-            // FIXME rethink concept for headers, model-translation
-            return entity;
-        }
-        Entity e = entity1.get();
-        return e.getTable() != null ? e.getTable() : e.getName();
-    }
-
-    public String getColumn(String entity, String attribute) {
-        Optional<Entity> optional = getEntity(entity);
-
-        if (optional.isEmpty()) {
-            return attribute;
-        }
-        Entity e = optional.get();
-
-        Optional<Attribute> first = e.getAttributes().stream().filter(a -> a.getName().equals(attribute)).findFirst();
-
-        if (!first.isPresent()) {
-            // FIXME rethink concept for headers, model-translation
-            return attribute;
-        }
-
-        Attribute attr = first.get();
-        return attr.getColumn() != null ? attr.getColumn() : attr.getName();
-    }
-
     public Optional<Link> getLink(String name) {
         return links.stream().filter(t -> t.getName().equals(name)).findFirst();
     }

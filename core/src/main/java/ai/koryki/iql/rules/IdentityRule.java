@@ -16,6 +16,7 @@
  */
 package ai.koryki.iql.rules;
 
+import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.Visitor;
 import ai.koryki.iql.Walker;
 import ai.koryki.iql.query.*;
@@ -31,34 +32,30 @@ import java.util.*;
  */
 public class IdentityRule {
 
-    private final Schema db;
-    private final Model model;
+    private LinkResolver resolver;
     private final Map<String, Source> blockIdToLeadingTableMap;
 
-    public IdentityRule(Map<String, Source> blockIdToLeadingTableMap, Schema db, Model model) {
+    public IdentityRule(Map<String, Source> blockIdToLeadingTableMap, LinkResolver resolver) {
 
         this.blockIdToLeadingTableMap = blockIdToLeadingTableMap;
-        this.db = db;
-        this.model = model;
+        this.resolver = resolver;
     }
 
     public void apply(Query query) {
 
-        IdentityVisitor v = new IdentityVisitor(blockIdToLeadingTableMap, db, model);
+        IdentityVisitor v = new IdentityVisitor(blockIdToLeadingTableMap, resolver);
         new Walker().walk(query, v);
     }
 
     private static class IdentityVisitor implements Visitor {
 
+        private LinkResolver resolver;
         private Map<String, Source> blockIdToLeadingSourceMap;
-        private final Schema db;
-        private Model model;
 
-        public IdentityVisitor(Map<String, Source> blockIdToLeadingSourceMap, Schema db, Model model) {
+        public IdentityVisitor(Map<String, Source> blockIdToLeadingSourceMap, LinkResolver resolver) {
 
             this.blockIdToLeadingSourceMap = blockIdToLeadingSourceMap;
-            this.db = db;
-            this.model = model;
+            this.resolver = resolver;
         }
 
         @Override
@@ -92,14 +89,15 @@ public class IdentityRule {
                 }
             } else {
 
-                String table = model.getTable(source.getName());
-                Optional<ai.koryki.scaffold.schema.Table> ot = db.getTable(table);
+                Optional<ai.koryki.scaffold.schema.Table> ot = resolver.getDialectTable(source.getName())
+                        .flatMap(table -> resolver.getSchema().getTable(table));
 
                 // check pkPos == 1 only, multipart pk also require first part only !
-                String col = ot.map(t ->t.getColumns().stream().filter(
-                        c -> c.getPkPos() == 1).map(Column::getName).findFirst().orElse(null)).orElse(null);
+                String col = ot.flatMap(t -> t.getColumns().stream().filter(
+                        c -> c.getPkPos() == 1).map(Column::getName).findFirst()).orElse(null);
 
-                String h = source.getOut().stream().filter(o -> o.getHeader() != null && o.getExpression().getField() != null && o.getExpression().getField().getName().equals(col)).map(o -> o.getHeader()).findFirst().orElse(null);
+                String h = source.getOut().stream()
+                        .filter(o -> o.getHeader() != null && o.getExpression().getField() != null && o.getExpression().getField().getName().equals(col)).map(Out::getHeader).findFirst().orElse(null);
 
                 if (h != null) {
 

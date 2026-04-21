@@ -593,14 +593,14 @@ public class SqlSelectRenderer {
         String leftName = left.getName();
         String leftAlias = left.getAlias();
 
-        Source rightTable = null;
+        Source rightSource = null;
         if (join.getRef() != null) {
-            rightTable = visibilityContext.getSource(join.getRef());
+            rightSource = visibilityContext.getSource(join.getRef());
         } else {
-            rightTable = join.getSource();
+            rightSource = join.getSource();
         }
 
-        String rightName = rightTable.getName();
+        String rightName = rightSource.getName();
         String rightAlias = join.getRef() != null ? join.getRef() : join.getSource().getAlias();
 
         resolver.isInverse(join.getCrit());
@@ -612,7 +612,7 @@ public class SqlSelectRenderer {
         String endName = invers ? leftName : rightName;
         String endAlias = invers ? leftAlias : rightAlias;
 
-        return joinColumns(Range.range(iqlToContext.get(join)), indent, startName, startAlias, endName, endAlias, crit, msg, rightTable);
+        return joinColumns(Range.range(iqlToContext.get(join)), indent, startName, startAlias, endName, endAlias, crit, msg, rightSource);
     }
 
     private String joinColumns(int indent, Source start, Source end, String crit, String msg, Source right) {
@@ -661,20 +661,20 @@ public class SqlSelectRenderer {
         return r.getStartColumns().get(i);
     }
 
-    private String joinColumn(Source blockTable, String translatedJoinCol) {
-        if (blockTable == null) {
+    private String joinColumn(Source blockSource, String translatedJoinCol) {
+        if (blockSource == null) {
             return translatedJoinCol;
         }
-        for (Out o : blockTable.getOut()) {
-            Field column = o.getExpression().getField();
-            if (column != null && getTranslatedField(blockTable, column).equals(translatedJoinCol)) {
-                return o.getHeader() != null ? o.getHeader() : getTranslatedField(blockTable, column);
+        for (Out o : blockSource.getOut()) {
+            Field field = o.getExpression().getField();
+            if (field != null && toSql(blockSource, field).equals(translatedJoinCol)) {
+                return o.getHeader() != null ? o.getHeader() : toSql(blockSource, field);
             }
         }
-        throw new KorykiaiException("missing joinColumn: " + translatedJoinCol + " " + blockTable.getAlias());
+        throw new KorykiaiException("missing joinColumn: " + translatedJoinCol + " " + blockSource.getAlias());
     }
 
-    private String getTranslatedField(Source source, Field field) {
+    private String toSql(Source source, Field field) {
 
         Source b = visibilityContext.getLeadingSource(source.getName());
 
@@ -748,12 +748,12 @@ public class SqlSelectRenderer {
             b.append(normal(field.getAlias())).append(".");
         }
 
-        Source table = visibilityContext.getSource(field.getAlias());
-        if (table == null) {
+        Source source = visibilityContext.getSource(field.getAlias());
+        if (source == null) {
             throw new RuntimeException(field.getAlias());
         }
 
-        b.append(normal(getTranslatedField(table, field)));
+        b.append(normal(toSql(source, field)));
         return b.toString();
     }
 
