@@ -1,13 +1,9 @@
 package ai.koryki.kql;
 
 import ai.koryki.databases.FileAsserter;
-import ai.koryki.databases.northwind.NorthwindService;
-import ai.koryki.iql.FunctionRenderer;
 import ai.koryki.iql.Identifier;
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.SqlQueryRenderer;
-import ai.koryki.iql.query.Query;
-import ai.koryki.iql.rules.SchemaRule;
 import ai.koryki.scaffold.Util;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
