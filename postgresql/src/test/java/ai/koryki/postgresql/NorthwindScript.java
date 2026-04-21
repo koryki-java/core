@@ -13,8 +13,6 @@ public class NorthwindScript {
 
     public static void main(String[] args) throws IOException, InterruptedException, SQLException {
 
-        //psql -v ON_ERROR_STOP=1 -U PG -h johannes-x600 -d northwind -f /home/johannes/IdeaProjects/korykiai/postgresql/test.sql
-
         Connection connection = NorthwindPostgresql.connection();
 
         File drop = new File("postgresql/src/test/resources/ai/koryki/databases/northwind/postgresql/drop.sql");

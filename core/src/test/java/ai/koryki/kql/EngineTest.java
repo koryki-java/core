@@ -57,7 +57,7 @@ public class EngineTest {
 //    @Test
 //    void test1() throws IOException {
 //
-//        Path kql = Paths.get("/Users/johanneszemlin/IdeaProjects/koryki-java/core/core/src/test/resources/ai/koryki/kql/northwind/privatetest/window/window_in_block.kql");
+//        Path kql = Paths.get("../../core/core/src/test/resources/ai/koryki/kql/northwind/privatetest/window/window_in_block.kql");
 //        test(kql);
 //    }
 

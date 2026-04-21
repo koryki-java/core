@@ -28,7 +28,7 @@ import java.util.stream.Stream;
 @PostgreSQLUnavailable
 public class EngineTest {
 
-    public static final String NORTHWIND_ROOT = "/Users/johanneszemlin/IdeaProjects/koryki-java/core/core/src/test/resources/ai/koryki/kql/northwind";
+    public static final String NORTHWIND_ROOT = "../../core/core/src/test/resources/ai/koryki/kql/northwind";
     public static final String SUFFIX = ".kql";
 
     private static LinkResolver resolver;
@@ -54,6 +54,14 @@ public class EngineTest {
     void testEachFile(Path kql) throws IOException {
 
         test(kql);
+    }
+
+    @Test
+    public void testd() throws IOException {
+
+        Path p = Path.of("../..//core/core/src/test/resources/ai/koryki/kql/northwind/privatetest/block/block_join.kql");
+
+        test(p);
     }
 
     private static void test(Path kql) throws IOException {

@@ -20,6 +20,7 @@ import org.junit.jupiter.api.extension.ConditionEvaluationResult;
 import org.junit.jupiter.api.extension.ExecutionCondition;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
+import java.nio.file.Path;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Optional;
@@ -35,6 +36,12 @@ public class PostgreSQLAvailabilityCondition implements ExecutionCondition {
         if (optional.isPresent()) {
             final PostgreSQLUnavailable annotation = optional.get();
             try {
+
+                Path p = Path.of("../../core/core/src/test/resources/ai/koryki/kql/northwind/privatetest/block/block_join.kql");
+
+               boolean r =  p.toFile().canRead();
+
+
                 Properties props = new Properties();
                 String user = System.getProperty("postgresql.northwind.user");
                 props.setProperty("user", user);

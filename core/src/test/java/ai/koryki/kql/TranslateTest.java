@@ -41,7 +41,7 @@ public class TranslateTest {
 //    @Test
 //    void test1() throws IOException {
 //
-//        Path kql = Paths.get("/Users/johanneszemlin/IdeaProjects/koryki-java/core/core/src/test/resources/ai/koryki/kql/northwind/simple/customersmorethan10ordersin2023.kql");
+//        Path kql = Paths.get("../../core/core/src/test/resources/ai/koryki/kql/northwind/simple/customersmorethan10ordersin2023.kql");
 //        test(kql);
 //    }
 
@@ -53,19 +53,6 @@ public class TranslateTest {
         KQLParser.QueryContext ctx = transpilerEn.getCtx();
 
         LinkResolver resolverDe = NorthwindService.resolver(Locale.GERMAN);
-
-//        Map<String, String> de2enLink = resolverDe.getModel().getLinks().stream().collect(Collectors.toMap(Link::getName, Link::getBase));
-//
-//        Map<String, TableDictionary> de2enSchema = resolverDe.getModel().getEntities().stream().collect(Collectors.toMap(Entity::getName, (e) -> {
-//
-//            TableDictionary t = new TableDictionary();
-//            t.setName(e.getDialectTable());
-//            t.setColumns(e.getAttributes().stream().collect(Collectors.toMap(Attribute::getName, Attribute::getColumn)));
-//            return t;
-//        }));
-//
-//        Map<String, String> en2deLink = LinkResolver.swapMap(de2enLink);
-//        Map<String, TableDictionary> en2deSchema = LinkResolver.swapDictionary(de2enSchema);
 
         DictionaryTranslator dt = LinkResolver.dictionary(resolverEn.getModel(), resolverDe.getModel()) ;
 

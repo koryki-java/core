@@ -15,15 +15,8 @@ dependencies {
     implementation(libs.postgresql)
     implementation libs.jackson.databind
 
-    //implementation project(':antlr')
-    //implementation project(':iql')
-    //implementation project(':kql')
-    //implementation project(':scaffold')
-    //implementation project(':jdbc')
     implementation project(':northwind')
     implementation project(':core')
-
-
 
     testImplementation platform(libs.junit.bom)
     testImplementation libs.junit.jupiter
