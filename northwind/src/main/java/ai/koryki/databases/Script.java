@@ -1,39 +1,22 @@
-package ai.koryki.duckdb.tool;
+package ai.koryki.databases;
 
+import ai.koryki.databases.northwind.duckdb.BuildNorthwind;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class BuildNorthwind {
+public class Script {
 
-    public static void main(String[] args) throws SQLException, IOException {
-
-        try (Connection c = DriverManager.getConnection("jdbc:duckdb:build/northwind.duckdb" )) {
-
-            c.setAutoCommit(false);
-
-            String tables = "/ai/koryki/databases/northwind/duckdb/tables.sql";
-            //String constraints = "/ai/koryki/databases/northwind/duckdb/constraints.sql";
-            String data = "/ai/koryki/databases/northwind/duckdb/data.sql";
-
-            executeScript(tables, c);
-            //executeScript(constraints, c);
-            executeScript(data, c);
-            c.commit();
-        }
-    }
-
-    private static void executeScript(String tables, Connection c) throws IOException, SQLException {
-        List<String> stmts = statements(tables);
+    public static void executeScript(Connection c, String script) throws IOException, SQLException {
+        List<String> stmts = statements(script);
 
         try (Statement stmt = c.createStatement()) {
 
@@ -60,4 +43,5 @@ public class BuildNorthwind {
             return Arrays.asList(sql.split(";"));
         }
     }
+
 }

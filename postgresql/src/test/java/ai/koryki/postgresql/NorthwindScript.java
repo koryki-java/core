@@ -1,36 +1,32 @@
 package ai.koryki.postgresql;
 
+import ai.koryki.databases.Script;
+import ai.koryki.postgresql.northwind.NorthwindPostgresql;
+
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.sql.Connection;
+import java.sql.SQLException;
 
 public class NorthwindScript {
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) throws IOException, InterruptedException, SQLException {
 
         //psql -v ON_ERROR_STOP=1 -U PG -h johannes-x600 -d northwind -f /home/johannes/IdeaProjects/korykiai/postgresql/test.sql
 
-        File root = new File(".");
-        System.out.println(root.getAbsolutePath());
+        Connection connection = NorthwindPostgresql.connection();
 
         File drop = new File("postgresql/src/test/resources/ai/koryki/databases/northwind/postgresql/drop.sql");
-        if (drop.canRead()) {
-            new Psql().runScript(drop, true);
-        }
+        Script.executeScript(connection, Files.readString(drop.toPath()));
 
         File tables = new File("postgresql/src/test/resources/ai/koryki/databases/northwind/postgresql/tables.sql");
-        if (tables.canRead()) {
-            new Psql().runScript(tables, true);
-        }
+        Script.executeScript(connection, Files.readString(tables.toPath()));
 
         File data = new File("postgresql/src/test/resources/ai/koryki/databases/northwind/postgresql/data.sql");
-        if (data.canRead()) {
-            new Psql().runScript(data, true);
-        }
+        Script.executeScript(connection, Files.readString(data.toPath()));
 
         File constraints = new File("postgresql/src/test/resources/ai/koryki/databases/northwind/postgresql/constraints.sql");
-        if (constraints.canRead()) {
-            new Psql().runScript(constraints, true);
-        }
-
+        Script.executeScript(connection, Files.readString(constraints.toPath()));
     }
 }

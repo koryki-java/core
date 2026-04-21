@@ -39,7 +39,7 @@ public class EngineTest {
     public static void readNorthwindDB() throws IOException, SQLException {
 
         resolver = NorthwindService.resolver();
-        database = new NorthwindPostgresql();
+        database = new NorthwindPostgresql<>();
         engine = new Engine<>(database, resolver, new SqlQueryRenderer(), StableFormatInfo::new);
     }
 
@@ -54,15 +54,6 @@ public class EngineTest {
     void testEachFile(Path kql) throws IOException {
 
         test(kql);
-    }
-
-    @Test
-    public void testd() throws IOException {
-
-        Path p = Path.of("/Users/johanneszemlin/IdeaProjects/koryki-java/core/core/src/test/resources/ai/koryki/kql/northwind/privatetest/block/block_join.kql");
-
-        test(p);
-
     }
 
     private static void test(Path kql) throws IOException {

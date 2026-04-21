@@ -1,37 +1,23 @@
 package ai.koryki.kql;
 
-import ai.koryki.antlr.AbstractReader;
 import ai.koryki.databases.FileAsserter;
-import ai.koryki.databases.SchemaUtil;
 import ai.koryki.databases.northwind.NorthwindService;
 import ai.koryki.iql.SqlQueryRenderer;
 import ai.koryki.iql.FunctionRenderer;
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.scaffold.Util;
-import ai.koryki.scaffold.domain.Attribute;
-import ai.koryki.scaffold.domain.Entity;
-import ai.koryki.scaffold.domain.Link;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TranslateTest {
 
