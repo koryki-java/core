@@ -46,26 +46,9 @@ link has three alternatives:
 Alternatives two and three are semantically identically.
 Its for input-convenience as we want the user to choose order of
 source and criteria.
-position of "-" indicates that the next ID is the criteria.
+Position of "-" indicates that the next ID is the criteria.
 This differentiates alternative two from three.
 
-
-## Logical Expression
-
-![logical_expression](kql/logical_expression.png)
-
-link has three alternatives:
-- optionally from=ID of linked source, followed by source.
-  If from=ID is missing, source is implicitly linked to the
-  previous source in linklist.
-- optionally ID of linked source, criteria-ID and source.
-- optionally ID of linked source, source and criteria-ID.
-
-Alternatives two and three are semantically identically.
-Its for input-convenience as we want the user to choose order of
-source and criteria.
-position of "-" indicates that the next ID is the criteria.
-This differentiates alternative two from three.
 
 ## Logical Expression
 
