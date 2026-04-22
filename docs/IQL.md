@@ -140,10 +140,8 @@ IQL queries reference joins by **link names**
 (domain-level relationship names, e.g., `orders`, `customer`) rather than 
 physical FK column names. The `LinkResolver` bridges the gap.
 
-`LinkResolver` ist außerdem dafür zuständig die Identifier von **IQL**
-(Kleinbuchstaben und Ziffern) auf die Datenbankidentifier abzubilden
-(`getDialectTable(sourcer)`, `getDialectColumn(source, field)`).
-
+`LinkResolver` is also responsible for mapping **IQL** identifiers (lowercase letters and digits) to the database 
+identifiers, which are less restrictive (`getDialectTable(source)`, `getDialectColumn(source, field)`).
 
 ### The Rules Pipeline (`rules/`)
 
