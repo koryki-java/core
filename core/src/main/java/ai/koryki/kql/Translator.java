@@ -17,16 +17,6 @@
 package ai.koryki.kql;
 
 import ai.koryki.antlr.KorykiaiException;
-import ai.koryki.iql.LinkResolver;
-import ai.koryki.scaffold.domain.Attribute;
-import ai.koryki.scaffold.domain.Entity;
-import ai.koryki.scaffold.domain.Link;
-import com.ibm.icu.impl.number.range.PrefixInfixSuffixLengthHelper;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 public interface Translator {
 
@@ -44,29 +34,4 @@ public interface Translator {
     default String crit(String crit) {
         return crit;
     }
-
-//    static String translateToSchema(String query, LinkResolver resolver) {
-//
-//        KQLParser.QueryContext ctx;
-//        String description;
-//        try {
-//            KQLReader reader = new KQLReader(query);
-//            ctx = reader.getCtx();
-//            description = reader.getDescription();
-//        } catch (IOException e) {
-//            throw new KorykiaiException(e);
-//        }
-//
-//        return translateToSchema(ctx, description, resolver);
-//    }
-//
-//    static String translateToSchema(KQLParser.QueryContext ctx, String description, LinkResolver resolver) {
-//
-//        DictionaryTranslator translator = resolver.dictionary();
-//
-//        KQLFormatter formatter2de = new KQLFormatter(ctx, description, resolver, translator);
-//        return formatter2de.format();
-//    }
-
-
 }

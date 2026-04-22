@@ -42,9 +42,9 @@ public class SqlSelectRenderer {
     private final Identifier identifier;
 
     protected LinkResolver resolver;
-    private FunctionRenderer functionRenderer;
+    private final FunctionRenderer functionRenderer;
     protected IQLVisibilityContext visibilityContext;
-    private Map<Object, RuleContext> iqlToContext;
+    private final Map<Object, RuleContext> iqlToContext;
 
     public SqlSelectRenderer(Identifier identifier, Map<Object, RuleContext> iqlToContext,
                              LinkResolver resolver,

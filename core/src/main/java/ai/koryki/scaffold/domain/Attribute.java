@@ -78,6 +78,4 @@ public class Attribute {
     public void setColumn(String column) {
         this.column = column;
     }
-
-
 }

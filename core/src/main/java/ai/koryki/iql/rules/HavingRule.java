@@ -34,15 +34,15 @@ import java.util.stream.Collectors;
 public class HavingRule {
 
     private final Query query;
-    private final Aggregate aggregat;
+    private final Aggregate aggregate;
     public HavingRule(Aggregate aggregate, Query query) {
-        this.aggregat = aggregate;
+        this.aggregate = aggregate;
         this.query = query;
     }
 
     public void apply() {
 
-        HavingVisitor v = new HavingVisitor(aggregat);
+        HavingVisitor v = new HavingVisitor(aggregate);
         new Walker().walk(query, v);
     }
 

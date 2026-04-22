@@ -15,8 +15,6 @@ public class StableFormatInfo implements ColumnInfo {
 
         if (o instanceof Float || o instanceof  Double || o instanceof  BigDecimal ) {
             return formatNumber((Number) o);
-//        } if (o instanceof BigDecimal b) {
-//            return formatBigDecimal(b);
         }
 
         return o != null ? o.toString() : "";
@@ -28,9 +26,6 @@ public class StableFormatInfo implements ColumnInfo {
                 ? (BigDecimal) number
                 : new BigDecimal(number.toString());
         return bd.setScale(2, RoundingMode.DOWN).toString();
-
-//        double value = number.doubleValue();
-//        return String.format(Locale.US, "%.2f", value);
     }
 
     public static String formatBigDecimal(BigDecimal bd) {

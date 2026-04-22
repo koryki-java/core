@@ -32,7 +32,7 @@ public class SqlQueryRenderer implements SqlRenderer {
 
     private Query query;
     private Identifier identifier = Identifier.lowercase;
-    private FunctionRenderer functionRenderer;
+    private final FunctionRenderer functionRenderer;
     protected IQLVisibilityContext visibilityContext;
     protected Map<Object, RuleContext> iqlToContext;
 

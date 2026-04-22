@@ -23,10 +23,10 @@ import java.util.Map;
 
 public class JdbcSelectRenderer extends SqlSelectRenderer {
 
-    public JdbcSelectRenderer(Identifier idendifier, Map<Object, RuleContext> iqlToContext, LinkResolver resolver,
+    public JdbcSelectRenderer(Identifier identifier, Map<Object, RuleContext> iqlToContext, LinkResolver resolver,
                               IQLVisibilityContext visibilityContext,
                               FunctionRenderer functionRenderer) {
-        super(idendifier, iqlToContext, resolver, visibilityContext,
+        super(identifier, iqlToContext, resolver, visibilityContext,
 
                 functionRenderer);
     }

@@ -27,7 +27,6 @@ import ai.koryki.scaffold.domain.Model;
 import ai.koryki.scaffold.schema.Relation;
 import ai.koryki.scaffold.schema.Schema;
 
-import javax.naming.spi.Resolver;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -255,19 +254,16 @@ public class LinkResolver {
         return linkMap;
     }
 
-    // approved
     public Optional<String> getDialectTable(String entity) {
         return model.getEntity(entity).map(LinkResolver::getDialectTable);
     }
 
-    // approved
     public Optional<String> getDialectColumn(String entity, String attribute) {
         return model.getEntity(entity).
                 flatMap(e -> e.getAttributes().stream().filter(a -> a.getName().equals(attribute)).findFirst())
                 .map(LinkResolver::getDialectColumn);
     }
 
-    // approved
     public static DictionaryTranslator dictionary(Model from, Model to) {
 
         Map<String, TableDictionary> toSchema = from.getEntities().stream().collect(Collectors.toMap(Entity::getName, (e) -> {

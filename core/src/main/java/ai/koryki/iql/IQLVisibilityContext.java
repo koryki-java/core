@@ -71,9 +71,9 @@ public class IQLVisibilityContext {
     }
 
     public Source rootTable(Source table) {
-        Source leadingBlockTable = getLeadingSource(table.getName());
-        if (leadingBlockTable != null) {
-            return getLeadingSource(leadingBlockTable.getName());
+        Source leadingBlockSource = getLeadingSource(table.getName());
+        if (leadingBlockSource != null) {
+            return getLeadingSource(leadingBlockSource.getName());
         }
         return table;
     }

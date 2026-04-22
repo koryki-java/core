@@ -100,7 +100,6 @@ public class Entity {
         return table;
     }
 
-
     public void setTable(String table) {
         this.table = table;
     }

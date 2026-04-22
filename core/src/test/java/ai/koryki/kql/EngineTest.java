@@ -12,7 +12,6 @@ import ai.koryki.jdbc.Database;
 import ai.koryki.jdbc.ListResult;
 import ai.koryki.scaffold.Util;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -21,7 +20,6 @@ import java.io.IOException;
 import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.stream.Stream;
 
 public class EngineTest {

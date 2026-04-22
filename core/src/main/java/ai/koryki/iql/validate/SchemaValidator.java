@@ -9,18 +9,18 @@ import java.util.*;
 
 public class SchemaValidator implements Collector<List<Violation>> {
 
-    private LinkResolver resolver;
+    private final LinkResolver resolver;
 
-    private List<Violation> violations = new ArrayList<>();
-    private Map<Object, RuleContext> iqlToContext;
-    private Map<String, Select> blockIdToSelectMap = new HashMap<>();
-    private Map<String, Source> aliasToTable = new HashMap<>();
-    private Map<String, Source> blockIdToLeadingTableMap;
-    private Map<String, Source> recursiveAliasToTableMap;
+    private final List<Violation> violations = new ArrayList<>();
+    private final Map<Object, RuleContext> iqlToContext;
+    private final Map<String, Select> blockIdToSelectMap = new HashMap<>();
+    private final Map<String, Source> aliasToSource = new HashMap<>();
+    private final Map<String, Source> blockIdToLeadingSourceMap;
+    private Map<String, Source> recursiveAliasToSourceMap;
 
-    public SchemaValidator(LinkResolver resolver, Map<String, Source> blockIdToLeadingTableMap, Map<Object, RuleContext> iqlToContext) {
+    public SchemaValidator(LinkResolver resolver, Map<String, Source> blockIdToLeadingSourceMap, Map<Object, RuleContext> iqlToContext) {
         this.resolver = resolver;
-        this.blockIdToLeadingTableMap = blockIdToLeadingTableMap;
+        this.blockIdToLeadingSourceMap = blockIdToLeadingSourceMap;
         this.iqlToContext = iqlToContext;
     }
 
@@ -32,28 +32,28 @@ public class SchemaValidator implements Collector<List<Violation>> {
     @Override
     public boolean visit(Deque<Object> deque, Block block) {
         blockIdToSelectMap.put(block.getId(), SelectScopeCollector.getLeadingSelect(block.getSet()));
-        recursiveAliasToTableMap = Walker.apply(block, new AliasToSourceCollector());
+        recursiveAliasToSourceMap = Walker.apply(block, new AliasToSourceCollector());
 
         return true;
     }
 
     @Override
     public void leave(Block block) {
-        recursiveAliasToTableMap = null;
+        recursiveAliasToSourceMap = null;
     }
 
 
     @Override
     public boolean visit(Deque<Object> deque, Source table) {
 
-        aliasToTable.put(table.getAlias(), table);
+        aliasToSource.put(table.getAlias(), table);
 
-        if (recursiveAliasToTableMap != null && recursiveAliasToTableMap.containsKey(table.getName())) {
+        if (recursiveAliasToSourceMap != null && recursiveAliasToSourceMap.containsKey(table.getName())) {
             // recursive table in CTE
             return true;
         }
 
-        if (!blockIdToLeadingTableMap.containsKey(table.getName())) {
+        if (!blockIdToLeadingSourceMap.containsKey(table.getName())) {
             if (!resolver.getModel().getEntity(table.getName()).isPresent()) {
                 violations.add(new Violation(table, Range.range(iqlToContext.get(table)), "invalid table"));
             }
@@ -64,7 +64,7 @@ public class SchemaValidator implements Collector<List<Violation>> {
     @Override
     public boolean visit(Deque<Object> deque, Field field) {
 
-        Source selectTable = aliasToTable.get(field.getAlias());
+        Source selectTable = aliasToSource.get(field.getAlias());
         if (selectTable == null) {
            violations.add(new Violation(field, Range.range(iqlToContext.get(field)), "unknown alias " + field.getAlias()));
         } else {

@@ -33,8 +33,8 @@ public class GroupRule {
     private final Query query;
     private final Aggregate aggregate;
 
-    public GroupRule(Aggregate aggregat, Query query) {
-        this.aggregate = aggregat;
+    public GroupRule(Aggregate aggregate, Query query) {
+        this.aggregate = aggregate;
         this.query = query;
     }
 

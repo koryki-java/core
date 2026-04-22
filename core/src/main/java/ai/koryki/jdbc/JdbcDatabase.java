@@ -65,10 +65,7 @@ public class JdbcDatabase<C extends ResultProcessor<?>> implements Database<C> {
             while (r.next()) {
 
                 List<Object> row = new ArrayList<>();
-
-
                 for (int i = 0; i < meta.getColumnCount(); i++) {
-
                     row.add(read(r, i + 1, meta.getColumnType(i + 1)));
                 }
 
