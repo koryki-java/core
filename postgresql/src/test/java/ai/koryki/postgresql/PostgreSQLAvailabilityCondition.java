@@ -37,11 +37,6 @@ public class PostgreSQLAvailabilityCondition implements ExecutionCondition {
             final PostgreSQLUnavailable annotation = optional.get();
             try {
 
-                Path p = Path.of("../../core/core/src/test/resources/ai/koryki/kql/northwind/privatetest/block/block_join.kql");
-
-               boolean r =  p.toFile().canRead();
-
-
                 Properties props = new Properties();
                 String user = System.getProperty("postgresql.northwind.user");
                 props.setProperty("user", user);
