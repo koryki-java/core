@@ -96,12 +96,12 @@ public class LogicalExpression {
         return op + "(" + String.join(", ", children.stream().map(LogicalExpression::toString).collect(Collectors.toList())) + ")";
     }
 
-//    public void add(NodeType type, LogicalExpression child) {
-//        if (!this.type.equals(type)) {
-//            throw new IllegalArgumentException("invalid type, expected: " + this.type + " actual: " + type);
-//        }
-//        children.add(child);
-//    }
+    public void add(NodeType type, LogicalExpression child) {
+        if (!this.type.equals(type)) {
+            throw new IllegalArgumentException("invalid type, expected: " + this.type + " actual: " + type);
+        }
+        children.add(child);
+    }
 
     public NodeType getType() {
         return type;
