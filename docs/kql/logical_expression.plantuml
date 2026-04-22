@@ -18,12 +18,4 @@ logical_expression = expression, operator,
 | expression, [operator], "#PLACEHOLDER"
 ;
 
-legend bottom
-
-  logical_expression to boolean result. It has four main alternatives:
-  - expression and operator optionally followed by an expression, a pair of expression or a set of expressions
-  - recursive logical_expression in braces
-  - exists clause
-  - expression with placeholder, operation is optional, if missing placeholder must set operator too
-end legend
 @endebnf

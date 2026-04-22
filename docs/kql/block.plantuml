@@ -9,8 +9,4 @@ block = "ID", "AS", "(", set, ")"
   | "ID", "PLACEHOLDER"
 ;
 
-legend bottom
-
-block is an id followed by set or id followed by placeholder
-end legend
 @endebnf

@@ -10,9 +10,4 @@ set = set, "INTERSECT", set
   | "(", set, ")"
   | select
 ;
-
-legend bottom
-
-set is an operation on sets or a select
-end legend
 @endebnf

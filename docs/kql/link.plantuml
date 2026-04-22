@@ -10,20 +10,4 @@ link = ["from=ID"], [("+" | "-")], source
   | ["from=ID"], ["+"], source, "-", "link=ID"
 ;
 
-legend bottom
-
-link has three alternatives:
-- optionally from=ID of linked source, followed by source,
-   if id from=ID is missing, source is implicitly linked to the previous source in link-list
-- '-' indicates link=ID to linked source, followed by link-criteria
--
-
-
-link : from=ID? (BAR|PLUS)? source
-| from=ID? BAR crit=ID PLUS? source
-| from=ID? PLUS? source BAR crit=ID
-;
-
-
-end legend
 @endebnf
