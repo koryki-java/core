@@ -1,0 +1,19 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title select
+
+select = "FIND", source, {COMMA, link}, [filterClause], [fetchClause], [limitClause]
+;
+
+legend bottom
+
+select has four clauses:
+- FIND with one source optionally followed by a list of links
+- optionally FILTER clause
+- optionally FETCH clause
+- optionally LIMIT clause
+end legend
+@endebnf

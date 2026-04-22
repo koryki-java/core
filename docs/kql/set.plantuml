@@ -1,0 +1,18 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title set
+
+set = set, "INTERSECT", set
+  | set, ("UNION" | "UNIONALL" | "MINUS" ), set
+  | "(", set, ")"
+  | select
+;
+
+legend bottom
+
+set is an operation on sets or a select
+end legend
+@endebnf

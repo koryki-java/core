@@ -1,0 +1,29 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title logical_expression
+
+logical_expression = expression, operator,
+(
+    (
+        [expression]
+        | expression, "AND", expression
+        | "(", expression, {",", expression}, ")"
+    )
+)
+|   "(", logical_expression , ")"
+| "EXISTS", "(", exists, ")"
+| expression, [operator], "#PLACEHOLDER"
+;
+
+legend bottom
+
+  logical_expression to boolean result. It has four main alternatives:
+  - expression and operator optionally followed by an expression, a pair of expression or a set of expressions
+  - recursive logical_expression in braces
+  - exists clause
+  - expression with placeholder, operation is optional, if missing placeholder must set operator too
+end legend
+@endebnf

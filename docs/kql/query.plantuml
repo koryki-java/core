@@ -1,0 +1,18 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title query
+
+query =
+    ["WITH", block, {COMMA, block}], set, "EOF"
+;
+
+legend bottom
+
+  query is the root rule of KQL-Language
+  - at least a query has one set
+  - optionally a query hase one or more blocks
+end legend
+@endebnf
