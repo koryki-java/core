@@ -6,6 +6,6 @@ skinparam legendBackgroundColor white
 'title field
 
 field =
-    "alias=ID", "name=ID"
+    "ID", "ID"
 ;
 @endebnf

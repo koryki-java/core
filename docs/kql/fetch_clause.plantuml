@@ -6,7 +6,7 @@ skinparam legendBackgroundColor white
 'title fetch_clause
 
 fetch_clause =
-    "FETCH", ["DISTINCT"], fetch_item, {COMMA, fetch_item}, ["ROLLUP"]
+    "FETCH", ["DISTINCT"], fetch_item, {",", fetch_item}, ["ROLLUP"]
 ;
 
 

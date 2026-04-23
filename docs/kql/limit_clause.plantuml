@@ -6,6 +6,6 @@ skinparam legendBackgroundColor white
 'title limit_clause
 
 limit_clause =
-    "LIMIT", "ID"
+    "LIMIT", "INT"
 ;
 @endebnf

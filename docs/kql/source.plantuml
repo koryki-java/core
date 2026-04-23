@@ -6,6 +6,6 @@ skinparam legendBackgroundColor white
 'title source
 
 source =
-    "name=ID", "alias=ID"
+    "ID", "ID"
 ;
 @endebnf

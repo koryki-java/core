@@ -7,7 +7,7 @@ skinparam legendBackgroundColor white
 
 
 function =
-    "ID", "(", [argument, {COMMA, argument}], ")", [window]
+    "ID", "(", [argument, {",", argument}], ")", [window]
 ;
 
 @endebnf

@@ -6,8 +6,8 @@ skinparam legendBackgroundColor white
 'title link
 
 link = ["from=ID"], [("+" | "-")], source
-  | ["from=ID"], "-", "link=ID", ["+"], source
-  | ["from=ID"], ["+"], source, "-", "link=ID"
+  | ["ID"], "-", "ID", ["+"], source
+  | ["ID"], ["+"], source, "-", "ID"
 ;
 
 @endebnf

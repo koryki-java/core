@@ -5,7 +5,7 @@ skinparam legendBackgroundColor white
 
 'title select
 
-select = "FIND", source, {COMMA, link}, [filter_clause], [fetch_clause], [limit_clause]
+select = "FIND", source, {",", link}, [filter_clause], [fetch_clause], [limit_clause]
 ;
 
 @endebnf

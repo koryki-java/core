@@ -5,38 +5,38 @@
 
 ![query](kql/query.png )
 
-query is the root rule of KQL-Language
+Query is the root rule of KQL-Language
 - at least a query has one set
-- optionally a query hase one or more blocks
+- optionally a query has one or more blocks
 
 ## Block
 
 ![block](kql/block.png)
 
-block is an id followed by set or id followed by placeholder
+Block is an id followed by set or id followed by placeholder.
 
 ## Set
 
 ![set](kql/set.png)
 
-set is an operation on sets or a select
+Set is an operation on sets or a select.
 
 ## Select
 
 ![select](kql/select.png)
 
-select has four clauses:
+Select has four clauses:
 - FIND with one source optionally followed by a list of links
-- optionally FILTER clause
-- optionally FETCH clause
-- optionally LIMIT clause
+- optionally filter_ clause
+- optionally fetch_clause
+- optionally limit_clause
 
 
 ## Link
 
 ![link](kql/link.png)
 
-link has three alternatives:
+Link has three alternatives:
 - optionally from=ID of linked source, followed by source.
   If from=ID is missing, source is implicitly linked to the
   previous source in linklist.
@@ -49,23 +49,22 @@ source and criteria.
 Position of "-" indicates that the next ID is the criteria.
 This differentiates alternative two from three.
 
+## Logical Expression
+
+![logical_expression](kql/logical_expression.png)
+
+Logical_expression resolves to boolean result.
 
 ## Unary Logical Expression
 
 ![unary_logical_expression](kql/unary_logical_expression.png)
 
-
-## Logical Expression
-
-![logical_expression](kql/logical_expression.png)
-
-
-
-logical_expression to boolean result. It has four main alternatives:
+Unary_logical_expression resolves to boolean result. It has four main alternatives:
 - expression and operator optionally followed by an expression, a pair of expression or a set of expressions
 - recursive logical_expression in braces
 - exists clause
 - expression with placeholder, operation is optional, if missing placeholder must set operator too
+
 
 ## Limit Clause
 
@@ -78,6 +77,10 @@ logical_expression to boolean result. It has four main alternatives:
 ## Source
 
 ![source](kql/source.png)
+
+Source has two IDs:
+- frist name
+- second alias
 
 ## Filter Clause
 
@@ -106,6 +109,10 @@ logical_expression to boolean result. It has four main alternatives:
 ## Field
 
 ![field](kql/field.png)
+
+Source has two IDs:
+- frist alias
+- second name
 
 ## Window
 

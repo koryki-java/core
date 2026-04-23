@@ -7,6 +7,6 @@ skinparam legendBackgroundColor white
 
 
 exists =
-    link, {COMMA, link}, [filter_clause]
+    link, {",", link}, [filter_clause]
 ;
 @endebnf

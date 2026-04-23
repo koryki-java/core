@@ -6,6 +6,6 @@ skinparam legendBackgroundColor white
 'title query
 
 query =
-    ["WITH", block, {COMMA, block}], set, "EOF"
+    ["WITH", block, {",", block}], set, "EOF"
 ;
 @endebnf
