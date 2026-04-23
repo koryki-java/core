@@ -120,15 +120,15 @@ Source has two IDs:
 
 ## Window Order
 
-![window_order](kql/window_order.png)
+![order](kql/order.png)
 
 ## Frame
 
 ![frame](kql/frame.png)
 
-## Limit
+## Window Limit
 
-![limit](kql/limit.png)
+![window_limit](kql/window_limit.png)
 
 ## Date literal
 

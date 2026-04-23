@@ -6,7 +6,7 @@ skinparam legendBackgroundColor white
 'title frame
 
 frame =
- "ROWS",BETWEEN, limit, "AND", limit
+ "ROWS",BETWEEN, limit, "AND", window_limit
 ;
 
 @endebnf

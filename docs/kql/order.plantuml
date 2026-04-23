@@ -3,9 +3,9 @@
 skinparam legendBorderColor transparent
 skinparam legendBackgroundColor white
 
-'title window_order
+'title order
 
-window_order =
+order =
 "ORDER", expression, {",", expression}, [(ASC|DESC)]
 ;
 
