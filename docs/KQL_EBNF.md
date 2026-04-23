@@ -126,3 +126,6 @@ Source has two IDs:
 
 ![limit](kql/limit.png)
 
+## Date literal
+
+![date_literal](kql/date_literal.png)
