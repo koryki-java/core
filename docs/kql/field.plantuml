@@ -1,0 +1,11 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title field
+
+field =
+    "alias=ID", "name=ID"
+;
+@endebnf

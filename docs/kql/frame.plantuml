@@ -1,0 +1,12 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title frame
+
+frame =
+ "ROWS",BETWEEN, limit, "AND", limit
+;
+
+@endebnf

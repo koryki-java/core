@@ -1,0 +1,14 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title limit
+
+limit =
+  "UNBOUNDED", ("PRECEDING" | "FOLLOWING")
+| "CURRENT", "ROW"
+| "INT", ("PRECEDING" | "FOLLOWING")
+;
+
+@endebnf

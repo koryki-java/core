@@ -91,3 +91,31 @@ logical_expression to boolean result. It has four main alternatives:
 
 ![fetch_item](kql/fetch_item.png)
 
+## Expression
+
+![expression](kql/expression.png)
+
+## Function
+
+![function](kql/function.png)
+
+## Argument
+
+![argument](kql/argument.png)
+
+## Field
+
+![field](kql/field.png)
+
+## Window
+
+![window](kql/window.png)
+
+## Frame
+
+![frame](kql/frame.png)
+
+## Limit
+
+![limit](kql/limit.png)
+
