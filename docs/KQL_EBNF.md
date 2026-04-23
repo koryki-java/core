@@ -50,6 +50,11 @@ Position of "-" indicates that the next ID is the criteria.
 This differentiates alternative two from three.
 
 
+## Unary Logical Expression
+
+![unary_logical_expression](kql/unary_logical_expression.png)
+
+
 ## Logical Expression
 
 ![logical_expression](kql/logical_expression.png)
@@ -62,4 +67,27 @@ logical_expression to boolean result. It has four main alternatives:
 - exists clause
 - expression with placeholder, operation is optional, if missing placeholder must set operator too
 
-sdfsf
+## Limit Clause
+
+![limit_clause](kql/limit_clause.png)
+
+## Exists
+
+![exists](kql/exists.png)
+
+## Source
+
+![source](kql/source.png)
+
+## Filter Clause
+
+![filter_clause](kql/filter_clause.png)
+
+## Fetch Clause
+
+![fetch_clause](kql/fetch_clause.png)
+
+## Fetch Item
+
+![fetch_item](kql/fetch_item.png)
+

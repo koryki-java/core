@@ -3,9 +3,11 @@
 skinparam legendBorderColor transparent
 skinparam legendBackgroundColor white
 
-'title select
+'title fetch_clause
 
-select = "FIND", source, {COMMA, link}, [filter_clause], [fetch_clause], [limit_clause]
+fetch_clause =
+    "FETCH", ["DISTINCT"], fetch_item, {COMMA, fetch_item}, ["ROLLUP"]
 ;
+
 
 @endebnf

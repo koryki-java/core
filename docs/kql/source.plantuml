@@ -3,9 +3,9 @@
 skinparam legendBorderColor transparent
 skinparam legendBackgroundColor white
 
-'title select
+'title source
 
-select = "FIND", source, {COMMA, link}, [filter_clause], [fetch_clause], [limit_clause]
+source =
+    "name=ID", "alias=ID"
 ;
-
 @endebnf

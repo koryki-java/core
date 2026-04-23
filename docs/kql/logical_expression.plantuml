@@ -5,17 +5,11 @@ skinparam legendBackgroundColor white
 
 'title logical_expression
 
-logical_expression = expression, operator,
-(
-    (
-        [expression]
-        | expression, "AND", expression
-        | "(", expression, {",", expression}, ")"
-    )
-)
-|   "(", logical_expression , ")"
-| "EXISTS", "(", exists, ")"
-| expression, [operator], "#PLACEHOLDER"
-;
 
+logical_expression =
+    "NOT", logical_expression
+| logical_expression, "AND", logical_expression
+| logical_expression,  "OR", logical_expression
+| unary_logical_expression
+;
 @endebnf

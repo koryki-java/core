@@ -1,0 +1,21 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title unary_logical_expression
+
+unary_logical_expression = expression, operator,
+(
+    (
+        [expression]
+        | expression, "AND", expression
+        | "(", expression, {",", expression}, ")"
+    )
+)
+|   "(", logical_expression , ")"
+| "EXISTS", "(", exists, ")"
+| expression, [operator], "#PLACEHOLDER"
+;
+
+@endebnf

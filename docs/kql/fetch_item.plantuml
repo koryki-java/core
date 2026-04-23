@@ -3,9 +3,10 @@
 skinparam legendBorderColor transparent
 skinparam legendBackgroundColor white
 
-'title select
+'title fetch_item
 
-select = "FIND", source, {COMMA, link}, [filter_clause], [fetch_clause], [limit_clause]
+fetch_item =
+    expression, "ID", ["STRING"], [("ASC" | "DESC"), ["INT"]]
 ;
 
 @endebnf
