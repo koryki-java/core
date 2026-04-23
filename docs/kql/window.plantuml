@@ -7,8 +7,8 @@ skinparam legendBackgroundColor white
 
 window =
 "OVER", "(", ["PARTITION", expression, {",", expression}]
-, ["ORDER", expression, {",", expression}]
-, [(ASC|DESC)] , frame
+, ["ORDER", expression, {",", expression}, [(ASC|DESC)]]
+, [frame]
 , ")"
 
 ;
