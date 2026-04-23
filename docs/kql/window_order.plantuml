@@ -3,14 +3,10 @@
 skinparam legendBorderColor transparent
 skinparam legendBackgroundColor white
 
-'title window
+'title window_order
 
-window =
-"OVER", "(", ["PARTITION", expression, {",", expression}]
-, [window_order]
-, [frame]
-, ")"
-
+window_order =
+"ORDER", expression, {",", expression}, [(ASC|DESC)]
 ;
 
 

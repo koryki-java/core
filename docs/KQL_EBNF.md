@@ -118,6 +118,10 @@ Source has two IDs:
 
 ![window](kql/window.png)
 
+## Window Order
+
+![window_order](kql/window_order.png)
+
 ## Frame
 
 ![frame](kql/frame.png)
