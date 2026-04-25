@@ -3,7 +3,7 @@ plugins {
     id 'maven-publish'
 }
 
-description = 'koryki postgresql databases and services'
+description = 'koryki oracle databases and services'
 
 java {
     withSourcesJar() // Optional: Creates the sources JAR
@@ -12,7 +12,7 @@ java {
 
 dependencies {
 
-    implementation(libs.postgresql)
+    implementation(libs.oracle)
     implementation libs.jackson.databind
 
     implementation project(':northwind')
@@ -26,9 +26,9 @@ dependencies {
 test {
     useJUnitPlatform()
 
-    systemProperty "postgresql.northwind.url", project.findProperty("postgresql.northwind.url")
-    systemProperty "postgresql.northwind.user", project.findProperty("postgresql.northwind.user")
-    systemProperty "postgresql.northwind.password", project.findProperty("postgresql.northwind.password")
+    systemProperty "oracle.northwind.url", project.findProperty("oracle.northwind.url")
+    systemProperty "oracle.northwind.user", project.findProperty("oracle.northwind.user")
+    systemProperty "oracle.northwind.password", project.findProperty("oracle.northwind.password")
 }
 
 publishing {
@@ -39,23 +39,23 @@ publishing {
             from components.java
 
             // Optionally, override the artifact ID (defaults to project name: 'api')
-            artifactId = 'koryki-postgresql'
+            artifactId = 'koryki-oracle'
         }
     }
 }
 
 
-tasks.register('PostgreSQLNorthwindScript', JavaExec) {
+tasks.register('OracleNorthwindScript', JavaExec) {
 
-    systemProperty "postgresql.northwind.url", project.findProperty("postgresql.northwind.url")
-    systemProperty "postgresql.northwind.user", project.findProperty("postgresql.northwind.user")
-    systemProperty "postgresql.northwind.password", project.findProperty("postgresql.northwind.password")
+    systemProperty "oracle.northwind.url", project.findProperty("oracle.northwind.url")
+    systemProperty "oracle.northwind.user", project.findProperty("oracle.northwind.user")
+    systemProperty "oracle.northwind.password", project.findProperty("oracle.northwind.password")
 
     group = "application"
-    description = "Build Northwind Database for PostgreSQL"
+    description = "Build Northwind Database for ORACLE"
 
     classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'ai.koryki.postgresql.northwind.BuildNorthwind'
+    mainClass = 'ai.koryki.oracle.northwind.BuildNorthwind'
 
     args
 }

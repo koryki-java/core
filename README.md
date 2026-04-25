@@ -1,11 +1,9 @@
 ![Java](https://img.shields.io/badge/Java-21-blue)
-![Gradle](https://img.shields.io/badge/Build-Gradle-02303A)
-![Jackson](https://img.shields.io/badge/JSON-Jackson-black)
 ![ANTLR](https://img.shields.io/badge/Parser-ANTLR-blueviolet)
 
-
-
-
+![Oracle](https://img.shields.io/badge/Oracle-F80000?style=for-the-badge&logo=oracle&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white)
+![DuckDB](https://img.shields.io/badge/DuckDB-FFF000?style=for-the-badge&logo=duckdb&logoColor=black)
 # koryki-java/core
 
 The [**koryki.ai**](https://koryki.ai "(koryki.ai platform)") platform improves how business users interact with relational databases for search and data analysis.
@@ -29,6 +27,8 @@ A demo application is available at: [demo.koryki.ai](https://demo.koryki.ai "(de
 - **core**: the koryki core library
 - **duckdb**: DuckDB dialect
 - **northwind**: [`Northwind sample database`](./NOTICE "Northwind sample database") for testing purpose
+- **oracle**: Oracle dialect
+- **postgresql**: PostgreSQL dialect
 
  
 ## Developer Documentation
