@@ -76,9 +76,4 @@ public class DuckdbDatabase<P extends ResultProcessor<?>> extends JdbcDatabase<P
             throw new RuntimeException(e);
         }
     }
-
-    public static <P extends ResultProcessor<?>> DuckdbDatabase<P> fromResource(String resource, String file) {
-        initDbIfNeeded(resource, Path.of(file));
-        return new DuckdbDatabase<>(file);
-    }
 }

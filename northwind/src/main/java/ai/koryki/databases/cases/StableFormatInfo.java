@@ -4,7 +4,6 @@ import ai.koryki.jdbc.ColumnInfo;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Locale;
 
 public class StableFormatInfo implements ColumnInfo {
 
