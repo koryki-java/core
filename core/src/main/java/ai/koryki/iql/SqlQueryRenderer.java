@@ -54,7 +54,6 @@ public class SqlQueryRenderer implements SqlRenderer {
         this.functionRenderer = functionRenderer;
     }
 
-
     @Override
     public String toSql(LinkResolver resolver, IQLVisibilityContext visibilityContext, Query query, Map<Object, RuleContext> iqlToContext) {
         this.iqlToContext = iqlToContext;
@@ -146,7 +145,7 @@ public class SqlQueryRenderer implements SqlRenderer {
 
         if (set.getOperator() != null) {
             b.append(toSql(resolver, set.getLeft(), indent + 1));
-            b.append(indent(indent) + mapOperator(set) + System.lineSeparator());
+            b.append(indent(indent)).append(mapOperator(set)).append(System.lineSeparator());
             b.append(toSql(resolver, set.getRight(), indent + 1));
         } else {
             b.append(toSql(resolver, set.getSelect(), indent));
@@ -199,11 +198,6 @@ public class SqlQueryRenderer implements SqlRenderer {
 
     private String indent(int l) {
         return Identifier.indent(l);
-    }
-
-    public static String strip(String text) {
-
-        return Identifier.unquote(text);
     }
 
     @Override

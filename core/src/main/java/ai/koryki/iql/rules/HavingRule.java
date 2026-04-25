@@ -79,9 +79,9 @@ public class HavingRule {
             } else if (t.equals(NodeType.AND)) {
                 List<LogicalExpression> c = filter.getChildren();
 
-                List<LogicalExpression> havings = c.stream().filter(l -> isHaving(l)).collect(Collectors.toList());
+                List<LogicalExpression> havings = c.stream().filter(this::isHaving).collect(Collectors.toList());
 
-                c.removeIf(l -> isHaving(l));
+                c.removeIf(this::isHaving);
 
                 if (!havings.isEmpty()) {
                     LogicalExpression having = LogicalExpression.and(havings);
@@ -94,12 +94,12 @@ public class HavingRule {
             boolean h =
                     logical.isValue() &&
                             logical.getUnaryRelationalExpression().getOp() != null &&
-                            isAggregat(logical, aggregate);
+                            isAggregate(logical, aggregate);
             return h;
         }
     }
 
-    private static boolean isAggregat(LogicalExpression logical, Aggregate aggregat) {
-        return FunctionValidator.isAggregatOfColumnOrIdentity(logical.getUnaryRelationalExpression().getLeft(), aggregat);
+    private static boolean isAggregate(LogicalExpression logical, Aggregate aggregate) {
+        return FunctionValidator.isAggregatOfColumnOrIdentity(logical.getUnaryRelationalExpression().getLeft(), aggregate);
     }
 }

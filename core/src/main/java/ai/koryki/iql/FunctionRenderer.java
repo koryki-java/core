@@ -52,15 +52,11 @@ public interface FunctionRenderer {
         }
 
         Expression a = function.getArguments().get(0);
-        if (function.getArguments().size() == 1) {
-            return "CAST(" + renderer.toSql(a, indent) + " AS DECIMAL())";
-        } else if (function.getArguments().size() == 2) {
-            return "CAST(" + renderer.toSql(a, indent) + " AS DECIMAL(" + renderer.toSql(function.getArguments().get(1), indent) + "))";
-        } else if (function.getArguments().size() == 3) {
+        if (function.getArguments().size() == 3) {
             return "CAST(" + renderer.toSql(a, indent) + " AS DECIMAL(" + renderer.toSql(function.getArguments().get(1), indent) + ", " +
                     renderer.toSql(function.getArguments().get(2), indent) + "))";
         } else {
-            throw new IllegalArgumentException("to_decimal function must not have more than three arguments");
+            throw new IllegalArgumentException("to_decimal function must have three arguments");
         }
     }
 }

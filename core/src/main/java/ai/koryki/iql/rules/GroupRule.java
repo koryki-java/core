@@ -47,8 +47,8 @@ public class GroupRule {
     private static class GroupVisitor implements Visitor {
 
         private final Aggregate aggregate;
-        public GroupVisitor(Aggregate aggregat) {
-            this.aggregate = aggregat;
+        public GroupVisitor(Aggregate aggregate) {
+            this.aggregate = aggregate;
         }
 
         @Override
@@ -83,7 +83,7 @@ public class GroupRule {
                 return true;
             }
 
-            return select.getJoin().stream().anyMatch(j -> hasHaving(j));
+            return select.getJoin().stream().anyMatch(GroupVisitor::hasHaving);
         }
 
         private static boolean hasHaving(Source table) {
@@ -95,16 +95,16 @@ public class GroupRule {
             if (join.getSource() != null && hasHaving(join.getSource())) {
                 return true;
             }
-            return join.getJoin().stream().anyMatch(j -> hasHaving(j));
+            return join.getJoin().stream().anyMatch(GroupVisitor::hasHaving);
         }
 
-        private static boolean hasAggregate(Aggregate aggregat, List<Out> list) {
+        private static boolean hasAggregate(Aggregate aggregate, List<Out> list) {
 
-            return list.stream().map(o -> isAggregate(aggregat, o)).anyMatch(b -> b);
+            return list.stream().anyMatch(o -> isAggregate(aggregate, o));
         }
     }
 
-    private static boolean isAggregate(Aggregate aggregat, Out o) {
-        return FunctionValidator.isAggregatOfColumnOrIdentity(o.getExpression(), aggregat);
+    private static boolean isAggregate(Aggregate aggregate, Out o) {
+        return FunctionValidator.isAggregatOfColumnOrIdentity(o.getExpression(), aggregate);
     }
 }

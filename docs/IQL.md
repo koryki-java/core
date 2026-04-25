@@ -174,7 +174,6 @@ Semantic validation is run after bean construction and before SQL generation. `V
 
 Both validators produce `Violation` objects that carry the offending bean, its source-text `Range`, a human-readable message, and optionally a second `Range` pointing to a related definition. Any violations cause `ValidateException` to be thrown.
 
----
 
 ### Identifier Handling (`Identifier`)
 
@@ -190,4 +189,3 @@ The `Identifier` enum centralises all SQL identifier formatting. It defines five
 
 `Identifier.normal(Identifier, String)` is the central normalization method. It handles stripping existing quotes, re-quoting when necessary (e.g., purely numeric identifiers), and applying case transformations. `Identifier.indent(int)` produces indentation strings for formatted SQL output.
 
----

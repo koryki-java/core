@@ -111,8 +111,8 @@ public class Model {
         copy.setComment(Locale.getComment());
         copy.setDescription(Locale.getDescription());
         copy.setName(Locale.getName());
-        copy.setEntities(Locale.getEntities().stream().map(t -> deepCopy(t)).collect(Collectors.toList()));
-        copy.setLinks(Locale.getLinks().stream().map(r -> deepCopy(r)).collect(Collectors.toList()));
+        copy.setEntities(Locale.getEntities().stream().map(Model::deepCopy).collect(Collectors.toList()));
+        copy.setLinks(Locale.getLinks().stream().map(Model::deepCopy).collect(Collectors.toList()));
         return copy;
     }
 
@@ -123,7 +123,7 @@ public class Model {
         copy.setLabel(tabpe.getLabel());
         copy.setComment(tabpe.getComment());
         copy.setDescription(tabpe.getDescription());
-        copy.setAttributes(tabpe.getAttributes().stream().map(c -> deepCopy(c)).collect(Collectors.toList()));
+        copy.setAttributes(tabpe.getAttributes().stream().map(Model::deepCopy).collect(Collectors.toList()));
         return copy;
     }
 

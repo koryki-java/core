@@ -10,9 +10,6 @@ public class NorthwindDuckdb {
 
     public static <P extends ResultProcessor<?>> DuckdbDatabase<P> northwind() {
 
-
         return new DuckdbDatabase<>( "",DuckdbDatabase.connection(DUCKDB));
-
-        //return DuckdbDatabase.fromResource(DUCKDB, "/tmp/korykiai.duckdb"                       );
     }
 }

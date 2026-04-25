@@ -33,9 +33,9 @@ import java.util.Map;
 
 public class IQLQueryMapper {
 
-    private IQLParser.QueryContext script;
-    private String description;
-    private Map<Object, RuleContext> iqlToContext = new HashMap<>();
+    private final IQLParser.QueryContext script;
+    private final String description;
+    private final Map<Object, RuleContext> iqlToContext = new HashMap<>();
 
 
     public IQLQueryMapper(IQLReader reader) {
@@ -49,7 +49,7 @@ public class IQLQueryMapper {
 
     public Query toScript() {
 
-        Query bean = build(script, () -> new Query());
+        Query bean = build(script, Query::new);
         bean.setDescription(description);
         if (script.cte() != null) {
             bean.setBlock(toBlock(script.cte()));
@@ -68,7 +68,7 @@ public class IQLQueryMapper {
     }
 
     public Block toBlock(IQLParser.BlockContext block) {
-        Block bean = build(block, () -> new Block());
+        Block bean = build(block, Block::new);
         bean.setId(block.id.getText());
 
         if (block.PLACEHOLDER() != null) {
@@ -80,7 +80,7 @@ public class IQLQueryMapper {
     }
 
     public Query toQuery(IQLParser.QueryContext query) {
-        Query bean = build(query, () -> new Query());
+        Query bean = build(query, Query::new);
 
         bean.getBlock().addAll(toBlock(query.cte()));
         bean.setSet(toSet(query.set()));
@@ -95,13 +95,13 @@ public class IQLQueryMapper {
                 set.UNIONALL() != null ? set.UNIONALL().getText() : null;
 
         if (set.LEFT_PAREN() != null) {
-            return toSet(set.set().get(0));
+            return toSet(set.set().getFirst());
         } else if (set.select() != null) {
-            Set bean = build(set, () -> new Set());
+            Set bean = build(set, Set::new);
             bean.setSelect(toSelect(set.select()));
             return bean;
         } else if (op != null) {
-            Set bean = build(set, () -> new Set());
+            Set bean = build(set, Set::new);
             bean.setOperator(op);
             bean.setLeft(toSet(set.set().get(0)));
             bean.setRight(toSet(set.set().get(1)));
@@ -116,7 +116,7 @@ public class IQLQueryMapper {
         if (select.LEFT_PAREN() != null) {
             return toSelect(select.select());
         } else {
-            Select bean = build(select, () -> new Select());
+            Select bean = build(select, Select::new);
             bean.setStart(toEntity(select.join_entity()));
 
             if (select.DISTINCT() != null) {
@@ -156,7 +156,7 @@ public class IQLQueryMapper {
 
     public Join toJoin(IQLParser.JoinContext join) {
 
-        Join bean = build(join, () -> new Join());
+        Join bean = build(join, Join::new);
         bean.setCrit(join.crit.getText());
         if (join.ref != null) {
             bean.setRef(join.ref.getText());
@@ -175,7 +175,7 @@ public class IQLQueryMapper {
 
     public Exists toExists(IQLParser.ExistsContext exists) {
 
-        Exists bean = build(exists, () -> new Exists());
+        Exists bean = build(exists, Exists::new);
         bean.setParent(exists.parent.getText());
         bean.setCrit(exists.crit.getText());
         //bean.setInvers(exists.INVERS() != null);
@@ -189,59 +189,57 @@ public class IQLQueryMapper {
 
     public Source toEntity(IQLParser.Join_entityContext entity) {
 
-        Source table = build(entity, () -> new Source());
-        table.setName(entity.source().tab.getText());
+        Source source = build(entity, Source::new);
+        source.setName(entity.source().tab.getText());
         if (entity.source().alias != null) {
-            table.setAlias(entity.source().alias.getText());
+            source.setAlias(entity.source().alias.getText());
         }
 
         for (IQLParser.OutContext o : entity.out()) {
-            table.getOut().add(toOut(o));
+            source.getOut().add(toOut(o));
         }
         if (entity.filter() != null) {
             LogicalExpression n = Normalizer.normalize(toLogicalNode(entity.filter()));
-            table.setFilter(n);
+            source.setFilter(n);
         }
         for (IQLParser.OrderContext o : entity.order()) {
-            table.getOrder().add(toOrder(o));
+            source.getOrder().add(toOrder(o));
         }
         for (IQLParser.GroupContext g : entity.group()) {
-            table.getGroup().add(toGroup(g));
+            source.getGroup().add(toGroup(g));
         }
         if (entity.having() != null) {
             LogicalExpression n = Normalizer.normalize(toLogicalNode(entity.having()));
-            table.setHaving(n);
+            source.setHaving(n);
         }
 
-        return table;
+        return source;
     }
 
     public Source toEntity(IQLParser.Exists_entityContext entity) {
 
-        Source table = build(entity, () -> new Source());
+        Source source = build(entity, Source::new);
 
-        table.setName(entity.source().tab.getText());
+        source.setName(entity.source().tab.getText());
         if (entity.source().alias != null) {
-            table.setAlias(entity.source().alias.getText());
+            source.setAlias(entity.source().alias.getText());
         }
 
         LogicalExpression f = Normalizer.normalize(toLogicalNode(entity.filter()));
-        table.setFilter(f);
-        /*for (IQLParser.OrderContext o : entity.order()) {
-            table.getOrder().add(toOrder(o));
-        }*/
+        source.setFilter(f);
+
         for (IQLParser.GroupContext g : entity.group()) {
-            table.getGroup().add(toGroup(g));
+            source.getGroup().add(toGroup(g));
         }
         LogicalExpression h = Normalizer.normalize(toLogicalNode(entity.having()));
-        table.setHaving(h);
+        source.setHaving(h);
 
-        return table;
+        return source;
     }
 
     public Out toOut(IQLParser.OutContext out) {
 
-        Out bean = build(out, () -> new Out());
+        Out bean = build(out, Out::new);
         if (out.h != null) {
             bean.setHeader(out.h.getText());
         }
@@ -252,13 +250,13 @@ public class IQLQueryMapper {
         }
 
         if (out.idx != null) {
-            bean.setIdx(Integer.valueOf(out.idx.getText()));
+            bean.setIdx(Integer.parseInt(out.idx.getText()));
         }
         return bean;
     }
 
     public List<Expression> toExpression(List<IQLParser.ExpressionContext> expression) {
-        return expression.stream().map(e -> toExpression(e)).toList();
+        return expression.stream().map(this::toExpression).toList();
     }
 
 
@@ -268,7 +266,7 @@ public class IQLQueryMapper {
             if (expression.expression() != null) {
                 return toExpression(expression.expression());
             } else if (expression.select() != null) {
-                Expression bean = build(expression, () -> new Expression());
+                Expression bean = build(expression, Expression::new);
                 bean.setSelect(toSelect(expression.select()));
                 return bean;
             } else {
@@ -277,15 +275,15 @@ public class IQLQueryMapper {
         } else if (expression.date_literal() != null) {
             return toExpression(expression.date_literal());
         } else if (expression.INT() != null) {
-            Expression bean = build(expression, () -> new Expression());
+            Expression bean = build(expression, Expression::new);
             bean.setNumber(Double.valueOf(expression.INT().getText()));
             return bean;
         } else if (expression.NUMBER() != null) {
-            Expression bean = build(expression, () -> new Expression());
+            Expression bean = build(expression, Expression::new);
             bean.setNumber(Double.valueOf(expression.NUMBER().getText()));
             return bean;
         } else if (expression.SQ_STRING() != null) {
-            Expression bean = build(expression, () -> new Expression());
+            Expression bean = build(expression, Expression::new);
             bean.setText(expression.SQ_STRING().getText());
             return bean;
         } else if (expression.field() != null) {
@@ -298,9 +296,9 @@ public class IQLQueryMapper {
     }
 
     public Expression toExpression(IQLParser.FieldContext column) {
-        Expression bean = build(column, () -> new Expression());
+        Expression bean = build(column, Expression::new);
 
-        Field c = build(column, () -> new Field());
+        Field c = build(column, Field::new);
         if (column.alias != null) {
             c.setAlias(column.alias.getText());
         }
@@ -310,9 +308,9 @@ public class IQLQueryMapper {
     }
 
     public Expression toExpression(IQLParser.FunctionContext function) {
-        Expression bean = build(function, () -> new Expression());
+        Expression bean = build(function, Expression::new);
 
-        Function f = build(function, () -> new Function());
+        Function f = build(function, Function::new);
         f.setFunc(function.ID().getText());
 
         for (IQLParser.ArgumentContext a : function.argument()) {
@@ -328,7 +326,7 @@ public class IQLQueryMapper {
     }
 
     public Window toWindow(IQLParser.WindowContext window) {
-        Window bean = build(window, () -> new Window());
+        Window bean = build(window, Window::new);
 
         if (window.partitionex != null) {
             bean.setPartition(toExpression(window.partitionex));
@@ -356,12 +354,12 @@ public class IQLQueryMapper {
                 throw new KorykiaiException("invalid limit");
             }
         } else if (limit.CURRENT() != null) {
-            return build(limit, () -> Limit.CURRENT_ROW());
+            return build(limit, Limit::CURRENT_ROW);
         } else if (limit.UNBOUNDED() != null) {
             if (limit.FOLLOWING() != null) {
-                return build(limit, () -> Limit.UNBOUNDED_FOLLOWING());
+                return build(limit, Limit::UNBOUNDED_FOLLOWING);
             } else if (limit.PRECEDING() != null) {
-                return build(limit, () -> Limit.UNBOUNDED_PRECEDING());
+                return build(limit, Limit::UNBOUNDED_PRECEDING);
             } else {
                 throw new KorykiaiException("invalid limit");
             }
@@ -375,14 +373,14 @@ public class IQLQueryMapper {
          if (argument.expression() != null) {
              return toExpression(argument.expression());
          } else {
-             Expression e = build(argument, () -> new Expression());
+             Expression e = build(argument, Expression::new);
              e.setIdentity(argument.identity.getText());
              return e;
          }
     }
 
     public Expression toExpression(IQLParser.Date_literalContext date) {
-        Expression bean = build(date, () -> new Expression());
+        Expression bean = build(date, Expression::new);
 
         if (date.TIME_FORMAT() != null) {
             bean.setLocalTime(LocalTime.parse(Identifier.unquote(date.TIME_FORMAT().getText())));
@@ -432,29 +430,29 @@ public class IQLQueryMapper {
     public UnaryLogicalExpression toUnaryLogicalExpression(IQLParser.Unary_logical_expressionContext unaryLogicalExpressionContext) {
 
         if (unaryLogicalExpressionContext.PLACEHOLDER() != null) {
-            UnaryLogicalExpression bean = build(unaryLogicalExpressionContext.logical_expression(), () -> new UnaryLogicalExpression());
-            bean.setLeft(toExpression(unaryLogicalExpressionContext.expression().get(0)));
+            UnaryLogicalExpression bean = build(unaryLogicalExpressionContext.logical_expression(), UnaryLogicalExpression::new);
+            bean.setLeft(toExpression(unaryLogicalExpressionContext.expression().getFirst()));
             if (unaryLogicalExpressionContext.operator() != null) {
                 bean.setOp(unaryLogicalExpressionContext.operator().getText());
             }
             bean.setPlaceholder( unaryLogicalExpressionContext.PLACEHOLDER().getText());
             return bean;
         } else if (unaryLogicalExpressionContext.logical_expression() != null) {
-            UnaryLogicalExpression bean = build(unaryLogicalExpressionContext.logical_expression(), () -> new UnaryLogicalExpression());
+            UnaryLogicalExpression bean = build(unaryLogicalExpressionContext.logical_expression(), UnaryLogicalExpression::new);
             LogicalExpression f = Normalizer.normalize(toLogicalNode(unaryLogicalExpressionContext.logical_expression()));
             bean.setNode(f);
             return bean;
         } else if (unaryLogicalExpressionContext.operator() != null) {
-            UnaryLogicalExpression bean = build(unaryLogicalExpressionContext, () -> new UnaryLogicalExpression());
+            UnaryLogicalExpression bean = build(unaryLogicalExpressionContext, UnaryLogicalExpression::new);
             //bean.setNot(unaryLogicalExpressionContext.NOT() != null);
             bean.setOp(unaryLogicalExpressionContext.operator().getText());
-            bean.setLeft(toExpression(unaryLogicalExpressionContext.expression().get(0)));
+            bean.setLeft(toExpression(unaryLogicalExpressionContext.expression().getFirst()));
             for (int i = 1; i < unaryLogicalExpressionContext.expression().size(); i++) {
                 bean.getRight().add(toExpression(unaryLogicalExpressionContext.expression().get(i)));
             }
             return bean;
         } if (unaryLogicalExpressionContext.exists() != null) {
-            UnaryLogicalExpression bean = build(unaryLogicalExpressionContext.exists(), () -> new UnaryLogicalExpression());
+            UnaryLogicalExpression bean = build(unaryLogicalExpressionContext.exists(), UnaryLogicalExpression::new);
             //bean.setNot(unaryLogicalExpressionContext.NOT() != null);
             if (unaryLogicalExpressionContext.parent != null) {
                 bean.setParent(unaryLogicalExpressionContext.parent.getText());
@@ -467,7 +465,7 @@ public class IQLQueryMapper {
     }
 
     public Order toOrder(IQLParser.OrderContext order) {
-        Order bean = build(order, () -> new Order());
+        Order bean = build(order, Order::new);
         if (order.expression() != null) {
             bean.setExpression(toExpression(order.expression()));
         }
@@ -477,17 +475,17 @@ public class IQLQueryMapper {
             bean.setSort(Order.SORT.ASC);
         }
         if (order.idx != null) {
-            bean.setIdx(Integer.valueOf(order.idx.getText()));
+            bean.setIdx(Integer.parseInt(order.idx.getText()));
         }
 
         return bean;
     }
 
     public Group toGroup(IQLParser.GroupContext group) {
-        Group bean = build(group, () -> new Group());
+        Group bean = build(group, Group::new);
         bean.setExpression(toExpression(group.expression()));
         if (group.idx != null) {
-            bean.setIdx(Integer.valueOf(group.idx.getText()));
+            bean.setIdx(Integer.parseInt(group.idx.getText()));
         }
         return bean;
     }

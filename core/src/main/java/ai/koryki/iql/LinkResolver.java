@@ -33,13 +33,13 @@ import java.util.stream.Collectors;
 
 public class LinkResolver {
 
-    private Locale locale;
-    private Schema db;
-    private Model model;
+    private final Locale locale;
+    private final Schema db;
+    private final Model model;
 
-    private Map<String, Link> linkMap;
-    private boolean alignedOnly;
-    private boolean qualifiedOnly;
+    private final Map<String, Link> linkMap;
+    private final boolean alignedOnly;
+    private final boolean qualifiedOnly;
     private boolean strict;
 
     public LinkResolver(Locale locale, Schema db, Model model) {
@@ -56,7 +56,6 @@ public class LinkResolver {
     }
 
     private List<Relation> _listTypedAligned(String crit, String start, String end) {
-
 
         List<Relation> rl = db.linkRelations(getDialectTable(start).orElseThrow(() -> new RuntimeException(start)), getDialectTable(end).orElseThrow(() -> new RuntimeException(end)), crit);
         return rl;
@@ -118,12 +117,12 @@ public class LinkResolver {
 
         Link link1 = model.getLink(link).orElse(null);
         if (link1 == null) {
-            throw new RangeException(range, "c'ant resolve link " + link + " " + startTable + " " + endTable);
+            throw new RangeException(range, "cant resolve link " + link + " " + startTable + " " + endTable);
         }
         String ll = link1.getRelation() != null ? link1.getRelation() : link1.getName();
         Link v = linkMap.get(ll);
         if (v == null) {
-            throw new RangeException(range, "c'ant resolve link " + link + " " + startTable + " " + endTable);
+            throw new RangeException(range, "cant resolve link " + link + " " + startTable + " " + endTable);
         }
 
 
@@ -131,7 +130,7 @@ public class LinkResolver {
 
         if (list == null) {
             if (strict) {
-                throw new RangeException(range, "c'ant resolve link " + link);
+                throw new RangeException(range, "cant resolve link " + link);
             }
             return link;
         }
@@ -151,7 +150,7 @@ public class LinkResolver {
         }).map(l -> db.getRelation(l).get().getName()).findFirst().orElse(null);
 
         if (strict && foreignKey == null) {
-            throw new RangeException(range, "c'ant resolve link " + link + " " + startTable + " " + endTable);
+            throw new RangeException(range, "cant resolve link " + link + " " + startTable + " " + endTable);
         }
         return foreignKey;
     }

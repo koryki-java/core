@@ -44,18 +44,18 @@ public class SchemaValidator implements Collector<List<Violation>> {
 
 
     @Override
-    public boolean visit(Deque<Object> deque, Source table) {
+    public boolean visit(Deque<Object> deque, Source source) {
 
-        aliasToSource.put(table.getAlias(), table);
+        aliasToSource.put(source.getAlias(), source);
 
-        if (recursiveAliasToSourceMap != null && recursiveAliasToSourceMap.containsKey(table.getName())) {
-            // recursive table in CTE
+        if (recursiveAliasToSourceMap != null && recursiveAliasToSourceMap.containsKey(source.getName())) {
+            // recursive source in CTE
             return true;
         }
 
-        if (!blockIdToLeadingSourceMap.containsKey(table.getName())) {
-            if (!resolver.getModel().getEntity(table.getName()).isPresent()) {
-                violations.add(new Violation(table, Range.range(iqlToContext.get(table)), "invalid table"));
+        if (!blockIdToLeadingSourceMap.containsKey(source.getName())) {
+            if (resolver.getModel().getEntity(source.getName()).isEmpty()) {
+                violations.add(new Violation(source, Range.range(iqlToContext.get(source)), "invalid source"));
             }
         }
         return true;
@@ -71,14 +71,14 @@ public class SchemaValidator implements Collector<List<Violation>> {
             Select select = blockIdToSelectMap.get(selectTable.getName());
             if (select != null) {
                 List<Out> outs = SqlQueryRenderer.collectOut(select);
-                if (outs.stream().filter(o -> match(field, o)).findFirst().isPresent()) {
+                if (outs.stream().anyMatch(o -> match(field, o))) {
                     return true;
                 } else {
                     violations.add(new Violation(field, Range.range(iqlToContext.get(field)), "unknown header " + field.getName()));
                 }
             } else {
                 Optional<ai.koryki.scaffold.domain.Entity> optional = resolver.getModel().getEntity(selectTable.getName());
-                if (!optional.isPresent()) {
+                if (optional.isEmpty()) {
                     violations.add(new Violation(field, Range.range(iqlToContext.get(field)), "invalid table " + selectTable.getName()));
                 }
             }

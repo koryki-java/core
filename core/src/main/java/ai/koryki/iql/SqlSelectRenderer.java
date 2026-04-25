@@ -70,7 +70,7 @@ public class SqlSelectRenderer {
 
         if (select.getLimit() > 0) {
             b.append(indent(indent));
-            b.append("FETCH FIRST " + select.getLimit() + " ROWS ONLY");
+            b.append("FETCH FIRST ").append(select.getLimit()).append(" ROWS ONLY");
             b.append(System.lineSeparator());
         }
         return b.toString();
@@ -78,19 +78,19 @@ public class SqlSelectRenderer {
 
     private String selectClause(Select select, int indent) {
         StringBuilder b = new StringBuilder();
-        b.append(indent(indent) + SELECT);
+        b.append(indent(indent)).append(SELECT);
         b.append(System.lineSeparator());
 
         b.append(indent(indent + 2));
 
         if (select.isDistinct()) {
-            b.append(indent(indent) + "DISTINCT ");
+            b.append(indent(indent)).append("DISTINCT ");
         }
 
         List<Out> out = collectOut(select);
 
         if (out.isEmpty()) {
-            b.append("1" + System.lineSeparator());
+            b.append("1").append(System.lineSeparator());
         } else {
             b.append(selectClause(out, indent));
         }
@@ -103,14 +103,11 @@ public class SqlSelectRenderer {
         out.addAll(collectOut(select.getJoin()));
         out.addAll(select.getOut());
 
-        Comparator<Out> c = new Comparator<Out>() {
-            @Override
-            public int compare(Out o1, Out o2) {
+        Comparator<Out> c = (o1, o2) -> {
 
-                int p1 = o1.getIdx() == 0 ? Integer.MAX_VALUE : o1.getIdx();
-                int p2 = o2.getIdx() == 0 ? Integer.MAX_VALUE : o2.getIdx();
-                return p1 - p2;
-            }
+            int p1 = o1.getIdx() == 0 ? Integer.MAX_VALUE : o1.getIdx();
+            int p2 = o2.getIdx() == 0 ? Integer.MAX_VALUE : o2.getIdx();
+            return p1 - p2;
         };
 
         out.sort(c);
@@ -123,9 +120,9 @@ public class SqlSelectRenderer {
 
     private String fromClause(Source start, List<Join> join, int indent) {
         StringBuilder b = new StringBuilder();
-        b.append(indent(indent) + "FROM");
+        b.append(indent(indent)).append("FROM");
         b.append(System.lineSeparator());
-        b.append(indent(indent + 1) + toSql(start, indent + 1));
+        b.append(indent(indent + 1)).append(toSql(start, indent + 1));
         b.append(System.lineSeparator());
         b.append(toSql(start, join, indent + 1));
         return b.toString();
@@ -169,7 +166,7 @@ public class SqlSelectRenderer {
 
         b.append(toSql(out.getExpression(), indent));
         if (out.getHeader() != null) {
-            b.append(" AS " + normal(out.getHeader()));
+            b.append(" AS ").append(normal(out.getHeader()));
         }
         return b.toString();
     }
@@ -203,7 +200,7 @@ public class SqlSelectRenderer {
         all = Normalizer.normalize(all);
         b.append(toSql(start, all, indent, true));
 
-        if (b.length() > 0) {
+        if (!b.isEmpty()) {
             b.append(System.lineSeparator());
         }
 
@@ -543,9 +540,9 @@ public class SqlSelectRenderer {
 
     private String existsSubselect(Source left, Exists exists, int indent) {
         StringBuilder b = new StringBuilder();
-        b.append(indent(indent + 1) + SELECT);
+        b.append(indent(indent + 1)).append(SELECT);
         b.append(System.lineSeparator());
-        b.append(indent(indent + 2) + "1");
+        b.append(indent(indent + 2)).append("1");
         b.append(System.lineSeparator());
 
         b.append(fromClause(exists.getSource(), exists.getJoin(), indent));
@@ -554,16 +551,16 @@ public class SqlSelectRenderer {
 
         String j = joinCols(left, exists, indent + 1);
 
-        if (w != null && !w.isEmpty()) {
-            b.append(indent(indent) + WHERE);
+        if (!w.isEmpty()) {
+            b.append(indent(indent)).append(WHERE);
             b.append(System.lineSeparator());
             b.append(j);
             b.append(System.lineSeparator());
-            b.append(indent(indent) + "AND");
+            b.append(indent(indent)).append("AND");
             b.append(System.lineSeparator());
             b.append(w);
         } else {
-            b.append(indent(indent) + WHERE);
+            b.append(indent(indent)).append(WHERE);
             b.append(System.lineSeparator());
             b.append(j);
             b.append(System.lineSeparator());
@@ -605,12 +602,12 @@ public class SqlSelectRenderer {
 
         resolver.isInverse(join.getCrit());
 
-        boolean invers = resolver.isInverse(join.getCrit());
+        boolean inverse = resolver.isInverse(join.getCrit());
 
-        String startName = invers ? rightName : leftName;
-        String startAlias = invers ? rightAlias : leftAlias;
-        String endName = invers ? leftName : rightName;
-        String endAlias = invers ? leftAlias : rightAlias;
+        String startName = inverse ? rightName : leftName;
+        String startAlias = inverse ? rightAlias : leftAlias;
+        String endName = inverse ? leftName : rightName;
+        String endAlias = inverse ? leftAlias : rightAlias;
 
         return joinColumns(Range.range(iqlToContext.get(join)), indent, startName, startAlias, endName, endAlias, crit, msg, rightSource);
     }
@@ -854,7 +851,7 @@ public class SqlSelectRenderer {
 
         Optional<Relation> o = resolver.findRelation(range, Identifier.normal(Identifier.lowercase, startSource), Identifier.normal(Identifier.lowercase, endSource), crit);
 
-        if (!o.isPresent()) {
+        if (o.isEmpty()) {
             throw new KorykiaiException(msg + " " + crit + " " + right);
         }
         Relation r = o.get();

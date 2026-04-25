@@ -38,13 +38,6 @@ public class TranslateTest {
         test(kql);
     }
 
-//    @Test
-//    void test1() throws IOException {
-//
-//        Path kql = Paths.get("../../core/core/src/test/resources/ai/koryki/kql/northwind/simple/customersmorethan10ordersin2023.kql");
-//        test(kql);
-//    }
-
     private void test(Path kql) throws IOException {
 
         LinkResolver resolverEn = NorthwindService.resolver(Locale.ENGLISH);

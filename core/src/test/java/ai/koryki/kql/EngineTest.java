@@ -54,14 +54,6 @@ public class EngineTest {
         test(kql);
     }
 
-    @Test
-    void test1() throws IOException {
-
-        Path kql = Paths.get("../../core/core/src/test/resources/ai/koryki/kql/northwind/privatetest/window/window_join_with_count.kql");
-        test(kql);
-    }
-
-
     private static void test(Path kql) throws IOException {
 
         Path sibling = FileAsserter.getSibling(kql, SUFFIX, ".csv");
