@@ -1,0 +1,61 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+}
+
+description = 'koryki postgresql databases and services'
+
+java {
+    withSourcesJar() // Optional: Creates the sources JAR
+    withJavadocJar() // Optional: Creates the Javadoc JAR
+}
+
+dependencies {
+
+    implementation(libs.postgresql)
+    implementation libs.jackson.databind
+
+    implementation project(':northwind')
+    implementation project(':core')
+
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly libs.junit.platform.launcher
+}
+
+test {
+    useJUnitPlatform()
+
+    systemProperty "postgresql.northwind.url", project.findProperty("postgresql.northwind.url")
+    systemProperty "postgresql.northwind.user", project.findProperty("postgresql.northwind.user")
+    systemProperty "postgresql.northwind.password", project.findProperty("postgresql.northwind.password")
+}
+
+publishing {
+    publications {
+        // Define the publication for this subproject
+        mavenJava(MavenPublication) {
+            // The 'java' component includes the main JAR artifact and its transitive dependencies
+            from components.java
+
+            // Optionally, override the artifact ID (defaults to project name: 'api')
+            artifactId = 'koryki-postgresql'
+        }
+    }
+}
+
+
+tasks.register('NorthwindScript', JavaExec) {
+
+    systemProperty "postgresql.northwind.url", project.findProperty("postgresql.northwind.url")
+    systemProperty "postgresql.northwind.user", project.findProperty("postgresql.northwind.user")
+    systemProperty "postgresql.northwind.password", project.findProperty("postgresql.northwind.password")
+
+    group = "application"
+    description = "Build Northwind Database for PostgreSQL"
+
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'ai.koryki.postgresql.northwind.BuildNorthwind'
+
+    args
+}

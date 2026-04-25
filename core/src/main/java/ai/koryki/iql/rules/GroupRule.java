@@ -26,29 +26,29 @@ import java.util.Deque;
 import java.util.List;
 
 /**
- * Add GROUP-Expression, if aggregats are present.
+ * Add GROUP-Expression, if aggregates are present.
  */
 public class GroupRule {
 
-    private Query query;
-    private Aggregate aggregat;
+    private final Query query;
+    private final Aggregate aggregate;
 
-    public GroupRule(Aggregate aggregat, Query query) {
-        this.aggregat = aggregat;
+    public GroupRule(Aggregate aggregate, Query query) {
+        this.aggregate = aggregate;
         this.query = query;
     }
 
     public void apply() {
 
-        GroupVisitor v = new GroupVisitor(aggregat);
+        GroupVisitor v = new GroupVisitor(aggregate);
         new Walker().walk(query, v);
     }
 
     private static class GroupVisitor implements Visitor {
 
-        private Aggregate aggregat;
-        public GroupVisitor(Aggregate aggregat) {
-            this.aggregat = aggregat;
+        private final Aggregate aggregate;
+        public GroupVisitor(Aggregate aggregate) {
+            this.aggregate = aggregate;
         }
 
         @Override
@@ -60,10 +60,10 @@ public class GroupRule {
         private void apply(Select select) {
 
             List<Out> list = SqlQueryRenderer.collectOut(select);
-            if (hasAggregate(aggregat, list) || hasHaving(select)) {
+            if (hasAggregate(aggregate, list) || hasHaving(select)) {
 
                 list.forEach(o -> {
-                    if (!isAggregat(aggregat, o)) {
+                    if (!isAggregate(aggregate, o)) {
 
                         Group g = new Group();
                         g.setIdx(o.getIdx());
@@ -83,7 +83,7 @@ public class GroupRule {
                 return true;
             }
 
-            return select.getJoin().stream().anyMatch(j -> hasHaving(j));
+            return select.getJoin().stream().anyMatch(GroupVisitor::hasHaving);
         }
 
         private static boolean hasHaving(Source table) {
@@ -95,16 +95,16 @@ public class GroupRule {
             if (join.getSource() != null && hasHaving(join.getSource())) {
                 return true;
             }
-            return join.getJoin().stream().anyMatch(j -> hasHaving(j));
+            return join.getJoin().stream().anyMatch(GroupVisitor::hasHaving);
         }
 
-        private static boolean hasAggregate(Aggregate aggregat, List<Out> list) {
+        private static boolean hasAggregate(Aggregate aggregate, List<Out> list) {
 
-            return list.stream().map(o -> isAggregat(aggregat, o)).anyMatch(b -> b);
+            return list.stream().anyMatch(o -> isAggregate(aggregate, o));
         }
     }
 
-    private static boolean isAggregat(Aggregate aggregat, Out o) {
-        return FunctionValidator.isAggregatOfColumnOrIdentity(o.getExpression(), aggregat);
+    private static boolean isAggregate(Aggregate aggregate, Out o) {
+        return FunctionValidator.isAggregatOfColumnOrIdentity(o.getExpression(), aggregate);
     }
 }

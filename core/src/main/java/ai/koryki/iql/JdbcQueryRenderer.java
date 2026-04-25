@@ -34,7 +34,7 @@ public class JdbcQueryRenderer extends SqlQueryRenderer {
     protected String toSql(LinkResolver resolver, Select select, int indent) {
         StringBuilder b = new StringBuilder();
 
-        SqlSelectRenderer s2s = new JdbcSelectRenderer(iqlToContext, resolver,
+        SqlSelectRenderer s2s = new JdbcSelectRenderer(getIdentifier(), iqlToContext, resolver,
                 visibilityContext.child(select),
                 getFunctionTranslator());
 

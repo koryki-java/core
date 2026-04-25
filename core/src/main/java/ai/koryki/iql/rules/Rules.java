@@ -45,7 +45,7 @@ public class Rules {
         new InferJoinColumnsToBlockRule(query, resolver, blockIdToLeadingTableMap, iqlToContext).apply();
         new HavingRule(aggregat, query).apply();
         new GroupRule(aggregat, query).apply();
-        new IdentityRule(blockIdToLeadingTableMap, resolver.getSchema(), resolver.getModel()).apply(query);
+        new IdentityRule(blockIdToLeadingTableMap, resolver).apply(query);
         new PushLogicalExpressionRule().apply(query);
         new PushGroupRule().apply(query);
         new PushOrderRule().apply(query);

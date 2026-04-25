@@ -58,8 +58,8 @@ public class IQLVisibilityContext {
         return new IQLVisibilityContext(blockIdToBlockMap, blockIdToLeadingSourceMap, childToAliasesMap, childMap);
     }
 
-    public Source getLeadingTable(String tableName) {
-        return blockIdToLeadingSourceMap.get(tableName);
+    public Source getLeadingSource(String source) {
+        return blockIdToLeadingSourceMap.get(source);
     }
 
     public Source getSource(String alias) {
@@ -71,9 +71,9 @@ public class IQLVisibilityContext {
     }
 
     public Source rootTable(Source table) {
-        Source leadingBlockTable = getLeadingTable(table.getName());
-        if (leadingBlockTable != null) {
-            return getLeadingTable(leadingBlockTable.getName());
+        Source leadingBlockSource = getLeadingSource(table.getName());
+        if (leadingBlockSource != null) {
+            return getLeadingSource(leadingBlockSource.getName());
         }
         return table;
     }

@@ -58,16 +58,16 @@ public class PushLogicalExpressionRule {
             if (filter != null) {
 
                 Consumer<LogicalExpression> allFilterConsumer = c -> select.setFilter(null);
-                java.util.function.Function<Source, LogicalExpression> s = (t) -> t.getFilter();
-                BiConsumer<Source, LogicalExpression> tableFilterConsumer = (t, e) -> t.setFilter(e);
+                java.util.function.Function<Source, LogicalExpression> s = Source::getFilter;
+                BiConsumer<Source, LogicalExpression> tableFilterConsumer = Source::setFilter;
                 pushExpressions(select, filter, tableFilterConsumer, s, allFilterConsumer);
             }
             LogicalExpression having = select.getHaving();
             if (having != null) {
 
                 Consumer<LogicalExpression> allHavingConsumer = c -> select.setHaving(null);
-                java.util.function.Function<Source, LogicalExpression> s = (t) -> t.getHaving();
-                BiConsumer<Source, LogicalExpression> tableHavingConsumer = (t, e) -> t.setHaving(e);
+                java.util.function.Function<Source, LogicalExpression> s = Source::getHaving;
+                BiConsumer<Source, LogicalExpression> tableHavingConsumer = Source::setHaving;
                 pushExpressions(select, having, tableHavingConsumer, s, allHavingConsumer);
             }
             return true;

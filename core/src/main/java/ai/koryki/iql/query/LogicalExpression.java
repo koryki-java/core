@@ -115,7 +115,6 @@ public class LogicalExpression {
         return unary;
     }
 
-
     public boolean isBinary() {
         return type.isBinary();
     }

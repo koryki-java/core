@@ -4,7 +4,6 @@ import ai.koryki.jdbc.ColumnInfo;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Locale;
 
 public class StableFormatInfo implements ColumnInfo {
 
@@ -13,28 +12,21 @@ public class StableFormatInfo implements ColumnInfo {
     @Override
      public String toString(Object o) {
 
-        if (o instanceof Float || o instanceof  Double) {
-            return formatIfHasFraction((Number) o);
-        } if (o instanceof BigDecimal b) {
-            return formatBigDecimal(b);
+        if (o instanceof Float || o instanceof  Double || o instanceof BigDecimal ) {
+            return formatNumber((Number) o);
         }
 
         return o != null ? o.toString() : "";
     }
 
-    public static String formatIfHasFraction(Number number) {
-        double value = number.doubleValue();
-        return String.format(Locale.US, "%.2f", value);
+    public static String formatNumber(Number number) {
+
+        BigDecimal bd = (number instanceof BigDecimal)
+                ? (BigDecimal) number
+                : new BigDecimal(number.toString());
+        return bd.setScale(1, RoundingMode.HALF_DOWN).toString();
     }
 
-    public static String formatBigDecimal(BigDecimal bd) {
-
-        if (bd.stripTrailingZeros().scale() > 0) {
-            return bd.setScale(2, RoundingMode.HALF_UP).toString();
-        }
-
-        return String.format(Locale.US, "%.2f", bd);
-    }
 
     public String getHeader() {
         return header;

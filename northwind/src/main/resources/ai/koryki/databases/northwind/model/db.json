@@ -757,7 +757,7 @@
       "dialectType" : "smallint",
       "description" : "Id",
       "nullable" : false,
-      "pkPos" : 0
+      "pkPos" : 1
     }, {
       "name" : "company_name",
       "label" : "Name",
@@ -904,7 +904,7 @@
       "dialectType" : "smallint",
       "description" : null,
       "nullable" : false,
-      "pkPos" : 0
+      "pkPos" : 1
     }, {
       "name" : "state_name",
       "label" : "Name",
