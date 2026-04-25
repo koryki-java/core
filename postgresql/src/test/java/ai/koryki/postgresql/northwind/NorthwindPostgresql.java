@@ -49,10 +49,10 @@ public class NorthwindPostgresql<P extends ResultProcessor<?>> extends JdbcDatab
             System.getProperty("postgresql.northwind.url") );
     }
 
-    public static Connection connection(String user, String passwort, String url) throws SQLException {
+    public static Connection connection(String user, String password, String url) throws SQLException {
         Properties props = new Properties();
         props.setProperty("user", user);
-        props.setProperty("password", passwort);
+        props.setProperty("password", password);
 
         return DriverManager.getConnection(url, props);
     }

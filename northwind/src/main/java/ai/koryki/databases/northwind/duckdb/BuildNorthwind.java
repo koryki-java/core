@@ -11,17 +11,24 @@ public class BuildNorthwind {
 
     public static void main(String[] args) throws SQLException, IOException {
 
-        try (Connection c = DriverManager.getConnection("jdbc:duckdb:build/northwind.duckdb" )) {
+        try (Connection connection = DriverManager.getConnection("jdbc:duckdb:build/northwind.duckdb" )) {
 
-            c.setAutoCommit(false);
+            connection.setAutoCommit(false);
 
-            String tables = "/ai/koryki/databases/northwind/duckdb/tables.sql";
-            String data = "/ai/koryki/databases/northwind/duckdb/data.sql";
-
-            Script.executeScript(c, tables);
-            Script.executeScript(c, data);
-            c.commit();
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/duckdb/tables.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/duckdb/data_categories.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/duckdb/data_customers.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/duckdb/data_employees.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/duckdb/data_employees_territories.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/duckdb/data_order_details.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/duckdb/data_orders.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/duckdb/data_products.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/duckdb/data_region.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/duckdb/data_shippers.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/duckdb/data_suppliers.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/duckdb/data_territories.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/duckdb/data_us_states.sql");
+            connection.commit();
         }
     }
-
 }

@@ -59,7 +59,7 @@ public class EngineTest {
     @Test
     public void testd() throws IOException {
 
-        Path p = Path.of("../..//core/core/src/test/resources/ai/koryki/kql/northwind/privatetest/block/block_join.kql");
+        Path p = Path.of("../../core/core/src/test/resources/ai/koryki/kql/northwind/privatetest/window/window_join_with_count.kql");
 
         test(p);
     }

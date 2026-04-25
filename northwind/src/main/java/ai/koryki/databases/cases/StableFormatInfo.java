@@ -25,17 +25,9 @@ public class StableFormatInfo implements ColumnInfo {
         BigDecimal bd = (number instanceof BigDecimal)
                 ? (BigDecimal) number
                 : new BigDecimal(number.toString());
-        return bd.setScale(2, RoundingMode.DOWN).toString();
+        return bd.setScale(1, RoundingMode.HALF_DOWN).toString();
     }
 
-    public static String formatBigDecimal(BigDecimal bd) {
-
-        if (bd.stripTrailingZeros().scale() > 0) {
-            return bd.setScale(2, RoundingMode.HALF_UP).toString();
-        }
-
-        return String.format(Locale.US, "%.2f", bd);
-    }
 
     public String getHeader() {
         return header;

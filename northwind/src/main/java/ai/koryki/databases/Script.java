@@ -15,10 +15,10 @@ import java.util.stream.Collectors;
 
 public class Script {
 
-    public static void executeScript(Connection c, String script) throws IOException, SQLException {
+    public static void executeScript(Connection connection, String script) throws IOException, SQLException {
         List<String> stmts = statements(script);
 
-        try (Statement stmt = c.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
 
             for (String s : stmts) {
                 s = s.trim();

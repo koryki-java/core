@@ -43,3 +43,19 @@ publishing {
         }
     }
 }
+
+
+tasks.register('NorthwindScript', JavaExec) {
+
+    systemProperty "postgresql.northwind.url", project.findProperty("postgresql.northwind.url")
+    systemProperty "postgresql.northwind.user", project.findProperty("postgresql.northwind.user")
+    systemProperty "postgresql.northwind.password", project.findProperty("postgresql.northwind.password")
+
+    group = "application"
+    description = "Build Northwind Database for PostgreSQL"
+
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'ai.koryki.postgresql.northwind.BuildNorthwind'
+
+    args
+}

@@ -113,8 +113,8 @@ CREATE TABLE employee_territories (
 CREATE TABLE order_details (
     order_id smallint NOT NULL,
     product_id smallint NOT NULL,
-    unit_price NUMERIC(18,2) NOT NULL,
-    quantity smallint NOT NULL,
+    unit_price NUMERIC(18,6) NOT NULL,
+    quantity NUMERIC(18,6) NOT NULL,
     discount DECIMAL(5,4)  NOT NULL
 );
 

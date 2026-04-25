@@ -568,6 +568,24 @@
       "description" : null,
       "column" : "territory_description"
     } ]
+  }, {
+    "name" : "us_staaten",
+    "label" : "US Staaten",
+    "comment" : "US Staaten.",
+    "table" : "us_states",
+    "description" : null,
+    "attributes" : [ {
+      "name" : "staat_id",
+      "label" : "Id",
+      "comment" : "A surrogate primary key used to uniquely identify each state.",
+      "description" : null,
+      "column" : "state_id"
+    }, {
+      "name" : "staat_name",
+      "label" : "Name",
+      "description" : null,
+      "column" : "state_name"
+    } ]
   } ],
   "links" : [ {
     "name" : "gleiches_produkt",
