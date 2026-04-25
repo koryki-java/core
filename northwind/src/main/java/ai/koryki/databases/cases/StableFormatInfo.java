@@ -12,7 +12,7 @@ public class StableFormatInfo implements ColumnInfo {
     @Override
      public String toString(Object o) {
 
-        if (o instanceof Float || o instanceof  Double || o instanceof BigDecimal ) {
+        if (o instanceof Number) {
             return formatNumber((Number) o);
         }
 
