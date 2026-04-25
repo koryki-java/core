@@ -14,20 +14,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package ai.koryki.duckdb;
+package ai.koryki.postgresql.iql;
 
 import ai.koryki.iql.FunctionRenderer;
-import ai.koryki.iql.SqlQueryRenderer;
 import ai.koryki.iql.query.Set;
 
-public class JdbcSelectRenderer extends SqlQueryRenderer {
+public class SqlQueryRenderer extends ai.koryki.iql.SqlQueryRenderer {
 
-    public JdbcSelectRenderer() {
+    public SqlQueryRenderer() {
         this(new FunctionRenderer() {
         });
     }
 
-    public JdbcSelectRenderer(FunctionRenderer functionTranslator) {
+    public SqlQueryRenderer(FunctionRenderer functionTranslator) {
         super(functionTranslator);
     }
 

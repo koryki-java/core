@@ -22,7 +22,7 @@
       "name" : "username",
       "label" : "Username"
     }, {
-      "name" : "serial#",
+      "name" : "serial",
       "label" : "Serial",
       "column" : "serial#"
     }, {

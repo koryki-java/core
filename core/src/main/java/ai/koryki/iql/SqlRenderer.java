@@ -27,5 +27,4 @@ public interface SqlRenderer {
     String toSql(LinkResolver resolver, IQLVisibilityContext visibilityContext, Query query, Map<Object, RuleContext> iqlToContext);
 
     FunctionRenderer getFunctionTranslator();
-    //Schema getSchema();
 }

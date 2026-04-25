@@ -18,6 +18,10 @@ package ai.koryki.iql;
 
 import ai.koryki.antlr.Range;
 import ai.koryki.antlr.RangeException;
+import ai.koryki.kql.DictionaryTranslator;
+import ai.koryki.kql.TableDictionary;
+import ai.koryki.scaffold.domain.Attribute;
+import ai.koryki.scaffold.domain.Entity;
 import ai.koryki.scaffold.domain.Link;
 import ai.koryki.scaffold.domain.Model;
 import ai.koryki.scaffold.schema.Relation;
@@ -29,13 +33,13 @@ import java.util.stream.Collectors;
 
 public class LinkResolver {
 
-    private Locale locale;
-    private Schema db;
-    private Model model;
+    private final Locale locale;
+    private final Schema db;
+    private final Model model;
 
-    private Map<String, Link> linkMap;
-    private boolean alignedOnly;
-    private boolean qualifiedOnly;
+    private final Map<String, Link> linkMap;
+    private final boolean alignedOnly;
+    private final boolean qualifiedOnly;
     private boolean strict;
 
     public LinkResolver(Locale locale, Schema db, Model model) {
@@ -53,40 +57,40 @@ public class LinkResolver {
 
     private List<Relation> _listTypedAligned(String crit, String start, String end) {
 
-        List<Relation> rl = db.linkRelations(model.getTable(start), model.getTable(end), crit);
+        List<Relation> rl = db.linkRelations(getDialectTable(start).orElseThrow(() -> new RuntimeException(start)), getDialectTable(end).orElseThrow(() -> new RuntimeException(end)), crit);
         return rl;
     }
 
     private List<Relation> _listTypedReverse(String crit, String start, String end) {
 
-        List<Relation> rl =db.linkRelations(model.getTable(end), model.getTable(start), crit);
+        List<Relation> rl = db.linkRelations(
+                getDialectTable(end).orElseThrow(() -> new RuntimeException(end)), 
+                getDialectTable(start).orElseThrow(() -> new RuntimeException(start)), crit);
         return rl;
     }
 
     private List<Relation> _listUntypedAligned(String crit, String start, String end) {
 
-        List<Relation> rl =db.linkRelations(model.getTable(start), model.getTable(end));
+        List<Relation> rl =db.linkRelations(getDialectTable(start).orElseThrow(() -> new RuntimeException(start)), getDialectTable(end).orElseThrow(() -> new RuntimeException(end)));
         return strict && crit != null ? Collections.emptyList() : rl;
     }
 
     private List<Relation> _listUntypedReverse(String crit, String start, String end) {
 
-        List<Relation> rl =db.linkRelations(model.getTable(end), model.getTable(start));
+        List<Relation> rl =db.linkRelations(getDialectTable(end).orElseThrow(() -> new RuntimeException(end)), getDialectTable(start).orElseThrow(() -> new RuntimeException(start)));
         return strict && crit != null ? Collections.emptyList() : rl;
     }
 
-    private boolean compareStart(String s, Relation relation) {
-        return relation.getStartTable().equals(model.getTable(s));
+    private boolean compareStart(String start, Relation relation) {
+        return relation.getStartTable().equals(getDialectTable(start).orElseThrow(() -> new RuntimeException(start)));
     }
 
-    private boolean compareEnd(String e, Relation relation) {
-        return relation.getEndTable().equals(model.getTable(e));
+    private boolean compareEnd(String end, Relation relation) {
+        return relation.getEndTable().equals(getDialectTable(end).orElseThrow(() -> new RuntimeException(end)));
     }
 
-    public boolean isTableInDatabase(String table) {
-        String s = SqlQueryRenderer.strip(table);
-
-        return model.getEntity(s).isPresent();
+    public boolean isEntity(String entity) {
+        return model.getEntity(entity).isPresent();
     }
 
     public boolean isInverse(String link) {
@@ -113,12 +117,12 @@ public class LinkResolver {
 
         Link link1 = model.getLink(link).orElse(null);
         if (link1 == null) {
-            throw new RangeException(range, "c'ant resolve link " + link + " " + startTable + " " + endTable);
+            throw new RangeException(range, "cant resolve link " + link + " " + startTable + " " + endTable);
         }
         String ll = link1.getRelation() != null ? link1.getRelation() : link1.getName();
         Link v = linkMap.get(ll);
         if (v == null) {
-            throw new RangeException(range, "c'ant resolve link " + link + " " + startTable + " " + endTable);
+            throw new RangeException(range, "cant resolve link " + link + " " + startTable + " " + endTable);
         }
 
 
@@ -126,7 +130,7 @@ public class LinkResolver {
 
         if (list == null) {
             if (strict) {
-                throw new RangeException(range, "c'ant resolve link " + link);
+                throw new RangeException(range, "cant resolve link " + link);
             }
             return link;
         }
@@ -146,7 +150,7 @@ public class LinkResolver {
         }).map(l -> db.getRelation(l).get().getName()).findFirst().orElse(null);
 
         if (strict && foreignKey == null) {
-            throw new RangeException(range, "c'ant resolve link " + link + " " + startTable + " " + endTable);
+            throw new RangeException(range, "cant resolve link " + link + " " + startTable + " " + endTable);
         }
         return foreignKey;
     }
@@ -248,4 +252,57 @@ public class LinkResolver {
     public Map<String, Link> getLinkMap() {
         return linkMap;
     }
+
+    public Optional<String> getDialectTable(String entity) {
+        return model.getEntity(entity).map(LinkResolver::getDialectTable);
+    }
+
+    public Optional<String> getDialectColumn(String entity, String attribute) {
+        return model.getEntity(entity).
+                flatMap(e -> e.getAttributes().stream().filter(a -> a.getName().equals(attribute)).findFirst())
+                .map(LinkResolver::getDialectColumn);
+    }
+
+    public static DictionaryTranslator dictionary(Model from, Model to) {
+
+        Map<String, TableDictionary> toSchema = from.getEntities().stream().collect(Collectors.toMap(Entity::getName, (e) -> {
+
+            TableDictionary dictionary = new TableDictionary();
+
+            String dialectTable = getDialectTable(e);
+
+            Entity te = to.getEntities().stream()
+                    .filter(t -> getDialectTable(t).equals(dialectTable)).findFirst()
+                    .orElseThrow(() -> new RuntimeException("No value present " + dialectTable));
+            dictionary.setName(te.getName());
+
+            dictionary.setColumns(e.getAttributes().stream().collect(Collectors.toMap(Attribute::getName, a -> {
+                String dialectColumn = getDialectColumn(a);
+                return te.getAttributes().stream()
+                        .filter(aa -> getDialectColumn(aa).equals(dialectColumn)).findFirst()
+                        .orElseThrow(() -> new RuntimeException("No value present " + dialectColumn))
+                        .getName();
+            })));
+            return dictionary;
+        }));
+        Map<String, String> toLink = from.getLinks().stream().collect(Collectors.toMap(Link::getName, (l) -> {
+            String base = l.getBase() != null ? l.getBase() : l.getName();
+            return to.getLinks().stream()
+                    .filter(tl -> (tl.getBase() != null ? tl.getBase() : tl.getName()).equals(base))
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("No value present " + base))
+                    .getName();
+
+        }));
+        return new DictionaryTranslator(toLink, toSchema);
+    }
+
+    public static String getDialectTable(Entity entity) {
+        return entity.getTable() != null ? entity.getTable() : entity.getName();
+    }
+
+    public static String getDialectColumn(Attribute attribute) {
+        return attribute.getColumn() != null ? attribute.getColumn() : attribute.getName();
+    }
+
 }

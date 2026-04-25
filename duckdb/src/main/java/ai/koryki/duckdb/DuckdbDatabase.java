@@ -17,7 +17,6 @@
 package ai.koryki.duckdb;
 
 import ai.koryki.jdbc.JdbcDatabase;
-import ai.koryki.jdbc.ResultConsumer;
 import ai.koryki.jdbc.ResultProcessor;
 
 import java.io.File;
@@ -60,25 +59,21 @@ public class DuckdbDatabase<P extends ResultProcessor<?>> extends JdbcDatabase<P
         super("duckdb", connection(file));
     }
 
+    public DuckdbDatabase(String name, Connection connection) {
+        super(name, connection);
+    }
+
     public static Connection connection(String file) {
 
         File f = new File(file);
         if (!f.canRead() || f.length() == 0) {
             throw new RuntimeException("missing db " + file + " " + f.length());
         }
-
-        String url = file != null ? "jdbc:duckdb:" + file : "jdbc:duckdb::memory";
+        String url =  "jdbc:duckdb:" + file;
         try {
             return DriverManager.getConnection(url);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
-
-    public static <P extends ResultProcessor<?>> DuckdbDatabase<P> fromResource(String resource) {
-        String file =  "/tmp/korykiai.duckdb";
-        initDbIfNeeded(resource, Path.of(file));
-        return new DuckdbDatabase<>(file);
-    }
-
 }

@@ -51,9 +51,8 @@ The `IQLTranspiler` class is the high-level façade that drives this entire pipe
 
 ---
 
-## Main Concepts
 
-### The Query Bean Model (`query/`)
+## The Query Bean Model (`query/`)
 
 The `query/` subpackage defines the IQL AST as plain Java objects. The tree is rooted at `Query` and mirrors the IQL grammar structure:
 
@@ -123,54 +122,30 @@ Map<String, Block> blocks = Walker.apply(query, new BlockRegistryCollector());
 
 All internal analysis passes — alias collection, recursion detection, validation, rules — are implemented as `Visitor` or `Collector` subclasses driven by `Walker`.
 
----
 
-### SQL Generation
+
+## SQL Generation
 
 SQL generation is split across two levels, matching the two levels of the IQL grammar:
 
-**`SqlRenderer`** (interface) — the top-level contract. Accepts the full `Query`, a `Resolver`, a `VisibilityContext`, and the parse-node mapping. Implemented by `Bean2Sql`.
+**`SqlRenderer`** (interface) — the top-level contract. Accepts the full `Query`, a `LinkResolver`, a `VisibilityContext`, and the parse-node mapping. Implemented by `SqlQueryRenderer`.
 
-**`SqlQueryRenderer`** — handles the outer structure:
-- Emits `WITH` / `WITH RECURSIVE` clauses (recursion detected via `RecursiveCollector`)
-- Handles set operators (`UNION ALL`, `INTERSECT`, `MINUS`)
-- Delegates each `SELECT` to `Select2Sql`
+**`SqlQueryRenderer`** — handles the outer structure
 
-**`SqlSelectRenderer`** — handles the full SELECT body:
-- Generates `SELECT`, `FROM`, `INNER JOIN` / `LEFT OUTER JOIN`, `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY`, `FETCH FIRST ... ROWS ONLY`
-- Translates domain attribute names to physical column names via `Model.getColumn()`
-- Resolves join conditions from the `Schema` FK relations via `Resolver`
-- Handles window functions (`OVER (PARTITION BY ... ORDER BY ... ROWS BETWEEN ...)`)
-- Renders EXISTS subqueries as correlated `SELECT 1 FROM ... WHERE ...`
+**`SqlSelectRenderer`** — handles the full SELECT body
 
-**`JdbcQueryRenderer` / `JdbcSelectRenderer`** — dialect variant that overrides date/time/timestamp literals to use JDBC escape syntax (`{d '...'}`, `{ts '...'}`, `{t '...'}`).
+## Link Resolution (`LinkResolver`)
 
-**`IQLVisibilityContext`** — a scoped lookup table used during SQL generation. It holds three maps:
-- `blockId → Block` — resolves CTE references
-- `blockId → leading Source` — resolves which physical table a CTE represents
-- `alias → Source` — resolves which `Source` a field alias refers to within the current scope
+IQL queries reference joins by **link names** 
+(domain-level relationship names, e.g., `orders`, `customer`) rather than 
+physical FK column names. The `LinkResolver` bridges the gap.
 
-`IQLVisibilityContext.child(Object)` creates a new nested scope inheriting the parent's bindings plus any aliases declared within the given child node. This mirrors the lexical scoping rules of SQL sub-queries.
-
----
-
-### Link Resolution (`LinkResolver`)
-
-IQL queries reference joins by **link names** (domain-level relationship names, e.g., `orders`, `customer`) rather than physical FK column names. The `Resolver` bridges the gap between the two:
-
-1. A link name is looked up in the `Model` to find the corresponding `Link` definition, which may carry an explicit `relation` name or a list of FK relation names.
-2. The `Schema` is queried for a `Relation` (FK constraint) matching the start/end table pair.
-3. Resolution is tried in four modes in order: typed+aligned → typed+reverse → untyped+aligned → untyped+reverse. The first match wins.
-4. If the link is marked `nature=inverse` in the model, the start/end roles are swapped.
-5. Symmetric relations (self-referential tables) are treated specially.
-
-`Resolver` also exposes `isTableInDatabase(String)` to distinguish physical tables from CTE references, which is used by recursion detection and rule processing.
-
----
+`LinkResolver` is also responsible for mapping **IQL** identifiers (lowercase letters and digits) to the database 
+identifiers, which are less restrictive (`getDialectTable(source)`, `getDialectColumn(source, field)`).
 
 ### The Rules Pipeline (`rules/`)
 
-The rules pipeline is applied **only on the KQL path** (via `KQLTranspiler`) before SQL generation. It transforms the raw bean model output of `KQL2Bean` into a form that maps correctly and safely to SQL. Rules are applied in a fixed order by `Rules.apply()`:
+The rules pipeline is applied **only on the KQL path** (via `KQLTranspiler`) before SQL generation. It transforms the raw bean model output of `KQLQueryMapper` into a form that maps correctly and safely to SQL. Rules are applied in a fixed order by `Rules.apply()`:
 
 | Order | Rule | Effect |
 |---|---|---|
@@ -184,7 +159,7 @@ The rules pipeline is applied **only on the KQL path** (via `KQLTranspiler`) bef
 | 8 | `PushOrderRule` | Moves `select.order` items into the corresponding `source.order` |
 | 9 | `CheckOuterJoinFilterRule` | Validates that no predicate on an outer-joined (optional) source remains in the top-level `select.filter`, which would silently convert it to an inner join |
 
----
+
 
 ### Validation (`validate/`)
 
@@ -199,7 +174,6 @@ Semantic validation is run after bean construction and before SQL generation. `V
 
 Both validators produce `Violation` objects that carry the offending bean, its source-text `Range`, a human-readable message, and optionally a second `Range` pointing to a related definition. Any violations cause `ValidateException` to be thrown.
 
----
 
 ### Identifier Handling (`Identifier`)
 
@@ -215,4 +189,3 @@ The `Identifier` enum centralises all SQL identifier formatting. It defines five
 
 `Identifier.normal(Identifier, String)` is the central normalization method. It handles stripping existing quotes, re-quoting when necessary (e.g., purely numeric identifiers), and applying case transformations. `Identifier.indent(int)` produces indentation strings for formatted SQL output.
 
----

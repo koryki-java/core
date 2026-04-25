@@ -31,20 +31,28 @@ public class SqlQueryRenderer implements SqlRenderer {
     public static final String WITH = "WITH";
 
     private Query query;
-    private Identifier idendifier = Identifier.lowercase;
-    private FunctionRenderer functionRenderer;
+    private Identifier identifier = Identifier.lowercase;
+    private final FunctionRenderer functionRenderer;
     protected IQLVisibilityContext visibilityContext;
     protected Map<Object, RuleContext> iqlToContext;
 
 
     public SqlQueryRenderer() {
-        this(new FunctionRenderer() {});
+        this(Identifier.lowercase, new FunctionRenderer() {});
     }
 
     public SqlQueryRenderer(FunctionRenderer functionRenderer) {
-        this.functionRenderer = functionRenderer;
+        this(Identifier.lowercase, functionRenderer);
     }
 
+    public SqlQueryRenderer(Identifier identifier) {
+        this(identifier, new FunctionRenderer() {});
+    }
+
+    public SqlQueryRenderer(Identifier identifier, FunctionRenderer functionRenderer) {
+        this.identifier = identifier;
+        this.functionRenderer = functionRenderer;
+    }
 
     @Override
     public String toSql(LinkResolver resolver, IQLVisibilityContext visibilityContext, Query query, Map<Object, RuleContext> iqlToContext) {
@@ -101,11 +109,11 @@ public class SqlQueryRenderer implements SqlRenderer {
             return out.getHeader();
         } else if (out.getExpression().getField() != null) {
 
-            Field c = out.getExpression().getField();
-            Source t = v.getSource(c.getAlias());
-            Source b = v.getLeadingTable(t.getName());
-            String tablename = b != null ? b.getName() : t.getName();
-            String header = resolver.getModel().getColumn(tablename, c.getName());
+            Field f = out.getExpression().getField();
+            Source s = v.getSource(f.getAlias());
+            Source b = v.getLeadingSource(s.getName());
+            String sourcename = b != null ? b.getName() : s.getName();
+            String header = resolver.getDialectColumn(sourcename, f.getName()).orElse(f.getName());
             return header;
         } else {
             throw new KorykiaiException("missing column-header");
@@ -137,7 +145,7 @@ public class SqlQueryRenderer implements SqlRenderer {
 
         if (set.getOperator() != null) {
             b.append(toSql(resolver, set.getLeft(), indent + 1));
-            b.append(indent(indent) + mapOperator(set) + System.lineSeparator());
+            b.append(indent(indent)).append(mapOperator(set)).append(System.lineSeparator());
             b.append(toSql(resolver, set.getRight(), indent + 1));
         } else {
             b.append(toSql(resolver, set.getSelect(), indent));
@@ -172,7 +180,7 @@ public class SqlQueryRenderer implements SqlRenderer {
     protected String toSql(LinkResolver resolver, Select select, int indent) {
         StringBuilder b = new StringBuilder();
 
-        SqlSelectRenderer s2s = new SqlSelectRenderer(iqlToContext, resolver,
+        SqlSelectRenderer s2s = new SqlSelectRenderer(identifier, iqlToContext, resolver,
                 visibilityContext.child(select),
                 functionRenderer);
 
@@ -181,7 +189,7 @@ public class SqlQueryRenderer implements SqlRenderer {
     }
 
     private String normal(String text) {
-        return Identifier.normal(idendifier, text);
+        return Identifier.normal(identifier, text);
     }
 
     private String normal(int l, String text) {
@@ -190,23 +198,6 @@ public class SqlQueryRenderer implements SqlRenderer {
 
     private String indent(int l) {
         return Identifier.indent(l);
-    }
-
-    public static String strip(String text) {
-
-        if (text == null) {
-            return null;
-        }
-
-        String n = text.toLowerCase();
-
-        if (n.startsWith("\"")) {
-            n = n.substring(1);
-        }
-        if (n.endsWith("\"")) {
-            n = n.substring(0, n.length() - 1);
-        }
-        return n;
     }
 
     @Override
@@ -284,4 +275,7 @@ public class SqlQueryRenderer implements SqlRenderer {
         return "BETWEEN".equalsIgnoreCase(op);
     }
 
+    public Identifier getIdentifier() {
+        return identifier;
+    }
 }

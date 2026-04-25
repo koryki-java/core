@@ -88,41 +88,8 @@ public class Model {
         this.entities = new ArrayList<>(entities);
     }
 
-    public void addEntity(Entity table) {
-        this.entities.add(table);
-    }
-
     public Optional<Entity> getEntity(String name) {
         return entities.stream().filter(t -> t.getName().equals(name)).findFirst();
-    }
-
-    public String getTable(String entity) {
-        Optional<Entity> entity1 = getEntity(entity);
-        if (entity1.isEmpty()) {
-            // FIXME rethink concept for headers, model-translation
-            return entity;
-        }
-        Entity e = entity1.get();
-        return e.getTable() != null ? e.getTable() : e.getName();
-    }
-
-    public String getColumn(String entity, String attribute) {
-        Optional<Entity> optional = getEntity(entity);
-
-        if (optional.isEmpty()) {
-            return attribute;
-        }
-        Entity e = optional.get();
-
-        Optional<Attribute> first = e.getAttributes().stream().filter(a -> a.getName().equals(attribute)).findFirst();
-
-        if (!first.isPresent()) {
-            // FIXME rethink concept for headers, model-translation
-            return attribute;
-        }
-
-        Attribute attr = first.get();
-        return attr.getColumn() != null ? attr.getColumn() : attr.getName();
     }
 
     public Optional<Link> getLink(String name) {
@@ -144,8 +111,8 @@ public class Model {
         copy.setComment(Locale.getComment());
         copy.setDescription(Locale.getDescription());
         copy.setName(Locale.getName());
-        copy.setEntities(Locale.getEntities().stream().map(t -> deepCopy(t)).collect(Collectors.toList()));
-        copy.setLinks(Locale.getLinks().stream().map(r -> deepCopy(r)).collect(Collectors.toList()));
+        copy.setEntities(Locale.getEntities().stream().map(Model::deepCopy).collect(Collectors.toList()));
+        copy.setLinks(Locale.getLinks().stream().map(Model::deepCopy).collect(Collectors.toList()));
         return copy;
     }
 
@@ -156,7 +123,7 @@ public class Model {
         copy.setLabel(tabpe.getLabel());
         copy.setComment(tabpe.getComment());
         copy.setDescription(tabpe.getDescription());
-        copy.setAttributes(tabpe.getAttributes().stream().map(c -> deepCopy(c)).collect(Collectors.toList()));
+        copy.setAttributes(tabpe.getAttributes().stream().map(Model::deepCopy).collect(Collectors.toList()));
         return copy;
     }
 

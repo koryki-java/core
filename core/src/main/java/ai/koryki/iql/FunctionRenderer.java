@@ -16,6 +16,7 @@
  */
 package ai.koryki.iql;
 
+import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
 
 import java.util.stream.Collectors;
@@ -31,6 +32,12 @@ public interface FunctionRenderer {
 
         StringBuilder b = new StringBuilder();
 
+        switch (function.getFunc()) {
+            case "to_decimal" : {
+                return toDecimal(renderer, function, indent);
+            }
+        }
+
         b.append(function(function.getFunc()));
         b.append("(");
         b.append(function.getArguments().stream().map(
@@ -39,4 +46,17 @@ public interface FunctionRenderer {
         return b.toString();
     }
 
+    private static String toDecimal(SqlSelectRenderer renderer, Function function, int indent) {
+        if (function.getArguments().isEmpty()) {
+            throw new IllegalArgumentException("to_decimal function must have at least one argument");
+        }
+
+        Expression a = function.getArguments().get(0);
+        if (function.getArguments().size() == 3) {
+            return "CAST(" + renderer.toSql(a, indent) + " AS DECIMAL(" + renderer.toSql(function.getArguments().get(1), indent) + ", " +
+                    renderer.toSql(function.getArguments().get(2), indent) + "))";
+        } else {
+            throw new IllegalArgumentException("to_decimal function must have three arguments");
+        }
+    }
 }

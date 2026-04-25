@@ -33,24 +33,24 @@ import java.util.stream.Collectors;
  */
 public class HavingRule {
 
-    private Query query;
-    private Aggregate aggregat;
-    public HavingRule(Aggregate aggregat, Query query) {
-        this.aggregat = aggregat;
+    private final Query query;
+    private final Aggregate aggregate;
+    public HavingRule(Aggregate aggregate, Query query) {
+        this.aggregate = aggregate;
         this.query = query;
     }
 
     public void apply() {
 
-        HavingVisitor v = new HavingVisitor(aggregat);
+        HavingVisitor v = new HavingVisitor(aggregate);
         new Walker().walk(query, v);
     }
 
     private static class HavingVisitor implements Visitor {
 
-        private Aggregate aggregat;
-        public HavingVisitor(Aggregate aggregat) {
-            this.aggregat = aggregat;
+        private final Aggregate aggregate;
+        public HavingVisitor(Aggregate aggregate) {
+            this.aggregate = aggregate;
         }
 
         @Override
@@ -79,9 +79,9 @@ public class HavingRule {
             } else if (t.equals(NodeType.AND)) {
                 List<LogicalExpression> c = filter.getChildren();
 
-                List<LogicalExpression> havings = c.stream().filter(l -> isHaving(l)).collect(Collectors.toList());
+                List<LogicalExpression> havings = c.stream().filter(this::isHaving).collect(Collectors.toList());
 
-                c.removeIf(l -> isHaving(l));
+                c.removeIf(this::isHaving);
 
                 if (!havings.isEmpty()) {
                     LogicalExpression having = LogicalExpression.and(havings);
@@ -94,12 +94,12 @@ public class HavingRule {
             boolean h =
                     logical.isValue() &&
                             logical.getUnaryRelationalExpression().getOp() != null &&
-                            isAggregat(logical, aggregat);
+                            isAggregate(logical, aggregate);
             return h;
         }
     }
 
-    private static boolean isAggregat(LogicalExpression logical, Aggregate aggregat) {
-        return FunctionValidator.isAggregatOfColumnOrIdentity(logical.getUnaryRelationalExpression().getLeft(), aggregat);
+    private static boolean isAggregate(LogicalExpression logical, Aggregate aggregate) {
+        return FunctionValidator.isAggregatOfColumnOrIdentity(logical.getUnaryRelationalExpression().getLeft(), aggregate);
     }
 }

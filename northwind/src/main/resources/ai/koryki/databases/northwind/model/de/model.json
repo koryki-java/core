@@ -133,11 +133,11 @@
     "description" : null,
     "table" : "customer_demographics",
     "attributes" : [ {
-      "name" : "kundenbeschreiubng",
+      "name" : "kundenbeschreibung",
       "label" : "Beschreibung",
       "comment" : "Die Beschreibung des Kundensegments.",
       "description" : null,
-      "column" : "kundenbeschreiubng"
+      "column" : "customer_desc"
     } ]
   }, {
     "name" : "mitarbeiter",
@@ -326,7 +326,7 @@
       "label" : "Stad",
       "comment" : "Stadt der Versandadresse.",
       "description" : null,
-      "column" : "ship_country"
+      "column" : "ship_city"
     }, {
       "name" : "versand_region",
       "label" : "Region",
@@ -339,6 +339,12 @@
       "comment" : null,
       "description" : "Postleitzahl Versandadresse.",
       "column" : "ship_postal_code"
+    }, {
+      "name" : "versand_land",
+      "label" : "Versand Land",
+      "comment" : null,
+      "description" : "The country of the company the ship goes to.",
+      "column" : "ship_country"
     } ]
   }, {
     "name" : "bestellposition",
@@ -562,6 +568,24 @@
       "description" : null,
       "column" : "territory_description"
     } ]
+  }, {
+    "name" : "us_staaten",
+    "label" : "US Staaten",
+    "comment" : "US Staaten.",
+    "table" : "us_states",
+    "description" : null,
+    "attributes" : [ {
+      "name" : "staat_id",
+      "label" : "Id",
+      "comment" : "A surrogate primary key used to uniquely identify each state.",
+      "description" : null,
+      "column" : "state_id"
+    }, {
+      "name" : "staat_name",
+      "label" : "Name",
+      "description" : null,
+      "column" : "state_name"
+    } ]
   } ],
   "links" : [ {
     "name" : "gleiches_produkt",
@@ -574,7 +598,7 @@
   }, {
     "name" : "gleiches_kundensegment",
     "label" : null,
-    "base" : "same_customer_demographics",
+    "base" : "same_customer_demographic",
     "comment" : "Beide Datensätze verweisen auf das gleiche Kundensegment",
     "description" : null,
     "nature" : null,
@@ -590,7 +614,7 @@
   }, {
     "name" : "basiskategorie",
     "label" : null,
-    "base" : "root_category",
+    "base" : "root_category_of",
     "comment" : "Die erste Kategorie ist Basiskategorie der zweiten Kategorie.",
     "description" : "Die Verknüpfung ist gerichtet. Die erste Kategorie ist die Basiskategorie..",
     "nature" : null,

@@ -109,3 +109,4 @@ bin/
 /antlr/src/main/resources/ai/koryki/antlr/gen/KQLVisitor.java
 /snowflake/src/data/
 /oracle/src/data/
+/northwind/src/main/resources/ai/koryki/databases/northwind/duckdb/northwind.duckdb.wal

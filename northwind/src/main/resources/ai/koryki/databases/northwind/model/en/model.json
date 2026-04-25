@@ -476,6 +476,21 @@
       "comment" : "Description of the territory.",
       "description" : null
     } ]
+  }, {
+    "name" : "us_states",
+    "label" : "US States",
+    "comment" : "US States.",
+    "description" : null,
+    "attributes" : [ {
+      "name" : "state_id",
+      "label" : "Id",
+      "comment" : "A surrogate primary key used to uniquely identify each state.",
+      "description" : null
+    }, {
+      "name" : "state_name",
+      "label" : "Name",
+      "description" : null
+    } ]
   } ],
   "links" : [ {
     "name" : "same_product",
