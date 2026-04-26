@@ -57,7 +57,7 @@ CREATE TABLE customers (
     postal_code character varying(10),
     country character varying(15),
     phone character varying(24),
-    fax character varying(24)
+    mail character varying(24)
 );
 
 
@@ -189,7 +189,7 @@ CREATE TABLE suppliers (
     postal_code character varying(10),
     country character varying(15),
     phone character varying(24),
-    fax character varying(24),
+    mail character varying(24),
     homepage VARCHAR(32672)
 );
 

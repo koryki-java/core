@@ -85,9 +85,9 @@
       "comment" : "The telephone number to call the contact person.",
       "description" : null
     }, {
-      "name" : "fax",
-      "label" : "Fax",
-      "comment" : "The fax number to call the contact person.",
+      "name" : "mail",
+      "label" : "Mail",
+      "comment" : "The mail of the contact person.",
       "description" : null
     } ]
   }, {
@@ -450,9 +450,9 @@
       "comment" : "Telephone number of the contact person.",
       "description" : null
     }, {
-      "name" : "fax",
-      "label" : "Fax",
-      "comment" : "Fax number of the company.",
+      "name" : "mail",
+      "label" : "Mail",
+      "comment" : "Mail of the company.",
       "description" : null
     }, {
       "name" : "homepage",
