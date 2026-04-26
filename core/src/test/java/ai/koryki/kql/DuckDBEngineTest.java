@@ -46,13 +46,13 @@ public class DuckDBEngineTest {
                 .filter(p -> p.toString().endsWith(SUFFIX));
     }
 
-//    @Test
-//    public void testSingle() throws IOException {
-//
-//        Path p = Path.of("../../core/core/src/test/resources/ai/koryki/kql/northwind/marketing/marketing.kql");
-//
-//        test(p);
-//    }
+    @Test
+    public void testSingle() throws IOException {
+
+        Path p = Path.of("../../core/core/src/test/resources/ai/koryki/kql/northwind/marketing/marketing.kql");
+
+        test(p);
+    }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("testFiles")

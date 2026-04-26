@@ -295,8 +295,10 @@ public class KQLQueryMapper {
                 joins
         );
 
-        //exists.link().subList(1, exists.link().size()).forEach(l -> e.getJoin().add(toJoin(l, aToT)));
-
+        if (exists.filterClause() != null) {
+            LogicalExpression node = toLogicalNode(aToT, exists.filterClause().logical_expression());
+            e.setFilter(node);
+        }
         return e;
     }
 

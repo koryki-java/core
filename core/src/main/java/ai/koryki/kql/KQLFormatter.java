@@ -156,33 +156,33 @@ public class KQLFormatter {
 
         private String toSubSelect(KQLParser.SelectContext select, int indent) {
 
-            visibilityContext.child(select);
+            //visibilityContext.child(select);
 
             StringBuilder b = new StringBuilder();
 
 
-            b.append(indent(indent) + "FIND ");
+            b.append(indent(indent)).append("FIND ");
 
             b.append(toSource(select.source(), indent));
 
             StringBuilder l = new StringBuilder();
             l.append(
                     select.link().stream().map(j -> toLink(j)).collect(Collectors.joining(", ")));
-            if (l.length() > 0) {
-                b.append(", " + l.toString());
+            if (!l.isEmpty()) {
+                b.append(", ").append(l.toString());
             }
             b.append(System.lineSeparator());
             if (select.filterClause() != null) {
                 String where = toLogicalNode(select.filterClause().logical_expression(), indent);
-                if (where.length() > 0) {
-                    b.append(indent(indent) + "FILTER " + where);
+                if (!where.isEmpty()) {
+                    b.append(indent(indent)).append("FILTER ").append(where);
                     b.append(System.lineSeparator());
                 }
             }
             if (select.fetchClause() != null) {
                 String f = select.fetchClause().fetchItem().stream().map(r -> toOut(r, indent)).collect(Collectors.joining(", "));
-                if (f.length() > 0) {
-                    b.append(indent(indent) + "FETCH ");
+                if (!f.isEmpty()) {
+                    b.append(indent(indent)).append("FETCH ");
                     if (select.fetchClause().DISTINCT() != null) {
                         b.append(" DISTINCT ");
                     }
@@ -197,22 +197,22 @@ public class KQLFormatter {
             if (select.limitClause() != null && select.limitClause().INT() != null) {
                 int limit = Integer.parseInt(select.limitClause().INT().getText());
                 if (limit > 0) {
-                    b.append(indent(indent) + "LIMIT " + limit);
+                    b.append(indent(indent)).append("LIMIT ").append(limit);
                     b.append(System.lineSeparator());
                 }
             }
             return b.toString();
         }
 
-        private Boolean asc(ParseTree t) {
-            if (t instanceof TerminalNode) {
-                TerminalNode n = (TerminalNode) t;
-                if (n.getSymbol().getType() == KQLParser.ASC || n.getSymbol().getType() == KQLParser.DESC) {
-                    return n.getSymbol().getType() == KQLParser.ASC;
-                }
-            }
-            return null;
-        }
+//        private Boolean asc(ParseTree t) {
+//            if (t instanceof TerminalNode) {
+//                TerminalNode n = (TerminalNode) t;
+//                if (n.getSymbol().getType() == KQLParser.ASC || n.getSymbol().getType() == KQLParser.DESC) {
+//                    return n.getSymbol().getType() == KQLParser.ASC;
+//                }
+//            }
+//            return null;
+//        }
 
         private String toLogicalNode(KQLParser.Logical_expressionContext logicalExpression, int indent) {
 
@@ -281,15 +281,23 @@ public class KQLFormatter {
             b.append("EXISTS (");
 
             SelectFormatter f = new SelectFormatter(translator, visibilityContext.child(exists));
-            b.append(existsSelect(exists));
+            b.append(f.existsSelect(exists, indent));
             b.append(")");
             return b.toString();
         }
 
-        private String existsSelect(KQLParser.ExistsContext exists) {
+        private String existsSelect(KQLParser.ExistsContext exists, int indent) {
             StringBuilder b = new StringBuilder();
             List<KQLParser.LinkContext> links = exists.link();
             b.append(links.stream().map(l -> toLink(l)).collect(Collectors.joining(", ")));
+
+            if (exists.filterClause() != null) {
+                String where = toLogicalNode(exists.filterClause().logical_expression(), indent);
+                if (!where.isEmpty()) {
+                    b.append(indent(indent)).append("FILTER ").append(where);
+                    b.append(System.lineSeparator());
+                }
+            }
             return b.toString();
         }
 

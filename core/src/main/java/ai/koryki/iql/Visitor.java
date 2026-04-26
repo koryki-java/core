@@ -113,6 +113,23 @@ public interface Visitor {
         return t.getItem();
     }
 
+    static Source findSourceInExists(Exists exists, String alias) {
+
+        Bag<Source> t = new Bag<>();
+        Visitor v = new Visitor() {
+            @Override
+            public boolean visit(Deque<Object> deque, Source table) {
+                if (table.getAlias().equals(alias)) {
+                    t.setItem(table);
+                }
+                return true;
+            }
+        };
+        new Walker().walk(exists, v);
+
+        return t.getItem();
+    }
+
     static <E> Source findSourceInParentSelect(Deque<E> deque, String alias) {
         return findSourceInSelect(parentSelect(deque), alias);
     }
