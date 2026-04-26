@@ -17,9 +17,15 @@ The purpose of **koryki** is:
 - Simplify data analysis
 - Enhance workflows with AI while keeping full control
 
-→ [Read more](./docs/PURPOSE.md "purpose of the koryki.ai platform"), or see  [sample query](./docs/SAMPLE_QUERY.md "sample query")
+[Read more](./docs/PURPOSE.md "purpose of the koryki.ai platform"), 
+see  [sample query](./docs/SAMPLE_QUERY.md "sample query"),
+or have a look at [a guide to Koryki Query Language](./docs/LANGUAGE.md "a guide to koryki query language").
+
 
 A demo application is available at: [demo.koryki.ai](https://demo.koryki.ai "(demo.koryki.ai)").
+
+[KQL-Grammar Reference](./docs/KQL_EBNF.md "purpose of the koryki.ai platform")
+
 
 
 ## Sub Projects
