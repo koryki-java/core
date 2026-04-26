@@ -600,8 +600,6 @@ public class SqlSelectRenderer {
         String rightName = rightSource.getName();
         String rightAlias = join.getRef() != null ? join.getRef() : join.getSource().getAlias();
 
-        resolver.isInverse(join.getCrit());
-
         boolean inverse = resolver.isInverse(join.getCrit());
 
         String startName = inverse ? rightName : leftName;

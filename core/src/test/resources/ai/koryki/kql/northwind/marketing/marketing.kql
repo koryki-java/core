@@ -1,0 +1,7 @@
+    FIND customers c, orders o, order_details od, products p, categories cat
+    FILTER cat.category_name = 'Seafood'
+      AND count(od) > 3
+      AND NOT EXISTS (c orders o2, order_details od2, products p2, categories cat2
+          FILTER cat2.category_name = 'Condiments'
+      )
+    FETCH c.company_name, c.contact_name, c.phone
