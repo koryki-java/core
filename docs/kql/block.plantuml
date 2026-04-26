@@ -1,0 +1,12 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title block
+
+block = "ID", "AS", "(", set, ")"
+  | "ID", "PLACEHOLDER"
+;
+
+@endebnf

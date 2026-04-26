@@ -1,0 +1,15 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title logical_expression
+
+
+logical_expression =
+    "NOT", logical_expression
+| logical_expression, "AND", logical_expression
+| logical_expression,  "OR", logical_expression
+| unary_logical_expression
+;
+@endebnf

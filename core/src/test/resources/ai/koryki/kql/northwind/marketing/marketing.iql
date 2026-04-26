@@ -2,10 +2,10 @@ SELECT
  customers c
   OUT c.company_name 1
   OUT c.contact_name 2
-  OUT c.phone 3
+  OUT c.mail 3
   GROUP c.company_name 1
   GROUP c.contact_name 2
-  GROUP c.phone 3
+  GROUP c.mail 3
   JOIN same_customer orders o
      JOIN same_order order_details od
        HAVING 
@@ -24,6 +24,8 @@ ALL
      JOIN same_order order_details od2
         JOIN same_product products p2
            JOIN same_category categories cat2
+             FILTER
+               cat2.category_name = 'Condiments'
            OWNER
         OWNER
      OWNER

@@ -101,11 +101,11 @@
       "description" : null,
       "column" : "phone"
     }, {
-      "name" : "fax",
-      "label" : "Fax",
-      "comment" : "Faxnummer der Kontaktperson.",
+      "name" : "mail",
+      "label" : "Mail",
+      "comment" : "Mail der Kontaktperson.",
       "description" : null,
-      "column" : "fax"
+      "column" : "mail"
     } ]
   }, {
     "name" : "kunde_segment",
@@ -537,11 +537,11 @@
       "description" : null,
       "column" : "phone"
     }, {
-      "name" : "fax",
-      "label" : "FAX",
-      "comment" : "Faxnummer des Herstellers.",
+      "name" : "mail",
+      "label" : "Mail",
+      "comment" : "Mail des Herstellers.",
       "description" : null,
-      "column" : "fax"
+      "column" : "mail"
     }, {
       "name" : "homepage",
       "label" : "Homepage",

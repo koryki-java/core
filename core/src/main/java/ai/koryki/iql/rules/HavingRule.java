@@ -19,6 +19,7 @@ package ai.koryki.iql.rules;
 import ai.koryki.iql.Visitor;
 import ai.koryki.iql.Walker;
 import ai.koryki.iql.logic.NodeType;
+import ai.koryki.iql.query.Exists;
 import ai.koryki.iql.query.LogicalExpression;
 import ai.koryki.iql.query.Query;
 import ai.koryki.iql.query.Select;
@@ -59,6 +60,12 @@ public class HavingRule {
             return true;
         }
 
+        @Override
+        public boolean visit(Deque<Object> deque, Exists exists) {
+            apply(exists);
+            return true;
+        }
+
         private void apply(Select select) {
 
             LogicalExpression filter = select.getFilter();
@@ -89,6 +96,38 @@ public class HavingRule {
                 }
             }
         }
+
+        private void apply(Exists exists) {
+
+            LogicalExpression filter = exists.getFilter();
+
+            if (filter == null) {
+                return;
+            }
+
+            NodeType t = filter.getType();
+
+            if (t.equals(NodeType.VAR)) {
+
+
+                if (isHaving(filter)) {
+                    exists.setFilter(null);
+                    exists.setHaving(filter);
+                }
+            } else if (t.equals(NodeType.AND)) {
+                List<LogicalExpression> c = filter.getChildren();
+
+                List<LogicalExpression> havings = c.stream().filter(this::isHaving).collect(Collectors.toList());
+
+                c.removeIf(this::isHaving);
+
+                if (!havings.isEmpty()) {
+                    LogicalExpression having = LogicalExpression.and(havings);
+                    exists.setHaving(LogicalExpression.and(having, exists.getHaving()));
+                }
+            }
+        }
+
 
         private boolean isHaving(LogicalExpression logical) {
             boolean h =

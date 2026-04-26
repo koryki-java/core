@@ -4,4 +4,4 @@
       AND NOT EXISTS (c orders o2, order_details od2, products p2, categories cat2
           FILTER cat2.category_name = 'Condiments'
       )
-    FETCH c.company_name, c.contact_name, c.phone
+    FETCH c.company_name, c.contact_name, c.mail

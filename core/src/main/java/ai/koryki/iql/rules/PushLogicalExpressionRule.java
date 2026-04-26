@@ -73,6 +73,29 @@ public class PushLogicalExpressionRule {
             return true;
         }
 
+        @Override
+        public boolean visit(Deque<Object> deque, Exists select) {
+
+            LogicalExpression filter = select.getFilter();
+            if (filter != null) {
+
+                Consumer<LogicalExpression> allFilterConsumer = c -> select.setFilter(null);
+                java.util.function.Function<Source, LogicalExpression> s = Source::getFilter;
+                BiConsumer<Source, LogicalExpression> tableFilterConsumer = Source::setFilter;
+                pushExpressions(select, filter, tableFilterConsumer, s, allFilterConsumer);
+            }
+            LogicalExpression having = select.getHaving();
+            if (having != null) {
+
+                Consumer<LogicalExpression> allHavingConsumer = c -> select.setHaving(null);
+                java.util.function.Function<Source, LogicalExpression> s = Source::getHaving;
+                BiConsumer<Source, LogicalExpression> tableHavingConsumer = Source::setHaving;
+                pushExpressions(select, having, tableHavingConsumer, s, allHavingConsumer);
+            }
+            return true;
+        }
+
+
         private void pushExpressions(Select select, LogicalExpression exp, BiConsumer<Source, LogicalExpression> tableExpressionConsumer, java.util.function.Function<Source, LogicalExpression> tableExpressionFunctoin, Consumer<LogicalExpression> allExpressionConsumer) {
             if (exp.getType().isValue()) {
                 String a = homogenAlias(exp);
@@ -95,6 +118,40 @@ public class PushLogicalExpressionRule {
                     if (a != null) {
                         // push children
                         Source table = Visitor.findSourceInSelect(select, a);
+                        //table.setFilter(LogicalExpression.and(c, table.getFilter()));
+                        tableExpressionConsumer.accept(table, LogicalExpression.and(c, tableExpressionFunctoin.apply(table)));
+                        // remove from exp
+                        exp.getChildren().remove(c);
+                    }
+                }
+                if (exp.getChildren().isEmpty()) {
+                    resetAll(allExpressionConsumer);
+                }
+            }
+        }
+
+        private void pushExpressions(Exists select, LogicalExpression exp, BiConsumer<Source, LogicalExpression> tableExpressionConsumer, java.util.function.Function<Source, LogicalExpression> tableExpressionFunctoin, Consumer<LogicalExpression> allExpressionConsumer) {
+            if (exp.getType().isValue()) {
+                String a = homogenAlias(exp);
+                if (a != null) {
+                    // push exp at all
+
+                    Source table = Visitor.findSourceInExists(select, a);
+                    tableExpressionConsumer.accept(table, LogicalExpression.and(exp, tableExpressionFunctoin.apply(table)));
+                    resetAll(allExpressionConsumer);
+                }
+            } else if (exp.getType().isNot()) {
+                // do not push expression
+            } else if (exp.getType().equals(NodeType.OR)) {
+                // do not push expression
+            } else {
+                // we have AND-Filter
+                List<LogicalExpression> children = new ArrayList<>(exp.getChildren());
+                for (LogicalExpression c : children) {
+                    String a = homogenAlias(c);
+                    if (a != null) {
+                        // push children
+                        Source table = Visitor.findSourceInExists(select, a);
                         //table.setFilter(LogicalExpression.and(c, table.getFilter()));
                         tableExpressionConsumer.accept(table, LogicalExpression.and(c, tableExpressionFunctoin.apply(table)));
                         // remove from exp

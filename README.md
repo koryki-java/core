@@ -1,9 +1,9 @@
 ![Java](https://img.shields.io/badge/Java-21-blue)
 ![ANTLR](https://img.shields.io/badge/Parser-ANTLR-blueviolet)
 
-![Oracle](https://img.shields.io/badge/Oracle-F80000?style=for-the-badge&logo=oracle&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white)
-![DuckDB](https://img.shields.io/badge/DuckDB-FFF000?style=for-the-badge&logo=duckdb&logoColor=black)
+![Oracle](https://img.shields.io/badge/Oracle-F80000?style=flat&logo=oracle&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?style=flat&logo=postgresql&logoColor=white)
+![DuckDB](https://img.shields.io/badge/DuckDB-FFF000?style=flat&logo=duckdb&logoColor=black)
 # koryki-java/core
 
 The [**koryki.ai**](https://koryki.ai "(koryki.ai platform)") platform improves how business users interact with relational databases for search and data analysis.
@@ -17,9 +17,15 @@ The purpose of **koryki** is:
 - Simplify data analysis
 - Enhance workflows with AI while keeping full control
 
-→ [Read more](./docs/PURPOSE.md "purpose of the koryki.ai platform"), or see  [sample query](./docs/SAMPLE_QUERY.md "sample query")
+[Read more](./docs/PURPOSE.md "purpose of the koryki.ai platform"), 
+see  [sample query](./docs/SAMPLE_QUERY.md "sample query"),
+or have a look at [a guide to Koryki Query Language](./docs/LANGUAGE.md "a guide to koryki query language").
+
 
 A demo application is available at: [demo.koryki.ai](https://demo.koryki.ai "(demo.koryki.ai)").
+
+[KQL-Grammar Reference](./docs/KQL_EBNF.md "purpose of the koryki.ai platform")
+
 
 
 ## Sub Projects

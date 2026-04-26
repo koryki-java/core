@@ -23,6 +23,8 @@ public class Exists {
     private String crit;
     private Source source;
     private String parent;
+    private LogicalExpression filter;
+    private LogicalExpression having;
 
     private List<Join> join = new ArrayList<>();
 
@@ -56,5 +58,21 @@ public class Exists {
 
     public void setParent(String parent) {
         this.parent = parent;
+    }
+
+    public LogicalExpression getFilter() {
+        return filter;
+    }
+
+    public void setFilter(LogicalExpression filter) {
+        this.filter = filter;
+    }
+
+    public LogicalExpression getHaving() {
+        return having;
+    }
+
+    public void setHaving(LogicalExpression having) {
+        this.having = having;
     }
 }

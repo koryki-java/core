@@ -1,0 +1,15 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title date_literal
+
+date_literal =
+  "DATE", "DATE_FORMAT"
+| "TIME", "TIME_FORMAT"
+| "TIMESTAMP", "TIMESTAMP_FORMAT"
+;
+
+
+@endebnf

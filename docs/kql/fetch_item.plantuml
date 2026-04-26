@@ -1,0 +1,12 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title fetch_item
+
+fetch_item =
+    expression, "ID", ["STRING"], [("ASC" | "DESC"), ["INT"]]
+;
+
+@endebnf

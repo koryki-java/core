@@ -159,9 +159,9 @@
       "nullable" : true,
       "pkPos" : 0
     }, {
-      "name" : "fax",
-      "label" : "Fax",
-      "comment" : "The fax number to call the contact person.",
+      "name" : "mail",
+      "label" : "Mail",
+      "comment" : "Mail of the contact person.",
       "genericType" : "varchar",
       "dialectType" : "character varying",
       "description" : null,
@@ -840,9 +840,9 @@
       "nullable" : true,
       "pkPos" : 0
     }, {
-      "name" : "fax",
-      "label" : "Fax",
-      "comment" : "Fax number of the company.",
+      "name" : "mail",
+      "label" : "Mail",
+      "comment" : "Mail of the company.",
       "genericType" : "varchar",
       "dialectType" : "character varying",
       "description" : null,
