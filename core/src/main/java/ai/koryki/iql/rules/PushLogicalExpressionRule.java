@@ -133,7 +133,9 @@ public class PushLogicalExpressionRule {
         } else {
 
             List<Expression> expressions = new ArrayList<>();
-            expressions.add(u.getLeft());
+            if (u.getLeft() != null) {
+                expressions.add(u.getLeft());
+            }
             expressions.addAll(u.getRight());
 
             List<String> aliases =
@@ -141,8 +143,8 @@ public class PushLogicalExpressionRule {
                             .map(PushLogicalExpressionRule::homogenAlias)
                             .distinct()
                             .filter(Objects::nonNull)
-                            .collect(Collectors.toList());
-            return aliases.size() == 1 ? aliases.get(0) : null;
+                            .toList();
+            return aliases.size() == 1 ? aliases.getFirst() : null;
         }
     }
 

@@ -12,6 +12,7 @@ import ai.koryki.jdbc.Database;
 import ai.koryki.jdbc.ListResult;
 import ai.koryki.scaffold.Util;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -44,6 +45,14 @@ public class DuckDBEngineTest {
         return Files.walk(Path.of(NORTHWIND_ROOT), FileVisitOption.FOLLOW_LINKS)
                 .filter(p -> p.toString().endsWith(SUFFIX));
     }
+
+//    @Test
+//    public void testSingle() throws IOException {
+//
+//        Path p = Path.of("../../core/core/src/test/resources/ai/koryki/kql/northwind/marketing/marketing.kql");
+//
+//        test(p);
+//    }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("testFiles")
