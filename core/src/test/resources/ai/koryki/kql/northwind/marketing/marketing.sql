@@ -1,7 +1,7 @@
 SELECT
   c.company_name
 , c.contact_name
-, c.phone
+, c.mail
 FROM
  customers c
   INNER JOIN orders o ON
@@ -29,10 +29,12 @@ WHERE
           p2.category_id = cat2.category_id
    WHERE
     c.customer_id = o2.customer_id
+   AND
+     cat2.category_name = 'Condiments'
    ))
 GROUP BY
   c.company_name
 , c.contact_name
-, c.phone
+, c.mail
 HAVING
   count(od.order_id) > 3
