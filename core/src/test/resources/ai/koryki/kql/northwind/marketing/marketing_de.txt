@@ -1,0 +1,3 @@
+FIND kunden c,  bestellungen o,  bestellposition od,  produkte p,  kategorien cat
+FILTER cat.kategorie_name = 'Seafood' AND count(od) > 3 AND NOT EXISTS (c bestellungen o2,  bestellposition od2,  produkte p2,  kategorien cat2)
+FETCH c.firma, c.kontakt_name, c.telefon

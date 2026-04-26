@@ -1,0 +1,30 @@
+SELECT
+ customers c
+  OUT c.company_name 1
+  OUT c.contact_name 2
+  OUT c.phone 3
+  GROUP c.company_name 1
+  GROUP c.contact_name 2
+  GROUP c.phone 3
+  JOIN same_customer orders o
+     JOIN same_order order_details od
+       HAVING 
+        count(od.order_id) > 3
+        JOIN same_product products p
+           JOIN same_category categories cat
+             FILTER
+               cat.category_name = 'Seafood'
+           OWNER
+        OWNER
+     OWNER
+  OWNER
+ALL
+ FILTER
+   NOT EXISTS (c same_customer orders o2
+     JOIN same_order order_details od2
+        JOIN same_product products p2
+           JOIN same_category categories cat2
+           OWNER
+        OWNER
+     OWNER
+  )

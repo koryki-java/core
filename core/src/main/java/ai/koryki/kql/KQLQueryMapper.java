@@ -109,62 +109,7 @@ public class KQLQueryMapper {
 
         Select bean = build(select, Select::new);
 
-        Map<String, Source> aliasToTable = new HashMap<>();
-        Source start = toTable(select.source());
-
-        Source bTable = blockIdToSourceMap.get(start.getName());
-        aliasToTable.put(start.getAlias(), bTable != null ? bTable : start);
-
-        bean.setStart(start);
-        HashMap<String, List<Join>> joins = new HashMap<>();
-
-        // store first link
-        joins.put(start.getAlias(), bean.getJoin());
-
-        if (!select.link().isEmpty()) {
-            String from = start.getAlias();
-            for (KQLParser.LinkContext link : select.link()) {
-
-                String f = link.from != null ? link.from.getText() : from;
-
-                Join join = toJoin(link, aliasToTable);
-                if (join.getCrit() == null) {
-                    // anonyme criteria must be resolved here
-                    Source fromTable = blockIdToSourceMap.get(f);
-
-                    if (fromTable == null) {
-                        fromTable = aliasToTable.get(f);
-                    }
-                    String t = link.source().alias.getText();
-
-                    // first test for blockId, as visibilityContext may already contain alias, but this is the table itself
-                    Source toTable = blockIdToSourceMap.get(link.source().name.getText());
-                    if (toTable == null) {
-                        toTable = aliasToTable.get(t);
-                    }
-
-                    Optional<String> l = resolver.findLink(Range.range(iqlToContext.get(toTable)) , fromTable.getName(),
-                            toTable.getName(), null);
-
-
-                    if (l.isEmpty()) {
-                        throw new KorykiaiException(fromTable.getAlias() + " " + fromTable.getName() + " " + toTable.getName() + " " + toTable.getAlias() + " " + Range.range(iqlToContext.get(join)));
-                    }
-
-                    join.setCrit(l.get());
-                }
-
-                List<Join> j = findStartLink(f, joins);
-                j.add(join);
-                if (join.getSource() != null) {
-                    joins.put(join.getSource().getAlias(), join.getJoin());
-                    from = join.getSource().getAlias();
-                } else {
-                    joins.put(join.getRef(), join.getJoin());
-                    from = join.getRef();
-                }
-            }
-        }
+        Map<String, Source> aliasToTable = buildJoinTree(select, bean);
 
         if (select.filterClause() != null) {
             LogicalExpression node = toLogicalNode(aliasToTable, select.filterClause().logical_expression());
@@ -194,6 +139,70 @@ public class KQLQueryMapper {
             }
         }
         return bean;
+    }
+
+    private Map<String, Source> buildJoinTree(KQLParser.SelectContext select, Select bean) {
+        Map<String, Source> aliasToTable = new HashMap<>();
+        Source start = toTable(select.source());
+
+        Source bTable = blockIdToSourceMap.get(start.getName());
+        aliasToTable.put(start.getAlias(), bTable != null ? bTable : start);
+
+        bean.setStart(start);
+        HashMap<String, List<Join>> joins = new HashMap<>();
+
+        // store first link
+        joins.put(start.getAlias(), bean.getJoin());
+
+        List<KQLParser.LinkContext> links = select.link();
+        if (!links.isEmpty()) {
+            String from = start.getAlias();
+            iterateLinks(links, from, aliasToTable, joins);
+        }
+        return aliasToTable;
+    }
+
+    private void iterateLinks(List<KQLParser.LinkContext> links, String from, Map<String, Source> aliasToTable, HashMap<String, List<Join>> joins) {
+        for (KQLParser.LinkContext link : links) {
+
+            String f = link.from != null ? link.from.getText() : from;
+
+            Join join = toJoin(link, aliasToTable);
+            if (join.getCrit() == null) {
+                // anonyme criteria must be resolved here
+                Source fromTable = blockIdToSourceMap.get(f);
+
+                if (fromTable == null) {
+                    fromTable = aliasToTable.get(f);
+                }
+                String t = link.source().alias.getText();
+
+                // first test for blockId, as visibilityContext may already contain alias, but this is the table itself
+                Source toTable = blockIdToSourceMap.get(link.source().name.getText());
+                if (toTable == null) {
+                    toTable = aliasToTable.get(t);
+                }
+
+                Optional<String> l = resolver.findLink(Range.range(iqlToContext.get(toTable)) , fromTable.getName(),
+                        toTable.getName(), null);
+
+                if (l.isEmpty()) {
+                    throw new KorykiaiException(fromTable.getAlias() + " " + fromTable.getName() + " " + toTable.getName() + " " + toTable.getAlias() + " " + Range.range(iqlToContext.get(join)));
+                }
+
+                join.setCrit(l.get());
+            }
+
+            List<Join> j = findStartLink(f, joins);
+            j.add(join);
+            if (join.getSource() != null) {
+                joins.put(join.getSource().getAlias(), join.getJoin());
+                from = join.getSource().getAlias();
+            } else {
+                joins.put(join.getRef(), join.getJoin());
+                from = join.getRef();
+            }
+        }
     }
 
     private LogicalExpression toLogicalNode(Map<String, Source> aliasToTable, KQLParser.Logical_expressionContext logicalExpression) {
@@ -274,7 +283,19 @@ public class KQLQueryMapper {
 
         Map<String, Source> aToT = new HashMap<>();
         aToT.put(toTable.getAlias(), toTable);
-        exists.link().subList(1, exists.link().size()).forEach(l -> e.getJoin().add(toJoin(l, aToT)));
+
+        HashMap<String, List<Join>> joins = new HashMap<>();
+        // store first link
+        joins.put(e.getSource().getAlias(), e.getJoin());
+        String from = e.getSource().getAlias();
+        iterateLinks(
+                exists.link().subList(1, exists.link().size()),
+                from,
+                aToT,
+                joins
+        );
+
+        //exists.link().subList(1, exists.link().size()).forEach(l -> e.getJoin().add(toJoin(l, aToT)));
 
         return e;
     }
