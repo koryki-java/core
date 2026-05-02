@@ -1,0 +1,30 @@
+WITH roots AS (
+  SELECT
+  employees e
+   OUT e.first_name fname 1
+   OUT e.last_name lname 2
+   OUT e.title ttl 3
+   OUT e.employee_id
+ ALL
+  FILTER
+    NOT EXISTS (e reports_to employees r
+   )
+  OUT 0 lvl 4
+ UNIONALL
+  SELECT
+  employees e
+   OUT e.first_name fname 1
+   OUT e.last_name lname 2
+   OUT e.title ttl 3
+   OUT e.employee_id
+   JOIN reports_to roots r
+     OUT add(r.lvl, 1) lvl 4
+   OWNER
+)
+SELECT
+ roots r2
+  OUT r2.fname 1
+  OUT r2.lname 2
+  OUT r2.ttl 3
+  OUT r2.lvl 4
+  ORDER r2.lvl ASC 4
