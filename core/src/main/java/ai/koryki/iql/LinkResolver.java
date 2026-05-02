@@ -57,36 +57,44 @@ public class LinkResolver {
 
     private List<Relation> _listTypedAligned(String crit, String start, String end) {
 
-        List<Relation> rl = db.linkRelations(getDialectTable(start).orElseThrow(() -> new RuntimeException(start)), getDialectTable(end).orElseThrow(() -> new RuntimeException(end)), crit);
+        List<Relation> rl = db.linkRelations(
+                getDialectTable(start).orElseThrow(() -> new RuntimeException("unknown start entity: " + start)),
+                getDialectTable(end).orElseThrow(() -> new RuntimeException("unknown end entity: " + end)), crit);
         return rl;
     }
 
     private List<Relation> _listTypedReverse(String crit, String start, String end) {
 
         List<Relation> rl = db.linkRelations(
-                getDialectTable(end).orElseThrow(() -> new RuntimeException(end)), 
-                getDialectTable(start).orElseThrow(() -> new RuntimeException(start)), crit);
+                getDialectTable(end).orElseThrow(() -> new RuntimeException("unknown end entity: " + end)),
+                getDialectTable(start).orElseThrow(() -> new RuntimeException("unknown start entity: " + start)), crit);
         return rl;
     }
 
     private List<Relation> _listUntypedAligned(String crit, String start, String end) {
 
-        List<Relation> rl =db.linkRelations(getDialectTable(start).orElseThrow(() -> new RuntimeException(start)), getDialectTable(end).orElseThrow(() -> new RuntimeException(end)));
+        List<Relation> rl =db.linkRelations(
+                getDialectTable(start).orElseThrow(() -> new RuntimeException("unknown start entity: " + start)),
+                getDialectTable(end).orElseThrow(() -> new RuntimeException("unknown end entity: " + end)));
         return strict && crit != null ? Collections.emptyList() : rl;
     }
 
     private List<Relation> _listUntypedReverse(String crit, String start, String end) {
 
-        List<Relation> rl =db.linkRelations(getDialectTable(end).orElseThrow(() -> new RuntimeException(end)), getDialectTable(start).orElseThrow(() -> new RuntimeException(start)));
+        List<Relation> rl =db.linkRelations(
+                getDialectTable(end).orElseThrow(() -> new RuntimeException("unknown end entity: " + end)),
+                getDialectTable(start).orElseThrow(() -> new RuntimeException("unknown start entity: " + start)));
         return strict && crit != null ? Collections.emptyList() : rl;
     }
 
     private boolean compareStart(String start, Relation relation) {
-        return relation.getStartTable().equals(getDialectTable(start).orElseThrow(() -> new RuntimeException(start)));
+        return relation.getStartTable().equals(
+                getDialectTable(start).orElseThrow(() -> new RuntimeException("unknown start entity: " + start)));
     }
 
     private boolean compareEnd(String end, Relation relation) {
-        return relation.getEndTable().equals(getDialectTable(end).orElseThrow(() -> new RuntimeException(end)));
+        return relation.getEndTable().equals(
+                getDialectTable(end).orElseThrow(() -> new RuntimeException("unknown end entity: " + end)));
     }
 
     public boolean isEntity(String entity) {

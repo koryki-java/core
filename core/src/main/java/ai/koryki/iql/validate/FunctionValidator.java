@@ -49,7 +49,7 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
             boolean a = isAggregatOfColumnOrIdentity(e, aggregat);
             boolean scalar = isScalarOfColumn(e, aggregat);
             if (a && scalar) {
-                violations.add(new Violation(e, Range.range(iqlToContext.get(e)), "invalid aggregation"));
+                violations.add(new Violation("function", e, Range.range(iqlToContext.get(e)), "invalid aggregation"));
             }
         });
         return true;
@@ -61,7 +61,7 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
             boolean aggregat = isAggregat(logicalExpression);
             boolean scalar = isScalar(logicalExpression);
             if (aggregat && scalar) {
-                violations.add(new Violation(logicalExpression, Range.range(iqlToContext.get(logicalExpression)), "invalid aggregation"));
+                violations.add(new Violation("function", logicalExpression, Range.range(iqlToContext.get(logicalExpression)), "invalid aggregation"));
             }
             return true;
         }

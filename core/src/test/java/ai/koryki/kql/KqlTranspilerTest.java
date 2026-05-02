@@ -52,15 +52,11 @@ public class KqlTranspilerTest {
 
     @Test
     public void testSingle() throws IOException {
-        Path p = Path.of("../../core/core/src/test/resources/ai/koryki/kql/northwind/marketing/marketing.kql");
+        Path p = Path.of("../../core/core/src/test/resources/ai/koryki/kql/northwind/samples/employee_hierarchy.kql");
         test(p);
     }
 
     private static void test(Path kql) throws IOException {
-
-        if (kql.toString().contains("block_find_fetch_join_count_identity")) {
-            System.out.println();
-        }
 
         KQLTranspiler transpiler = new KQLTranspiler(new FileInputStream(kql.toFile()), resolver);
 

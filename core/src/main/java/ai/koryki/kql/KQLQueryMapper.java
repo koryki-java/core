@@ -254,7 +254,7 @@ public class KQLQueryMapper {
 
         Exists e = build(exists, Exists::new);
 
-        KQLParser.LinkContext first = exists.link(0);
+        KQLParser.ExistslinkContext first = exists.existslink();
 
         String parentAlias = first.from.getText();
         e.setParent(parentAlias);
@@ -289,7 +289,7 @@ public class KQLQueryMapper {
         joins.put(e.getSource().getAlias(), e.getJoin());
         String from = e.getSource().getAlias();
         iterateLinks(
-                exists.link().subList(1, exists.link().size()),
+                exists.link(),
                 from,
                 aToT,
                 joins

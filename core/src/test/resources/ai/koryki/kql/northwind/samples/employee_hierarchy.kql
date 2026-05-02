@@ -1,0 +1,10 @@
+WITH roots AS (
+ FIND employees e
+ FILTER NOT EXISTS (e - reports_to employees r)
+ FETCH e.first_name fname, e.last_name lname, e.title ttl, 0 lvl
+ UNIONALL
+ FIND employees e, e-reports_to roots r
+ FETCH e.first_name fname, e.last_name lname, e.title ttl, r.lvl + 1 lvl
+)
+FIND roots r2
+FETCH r2.fname, r2.lname, r2.ttl, r2.lvl ASC

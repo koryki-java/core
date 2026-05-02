@@ -1,6 +1,6 @@
-FIND kunden c,  bestellungen o,  bestellposition od,  produkte p,  kategorien cat
+FIND kunden c, bestellungen o, bestellposition od, produkte p, kategorien cat
 FILTER cat.kategorie_name = 'Seafood' AND count(od) > 3 AND NOT c.kunden_id IN (
- FIND kunden c2,  bestellungen o2,  bestellposition od2,  produkte p2,  kategorien cat2
+ FIND kunden c2, bestellungen o2, bestellposition od2, produkte p2, kategorien cat2
  FILTER cat2.kategorie_name = 'Condiments'
  FETCH c2.kunden_id
 )
