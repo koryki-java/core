@@ -31,26 +31,6 @@ import java.sql.SQLException;
 
 public class DuckdbDatabase<P extends ResultProcessor<?>> extends JdbcDatabase<P> {
 
-    private static volatile boolean initialized = false;
-
-    static synchronized void initDbIfNeeded(String resource, Path tmpFile) {
-        if (initialized && Files.exists(tmpFile)) {
-            return;
-        }
-
-        try (InputStream in = DuckdbDatabase.class.getResourceAsStream(resource)) {
-
-            if (in == null) {
-                throw new IllegalStateException("DB resource missing");
-            }
-            Files.copy(in, tmpFile, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        initialized = true;
-    }
-
     public DuckdbDatabase() {
         super("duckdb", connection(null));
     }
@@ -61,6 +41,26 @@ public class DuckdbDatabase<P extends ResultProcessor<?>> extends JdbcDatabase<P
 
     public DuckdbDatabase(String name, Connection connection) {
         super(name, connection);
+    }
+
+    /*
+     * Copy resource to tempFile and crate connection
+     */
+    public static Connection fromResource(String resource, Path tempFile) {
+
+        if (!Files.exists(tempFile)){
+            try (InputStream in = DuckdbDatabase.class.getResourceAsStream(resource)) {
+
+                if (in == null) {
+                    throw new IllegalStateException("DB resource missing");
+                }
+                Files.copy(in, tempFile, StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        return connection(tempFile.toString());
     }
 
     public static Connection connection(String file) {
