@@ -41,6 +41,11 @@ link : from=ID? (BAR|PLUS)? source
 | from=ID? PLUS? source BAR crit=ID
 ;
 
+existslink : from=ID (BAR)? source
+| from=ID BAR crit=ID source
+| from=ID source BAR crit=ID
+;
+
 source
  : name=ID alias=ID
 ;
@@ -73,7 +78,7 @@ unary_logical_expression :
 ;
 
 exists:
-link (COMMA link)* filterClause?
+existslink (COMMA link)* filterClause?
 ;
 
 operator

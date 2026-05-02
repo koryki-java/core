@@ -60,7 +60,7 @@ public class PushOutRule {
                     table.getOut().add(o);
                     return true;
                 }
-                return true;
+                return false;
             });
             return true;
         }

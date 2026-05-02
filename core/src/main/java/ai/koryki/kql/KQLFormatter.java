@@ -278,24 +278,34 @@ public class KQLFormatter {
         public String toExists(KQLParser.ExistsContext exists, int indent) {
 
             StringBuilder b = new StringBuilder();
+            b.append(System.lineSeparator());
+            b.append(indent(indent + 1));
             b.append("EXISTS (");
 
             SelectFormatter f = new SelectFormatter(translator, visibilityContext.child(exists));
-            b.append(f.existsSelect(exists, indent));
+            b.append(f.existsSelect(exists, indent + 1));
+            b.append(System.lineSeparator());
+            b.append(indent(indent + 1));
             b.append(")");
             return b.toString();
         }
 
         private String existsSelect(KQLParser.ExistsContext exists, int indent) {
             StringBuilder b = new StringBuilder();
+
+            b.append(toLink(exists.existslink()));
+
             List<KQLParser.LinkContext> links = exists.link();
-            b.append(links.stream().map(l -> toLink(l)).collect(Collectors.joining(", ")));
+            String ll = links.stream().map(this::toLink).collect(Collectors.joining(", "));
+            if (!ll.isEmpty()) {
+                b.append(", ").append(ll);
+            }
 
             if (exists.filterClause() != null) {
                 String where = toLogicalNode(exists.filterClause().logical_expression(), indent);
                 if (!where.isEmpty()) {
-                    b.append(indent(indent)).append("FILTER ").append(where);
                     b.append(System.lineSeparator());
+                    b.append(indent(indent)).append("FILTER ").append(where);
                 }
             }
             return b.toString();
@@ -478,19 +488,39 @@ public class KQLFormatter {
             }
         }
 
+        private String toLink(KQLParser.ExistslinkContext link) {
+
+            StringBuilder b = new StringBuilder();
+
+            if (link.from != null) {
+                b.append(link.from.getText()).append(" ");
+            }
+            String crit = link.crit != null ? link.crit.getText() : null;
+            if (crit != null) {
+                b.append("- ");
+                b.append(translator.crit(crit)).append(" ");
+            }
+            b.append(translator.source(link.source().name.getText()));
+            b.append(" ");
+            b.append(link.source().alias.getText());
+
+            return b.toString();
+        }
+
+
         private String toLink(KQLParser.LinkContext link) {
 
             StringBuilder b = new StringBuilder();
 
             if (link.from != null) {
-                b.append(link.from.getText());
+                b.append(link.from.getText() + " ");
             }
             String crit = link.crit != null ? link.crit.getText() : null;
             if (crit != null) {
-                b.append("-");
-                b.append(translator.crit(crit));
+                b.append("- ");
+                b.append(translator.crit(crit) + " ");
             }
-            b.append(link.PLUS() != null ? "+" : " ");
+            b.append(link.PLUS() != null ? "+ " : "");
             b.append(translator.source(link.source().name.getText()));
             b.append(" ");
             b.append(link.source().alias.getText());

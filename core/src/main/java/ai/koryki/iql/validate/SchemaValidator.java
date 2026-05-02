@@ -55,7 +55,7 @@ public class SchemaValidator implements Collector<List<Violation>> {
 
         if (!blockIdToLeadingSourceMap.containsKey(source.getName())) {
             if (resolver.getModel().getEntity(source.getName()).isEmpty()) {
-                violations.add(new Violation(source, Range.range(iqlToContext.get(source)), "invalid source"));
+                violations.add(new Violation("schema", source, Range.range(iqlToContext.get(source)), "invalid source"));
             }
         }
         return true;
@@ -66,7 +66,7 @@ public class SchemaValidator implements Collector<List<Violation>> {
 
         Source selectTable = aliasToSource.get(field.getAlias());
         if (selectTable == null) {
-           violations.add(new Violation(field, Range.range(iqlToContext.get(field)), "unknown alias " + field.getAlias()));
+           violations.add(new Violation("schema", field, Range.range(iqlToContext.get(field)), "unknown alias " + field.getAlias()));
         } else {
             Select select = blockIdToSelectMap.get(selectTable.getName());
             if (select != null) {
@@ -74,12 +74,12 @@ public class SchemaValidator implements Collector<List<Violation>> {
                 if (outs.stream().anyMatch(o -> match(field, o))) {
                     return true;
                 } else {
-                    violations.add(new Violation(field, Range.range(iqlToContext.get(field)), "unknown header " + field.getName()));
+                    violations.add(new Violation("schema", field, Range.range(iqlToContext.get(field)), "unknown header " + field.getName()));
                 }
             } else {
                 Optional<ai.koryki.scaffold.domain.Entity> optional = resolver.getModel().getEntity(selectTable.getName());
                 if (optional.isEmpty()) {
-                    violations.add(new Violation(field, Range.range(iqlToContext.get(field)), "invalid table " + selectTable.getName()));
+                    violations.add(new Violation("schema", field, Range.range(iqlToContext.get(field)), "invalid table " + selectTable.getName()));
                 }
             }
         }
