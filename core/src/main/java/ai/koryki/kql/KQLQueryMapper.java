@@ -396,6 +396,10 @@ public class KQLQueryMapper {
             Expression bean = build(expression, Expression::new);
             bean.setText(expression.SQ_STRING().getText());
             return bean;
+        } else if (expression.NULL() != null) {
+            Expression bean = build(expression, Expression::new);
+            bean.setNull(true);
+            return bean;
         } else {
             throw new KorykiaiException();
         }

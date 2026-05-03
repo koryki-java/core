@@ -31,6 +31,8 @@ public class Expression {
     private LocalDate localDate;
     private LocalDateTime localDateTime;
     private LocalTime localTime;
+    private boolean isNull;
+
 
     public Select getSelect() {
         return select;
@@ -102,5 +104,13 @@ public class Expression {
 
     public void setIdentity(String identity) {
         this.identity = identity;
+    }
+
+    public boolean isNull() {
+        return isNull;
+    }
+
+    public void setNull(boolean aNull) {
+        isNull = aNull;
     }
 }

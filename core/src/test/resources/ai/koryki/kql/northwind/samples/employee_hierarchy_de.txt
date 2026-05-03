@@ -3,10 +3,10 @@ WITH roots AS (
  FILTER NOT 
   EXISTS (e - berichtet_an mitarbeiter r
   )
- FETCH e.vorname fname, e.nachname lname, e.titel ttl, 0 lvl
+ FETCH e.vorname fname, e.nachname lname, to_text(NULL) boss, to_int(1) lvl, list(e.mitarbeiter_id) path
  UNIONALL
  FIND mitarbeiter e, e - berichtet_an roots r
- FETCH e.vorname fname, e.nachname lname, e.titel ttl, r.lvl + 1 lvl
+ FETCH e.vorname fname, e.nachname lname, r.lname boss, to_int(r.lvl + 1) lvl, list_concat(r.path, list(e.mitarbeiter_id)) path
 )
 FIND roots r2
-FETCH r2.fname, r2.lname, r2.ttl, r2.lvl ASC
+FETCH concat(repeat('  ', r2.lvl), r2.fname, ' ', r2.lname) hierarchy, r2.path ASC

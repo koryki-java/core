@@ -341,6 +341,8 @@ public class IQLSerializer {
             b.append("(" + System.lineSeparator() + toString(expression.getSelect(), indent + 1) + indent(indent) + ")");
         } else if (expression.getIdentity() != null) {
             b.append(expression.getIdentity());
+        } else if (expression.isNull()) {
+            b.append("NULL");
         } else {
             throw new KorykiaiException();
         }

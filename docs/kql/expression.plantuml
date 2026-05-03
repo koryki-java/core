@@ -15,6 +15,7 @@ expression =
 | "INT"
 | "NUMBER"
 | "STRING"
+| "NULL"
 | "(", select, ")"
 ;
 

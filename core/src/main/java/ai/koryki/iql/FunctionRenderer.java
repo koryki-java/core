@@ -36,6 +36,15 @@ public interface FunctionRenderer {
             case "to_decimal" : {
                 return toDecimal(renderer, function, indent);
             }
+            case "to_text" : {
+                return cast(renderer, function, indent, "TEXT");
+            }
+            case "to_int" : {
+                return cast(renderer, function, indent, "INTEGER");
+            }
+            case "list" : {
+                return list(renderer, function, indent);
+            }
         }
 
         b.append(function(function.getFunc()));
@@ -59,4 +68,31 @@ public interface FunctionRenderer {
             throw new IllegalArgumentException("to_decimal function must have three arguments");
         }
     }
+
+    private static String cast(SqlSelectRenderer renderer, Function function, int indent, String type) {
+        if (function.getArguments().isEmpty()) {
+            throw new IllegalArgumentException(function.getFunc() + " must have at least one argument");
+        }
+
+        Expression a = function.getArguments().getFirst();
+        if (function.getArguments().size() == 1) {
+            return "CAST(" + renderer.toSql(a, indent) + " AS " + type + ")";
+        } else {
+            throw new IllegalArgumentException(function.getFunc() + " function must have one arguments");
+        }
+    }
+
+    private static String list(SqlSelectRenderer renderer, Function function, int indent) {
+        if (function.getArguments().isEmpty()) {
+            throw new IllegalArgumentException(function.getFunc() + " must have at least one argument");
+        }
+
+        Expression a = function.getArguments().getFirst();
+        if (function.getArguments().size() == 1) {
+            return "[" + renderer.toSql(a, indent) + "]";
+        } else {
+            throw new IllegalArgumentException("list-constructor must have one arguments");
+        }
+    }
+
 }

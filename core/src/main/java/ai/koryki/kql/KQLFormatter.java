@@ -369,6 +369,8 @@ public class KQLFormatter {
                 return expression.NUMBER().getText();
             } else if (expression.SQ_STRING() != null) {
                 return expression.SQ_STRING().getText();
+            } else if (expression.NULL() != null) {
+                return "NULL";
             } else {
                 throw new KorykiaiException();
             }

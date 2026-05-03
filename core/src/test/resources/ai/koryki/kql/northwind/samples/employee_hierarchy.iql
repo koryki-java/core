@@ -3,28 +3,29 @@ WITH roots AS (
   employees e
    OUT e.first_name fname 1
    OUT e.last_name lname 2
-   OUT e.title ttl 3
+   OUT list(e.employee_id) path 5
    OUT e.employee_id
  ALL
   FILTER
     NOT EXISTS (e reports_to employees r
    )
-  OUT 0 lvl 4
+  OUT to_text(NULL) boss 3
+  OUT to_int(1) lvl 4
  UNIONALL
   SELECT
   employees e
    OUT e.first_name fname 1
    OUT e.last_name lname 2
-   OUT e.title ttl 3
    OUT e.employee_id
    JOIN reports_to roots r
-     OUT add(r.lvl, 1) lvl 4
+     OUT r.lname boss 3
+     OUT to_int(add(r.lvl, 1)) lvl 4
    OWNER
+ ALL
+  OUT list_concat(r.path, list(e.employee_id)) path 5
 )
 SELECT
  roots r2
-  OUT r2.fname 1
-  OUT r2.lname 2
-  OUT r2.ttl 3
-  OUT r2.lvl 4
-  ORDER r2.lvl ASC 4
+  OUT concat(repeat('  ', r2.lvl), r2.fname, ' ', r2.lname) hierarchy 1
+  OUT r2.path 2
+  ORDER r2.path ASC 2

@@ -85,6 +85,7 @@ expression
     | INT
     | NUMBER
     | SQ_STRING
+    | NULL
     | LEFT_PAREN select RIGHT_PAREN
 ;
 
