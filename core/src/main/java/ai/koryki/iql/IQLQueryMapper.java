@@ -290,6 +290,10 @@ public class IQLQueryMapper {
             return toExpression(expression.field());
         } else if (expression.function() != null) {
             return toExpression(expression.function());
+        } else if (expression.NULL() != null) {
+            Expression bean = build(expression, Expression::new);
+            bean.setNull(true);
+            return bean;
         } else {
             throw new KorykiaiException();
         }

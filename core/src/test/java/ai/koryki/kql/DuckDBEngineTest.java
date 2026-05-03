@@ -49,7 +49,7 @@ public class DuckDBEngineTest {
     @Test
     public void testSingle() throws IOException {
 
-        Path p = Path.of("../../core/core/src/test/resources/ai/koryki/kql/northwind/marketing/marketing.kql");
+        Path p = Path.of("../../core/core/src/test/resources/ai/koryki/kql/northwind/samples/employee_hierarchy.kql");
 
         test(p);
     }

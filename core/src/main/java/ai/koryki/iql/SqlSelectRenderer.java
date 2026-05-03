@@ -718,6 +718,8 @@ public class SqlSelectRenderer {
             return timeExpression(expression);
         } else if (expression.getField() != null) {
             return toSql(expression.getField(), indent);
+        } else if (expression.isNull()) {
+            return "NULL";
         } else if (expression.getIdentity() != null) {
             throw new KorykiaiException("identity is not allowed here");
         } else {

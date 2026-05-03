@@ -1,0 +1,13 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title existslink
+
+existslink = "ID", ["-"], source
+  | "ID", "-", "ID", source
+  | "ID", source, "-", "ID"
+;
+
+@endebnf
