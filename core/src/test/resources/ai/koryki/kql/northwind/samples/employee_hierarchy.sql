@@ -1,4 +1,4 @@
-WITH RECURSIVE roots (fname, lname, boss, lvl, path, employee_id) AS (
+WITH RECURSIVE roots (fname, lname, ttl, lvl, employee_id) AS (
  SELECT
    e.first_name AS fname
  , e.last_name AS lname
