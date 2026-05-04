@@ -88,6 +88,16 @@ public class SqlQueryRenderer implements SqlRenderer {
             return "";
         }
 
+        StringBuilder b = toRecursive(resolver, block, indent);
+
+        b.append(block.stream().map(
+                e -> toSql(resolver, e.getId(), e, indent)).collect(Collectors.joining(System.lineSeparator() + ", ")));
+        b.append(System.lineSeparator());
+
+        return b.toString();
+    }
+
+    protected StringBuilder toRecursive(LinkResolver resolver, List<Block> block, int indent) {
         StringBuilder b = new StringBuilder();
         b.append(Identifier.indent(indent) + WITH + " ");
 
@@ -95,12 +105,7 @@ public class SqlQueryRenderer implements SqlRenderer {
         if (recursive) {
             b.append("RECURSIVE ");
         }
-
-        b.append(block.stream().map(
-                e -> toSql(resolver, e.getId(), e, indent)).collect(Collectors.joining(System.lineSeparator() + ", ")));
-        b.append(System.lineSeparator());
-
-        return b.toString();
+        return b;
     }
 
     private String toHeader(LinkResolver resolver, IQLVisibilityContext v, Out out) {

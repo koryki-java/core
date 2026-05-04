@@ -1,10 +1,12 @@
 WITH roots AS (
  FIND employees e
  FILTER NOT EXISTS (e - reports_to employees r)
- FETCH e.first_name fname, e.last_name lname, to_text(NULL) boss, to_int(1) lvl, list(e.employee_id) path
+ FETCH e.first_name fname, e.last_name lname, to_text(NULL) boss, to_int(1) lvl, lpad(to_text(e.employee_id), 6, '0') path
  UNIONALL
  FIND employees e, e-reports_to roots r
- FETCH e.first_name fname, e.last_name lname, r.lname boss, to_int(r.lvl + 1) lvl, list_concat(r.path, list(e.employee_id)) path
+ FETCH e.first_name fname, e.last_name lname, r.lname boss, to_int(r.lvl + 1) lvl,
+ concat(r.path,'/',lpad(to_text(e.employee_id), 6, '0')) path
 )
 FIND roots r2
-FETCH concat(repeat('  ', r2.lvl), r2.fname, ' ', r2.lname) hierarchy, r2.path ASC
+FETCH r2.lvl, concat(
+rpad(' ', r2.lvl * 2, ' '), r2.fname, ' ', r2.lname) hierarchy, r2.path ASC

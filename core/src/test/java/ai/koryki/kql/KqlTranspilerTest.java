@@ -50,11 +50,11 @@ public class KqlTranspilerTest {
         test(kql);
     }
 
-    @Test
-    public void testSingle() throws IOException {
-        Path p = Path.of("../../core/core/src/test/resources/ai/koryki/kql/northwind/samples/employee_hierarchy.kql");
-        test(p);
-    }
+//    @Test
+//    public void testSingleFile() throws IOException {
+//        Path p = Path.of("../../core/core/src/test/resources/ai/koryki/kql/northwind/samples/employee_hierarchy.kql");
+//        test(p);
+//    }
 
     private static void test(Path kql) throws IOException {
 

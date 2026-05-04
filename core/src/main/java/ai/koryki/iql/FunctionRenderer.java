@@ -37,7 +37,7 @@ public interface FunctionRenderer {
                 return toDecimal(renderer, function, indent);
             }
             case "to_text" : {
-                return cast(renderer, function, indent, "TEXT");
+                return toText(renderer, function, indent);
             }
             case "to_int" : {
                 return cast(renderer, function, indent, "INTEGER");
@@ -55,7 +55,11 @@ public interface FunctionRenderer {
         return b.toString();
     }
 
-    private static String toDecimal(SqlSelectRenderer renderer, Function function, int indent) {
+    default String toText(SqlSelectRenderer renderer, Function function, int indent) {
+        return cast(renderer, function, indent, "TEXT");
+    }
+
+    default String toDecimal(SqlSelectRenderer renderer, Function function, int indent) {
         if (function.getArguments().isEmpty()) {
             throw new IllegalArgumentException("to_decimal function must have at least one argument");
         }
@@ -69,7 +73,7 @@ public interface FunctionRenderer {
         }
     }
 
-    private static String cast(SqlSelectRenderer renderer, Function function, int indent, String type) {
+    default String cast(SqlSelectRenderer renderer, Function function, int indent, String type) {
         if (function.getArguments().isEmpty()) {
             throw new IllegalArgumentException(function.getFunc() + " must have at least one argument");
         }
@@ -82,7 +86,7 @@ public interface FunctionRenderer {
         }
     }
 
-    private static String list(SqlSelectRenderer renderer, Function function, int indent) {
+    default String list(SqlSelectRenderer renderer, Function function, int indent) {
         if (function.getArguments().isEmpty()) {
             throw new IllegalArgumentException(function.getFunc() + " must have at least one argument");
         }

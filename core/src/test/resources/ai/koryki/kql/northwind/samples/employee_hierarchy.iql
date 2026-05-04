@@ -3,7 +3,7 @@ WITH roots AS (
   employees e
    OUT e.first_name fname 1
    OUT e.last_name lname 2
-   OUT list(e.employee_id) path 5
+   OUT lpad(to_text(e.employee_id), 6, '0') path 5
    OUT e.employee_id
  ALL
   FILTER
@@ -22,10 +22,11 @@ WITH roots AS (
      OUT to_int(add(r.lvl, 1)) lvl 4
    OWNER
  ALL
-  OUT list_concat(r.path, list(e.employee_id)) path 5
+  OUT concat(r.path, '/', lpad(to_text(e.employee_id), 6, '0')) path 5
 )
 SELECT
  roots r2
-  OUT concat(repeat('  ', r2.lvl), r2.fname, ' ', r2.lname) hierarchy 1
-  OUT r2.path 2
-  ORDER r2.path ASC 2
+  OUT r2.lvl 1
+  OUT concat(rpad(' ', multiply(r2.lvl, 2), ' '), r2.fname, ' ', r2.lname) hierarchy 2
+  OUT r2.path 3
+  ORDER r2.path ASC 3
