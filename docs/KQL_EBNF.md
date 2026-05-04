@@ -74,6 +74,10 @@ Unary_logical_expression resolves to boolean result. It has four main alternativ
 
 ![exists](kql/exists.png)
 
+## Existslink
+
+![existslink](kql/existslink.png)
+
 ## Source
 
 ![source](kql/source.png)
