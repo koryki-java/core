@@ -57,7 +57,7 @@ public class PostgreSQLEngineTest {
     }
 
     @Test
-    public void testd() throws IOException {
+    public void testSingleFile() throws IOException {
 
         Path p = Path.of("../../core/core/src/test/resources/ai/koryki/kql/northwind/privatetest/window/window_join_with_count.kql");
 

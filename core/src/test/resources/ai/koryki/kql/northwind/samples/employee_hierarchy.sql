@@ -4,7 +4,7 @@ WITH RECURSIVE roots (fname, lname, boss, lvl, path, employee_id) AS (
  , e.last_name AS lname
  , CAST(NULL AS TEXT) AS boss
  , CAST(1 AS INTEGER) AS lvl
- , [e.employee_id] AS path
+ , lpad(CAST(e.employee_id AS TEXT), 6, '0') AS path
  , e.employee_id
  FROM
   employees e
@@ -24,7 +24,7 @@ UNION ALL
  , e.last_name AS lname
  , r.lname AS boss
  , CAST(r.lvl + 1 AS INTEGER) AS lvl
- , list_concat(r.path, [e.employee_id]) AS path
+ , concat(r.path, '/', lpad(CAST(e.employee_id AS TEXT), 6, '0')) AS path
  , e.employee_id
  FROM
   employees e
@@ -32,7 +32,8 @@ UNION ALL
     e.reports_to = r.employee_id
 )
 SELECT
-  concat(repeat('  ', r2.lvl), r2.fname, ' ', r2.lname) AS hierarchy
+  r2.lvl
+, concat(rpad(' ', r2.lvl * 2, ' '), r2.fname, ' ', r2.lname) AS hierarchy
 , r2.path
 FROM
  roots r2

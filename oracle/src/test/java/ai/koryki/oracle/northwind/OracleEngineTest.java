@@ -56,13 +56,13 @@ public class OracleEngineTest {
         test(kql);
     }
 
-    @Test
-    public void testd() throws IOException {
-
-        Path p = Path.of("../../core/core/src/test/resources/ai/koryki/kql/northwind/privatetest/consistency/orders.kql");
-
-        test(p);
-    }
+//    @Test
+//    public void testSingleFile() throws IOException {
+//
+//        Path p = Path.of("../../core/core/src/test/resources/ai/koryki/kql/northwind/privatetest/consistency/orders.kql");
+//
+//        test(p);
+//    }
 
     private static void test(Path kql) throws IOException {
 
