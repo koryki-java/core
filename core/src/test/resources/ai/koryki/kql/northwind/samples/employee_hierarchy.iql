@@ -9,7 +9,8 @@ WITH roots AS (
   FILTER
     NOT EXISTS (e reports_to employees r
    )
-  OUT 0 lvl 4
+  OUT to_text(NULL) boss 3
+  OUT to_int(1) lvl 4
  UNIONALL
   SELECT
   employees e
