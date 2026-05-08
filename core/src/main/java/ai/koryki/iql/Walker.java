@@ -250,7 +250,7 @@ public class Walker {
 
         return visitor.visit(deque, exists) &&
                 visitScoped(exists, () ->
-                           walk(exists.getSource(), visitor)
+                           walk(exists.getStart(), visitor)
                         && exists.getJoin().stream().allMatch(j -> walk(j, visitor)), visitor::leave);
     }
 

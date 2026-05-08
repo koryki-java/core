@@ -423,8 +423,8 @@ public class IQLSerializer {
 //            b.append("INVERS ");
 //        }
 
-        b.append(exists.getParent() + " " + exists.getCrit() + toString(exists.getSource(), indent, true));
-        b.append(toJoin(exists.getSource(), exists.getJoin(), indent + 1));
+        b.append(exists.getParent() + " " + exists.getCrit() + toString(exists.getStart(), indent, true));
+        b.append(toJoin(exists.getStart(), exists.getJoin(), indent + 1));
 
         b.append(indent(indent));
         b.append(")");

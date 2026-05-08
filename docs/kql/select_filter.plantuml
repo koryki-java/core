@@ -5,7 +5,7 @@ skinparam legendBackgroundColor white
 
 'title select
 
-select = find, filter, fetch
+filter = ["FILTER", logical_expression]
 ;
 
 @endebnf

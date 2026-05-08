@@ -545,9 +545,9 @@ public class SqlSelectRenderer {
         b.append(indent(indent + 2)).append("1");
         b.append(System.lineSeparator());
 
-        b.append(fromClause(exists.getSource(), exists.getJoin(), indent));
+        b.append(fromClause(exists.getStart(), exists.getJoin(), indent));
 
-        String w = filterClause(exists.getSource(), exists.getJoin(), null, indent);
+        String w = filterClause(exists.getStart(), exists.getJoin(), null, indent);
 
         String j = joinCols(left, exists, indent + 1);
 
@@ -566,15 +566,15 @@ public class SqlSelectRenderer {
             b.append(System.lineSeparator());
         }
 
-        b.append(groupbyClause(false, exists.getSource(), exists.getJoin(), indent));
-        b.append(havingClause(exists.getSource(), exists.getJoin(), null, indent));
+        b.append(groupbyClause(false, exists.getStart(), exists.getJoin(), indent));
+        b.append(havingClause(exists.getStart(), exists.getJoin(), null, indent));
         return b.toString();
     }
 
     private String joinCols(Source left, Exists exists, int indent) {
         String msg = left.getName() + (left.getAlias() != null ? " " + left.getAlias() : "");
         String crit = exists.getCrit();
-        Source right = exists.getSource();
+        Source right = exists.getStart();
 
         boolean invers = resolver.isInverse(exists.getCrit());
 

@@ -16,6 +16,8 @@
  */
 package ai.koryki.antlr;
 
+import org.antlr.v4.runtime.ParserRuleContext;
+
 public class RangeException extends KorykiaiException {
 
     private static final long serialVersionUID = 5676923577116787823L;
@@ -31,6 +33,11 @@ public class RangeException extends KorykiaiException {
 
         super(msg);
         this.range = range;
+    }
+
+    public RangeException(ParserRuleContext context, String msg) {
+
+        this(Range.range(context), msg);
     }
 
     public RangeException(Range range, Throwable cause) {

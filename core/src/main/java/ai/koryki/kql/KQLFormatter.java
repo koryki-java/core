@@ -16,6 +16,8 @@
  */
 package ai.koryki.kql;
 
+import ai.koryki.antlr.Range;
+import ai.koryki.antlr.RangeException;
 import ai.koryki.iql.BlockLeadingSourceCollector;
 import ai.koryki.iql.Identifier;
 import ai.koryki.iql.LinkResolver;
@@ -401,8 +403,12 @@ public class KQLFormatter {
 
             StringBuilder b = new StringBuilder();
             String alias = column.alias.getText();
-            b.append(alias + ".");
+            b.append(alias).append(".");
             KQLParser.SourceContext source = visibilityContext.getSource(alias);
+
+            if (source == null) {
+                throw new RangeException(Range.range(column), "missing source: " + alias);
+            }
 
             Source block = visibilityContext.getLeadingSource(source.name.getText());
             String sourcename = block != null ? block.getName() : source.name.getText();
