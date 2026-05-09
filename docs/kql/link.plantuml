@@ -5,7 +5,7 @@ skinparam legendBackgroundColor white
 
 'title link
 
-link = ["ID"], ([("+" | "VIA")], source
+link = ["ID"], (["+"], source
   | "VIA", "ID", ["+"], source
   | ["+"], source, "VIA", "ID")
 ;

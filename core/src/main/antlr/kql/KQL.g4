@@ -36,12 +36,12 @@ select
  : FIND source (COMMA link)* filterClause? fetchClause? limitClause?
 ;
 
-link : from=ID? (VIA|PLUS)? source
+link : from=ID? (PLUS)? source
 | from=ID? VIA crit=ID PLUS? source
 | from=ID? PLUS? source VIA crit=ID
 ;
 
-existslink : from=ID (VIA)? source
+existslink : from=ID source
 | from=ID VIA crit=ID source
 | from=ID source VIA crit=ID
 ;
