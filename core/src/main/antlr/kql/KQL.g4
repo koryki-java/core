@@ -36,14 +36,14 @@ select
  : FIND source (COMMA link)* filterClause? fetchClause? limitClause?
 ;
 
-link : from=ID? (BAR|PLUS)? source
-| from=ID? BAR crit=ID PLUS? source
-| from=ID? PLUS? source BAR crit=ID
+link : from=ID? (VIA|PLUS)? source
+| from=ID? VIA crit=ID PLUS? source
+| from=ID? PLUS? source VIA crit=ID
 ;
 
-existslink : from=ID (BAR)? source
-| from=ID BAR crit=ID source
-| from=ID source BAR crit=ID
+existslink : from=ID (VIA)? source
+| from=ID VIA crit=ID source
+| from=ID source VIA crit=ID
 ;
 
 source
@@ -262,6 +262,7 @@ fragment LOWER
 SINGLE_QUOTE: '\'';
 DOT: '.';
 BAR: '-';
+VIA: 'VIA';
 
 EQUALS: '=';
 HASHMARK: '#';
