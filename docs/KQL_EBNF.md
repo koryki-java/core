@@ -26,8 +26,8 @@ The most significant omission is JOIN: **KQL** replaces explicit join conditions
 relationships from the semantic layer, so authors declare which entities to connect rather 
 than how to connect them at the column level.
 
-KQL is simpler than SQL by design; it does not compete with SQL — it compiles to SQL before execution, 
-delegating the full power of the underlying database engine. This also makes KQL largely database 
+**KQL** is simpler than SQL by design; it does not compete with SQL — it compiles to SQL before execution, 
+delegating the full power of the underlying database engine. This also makes **KQL** largely database 
 agnostic: the same query runs across different databases without modification, as the 
 transpiler handles database-specific SQL dialect differences.
 Experts who find themselves missing advanced SQL features should write SQL directly.
@@ -37,24 +37,25 @@ Experts who find themselves missing advanced SQL features should write SQL direc
 Identifiers (ID) consist of lowercase letters, digits, and underscores, and must start with a lowercase letter or 
 underscore. Uppercase is not permitted — all entity names, aliases, and attribute names must be lowercase. 
 
-Comments are supported in two forms: block comments (/* ... */) and line comments (// ... to end of line). 
+Comments are supported in two forms: block comments (`/* ... */`) and line comments (`// ...` to end of line). 
 Both are ignored by the parser and can appear anywhere whitespace is allowed.
 
-All KQL keywords are strictly uppercase (FIND, FILTER, FETCH, etc.), while all identifiers are strictly lowercase. This
+All KQL keywords are strictly uppercase (`FIND`, `FILTER`, `FETCH`, etc.), while all identifiers are strictly lowercase. This
 hard separation means any token can be identified by its case alone — uppercase is always a language keyword,
-lowercase is always a user-defined name such as an entity, alias, or attribute. This is more restrictive than SQL or most programming languages, which permit mixed case, but makes queries significantly easier to read and verify at a glance — for both human 
+lowercase is always a user-defined name such as an entity, alias, or attribute. 
+This is more restrictive than SQL or most programming languages, which permit mixed case, but makes queries significantly easier to read and verify at a glance — for both human 
 authors and AI-generated queries.
 
 
 ## Query
 
-![query](kql/query.png )
+![query](kql/query.png)
 
-Query is the root rule of KQL-Language.
+`query` is the root rule of **KQL**.
 
 The optional `WITH` clause introduces named sub-queries (blocks) separated by commas.
 
-The mandatory `set` at the end is the main result expression and may be a plain select or a set 
+The mandatory `set` at the end is the main result expression and may be a plain `select` or a set 
 operation via `UNION`, `UNIONALL`, `MINUS`, or `INTERSECT`.
 
 
@@ -98,7 +99,7 @@ in `GROUP BY`, are frequent error sources — for both human authors
 and AI-generated queries. By deriving these clauses mechanically from 
 the structure of `FIND`, `FILTER`, and `FETCH`, **KQL** eliminates 
 an entire class of mistakes. A non-SQL-expert can read and verify a 
-KQL select top to bottom without knowing SQL's clause-placement rules, 
+**KQL** `select` top to bottom without knowing SQL's clause-placement rules, 
 and an AI model generating KQL 
 needs to reason about far fewer structural constraints than it would 
 to generate equivalent SQL.
@@ -133,7 +134,7 @@ keyword suppresses duplicate rows, and the optional
 
 ![link](kql/link.png)
 
-A `link` declares an additional `source` to join to the `source` graph. 
+A `link` declares an additional `source` to join to the source graph. 
 The optional first identifier specifies which 
 already-declared `source` to join from; when absent, the `link` is 
 implicitly attached to the preceding `source` in the list.
@@ -142,11 +143,11 @@ Literal `+` produces an optional `link` (LEFT OUTER JOIN), preserving rows
 even when no matching counterpart is found in target `source`. A link without `+` produces a
 mandatory link (INNER JOIN); rows are only returned when matching data exists in both sources.
 
-When two sources share more than one relationship, a `criteria` identifier 
+When two sources share more than one relationship, a criteria identifier 
 is mandatory. 
-Keyword `VIA` introduces the `criteria` identifier and may appear before or after the target `source`.
+Keyword `VIA` introduces the criteria identifier and may appear before or after the target `source`.
 Both alternatives (second and third) are semantically identical; the author may lead with whichever is known first — 
-the `criteria` or the target `source`.
+the criteria or the target `source`.
 
 ## Logical Expression
 
@@ -168,14 +169,14 @@ in **KQL**. The most common form is:
     expression operator right-hand-side
 
 Where the right-hand side can be:
- - absent (ISNULL)
+ - absent (`ISNULL`)
  - a single expression
- - a BETWEEN pair
- - a parenthesized IN list 
+ - a `BETWEEN` pair
+ - a parenthesized `IN` list 
 
 Three further alternatives exist:
-- a logical_expression wrapped in parentheses for explicit grouping
-- EXISTS, which tests whether a linked sub-graph contains at least one matching row.
+- a `logical_expression` wrapped in parentheses for explicit grouping
+- `EXISTS`, which tests whether a linked sub-graph contains at least one matching row.
 - a `placeholder` form, marking positions where the caller supplies values at runtime.
 
 
@@ -184,7 +185,7 @@ Three further alternatives exist:
 
 ![limit_clause](kql/limit_clause.png)
 
-LIMIT caps the number of rows returned by a select to the given integer value.
+`LIMIT` caps the number of rows returned by a `select` to the given integer value.
 
 ## Exists
 
@@ -224,7 +225,7 @@ computed subtotal rows for grouped results.
 
 When the list mixes plain fields with aggregate functions such as `count` or `sum`, 
 **KQL** automatically groups the result by the plain fields — no explicit 
-GROUP BY is needed. The fetch list therefore serves a dual purpose: it declares what to return 
+`GROUP BY` is needed. The fetch list therefore serves a dual purpose: it declares what to return 
 and implicitly defines how rows are grouped.
 
 
@@ -236,9 +237,9 @@ A `fetch_item` is a single output expression — a field, a computed value, or a
 An optional `header` identifier gives the expression a name in the result, 
 and an optional `label` provides a display string for UI rendering.
 
-Each `fetch_item` can carry a sort direction (ASC or DESC), replacing the need for 
-a separate ORDER BY clause.  When multiple items specify a sort direction, sort priority 
-is determined by the position of each `fetch_item` in the fetch_clause. 
+Each `fetch_item` can carry a sort direction (`ASC` or `DESC`), replacing the need for 
+a separate `ORDER BY` clause. When multiple items specify a sort direction, sort priority 
+is determined by the position of each `fetch_item` in the `fetch_clause`. 
 An optional integer index overrides this default 
 and explicitly controls sort priority.
 
@@ -258,7 +259,7 @@ Literal values are written as integers (42), decimal numbers (3.14), single-quot
 ![function](kql/function.png)
 
 A `function` is a named operation applied to zero or more arguments. Aggregate functions such as `count` or `sum` 
-summarise values across rows; scalar functions transform a single value. An optional window clause turns any 
+summarise values across rows; scalar functions transform a single value. An optional `window` clause turns any 
 aggregate into a window function, computing the result over a defined partition of rows without 
 collapsing them into a single output row.
 
@@ -267,43 +268,43 @@ collapsing them into a single output row.
 ![argument](kql/argument.png)
 
 An `argument` is a value passed to a `function`. It is either an `expression` or a bare identifier, allowing functions 
-to accept both computed values and entity references such as ```count(o)```.
+to accept both computed values and entity references such as `count(o)`.
 
 ## Field
 
 ![field](kql/field.png)
 
-A `field` references a single attribute of a `source` as alias.name, where alias identifies a `source` declared in 
-`FIND` and name is the attribute name as defined in the semantic layer.
+A `field` references a single attribute of a `source` as `alias.name`, where `alias` identifies a `source` declared in 
+`FIND` and `name` is the attribute name as defined in the semantic layer.
 
 ## Window
 
 ![window](kql/window.png)
 
-A window clause attaches to a function and defines the set of rows the function operates over, without collapsing 
+A `window` clause attaches to a `function` and defines the set of rows the function operates over, without collapsing 
 them into a single result row. The optional `PARTITION` clause divides rows into independent groups; the optional 
-`ORDER` clause defines the row sequence within each partition; and the optional frame clause narrows the window 
+`ORDER` clause defines the row sequence within each partition; and the optional `frame` clause narrows the window 
 further to a subset of rows relative to the current row.
 
 ## Window Order
 
 ![order](kql/order.png)
 
-The `ORDER` clause inside a window defines the sequence in which rows are processed within each partition. It accepts 
-one or more expressions and an optional ASC or DESC direction.
+The `ORDER` clause inside a `window` defines the sequence in which rows are processed within each partition. It accepts 
+one or more expressions and an optional `ASC` or `DESC` direction.
 
 ## Frame
 
 ![frame](kql/frame.png)
 
-A frame narrows the window to a sliding subset of rows relative to the current row, defined by a lower and upper 
-`window_limit` bound. Only ROWS frames are supported, which count bounds by physical row offset rather than value range.
+A `frame` narrows the window to a sliding subset of rows relative to the current row, defined by a lower and upper 
+`window_limit` bound. Only `ROWS` frames are supported, which count bounds by physical row offset rather than value range.
 
 ## Window Limit
 
 ![window_limit](kql/window_limit.png)
 
-A window_limit defines one boundary of a frame. `UNBOUNDED PRECEDING` or `UNBOUNDED FOLLOWING` extends the boundary to the 
+A `window_limit` defines one boundary of a `frame`. `UNBOUNDED PRECEDING` or `UNBOUNDED FOLLOWING` extends the boundary to the 
 first or last row of the partition; `CURRENT ROW` sets it to the current row; and an integer offset sets it to a 
 fixed number of rows before or after the current row.
 
@@ -311,10 +312,10 @@ fixed number of rows before or after the current row.
 
 ![date_literal](kql/date_literal.png)
 
-A date_literal pairs a type keyword with a formatted single-quoted string. 
+A `date_literal` pairs a type keyword with a formatted single-quoted string. 
 
-| Keyword   | Format                              | Example                         | 
-|-----------|-------------------------------------|---------------------------------| 
-| DATE      | 'YYYY-MM-DD'                        | DATE '2023-01-31'               | 
-| TIME      | 'HH:MI:SS[.mmm][±HH:MI]'            | TIME '14:30:00'                 | 
-| TIMESTAMP | 'YYYY-MM-DD HH:MI:SS[.mmm][±HH:MI]' | TIMESTAMP '2023-01-31 14:30:00' |
+| Keyword       | Format                                | Example                           | 
+|---------------|---------------------------------------|-----------------------------------| 
+| `DATE`        | `'YYYY-MM-DD'`                        | `DATE '2023-01-31'`               | 
+| `TIME`        | `'HH:MI:SS[.mmm][±HH:MI]'`           | `TIME '14:30:00'`                 | 
+| `TIMESTAMP`   | `'YYYY-MM-DD HH:MI:SS[.mmm][±HH:MI]'`| `TIMESTAMP '2023-01-31 14:30:00'` |
