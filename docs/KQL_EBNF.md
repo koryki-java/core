@@ -1,18 +1,17 @@
 # KQL Grammar
 
-KQL is inspired by SQL and shares many of its concepts, but operates at a higher level of 
-abstraction. 
+KQL is inspired by SQL and shares many of its concepts, but operates at a higher level of abstraction.
 Readers familiar with SQL will recognize most operators and functions.
 
 The key differences are in how sources are declared, how joins are expressed, 
 and which clauses are omitted because KQL derives them automatically.
- 
+
 | Concept          | SQL                         | KQL                               | 
 |------------------|-----------------------------|-----------------------------------| 
 | Query sources    | `FROM` table t              | `FIND` entity alias               | 
 | Filtering rows   | `WHERE`                     | `FILTER`                          | 
 | Output columns   | `SELECT`                    | `FETCH`                           | 
-| Joining          | `JOIN` ... ON ...           | link with `+` / `VIA`               | 
+| Joining          | `JOIN` ... ON ...           | `link` with `+` / `VIA`            | 
 | Grouping         | `GROUP BY` (explicit)       | inferred from `FETCH`             | 
 | Aggregate filter | `HAVING` (explicit)         | inferred from `FILTER`            | 
 | Sorting          | `ORDER BY` (separate clause) | `ASC`/`DESC` inline on `fetch_item` | 
@@ -30,17 +29,18 @@ than how to connect them at the column level.
 delegating the full power of the underlying database engine. This also makes **KQL** largely database 
 agnostic: the same query runs across different databases without modification, as the 
 transpiler handles database-specific SQL dialect differences.
+
 Experts who find themselves missing advanced SQL features should write SQL directly.
 
 ## Lexical Conventions
 
-Identifiers (ID) consist of lowercase letters, digits, and underscores, and must start with a lowercase letter or 
+Identifiers (`ID`) consist of lowercase letters, digits, and underscores, and must start with a lowercase letter or 
 underscore. Uppercase is not permitted — all entity names, aliases, and attribute names must be lowercase. 
 
 Comments are supported in two forms: block comments (`/* ... */`) and line comments (`// ...` to end of line). 
 Both are ignored by the parser and can appear anywhere whitespace is allowed.
 
-All KQL keywords are strictly uppercase (`FIND`, `FILTER`, `FETCH`, etc.), while all identifiers are strictly lowercase. This
+All **KQL** keywords are strictly uppercase (`FIND`, `FILTER`, `FETCH`, etc.), while all identifiers are strictly lowercase. This
 hard separation means any token can be identified by its case alone — uppercase is always a language keyword,
 lowercase is always a user-defined name such as an entity, alias, or attribute. 
 This is more restrictive than SQL or most programming languages, which permit mixed case, but makes queries significantly easier to read and verify at a glance — for both human 
@@ -64,7 +64,7 @@ operation via `UNION`, `UNIONALL`, `MINUS`, or `INTERSECT`.
 ![block](kql/block.png)
 
 A `block` defines a named sub-query inside a 
-`WITH` clause. The first alternative binds an identifier to a set-operation; 
+`WITH` clause. The first alternative binds an identifier to a `set`; 
 the second binds an identifier to a placeholder, allowing the sub-query to be injected 
 externally at runtime.
 
@@ -72,7 +72,7 @@ externally at runtime.
 
 ![set](kql/set.png)
 
-A `set` is either a plain `select` or a set-operation via 
+A `set` is either a plain `select` or a `set` operation via 
 `INTERSECT`, `UNION`, `UNIONALL`, or `MINUS`. `INTERSECT` binds 
 more tightly than the other operators; parentheses can be used to override precedence.
 
@@ -258,7 +258,7 @@ Literal values are written as integers (42), decimal numbers (3.14), single-quot
 
 ![function](kql/function.png)
 
-A `function` is a named operation applied to zero or more arguments. Aggregate functions such as `count` or `sum` 
+A `function` is a named operation applied to zero or more `argument`s. Aggregate functions such as `count` or `sum` 
 summarise values across rows; scalar functions transform a single value. An optional `window` clause turns any 
 aggregate into a window function, computing the result over a defined partition of rows without 
 collapsing them into a single output row.
