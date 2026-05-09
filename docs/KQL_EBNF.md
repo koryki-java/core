@@ -12,7 +12,7 @@ and which clauses are omitted because KQL derives them automatically.
 | Query sources    | `FROM` table t              | `FIND` entity alias               | 
 | Filtering rows   | `WHERE`                     | `FILTER`                          | 
 | Output columns   | `SELECT`                    | `FETCH`                           | 
-| Joining          | `JOIN` ... ON ...           | link with -`+` / `VIA`               | 
+| Joining          | `JOIN` ... ON ...           | link with `+` / `VIA`               | 
 | Grouping         | `GROUP BY` (explicit)       | inferred from `FETCH`             | 
 | Aggregate filter | `HAVING` (explicit)         | inferred from `FILTER`            | 
 | Sorting          | `ORDER BY` (separate clause) | `ASC`/`DESC` inline on `fetch_item` | 
@@ -26,7 +26,7 @@ The most significant omission is JOIN: **KQL** replaces explicit join conditions
 relationships from the semantic layer, so authors declare which entities to connect rather 
 than how to connect them at the column level.
 
-KQL is simpler than SQL by design — it does not compete with SQL — it compiles to SQL before execution, 
+KQL is simpler than SQL by design; it does not compete with SQL — it compiles to SQL before execution, 
 delegating the full power of the underlying database engine. This also makes KQL largely database 
 agnostic: the same query runs across different databases without modification, as the 
 transpiler handles database-specific SQL dialect differences.
@@ -101,7 +101,7 @@ an entire class of mistakes. A non-SQL-expert can read and verify a
 KQL select top to bottom without knowing SQL's clause-placement rules, 
 and an AI model generating KQL 
 needs to reason about far fewer structural constraints than it would 
-generate equivalent SQL.
+to generate equivalent SQL.
 
 ## Find
 
@@ -124,7 +124,7 @@ and `EXISTS` sub-queries.
 
 ![select_fetch](kql/select_fetch.png)
 
-`FETCH` declares what the `query` returns, projecting one or more 
+`FETCH` declares what the `select` returns, projecting one or more 
 expressions from the matched source rows. The optional `DISTINCT` 
 keyword suppresses duplicate rows, and the optional 
 `ROLLUP` keyword appends subtotal rows across grouping levels.
@@ -190,18 +190,20 @@ LIMIT caps the number of rows returned by a select to the given integer value.
 
 ![exists](kql/exists.png)
 
-`exists` defines the correlated sub-query used inside an `EXISTS` check. Unlike `select``, it produces 
+`exists` defines the correlated sub-query used inside an `EXISTS` check. Unlike `select`, it produces 
 no output — only a boolean indicating whether at least one matching row exists in the sub-graph.
 
 ## Existslink
 
 ![existslink](kql/existslink.png)
 
+An `existslink` is the mandatory first link inside an `exists` clause. Unlike a regular `link`, the `from` identifier is always required and `+` is not permitted — existence checks are inherently about whether matching rows are found, making optional joins meaningless in this context.
+
 ## Source
 
 ![source](kql/source.png)
 
-`source` declares which entity to query and how to refer to it within the `query`. The first identifier is the entity name as 
+`source` declares which entity to query and how to refer to it within the `select`. The first identifier is the entity name as 
 defined in the semantic layer; the second is the `alias` used in all subsequent references (`link`, `FILTER`, and `FETCH` clauses).
 
 ## Filter Clause
