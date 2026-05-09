@@ -505,7 +505,7 @@ public class KQLFormatter {
             }
             String crit = link.crit != null ? link.crit.getText() : null;
             if (crit != null) {
-                b.append("- ");
+                b.append("VIA ");
                 b.append(translator.crit(crit)).append(" ");
             }
             b.append(translator.source(link.source().name.getText()));
@@ -525,7 +525,7 @@ public class KQLFormatter {
             }
             String crit = link.crit != null ? link.crit.getText() : null;
             if (crit != null) {
-                b.append("- ");
+                b.append("VIA ");
                 b.append(translator.crit(crit) + " ");
             }
             b.append(link.PLUS() != null ? "+ " : "");

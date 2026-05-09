@@ -1,9 +1,9 @@
 WITH roots AS (
  FIND employees e
- FILTER NOT EXISTS (e - reports_to employees r)
+ FILTER NOT EXISTS (e VIA reports_to employees r)
  FETCH e.first_name fname, e.last_name lname, to_text(NULL) boss, to_int(1) lvl, lpad(to_text(e.employee_id), 6, '0') path
  UNIONALL
- FIND employees e, e-reports_to roots r
+ FIND employees e, e VIA reports_to roots r
  FETCH e.first_name fname, e.last_name lname, r.lname boss, to_int(r.lvl + 1) lvl,
  concat(r.path,'/',lpad(to_text(e.employee_id), 6, '0')) path
 )

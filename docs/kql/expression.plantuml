@@ -8,13 +8,13 @@ skinparam legendBackgroundColor white
 expression =
  "(", expression, ")"
 | expression, ("*" | "/"), expression
-| expression, ("+" | "+"), expression
+| expression, ("+" | "-"), expression
 | date_literal
 | field
 | function
 | "INT"
 | "NUMBER"
-| "STRING"
+| "SQ_STRING"
 | "NULL"
 | "(", select, ")"
 ;

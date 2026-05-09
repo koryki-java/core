@@ -5,7 +5,7 @@ skinparam legendBackgroundColor white
 
 'title select
 
-fetch = ["FETCH", logical_expression], [limit_clause]
+fetch = "FETCH", ["DISTINCT"], fetch_item, {",", fetch_item}, ["ROLLUP"]
 ;
 
 @endebnf

@@ -5,9 +5,9 @@ skinparam legendBackgroundColor white
 
 'title set
 
-set = set, "INTERSECT", set
+set = select
+  |set, "INTERSECT", set
   | set, ("UNION" | "UNIONALL" | "MINUS" ), set
   | "(", set, ")"
-  | select
 ;
 @endebnf

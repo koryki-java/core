@@ -5,7 +5,7 @@ skinparam legendBackgroundColor white
 
 'title select
 
-filter = ["FILTER", logical_expression]
+filter = "FILTER", logical_expression
 ;
 
 @endebnf
