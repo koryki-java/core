@@ -1,0 +1,109 @@
+@startuml
+
+class Block {
+}
+
+class Column {
+}
+
+class Exists {
+}
+
+class Expression {
+}
+
+class Function {
+}
+
+class Group {
+}
+
+class Join {
+}
+
+class Limit {
+}
+
+class LogicalExpression {
+}
+
+class Order {
+}
+
+class Out {
+}
+
+class Query {
+}
+
+class Select {
+LogicalExpression filter
+LogicalExpression having
+}
+
+class Set {
+Set left
+Set right
+}
+
+class Table {
+LogicalExpression filter
+LogicalExpression having
+}
+
+class UnaryLogicalExpression {
+}
+
+class Window {
+Limit upper
+Limit lower
+}
+
+Block -left-* "1" Set
+
+Set -l-* "0..2" Set
+
+Set --*  "0..1" Select
+
+Query --* "0..n" Block
+
+Query --* "1" Set
+
+Select -d-* "1" Table
+
+Select -r-* "0..n" Join
+Select --* "0..n" Out
+Select --* "0..n" Order
+Select --* "0..n" Group
+
+Select::filter -d-* "0..1" LogicalExpression
+Select::having -d-* "0..1" LogicalExpression
+
+Join -u-* "0..n" Join
+Join -d-* "1" Table
+
+Exists -u-* "0..n" Join
+Exists -d-* "1" Table
+
+
+Table -l-* "0..n" Out
+Table --* "0..n" Order
+Table --* "0..n" Group
+
+Table::filter -l-* "0..1" LogicalExpression
+Table::having -l-* "0..1" LogicalExpression
+
+LogicalExpression --* "0..n" LogicalExpression
+LogicalExpression -d-* UnaryLogicalExpression
+
+UnaryLogicalExpression --* "0..n" Expression
+
+Expression -l-* "0..1" Column
+Expression -u-* "0..1" Select
+Expression -u-* "0..1" Exists
+Expression -r-* "0..1" Function
+
+Function -r-* "0..1" Window
+
+Window -r-* "0..2" Limit
+@enduml
