@@ -27,10 +27,9 @@ import java.util.*;
 
 public class SelectScopeCollector implements Visitor, Collector<Map<Object, Map<String, Source>>> {
 
-    private Map<Object, Map<String, Source>> selectToAliases = new HashMap<>();
-    private Deque<Object> selects = new ArrayDeque<>();
-    private List<Violation> violations = new ArrayList<>();
-    private Map<Object, RuleContext> iqlToContext;
+    private final Map<Object, Map<String, Source>> selectToAliases = new HashMap<>();
+    private final List<Violation> violations = new ArrayList<>();
+    private final Map<Object, RuleContext> iqlToContext;
 
     public SelectScopeCollector(Map<Object, RuleContext> iqlToContext) {
         this.iqlToContext = iqlToContext;
@@ -50,7 +49,6 @@ public class SelectScopeCollector implements Visitor, Collector<Map<Object, Map<
 
     @Override
     public boolean visit(Deque<Object> deque, Select select) {
-        selects.push(select);
 
         Map<String, Source> a = aliases(select);
         selectToAliases.put(select, a);
@@ -58,37 +56,29 @@ public class SelectScopeCollector implements Visitor, Collector<Map<Object, Map<
     }
 
     @Override
-    public void leave(Select select) {
-        selects.pop();
-    }
-
-    @Override
     public boolean visit(Deque<Object> deque, Exists exists) {
-        selects.push(exists);
-
         Map<String, Source> aliases = new HashMap<>();
+
+        Source start = exists.getStart();
+        putSource(aliases, start);
+
         exists.getJoin().forEach(j -> aliases(j, aliases));
         selectToAliases.put(exists, aliases);
         return true;
     }
 
-    @Override
-    public void leave(Exists exists) {
-        selects.pop();
-    }
-
     private Map<String, Source> aliases(Select select) {
         Map<String, Source> aliases = new HashMap<>();
-        Source t = aliases.put(select.getStart().getAlias(), select.getStart());
-        checkAmbiguousAlias(t, select.getStart());
+        Source start = select.getStart();
+        putSource(aliases, start);
         select.getJoin().forEach(j -> aliases(j, aliases));
         return aliases;
     }
 
     private void aliases(Join join, Map<String, Source> aliases) {
-        if (join.getSource() != null) {
-            Source t = aliases.put(join.getSource().getAlias(), join.getSource());
-            checkAmbiguousAlias(t, join.getSource());
+        Source source = join.getSource();
+        if (source != null) {
+            putSource(aliases, source);
         } else if (join.getRef() != null) {
             Source t = aliases.put(join.getRef(), aliases.get(join.getRef()));
             if (t == null) {
@@ -96,6 +86,11 @@ public class SelectScopeCollector implements Visitor, Collector<Map<Object, Map<
             }
         }
         join.getJoin().forEach(j -> aliases(j, aliases));
+    }
+
+    private void putSource(Map<String, Source> aliases, Source source) {
+        Source t = aliases.put(source.getAlias(), source);
+        checkAmbiguousAlias(t, source);
     }
 
     public static Source getLeading(Set set) {

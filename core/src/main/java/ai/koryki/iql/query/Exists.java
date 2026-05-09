@@ -36,7 +36,7 @@ public class Exists {
         this.join = join;
     }
 
-    public Source getSource() {
+    public Source getStart() {
         return source;
     }
 

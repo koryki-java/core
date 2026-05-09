@@ -24,7 +24,6 @@ import java.util.*;
 public class SelectAliasListener extends KQLBaseListener {
 
     private Map<Object, Map<String, KQLParser.SourceContext>> selectToAliases = new HashMap<>();
-    private Deque<Object> selects = new ArrayDeque<>();
 
     public SelectAliasListener() {
     }
@@ -35,22 +34,18 @@ public class SelectAliasListener extends KQLBaseListener {
 
     @Override public void enterSelect(KQLParser.SelectContext select) {
 
-        selects.push(select);
-
         Map<String, KQLParser.SourceContext> a = aliases(select);
         selectToAliases.put(select, a);
     }
 
     @Override public void enterExists(KQLParser.ExistsContext exists) {
 
-        selects.push(exists);
         Map<String, KQLParser.SourceContext> aliases = new HashMap<>();
+        KQLParser.SourceContext t = aliases.put(exists.existslink().source().alias.getText(), exists.existslink().source());
+        // EXISTS
+
         exists.link().forEach(l -> aliases(l, aliases));
         selectToAliases.put(exists, aliases);
-    }
-
-    @Override public void exitSelect(KQLParser.SelectContext ctx) {
-        selects.pop();
     }
 
     private Map<String, KQLParser.SourceContext> aliases(KQLParser.SelectContext select) {

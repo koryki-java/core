@@ -174,7 +174,7 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
 
     public boolean isScalar(Exists exists) {
 
-        if (exists.getSource().getFilter() != null && isScalar(exists.getSource().getFilter())) {
+        if (exists.getStart().getFilter() != null && isScalar(exists.getStart().getFilter())) {
             return true;
         }
         return exists.getJoin().stream().anyMatch(j -> isScalar(j));

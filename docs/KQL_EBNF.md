@@ -25,11 +25,22 @@ Set is an operation on sets or a select.
 
 ![select](kql/select.png)
 
-Select has four clauses:
+Select has three clauses:
 - FIND with one source optionally followed by a list of links
 - optionally filter_ clause
 - optionally fetch_clause
-- optionally limit_clause
+
+## Find
+
+![select_find](kql/select_find.png)
+
+## Filter
+
+![select_filter](kql/select_filter.png)
+
+## Fetch
+
+![select_fetch](kql/select_fetch.png)
 
 
 ## Link

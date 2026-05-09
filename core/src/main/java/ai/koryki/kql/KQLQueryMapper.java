@@ -286,8 +286,8 @@ public class KQLQueryMapper {
 
         HashMap<String, List<Join>> joins = new HashMap<>();
         // store first link
-        joins.put(e.getSource().getAlias(), e.getJoin());
-        String from = e.getSource().getAlias();
+        joins.put(e.getStart().getAlias(), e.getJoin());
+        String from = e.getStart().getAlias();
         iterateLinks(
                 exists.link(),
                 from,
