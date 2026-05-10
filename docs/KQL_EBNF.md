@@ -1,10 +1,10 @@
-# KQL Grammar
+# KQL Grammar — Koryki Query Language EBNF Reference
 
-KQL is inspired by SQL and shares many of its concepts, but operates at a higher level of abstraction.
+Koryki Query Language (**KQL**) is inspired by SQL and shares many of its concepts, but operates at a higher level of abstraction.
 Readers familiar with SQL will recognize most operators and functions.
 
 The key differences are in how sources are declared, how joins are expressed, 
-and which clauses are omitted because KQL derives them automatically.
+and which clauses are omitted because **KQL** derives them automatically.
 
 | Concept          | SQL                         | KQL                               | 
 |------------------|-----------------------------|-----------------------------------| 
@@ -47,9 +47,9 @@ This is more restrictive than SQL or most programming languages, which permit mi
 authors and AI-generated queries.
 
 
-## Query
+## KQL Query Rule
 
-![query](kql/query.png)
+![EBNF Railroad diagram for query root rule](kql/query.png)
 
 `query` is the root rule of **KQL**.
 
@@ -59,26 +59,26 @@ The mandatory `set` at the end is the main result expression and may be a plain 
 operation via `UNION`, `UNIONALL`, `MINUS`, or `INTERSECT`.
 
 
-## Block
+## KQL Block Rule
 
-![block](kql/block.png)
+![EBNF Railroad diagram for block rule](kql/block.png)
 
 A `block` defines a named sub-query inside a 
 `WITH` clause. The first alternative binds an identifier to a `set`; 
 the second binds an identifier to a placeholder, allowing the sub-query to be injected 
 externally at runtime.
 
-## Set
+## KQL Set Rule
 
-![set](kql/set.png)
+![EBNF Railroad diagram for set rule](kql/set.png)
 
 A `set` is either a plain `select` or a `set` operation via 
 `INTERSECT`, `UNION`, `UNIONALL`, or `MINUS`. `INTERSECT` binds 
 more tightly than the other operators; parentheses can be used to override precedence.
 
-## Select
+## KQL Select Rule
 
-![select](kql/select.png)
+![EBNF Railroad diagram for select rule](kql/select.png)
 
 `select` is the core query construct, built from up to four clauses. 
 The mandatory `FIND` clause names the primary source and any linked sources to traverse.
@@ -104,35 +104,58 @@ and an AI model generating KQL
 needs to reason about far fewer structural constraints than it would 
 to generate equivalent SQL.
 
-## Find
+## KQL Find Rule
 
-![select_find](kql/select_find.png)
+  ![EBNF Railroad diagram for select_find rule](kql/select_find.png)
 
 `FIND` introduces the graph of sources the query operates on. 
 It requires exactly one primary `source`, optionally extended by a 
 comma-separated list of linked sources.
 
-## Filter
 
-![select_filter](kql/select_filter.png)
+## KQL Filter Clause Rule
 
-The `FILTER` clause narrows the result set by applying a logical predicate to 
-the source rows matched by `FIND`. It accepts any `logical_expression`, 
-including `AND`/`OR`/`NOT` combinations, comparisons, 
+![EBNF Railroad diagram for filter_clause rule](kql/filter_clause.png)
+
+The `FILTER` clause narrows the result set by applying a logical predicate to
+the source rows matched by `FIND`. It also appears in `exists`.  It accepts any `logical_expression`,
+including `AND`/`OR`/`NOT` combinations, comparisons,
 and `EXISTS` sub-queries.
 
-## Fetch
 
-![select_fetch](kql/select_fetch.png)
+## KQL Fetch Clause Rule
 
-`FETCH` declares what the `select` returns, projecting one or more 
-expressions from the matched source rows. The optional `DISTINCT` 
-keyword suppresses duplicate rows, and the optional 
-`ROLLUP` keyword appends subtotal rows across grouping levels.
+![EBNF Railroad diagram for fetch_clause rule](kql/fetch_clause.png)
 
-## Link
+`fetch_clause` is a list of `fetch_item` entries that determines what data appears in the result —
+the columns and computed values the `select` returns.
+The optional `DISTINCT` keyword removes duplicate rows from the result, and `ROLLUP` adds automatically
+computed subtotal rows for grouped results.
 
-![link](kql/link.png)
+When the list mixes plain fields with aggregate functions such as `count` or `sum`,
+**KQL** automatically groups the result by the plain fields — no explicit
+`GROUP BY` is needed. The fetch list therefore serves a dual purpose: it declares what to return
+and implicitly defines how rows are grouped.
+
+
+## KQL Fetch Item Rule
+
+![EBNF Railroad diagram for fetch_item rule](kql/fetch_item.png)
+
+A `fetch_item` is a single output expression — a field, a computed value, or an aggregate function.
+An optional `header` identifier gives the expression a name in the result,
+and an optional `label` provides a display string for UI rendering.
+
+Each `fetch_item` can carry a sort direction (`ASC` or `DESC`), replacing the need for
+a separate `ORDER BY` clause. When multiple items specify a sort direction, sort priority
+is determined by the position of each `fetch_item` in the `fetch_clause`.
+An optional integer index overrides this default
+and explicitly controls sort priority.
+
+
+## KQL Link Rule
+
+![EBNF Railroad diagram for link rule](kql/link.png)
 
 A `link` declares an additional `source` to join to the source graph. 
 The optional first identifier specifies which 
@@ -149,18 +172,18 @@ Keyword `VIA` introduces the criteria identifier and may appear before or after 
 Both alternatives (second and third) are semantically identical; the author may lead with whichever is known first — 
 the criteria or the target `source`.
 
-## Logical Expression
+## KQL Logical Expression Rule
 
-![logical_expression](kql/logical_expression.png)
+![EBNF Railroad diagram for logical_expression rule](kql/logical_expression.png)
 
 A `logical_expression` is a boolean predicate composed of 
 `unary_logical_expression` base cases combined with `NOT`, `AND`, and `OR`. 
 Standard boolean precedence applies — `NOT` binds most tightly, 
 followed by `AND`, then `OR` — and parentheses override it.
 
-## Unary Logical Expression
+## KQL Unary Logical Expression Rule
 
-![unary_logical_expression](kql/unary_logical_expression.png)
+![EBNF Railroad diagram for unary_logical_expression rule](kql/unary_logical_expression.png)
 
 
 A `unary_logical_expression` is the atomic building block of boolean predicates 
@@ -181,71 +204,36 @@ Three further alternatives exist:
 
 
 
-## Limit Clause
+## KQL Limit Clause Rule
 
-![limit_clause](kql/limit_clause.png)
+![EBNF Railroad diagram for limit_clause rule](kql/limit_clause.png)
 
 `LIMIT` caps the number of rows returned by a `select` to the given integer value.
 
-## Exists
+## KQL Exists Rule
 
-![exists](kql/exists.png)
+![EBNF Railroad diagram for exists rule](kql/exists.png)
 
 `exists` defines the correlated sub-query used inside an `EXISTS` check. Unlike `select`, it produces 
 no output — only a boolean indicating whether at least one matching row exists in the sub-graph.
 
-## Existslink
+## KQL Existslink Rule
 
-![existslink](kql/existslink.png)
+![EBNF Railroad diagram for existslink rule](kql/existslink.png)
 
 An `existslink` is the mandatory first link inside an `exists` clause. Unlike a regular `link`, the `from` identifier is always required and `+` is not permitted — existence checks are inherently about whether matching rows are found, making optional joins meaningless in this context.
 
-## Source
+## KQL Source Rule
 
-![source](kql/source.png)
+![EBNF Railroad diagram for source rule](kql/source.png)
 
 `source` declares which entity to query and how to refer to it within the `select`. The first identifier is the entity name as 
 defined in the semantic layer; the second is the `alias` used in all subsequent references (`link`, `FILTER`, and `FETCH` clauses).
 
-## Filter Clause
 
-![filter_clause](kql/filter_clause.png)
+## KQL Expression Rule
 
-`filter_clause` wraps a `logical_expression` introduced by the `FILTER` keyword. It appears in both 
-`select` and `exists`, narrowing the matched rows in each context.
-
-## Fetch Clause
-
-![fetch_clause](kql/fetch_clause.png)
-
-`fetch_clause` is a list of `fetch_item` entries that determines what data appears in the result — 
-the columns and computed values the `select` returns. 
-The optional `DISTINCT` keyword removes duplicate rows from the result, and `ROLLUP` adds automatically
-computed subtotal rows for grouped results.
-
-When the list mixes plain fields with aggregate functions such as `count` or `sum`, 
-**KQL** automatically groups the result by the plain fields — no explicit 
-`GROUP BY` is needed. The fetch list therefore serves a dual purpose: it declares what to return 
-and implicitly defines how rows are grouped.
-
-
-## Fetch Item
-
-![fetch_item](kql/fetch_item.png)
-
-A `fetch_item` is a single output expression — a field, a computed value, or an aggregate function. 
-An optional `header` identifier gives the expression a name in the result, 
-and an optional `label` provides a display string for UI rendering.
-
-Each `fetch_item` can carry a sort direction (`ASC` or `DESC`), replacing the need for 
-a separate `ORDER BY` clause. When multiple items specify a sort direction, sort priority 
-is determined by the position of each `fetch_item` in the `fetch_clause`. 
-An optional integer index overrides this default 
-and explicitly controls sort priority.
-
-## Expression
-
-![expression](kql/expression.png)
+![EBNF Railroad diagram for expression rule](kql/expression.png)
 
 An `expression` is a value-producing term used throughout the query. 
 It covers arithmetic (`*`, `/`, `+`, `-`), field references, 
@@ -254,63 +242,63 @@ and sub-selects. Parentheses can be used to group and override arithmetic preced
 
 Literal values are written as integers (42), decimal numbers (3.14), single-quoted strings ('text'), NULL, or date literals.
 
-## Function
+## KQL Function Rule
 
-![function](kql/function.png)
+![EBNF Railroad diagram for function rule](kql/function.png)
 
 A `function` is a named operation applied to zero or more `argument`s. Aggregate functions such as `count` or `sum` 
 summarise values across rows; scalar functions transform a single value. An optional `window` clause turns any 
 aggregate into a window function, computing the result over a defined partition of rows without 
 collapsing them into a single output row.
 
-## Argument
+## KQL Argument Rule
 
-![argument](kql/argument.png)
+![EBNF Railroad diagram for argument rule](kql/argument.png)
 
 An `argument` is a value passed to a `function`. It is either an `expression` or a bare identifier, allowing functions 
 to accept both computed values and entity references such as `count(o)`.
 
-## Field
+## KQL Field Rule
 
-![field](kql/field.png)
+![EBNF Railroad diagram for field rule](kql/field.png)
 
 A `field` references a single attribute of a `source` as `alias.name`, where `alias` identifies a `source` declared in 
 `FIND` and `name` is the attribute name as defined in the semantic layer.
 
-## Window
+## KQL Window Rule
 
-![window](kql/window.png)
+![EBNF Railroad diagram for window rule](kql/window.png)
 
 A `window` clause attaches to a `function` and defines the set of rows the function operates over, without collapsing 
 them into a single result row. The optional `PARTITION` clause divides rows into independent groups; the optional 
 `ORDER` clause defines the row sequence within each partition; and the optional `frame` clause narrows the window 
 further to a subset of rows relative to the current row.
 
-## Window Order
+## KQL Window Order Rule
 
-![order](kql/order.png)
+![EBNF Railroad diagram for order rule](kql/order.png)
 
 The `ORDER` clause inside a `window` defines the sequence in which rows are processed within each partition. It accepts 
 one or more expressions and an optional `ASC` or `DESC` direction.
 
-## Frame
+## KQL Frame Rule
 
-![frame](kql/frame.png)
+![EBNF Railroad diagram for frame rule](kql/frame.png)
 
 A `frame` narrows the window to a sliding subset of rows relative to the current row, defined by a lower and upper 
 `window_limit` bound. Only `ROWS` frames are supported, which count bounds by physical row offset rather than value range.
 
-## Window Limit
+## KQL Window Limit Rule
 
-![window_limit](kql/window_limit.png)
+![EBNF Railroad diagram for window_limit rule](kql/window_limit.png)
 
 A `window_limit` defines one boundary of a `frame`. `UNBOUNDED PRECEDING` or `UNBOUNDED FOLLOWING` extends the boundary to the 
 first or last row of the partition; `CURRENT ROW` sets it to the current row; and an integer offset sets it to a 
 fixed number of rows before or after the current row.
 
-## Date literal
+## KQL Date literal Rule
 
-![date_literal](kql/date_literal.png)
+![EBNF Railroad diagram for date_literal rule](kql/date_literal.png)
 
 A `date_literal` pairs a type keyword with a formatted single-quoted string. 
 
