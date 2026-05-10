@@ -1,4 +1,4 @@
-# KQL Grammar — Koryki Query Language EBNF Reference
+# KQL Grammar — Koryki Query Language Reference
 
 Koryki Query Language (**KQL**) is inspired by SQL and shares many of its concepts, but operates at a higher level of abstraction.
 Readers familiar with SQL will recognize most operators and functions.
@@ -29,8 +29,6 @@ than how to connect them at the column level.
 delegating the full power of the underlying database engine. This also makes **KQL** largely database 
 agnostic: the same query runs across different databases without modification, as the 
 transpiler handles database-specific SQL dialect differences.
-
-Experts who find themselves missing advanced SQL features should write SQL directly.
 
 ## Lexical Conventions
 
@@ -126,7 +124,7 @@ It accepts any `logical_expression`.
 
 ![EBNF Railroad diagram for fetch rule](kql/fetch.png)
 
-`fetch_clause` is a list of `fetch_item` entries that determines what data appears in the result —
+`fetch` is a list of `fetch_item` entries that determines what data appears in the result —
 the columns and computed values the `select` returns.
 The optional `DISTINCT` keyword removes duplicate rows from the result, and `ROLLUP` adds automatically
 computed subtotal rows for grouped results.
@@ -147,13 +145,13 @@ and an optional `label` provides a display string for UI rendering.
 
 Each `fetch_item` can carry a sort direction (`ASC` or `DESC`), replacing the need for
 a separate `ORDER BY` clause. When multiple items specify a sort direction, sort priority
-is determined by the position of each `fetch_item` in the `fetch_clause`.
+is determined by the position of each `fetch_item` in the `fetch`.
 An optional integer index overrides this default
 and explicitly controls sort priority.
 
-## KQL Limit Clause Rule
+## KQL Limit Rule
 
-![EBNF Railroad diagram for limit_clause rule](kql/limit_clause.png)
+![EBNF Railroad diagram for limit rule](kql/limit.png)
 
 `LIMIT` caps the number of rows returned by a `select` to the given integer value.
 
