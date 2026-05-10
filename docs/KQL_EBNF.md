@@ -6,25 +6,6 @@ Readers familiar with SQL will recognize most operators and functions.
 The key differences are in how sources are declared, how joins are expressed, 
 and which clauses are omitted because **KQL** derives them automatically.
 
-| Concept          | SQL                         | KQL                               | 
-|------------------|-----------------------------|-----------------------------------| 
-| Query sources    | `FROM` table t              | `FIND` entity alias               | 
-| Filtering rows   | `WHERE`                     | `FILTER`                          | 
-| Output columns   | `SELECT`                    | `FETCH`                           | 
-| Joining          | `JOIN` ... ON ...           | `link` with `+` / `VIA`            | 
-| Grouping         | `GROUP BY` (explicit)       | inferred from `FETCH`             | 
-| Aggregate filter | `HAVING` (explicit)         | inferred from `FILTER`            | 
-| Sorting          | `ORDER BY` (separate clause) | `ASC`/`DESC` inline on `fetch_item` | 
-| Sub-queries      | `WITH ... AS` (...)         | `WITH` block                      | 
-| Existence check  | `EXISTS (SELECT 1 FROM ...)` | `EXISTS`(existslink ...)          | 
-| Row limit        | `FETCH FIRST n ROWS ONLY`   | `LIMIT` n                         | 
-| Identifiers      | case-insensitive            | strictly lowercase                | 
-| Keywords         | case-insensitive            | strictly uppercase                |
-
-The most significant omission is JOIN: **KQL** replaces explicit join conditions with named 
-relationships from the semantic layer, so authors declare which entities to connect rather 
-than how to connect them at the column level.
-
 **KQL** is simpler than SQL by design; it does not compete with SQL — it compiles to SQL before execution, 
 delegating the full power of the underlying database engine. This also makes **KQL** largely database 
 agnostic: the same query runs across different databases without modification, as the 
@@ -309,3 +290,25 @@ A `date_literal` pairs a type keyword with a formatted single-quoted string.
 | `DATE`        | `'YYYY-MM-DD'`                        | `DATE '2023-01-31'`               | 
 | `TIME`        | `'HH:MI:SS[.mmm][±HH:MI]'`           | `TIME '14:30:00'`                 | 
 | `TIMESTAMP`   | `'YYYY-MM-DD HH:MI:SS[.mmm][±HH:MI]'`| `TIMESTAMP '2023-01-31 14:30:00'` |
+
+
+## Concept SQL & KQL
+
+| Concept          | SQL                         | KQL                               | 
+|------------------|-----------------------------|-----------------------------------| 
+| Query sources    | `FROM` table t              | `FIND` entity alias               | 
+| Filtering rows   | `WHERE`                     | `FILTER`                          | 
+| Output columns   | `SELECT`                    | `FETCH`                           | 
+| Joining          | `JOIN` ... ON ...           | `link` with `+` / `VIA`            | 
+| Grouping         | `GROUP BY` (explicit)       | inferred from `FETCH`             | 
+| Aggregate filter | `HAVING` (explicit)         | inferred from `FILTER`            | 
+| Sorting          | `ORDER BY` (separate clause) | `ASC`/`DESC` inline on `fetch_item` | 
+| Sub-queries      | `WITH ... AS` (...)         | `WITH` block                      | 
+| Existence check  | `EXISTS (SELECT 1 FROM ...)` | `EXISTS`(existslink ...)          | 
+| Row limit        | `FETCH FIRST n ROWS ONLY`   | `LIMIT` n                         | 
+| Identifiers      | case-insensitive            | strictly lowercase                | 
+| Keywords         | case-insensitive            | strictly uppercase                |
+
+The most significant omission is JOIN: **KQL** replaces explicit join conditions with named
+relationships from the semantic layer, so authors declare which entities to connect rather
+than how to connect them at the column level.

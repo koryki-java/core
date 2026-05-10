@@ -5,9 +5,9 @@ skinparam legendBackgroundColor white
 
 'title existslink
 
-existslink = "ID", source
-  | "ID", "VIA", "ID", source
-  | "ID", source, "VIA", "ID"
+existslink = "ID", (source
+  | "VIA", "ID", source
+  | source, "VIA", "ID")
 ;
 
 @endebnf
