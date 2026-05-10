@@ -1,0 +1,5 @@
+//
+
+FIND ecdc_global g
+FETCH g.country_region, sum(g.cases)
+

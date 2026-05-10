@@ -1,0 +1,53 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+}
+
+description = 'koryki snowflake databases and services'
+
+java {
+    withSourcesJar() // Optional: Creates the sources JAR
+    withJavadocJar() // Optional: Creates the Javadoc JAR
+}
+
+dependencies {
+    testImplementation(libs.snowflake)
+    implementation libs.jackson.databind
+
+    implementation project(':core')
+    implementation project(':northwind')
+
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly libs.junit.platform.launcher
+}
+
+test {
+    useJUnitPlatform()
+
+    systemProperty "snowflake.privatekey", project.findProperty("snowflake.privatekey")
+    systemProperty "snowflake.northwind.url", project.findProperty("snowflake.northwind.url")
+    systemProperty "snowflake.northwind.user", project.findProperty("snowflake.northwind.user")
+    systemProperty "snowflake.covid19.url", project.findProperty("snowflake.covid19.url")
+    systemProperty "snowflake.covid19.user", project.findProperty("snowflake.covid19.user")
+    systemProperty "snowflake.covid19.information.url", project.findProperty("snowflake.covid19.information.url")
+    systemProperty "snowflake.covid19.information.user", project.findProperty("snowflake.covid19.information.user")
+}
+
+publishing {
+    publications {
+        // Define the publication for this subproject
+        mavenJava(MavenPublication) {
+            // The 'java' component includes the main JAR artifact and its transitive dependencies
+            from components.java
+
+            // Optionally, override the artifact ID (defaults to project name: 'api')
+            artifactId = 'koryki-snowflake'
+        }
+    }
+}
+
+test {
+    jvmArgs "--add-opens=java.base/java.nio=ALL-UNNAMED"
+}
+
