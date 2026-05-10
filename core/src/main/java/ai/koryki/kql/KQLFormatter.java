@@ -25,9 +25,7 @@ import ai.koryki.iql.Walker;
 import ai.koryki.iql.rules.Math;
 import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.iql.query.*;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
-import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.Collections;
 import java.util.List;
@@ -453,16 +451,16 @@ public class KQLFormatter {
 
             if (window.frame() != null) {
                 b.append(" ROWS BETWEEN ");
-                b.append(toLimit(window.frame().lower));
+                b.append(toFrameBound(window.frame().lower));
                 b.append(" AND ");
-                b.append(toLimit(window.frame().upper));
+                b.append(toFrameBound(window.frame().upper));
             }
 
             b.append(")");
             return b.toString();
         }
 
-        protected String toLimit(KQLParser.LimitContext limit) {
+        protected String toFrameBound(KQLParser.Frame_boundContext limit) {
             StringBuilder b = new StringBuilder();
             if (limit.INT() != null) {
                 b.append(" " + limit.INT().getText());
