@@ -136,10 +136,10 @@ window
 
 // Standard-Frame für ORDER: RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
 frame
-    : ROWS BETWEEN lower=limit AND upper=limit
+    : ROWS BETWEEN lower=frame_bound AND upper=frame_bound
 ;
 
-limit
+frame_bound
     : UNBOUNDED (PRECEDING | FOLLOWING)
     | CURRENT ROW
     | INT (PRECEDING | FOLLOWING)

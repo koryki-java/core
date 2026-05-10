@@ -3,9 +3,9 @@
 skinparam legendBorderColor transparent
 skinparam legendBackgroundColor white
 
-'title filter_clause
+'title limit
 
-filter_clause =
-    "FILTER", logical_expression
+limit =
+    "LIMIT", "INT"
 ;
 @endebnf

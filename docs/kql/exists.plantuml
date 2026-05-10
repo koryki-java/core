@@ -7,6 +7,6 @@ skinparam legendBackgroundColor white
 
 
 exists =
-    existslink, {",", link}, [filter_clause]
+    "EXISTS", "(", existslink, {",", link}, [filter_clause], ")"
 ;
 @endebnf

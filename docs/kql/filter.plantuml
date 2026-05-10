@@ -3,11 +3,9 @@
 skinparam legendBorderColor transparent
 skinparam legendBackgroundColor white
 
-'title fetch_clause
+'title filter
 
-fetch_clause =
-    "FETCH", ["DISTINCT"], fetch_item, {",", fetch_item}, ["ROLLUP"]
+filter =
+    "FILTER", logical_expression
 ;
-
-
 @endebnf

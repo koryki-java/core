@@ -14,7 +14,7 @@ unary_logical_expression = expression, operator,
     )
 )
 |   "(", logical_expression , ")"
-| "EXISTS", "(", exists, ")"
+| exists
 | expression, [operator], "#PLACEHOLDER"
 ;
 

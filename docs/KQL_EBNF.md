@@ -106,26 +106,25 @@ to generate equivalent SQL.
 
 ## KQL Find Rule
 
-  ![EBNF Railroad diagram for select_find rule](kql/select_find.png)
+![EBNF Railroad diagram for_find rule](kql/find.png)
 
 `FIND` introduces the graph of sources the query operates on. 
 It requires exactly one primary `source`, optionally extended by a 
 comma-separated list of linked sources.
 
 
-## KQL Filter Clause Rule
+## KQL Filter Rule
 
-![EBNF Railroad diagram for filter_clause rule](kql/filter_clause.png)
+![EBNF Railroad diagram for filter rule](kql/filter.png)
 
 The `FILTER` clause narrows the result set by applying a logical predicate to
-the source rows matched by `FIND`. It also appears in `exists`.  It accepts any `logical_expression`,
-including `AND`/`OR`/`NOT` combinations, comparisons,
-and `EXISTS` sub-queries.
+the source rows matched by source-graph in `find`rule and `exists`rule.
+It accepts any `logical_expression`.
 
 
-## KQL Fetch Clause Rule
+## KQL Fetch Rule
 
-![EBNF Railroad diagram for fetch_clause rule](kql/fetch_clause.png)
+![EBNF Railroad diagram for fetch rule](kql/fetch.png)
 
 `fetch_clause` is a list of `fetch_item` entries that determines what data appears in the result —
 the columns and computed values the `select` returns.
@@ -151,6 +150,13 @@ a separate `ORDER BY` clause. When multiple items specify a sort direction, sort
 is determined by the position of each `fetch_item` in the `fetch_clause`.
 An optional integer index overrides this default
 and explicitly controls sort priority.
+
+## KQL Limit Clause Rule
+
+![EBNF Railroad diagram for limit_clause rule](kql/limit_clause.png)
+
+`LIMIT` caps the number of rows returned by a `select` to the given integer value.
+
 
 
 ## KQL Link Rule
@@ -199,29 +205,27 @@ Where the right-hand side can be:
 
 Three further alternatives exist:
 - a `logical_expression` wrapped in parentheses for explicit grouping
-- `EXISTS`, which tests whether a linked sub-graph contains at least one matching row.
+- `exists`, which tests whether a linked sub-graph contains at least one matching row.
 - a `placeholder` form, marking positions where the caller supplies values at runtime.
 
 
-
-## KQL Limit Clause Rule
-
-![EBNF Railroad diagram for limit_clause rule](kql/limit_clause.png)
-
-`LIMIT` caps the number of rows returned by a `select` to the given integer value.
 
 ## KQL Exists Rule
 
 ![EBNF Railroad diagram for exists rule](kql/exists.png)
 
-`exists` defines the correlated sub-query used inside an `EXISTS` check. Unlike `select`, it produces 
+`EXISTS` introduces the correlated sub-graph of sources the exits-check operates on.
+Unlike `select`, it produces 
 no output — only a boolean indicating whether at least one matching row exists in the sub-graph.
 
 ## KQL Existslink Rule
 
 ![EBNF Railroad diagram for existslink rule](kql/existslink.png)
 
-An `existslink` is the mandatory first link inside an `exists` clause. Unlike a regular `link`, the `from` identifier is always required and `+` is not permitted — existence checks are inherently about whether matching rows are found, making optional joins meaningless in this context.
+An `existslink` is the mandatory first link inside an `exists` clause. 
+Unlike a regular `link`, the `from` identifier is always required and `+` is not 
+permitted — existence checks are inherently about whether matching rows are found, 
+making optional joins meaningless in this context.
 
 ## KQL Source Rule
 
@@ -288,11 +292,11 @@ one or more expressions and an optional `ASC` or `DESC` direction.
 A `frame` narrows the window to a sliding subset of rows relative to the current row, defined by a lower and upper 
 `window_limit` bound. Only `ROWS` frames are supported, which count bounds by physical row offset rather than value range.
 
-## KQL Window Limit Rule
+## KQL Frame Bound Rule
 
-![EBNF Railroad diagram for window_limit rule](kql/window_limit.png)
+![EBNF Railroad diagram for frame bound rule](kql/frame_bound.png)
 
-A `window_limit` defines one boundary of a `frame`. `UNBOUNDED PRECEDING` or `UNBOUNDED FOLLOWING` extends the boundary to the 
+A `frame_bound` defines one boundary of a `frame`. `UNBOUNDED PRECEDING` or `UNBOUNDED FOLLOWING` extends the boundary to the 
 first or last row of the partition; `CURRENT ROW` sets it to the current row; and an integer offset sets it to a 
 fixed number of rows before or after the current row.
 

@@ -468,14 +468,14 @@ public class KQLQueryMapper {
             bean.setOrder(toExpression(window.orderex));
         }
         if (window.frame() != null) {
-            bean.setLower(toLimit(window.frame().lower));
-            bean.setUpper(toLimit(window.frame().upper));
+            bean.setLower(toFrameBound(window.frame().lower));
+            bean.setUpper(toFrameBound(window.frame().upper));
         }
 
         return bean;
     }
 
-    public Limit toLimit(KQLParser.LimitContext limit) {
+    public Limit toFrameBound(KQLParser.Frame_boundContext limit) {
 
         if (limit.INT() != null) {
             int i = Integer.parseInt(limit.INT().getText());

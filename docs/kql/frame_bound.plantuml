@@ -3,9 +3,9 @@
 skinparam legendBorderColor transparent
 skinparam legendBackgroundColor white
 
-'title window_limit
+'title frame_bound
 
-window_limit =
+frame_bound =
   "UNBOUNDED", ("PRECEDING" | "FOLLOWING")
 | "CURRENT", "ROW"
 | "INT", ("PRECEDING" | "FOLLOWING")
