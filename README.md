@@ -7,7 +7,7 @@
 
 # Explainable AI-Assisted Semantic Querying for Relational Databases
 
-The [**koryki.ai**](https://koryki.ai "(koryki.ai platform)") enables human-readable and explainable interaction with relational databases.
+The [**koryki.ai**](https://koryki.ai "(koryki.ai platform)") platform enables human-readable and explainable interaction with relational databases.
 It reduces complexity while preserving full control over what is queried and executed.
 
 At its core is **KQL** (Koryki Query Language), a concise and human-readable language designed for ease of learning, interpretation, and validation.
