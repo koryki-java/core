@@ -4,7 +4,8 @@
 ![Oracle](https://img.shields.io/badge/Oracle-F80000?style=flat&logo=oracle&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?style=flat&logo=postgresql&logoColor=white)
 ![DuckDB](https://img.shields.io/badge/DuckDB-FFF000?style=flat&logo=duckdb&logoColor=black)
-# koryki-java/core
+
+# Explainable AI-Assisted Semantic Querying for Relational Databases
 
 The [**koryki.ai**](https://koryki.ai "(koryki.ai platform)") platform improves how business users interact with relational databases for search and data analysis.
 It reduces complexity while preserving full control over what is queried and executed.
