@@ -4,13 +4,18 @@
 ![Oracle](https://img.shields.io/badge/Oracle-F80000?style=flat&logo=oracle&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?style=flat&logo=postgresql&logoColor=white)
 ![DuckDB](https://img.shields.io/badge/DuckDB-FFF000?style=flat&logo=duckdb&logoColor=black)
-# koryki-java/core
 
-The [**koryki.ai**](https://koryki.ai "(koryki.ai platform)") platform improves how business users interact with relational databases for search and data analysis.
+# Verifiable AI-Assisted Semantic Querying for Relational Databases
+
+The [**koryki.ai**](https://koryki.ai "(koryki.ai platform)") platform enables human-readable and supervised interaction with relational databases.
 It reduces complexity while preserving full control over what is queried and executed.
 
 At its core is **KQL** (Koryki Query Language), a concise and human-readable language designed for ease of learning, interpretation, and validation.
 A well-defined grammar is key to making queries reliable and verifiable — for both humans and large language models.
+
+
+
+
 
 The purpose of **koryki** is:
 - Shift control to human-centric queries
@@ -26,7 +31,9 @@ A demo application is available at: [demo.koryki.ai](https://demo.koryki.ai "(de
 
 [KQL-Grammar Reference](./docs/KQL_EBNF.md "purpose of the koryki.ai platform")
 
+## Demo Chat Application
 
+![chat](docs/chat.png)
 
 ## Sub Projects
 
