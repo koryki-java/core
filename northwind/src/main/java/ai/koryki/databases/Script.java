@@ -22,13 +22,17 @@ public class Script {
 
             for (String s : stmts) {
                 s = s.trim();
+                long start = System.currentTimeMillis();
+                boolean success = false;
                 if (!s.isEmpty() && !s.startsWith("--")) {
                     try {
-                        stmt.execute(s.trim());
+                        stmt.execute(s);
+                        success = true;
                     } catch (SQLException e) {
                         throw new RuntimeException(s, e);
                     }
                 }
+                System.out.println(success + " " + (System.currentTimeMillis() - start));
             }
         }
     }

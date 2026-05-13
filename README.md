@@ -4,6 +4,7 @@
 ![Oracle](https://img.shields.io/badge/Oracle-F80000?style=flat&logo=oracle&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?style=flat&logo=postgresql&logoColor=white)
 ![DuckDB](https://img.shields.io/badge/DuckDB-FFF000?style=flat&logo=duckdb&logoColor=black)
+![Snowflake](https://img.shields.io/badge/Snowflake-29B5E8?style=flat&logo=snowflake&logoColor=white)
 
 # Verifiable AI-Assisted Semantic Querying for Relational Databases
 
@@ -42,6 +43,7 @@ A demo application is available at: [demo.koryki.ai](https://demo.koryki.ai "(de
 - **northwind**: [`Northwind sample database`](./NOTICE "Northwind sample database") for testing purpose
 - **oracle**: Oracle dialect
 - **postgresql**: PostgreSQL dialect
+- **snowflake**: Snowflake dialect
 
  
 ## Developer Documentation

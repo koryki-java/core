@@ -51,3 +51,20 @@ test {
     jvmArgs "--add-opens=java.base/java.nio=ALL-UNNAMED"
 }
 
+
+
+tasks.register('SnowflakeNorthwindScript', JavaExec) {
+
+    systemProperty "snowflake.privatekey", project.findProperty("snowflake.privatekey")
+    systemProperty "snowflake.northwind.url", project.findProperty("snowflake.northwind.url")
+    systemProperty "snowflake.northwind.user", project.findProperty("snowflake.northwind.user")
+    systemProperty "snowflake.northwind.password", project.findProperty("snowflake.northwind.password")
+
+    group = "application"
+    description = "Build Northwind Database for Snowflake"
+
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'ai.koryki.snowflake.northwind.BuildNorthwind'
+
+    args
+}

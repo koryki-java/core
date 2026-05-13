@@ -55,13 +55,13 @@ public class SnowflakeEngineTest {
         test(kql);
     }
 
-    @Test
-    public void testSingleFile() throws IOException {
-
-        Path p = Path.of("../../core/core/src/test/resources/ai/koryki/kql/northwind/privatetest/window/window_join_with_count.kql");
-
-        test(p);
-    }
+//    @Test
+//    public void testSingleFile() throws IOException {
+//
+//        Path p = Path.of("../../core/core/src/test/resources/ai/koryki/kql/northwind/privatetest/find/find_fetch_limit.kql");
+//
+//        test(p);
+//    }
 
     private static void test(Path kql) throws IOException {
 
