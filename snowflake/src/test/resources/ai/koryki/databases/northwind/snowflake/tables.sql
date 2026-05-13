@@ -15,7 +15,7 @@ CREATE TABLE categories (
     category_id smallint NOT NULL,
     category_name VARCHAR(15) NOT NULL,
     description VARCHAR(4000),
-    picture BLOB,
+    picture BINARY,
     root_category_id smallint NOT NULL,
     super_category_id smallint
 );
@@ -79,7 +79,7 @@ CREATE TABLE employees (
     country character varying(15),
     home_phone character varying(24),
     extension character varying(4),
-    photo BLOB,
+    photo BINARY,
     notes VARCHAR(4000),
     reports_to smallint,
     photo_path character varying(255)

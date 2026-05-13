@@ -16,4 +16,5 @@ include 'northwind'
 include 'duckdb'
 include 'postgresql'
 include 'oracle'
+include 'snowflake'
 
