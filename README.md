@@ -13,19 +13,9 @@ It reduces complexity while preserving full control over what is queried and exe
 At its core is **KQL** (Koryki Query Language), a concise and human-readable language designed for ease of learning, interpretation, and validation.
 A well-defined grammar is key to making queries reliable and verifiable — for both humans and large language models.
 
-From:
 
-    Find customers who have placed 
-    more than 10 orders in January 2023,
-    return companyname and count, sort by count.
 
-To:
 
-    FIND customers c, orders o
-    FILTER count(o) > 10 AND 
-        o.order_date BETWEEN 
-          DATE '2023-01-01' AND DATE '2023-01-31'
-    FETCH c.company_name, count(o) DESC
 
 The purpose of **koryki** is:
 - Shift control to human-centric queries
@@ -41,7 +31,9 @@ A demo application is available at: [demo.koryki.ai](https://demo.koryki.ai "(de
 
 [KQL-Grammar Reference](./docs/KQL_EBNF.md "purpose of the koryki.ai platform")
 
+## Demo Chat Application
 
+![chat](docs/chat.png)
 
 ## Sub Projects
 
