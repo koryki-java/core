@@ -110,7 +110,7 @@ public class Engine<I extends ColumnInfo, C extends ResultConsumer<I>> {
         return executeKQL(kql, processor, (c) -> {});
     }
 
-    public C executeKQL(String kql, Supplier< C> processor, Consumer<Statement> stmtConsumer) {
+    public C executeKQL(String kql, Supplier<C> processor, Consumer<Statement> stmtConsumer) {
 
         KQLTranspiler transpiler = new KQLTranspiler();
         if (aggregate != null) {
@@ -122,6 +122,8 @@ public class Engine<I extends ColumnInfo, C extends ResultConsumer<I>> {
         String sql = transpiler.getSql(renderer);
 
         C p = processor.get();
+
+        p.setSql(sql);
 
         if (info != null) {
             p.setInfos(info.apply(transpiler));

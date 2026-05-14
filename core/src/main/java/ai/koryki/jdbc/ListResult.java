@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 public class ListResult<C extends ColumnInfo> implements ResultProcessor<C> {
 
     private List<C> infos;
-    private List<List<Object>> rows = new ArrayList<>();
+    private final List<List<Object>> rows = new ArrayList<>();
 
     public ListResult() {
 
