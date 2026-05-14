@@ -8,6 +8,11 @@ public interface ResultConsumer<C extends ColumnInfo> extends AutoCloseable {
 
     }
 
+    default void setSql(String sql) {
+        // empty
+    }
+
+
     @Override
     void close() throws RuntimeException;
 
