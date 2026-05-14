@@ -1,0 +1,14 @@
+SELECT
+ bestellungen b
+  FILTER
+    b.bestelldatum BETWEEN DATE '2023-01-01' AND DATE '2023-12-31'
+  JOIN gleiche_bestellung bestellposition p
+    OUT sum(multiply(p.preis_je_einheit, p.menge)) 2
+    ORDER sum(multiply(p.preis_je_einheit, p.menge)) DESC 2
+     JOIN gleiches_produkt produkte pr
+        JOIN gleiche_kategorie kategorien k
+          OUT k.kategorie_name 1
+          GROUP k.kategorie_name 1
+        OWNER
+     OWNER
+  OWNER
