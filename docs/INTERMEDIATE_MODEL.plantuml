@@ -13,7 +13,6 @@ class Expression {
 }
 
 class Function {
-Expression arguments
 }
 
 class Group {
@@ -103,8 +102,6 @@ Expression -l-* "0..1" Column
 Expression -u-* "0..1" Select
 Expression -u-* "0..1" Exists
 Expression -r-* "0..1" Function
-
-Function -l-* "0..n" Expression
 
 Function -r-* "0..1" Window
 

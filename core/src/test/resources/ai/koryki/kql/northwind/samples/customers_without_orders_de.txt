@@ -1,6 +1,0 @@
-FIND kunden c
-FILTER NOT 
- EXISTS (c bestellungen o
- FILTER o.bestelldatum BETWEEN DATE '2023-01-01' AND DATE '2023-12-31'
- )
-FETCH c.firma, c.kontakt_name

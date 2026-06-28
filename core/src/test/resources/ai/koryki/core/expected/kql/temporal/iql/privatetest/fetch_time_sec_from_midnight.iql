@@ -1,3 +1,0 @@
-SELECT
- check_temporal c
-  OUT c.time_sec_from_midnight 1

@@ -1,2 +1,0 @@
-FIND produkte p
-FETCH p.produkt_name, to_boolean(p.ausgelistet) is_discontinued

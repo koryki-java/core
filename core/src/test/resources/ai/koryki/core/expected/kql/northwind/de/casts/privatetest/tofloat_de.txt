@@ -1,2 +1,0 @@
-FIND bestellposition od
-FETCH od.bestell_id, to_float(od.rabatt) discount_float

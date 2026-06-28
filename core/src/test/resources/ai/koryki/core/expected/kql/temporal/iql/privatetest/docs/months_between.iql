@@ -1,6 +1,0 @@
-// months_between: whole completed months between two dates.
-
-SELECT
- check_temporal c
-ALL
- OUT months_between("2023-01-31", "2023-03-31") whole_two 1

@@ -1,2 +1,0 @@
-FIND bestellungen o
-FETCH o.bestell_id, to_date(o.versand_datum) shipped

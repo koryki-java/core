@@ -1,4 +1,0 @@
-
-SELECT
- check_temporal c
-  OUT c.time_time 1

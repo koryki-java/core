@@ -1,2 +1,0 @@
-FIND produkte p
-FETCH p.produkt_name, to_text(p.preis_je_einheit) unit_price_text

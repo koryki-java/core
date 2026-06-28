@@ -1,7 +1,0 @@
-// intentionally ignored in dialects not supporting required INTERVALs
-
-SELECT
- check_temporal c
-  OUT c.interval_year_month interval_year_month 1
-  FILTER
-    c.interval_year_month > 1y2mo

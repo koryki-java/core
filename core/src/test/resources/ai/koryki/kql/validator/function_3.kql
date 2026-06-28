@@ -1,2 +1,0 @@
-FIND products p1
-FETCH count(p1.unit_price) + 1

@@ -1,7 +1,0 @@
-// intentionally ignored in dialects not supporting required INTERVALs
-
-SELECT
- check_temporal c
-  OUT c.interval_day_second interval_day_second 1
-  FILTER
-    c.interval_day_second > 1y2mo

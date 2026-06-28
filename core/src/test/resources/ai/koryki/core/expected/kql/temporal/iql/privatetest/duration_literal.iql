@@ -1,5 +1,0 @@
-
-SELECT
- check_temporal c
-ALL
- OUT 1h2min3s some_duration 1

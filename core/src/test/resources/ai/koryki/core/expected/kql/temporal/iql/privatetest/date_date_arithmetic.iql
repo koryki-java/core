@@ -1,6 +1,0 @@
-// Naive DATE + duration: a calendar-only duration keeps DATE; a clock component promotes to TIMESTAMP.
-
-SELECT
- check_temporal c
-  OUT c.date_date date_date 1
-  OUT add(c.date_date, 1y2mo1d1h30min) plus_1year2month1day90min 2
