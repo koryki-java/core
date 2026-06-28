@@ -18,13 +18,13 @@ package ai.koryki.snowflake.tools;
 
 import ai.koryki.jdbc.Database;
 import ai.koryki.jdbc.ListResult;
-import ai.koryki.scaffold.schema.Column;
-import ai.koryki.scaffold.schema.Schema;
-import ai.koryki.scaffold.schema.Table;
+import ai.koryki.catalog.schema.Column;
+import ai.koryki.catalog.schema.Schema;
+import ai.koryki.catalog.schema.Table;
 
 import java.sql.SQLException;
 
-//import ai.koryki.scaffold.schema.Type;
+//import ai.koryki.catalog.schema.Type;
 
 public class SchemaExport {
 
@@ -89,7 +89,7 @@ ORDER BY table_name, ordinal_position;
             Column c = new Column();
             c.setName(row.get(0).toString().toLowerCase());
             c.setComment(row.get(1) != null ? row.get(1).toString() : null);
-            c.setGenericType(row.get(2).toString());
+            c.setTypeFamily(row.get(2).toString());
             //c.setDbType();
             //Type t = new Type();
             //t.setName(row.get(2).toString());

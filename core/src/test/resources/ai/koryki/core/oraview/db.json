@@ -1,0 +1,79 @@
+{
+  "name" : "oraview",
+  "label" : "Ora-View",
+  "comment" : null,
+  "description" : "Sample schema to test dialect-specific names not suitable to KQL or IQL identifiers.",
+  "tables" : [ {
+    "name" : "v$user",
+    "label" : "User-view",
+    "comment" : null,
+    "description" : null,
+    "columns" : [ {
+      "name" : "username",
+      "label" : "Username",
+      "comment" : null,
+      "description" : null,
+      "typeFamily" : "TEXT",
+      "typeEncoding" : null,
+      "dialectType" : "character varying",
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "_id",
+      "label" : "Id",
+      "comment" : null,
+      "description" : null,
+      "typeFamily" : "INTEGER",
+      "typeEncoding" : null,
+      "dialectType" : "smallint",
+      "nullable" : false,
+      "pkPos" : 1
+    } ]
+  }, {
+    "name" : "v$session",
+    "label" : "Session-view",
+    "comment" : null,
+    "description" : null,
+    "columns" : [ {
+      "name" : "username",
+      "label" : "Username",
+      "comment" : null,
+      "description" : null,
+      "typeFamily" : "TEXT",
+      "typeEncoding" : null,
+      "dialectType" : "character varying",
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "serial#",
+      "label" : "Serial",
+      "comment" : null,
+      "description" : null,
+      "typeFamily" : "TEXT",
+      "typeEncoding" : null,
+      "dialectType" : "character varying",
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "SID",
+      "label" : "SID",
+      "comment" : null,
+      "description" : null,
+      "typeFamily" : "TEXT",
+      "typeEncoding" : null,
+      "dialectType" : "character varying",
+      "nullable" : false,
+      "pkPos" : 1
+    } ]
+  } ],
+  "relations" : [ {
+    "name" : "fk_user",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "v$user",
+    "endTable" : "v$session",
+    "symmetric" : true,
+    "startColumns" : [ "username" ],
+    "endColumns" : [ "username" ]
+  } ]
+}

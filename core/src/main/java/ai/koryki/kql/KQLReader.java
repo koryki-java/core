@@ -56,10 +56,6 @@ public class KQLReader extends AbstractReader<KQLLexer, KQLParser, KQLParser.Que
         this(new StringReader(sql), abort);
     }
 
-    public String getDescription() {
-        return getComment(getQuery());
-    }
-
     public KQLReader(File in) throws IOException {
         this(new FileInputStream(in), StandardCharsets.UTF_8);
     }

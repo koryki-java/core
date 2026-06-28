@@ -2,7 +2,7 @@ package ai.koryki.databases.cases;
 
 import ai.koryki.kql.Engine;
 import ai.koryki.kql.HeaderInfo;
-import ai.koryki.scaffold.Util;
+import ai.koryki.catalog.Util;
 import ai.koryki.jdbc.ColumnInfo;
 import ai.koryki.jdbc.ListResult;
 

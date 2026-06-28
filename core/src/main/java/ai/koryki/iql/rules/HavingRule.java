@@ -27,6 +27,7 @@ import ai.koryki.iql.validate.FunctionValidator;
 
 import java.util.Deque;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -35,23 +36,22 @@ import java.util.stream.Collectors;
 public class HavingRule {
 
     private final Query query;
-    private final Aggregate aggregate;
-    public HavingRule(Aggregate aggregate, Query query) {
-        this.aggregate = aggregate;
+
+    public HavingRule(Query query) {
+
         this.query = query;
     }
 
     public void apply() {
 
-        HavingVisitor v = new HavingVisitor(aggregate);
+        HavingVisitor v = new HavingVisitor();
         new Walker().walk(query, v);
     }
 
     private static class HavingVisitor implements Visitor {
 
-        private final Aggregate aggregate;
-        public HavingVisitor(Aggregate aggregate) {
-            this.aggregate = aggregate;
+        public HavingVisitor() {
+
         }
 
         @Override
@@ -67,39 +67,15 @@ public class HavingRule {
         }
 
         private void apply(Select select) {
-
-            LogicalExpression filter = select.getFilter();
-
-            if (filter == null) {
-                return;
-            }
-
-            NodeType t = filter.getType();
-
-            if (t.equals(NodeType.VAR)) {
-
-
-                if (isHaving(filter)) {
-                    select.setFilter(null);
-                    select.setHaving(filter);
-                }
-            } else if (t.equals(NodeType.AND)) {
-                List<LogicalExpression> c = filter.getChildren();
-
-                List<LogicalExpression> havings = c.stream().filter(this::isHaving).collect(Collectors.toList());
-
-                c.removeIf(this::isHaving);
-
-                if (!havings.isEmpty()) {
-                    LogicalExpression having = LogicalExpression.and(havings);
-                    select.setHaving(LogicalExpression.and(having, select.getHaving()));
-                }
-            }
+            apply(select.getFilter(), select::setFilter, select.getHaving(), select::setHaving);
         }
 
         private void apply(Exists exists) {
+            apply(exists.getFilter(), exists::setFilter, exists.getHaving(), exists::setHaving);
+        }
 
-            LogicalExpression filter = exists.getFilter();
+        private void apply(LogicalExpression filter, Consumer<LogicalExpression> setFilter,
+                           LogicalExpression having, Consumer<LogicalExpression> setHaving) {
 
             if (filter == null) {
                 return;
@@ -111,8 +87,8 @@ public class HavingRule {
 
 
                 if (isHaving(filter)) {
-                    exists.setFilter(null);
-                    exists.setHaving(filter);
+                    setFilter.accept(null);
+                    setHaving.accept(filter);
                 }
             } else if (t.equals(NodeType.AND)) {
                 List<LogicalExpression> c = filter.getChildren();
@@ -120,10 +96,13 @@ public class HavingRule {
                 List<LogicalExpression> havings = c.stream().filter(this::isHaving).collect(Collectors.toList());
 
                 c.removeIf(this::isHaving);
+                if (c.isEmpty()) {
+                    setFilter.accept(null);
+                }
 
                 if (!havings.isEmpty()) {
-                    LogicalExpression having = LogicalExpression.and(havings);
-                    exists.setHaving(LogicalExpression.and(having, exists.getHaving()));
+                    LogicalExpression having2 = LogicalExpression.and(havings);
+                    setHaving.accept(LogicalExpression.and(having2, having));
                 }
             }
         }
@@ -133,12 +112,12 @@ public class HavingRule {
             boolean h =
                     logical.isValue() &&
                             logical.getUnaryRelationalExpression().getOp() != null &&
-                            isAggregate(logical, aggregate);
+                            isAggregate(logical);
             return h;
         }
     }
 
-    private static boolean isAggregate(LogicalExpression logical, Aggregate aggregate) {
-        return FunctionValidator.isAggregatOfColumnOrIdentity(logical.getUnaryRelationalExpression().getLeft(), aggregate);
+    private static boolean isAggregate(LogicalExpression logical) {
+        return FunctionValidator.isAggregateOfColumnOrIdentity(logical.getUnaryRelationalExpression().getLeft());
     }
 }

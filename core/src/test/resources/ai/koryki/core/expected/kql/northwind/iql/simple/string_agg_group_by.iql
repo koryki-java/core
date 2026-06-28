@@ -1,0 +1,10 @@
+// string_agg is an aggregate: it must trigger GROUP BY inference for the
+// scalar columns and must not itself be added to GROUP BY.
+
+SELECT
+ customers c
+  OUT c.company_name 1
+  GROUP c.company_name 1
+  JOIN same_customer orders o
+    OUT string_agg(o.ship_city, ',') 2
+  OWNER

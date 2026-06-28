@@ -20,10 +20,12 @@ import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.iql.query.*;
 import org.antlr.v4.runtime.RuleContext;
 
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class SqlQueryRenderer implements SqlRenderer {
@@ -31,27 +33,39 @@ public class SqlQueryRenderer implements SqlRenderer {
     public static final String WITH = "WITH";
 
     private Query query;
-    private Identifier identifier = Identifier.lowercase;
-    private final FunctionRenderer functionRenderer;
+    private final Identifier identifier;
+    protected SqlDialect dialect;
+    /** The model zone (docs/TEMPORAL.md): set by the caller, never silently defaulted here. */
+    private final ZoneId modelZone;
     protected IQLVisibilityContext visibilityContext;
     protected Map<Object, RuleContext> iqlToContext;
 
+    // Per-render output schema: resolved once in toSql, exposed for the read layer (ColumnInfo).
+    private java.util.List<OutputColumn> outputs = java.util.List.of();
 
-    public SqlQueryRenderer() {
-        this(Identifier.lowercase, new FunctionRenderer() {});
+    private ai.koryki.iql.functions.FunctionRenderer functionRenderer;
+
+    @Override
+    public ai.koryki.iql.functions.FunctionRenderer getFunctionRenderer() {
+        if (functionRenderer == null) {
+            functionRenderer = dialect.getFunctionRenderer();
+        }
+        return functionRenderer;
     }
 
-    public SqlQueryRenderer(FunctionRenderer functionRenderer) {
-        this(Identifier.lowercase, functionRenderer);
+    public SqlQueryRenderer(SqlDialect dialect, ZoneId modelZone) {
+        this(Identifier.lowercase, dialect, modelZone);
     }
 
-    public SqlQueryRenderer(Identifier identifier) {
-        this(identifier, new FunctionRenderer() {});
-    }
-
-    public SqlQueryRenderer(Identifier identifier, FunctionRenderer functionRenderer) {
+    public SqlQueryRenderer(Identifier identifier, SqlDialect dialect, ZoneId modelZone) {
         this.identifier = identifier;
-        this.functionRenderer = functionRenderer;
+        this.dialect = dialect;
+        this.modelZone = Objects.requireNonNull(modelZone, "modelZone");
+    }
+
+    /** The model zone this renderer transpiles for (docs/TEMPORAL.md), threaded to the select renderers. */
+    public ZoneId getModelZone() {
+        return modelZone;
     }
 
     @Override
@@ -59,7 +73,18 @@ public class SqlQueryRenderer implements SqlRenderer {
         this.iqlToContext = iqlToContext;
         this.visibilityContext = visibilityContext;
         this.query = query;
+
+        // resolve the output schema once — consumed by the read layer's ColumnInfo (decode).
+        // Output columns render as plain toSql; encodings are decoded at the read boundary,
+        // never converted in SQL.
+        this.outputs = resolveOutputs(resolver, visibilityContext, query);
+
         return toSql(resolver);
+    }
+
+    @Override
+    public java.util.List<OutputColumn> outputSchema() {
+        return outputs;
     }
 
     private String toSql(LinkResolver resolver) {
@@ -68,17 +93,16 @@ public class SqlQueryRenderer implements SqlRenderer {
     }
 
 
-    protected String toSql(LinkResolver resolver, int indent) {
+    private String toSql(LinkResolver resolver, int indent) {
         StringBuilder b = new StringBuilder();
 
         if (query.getDescription() != null) {
-            b.append("--" + query.getDescription().replace(System.lineSeparator(), System.lineSeparator() + "--"));
-            b.append(System.lineSeparator());
+            b.append("--").append(query.getDescription().replace(System.lineSeparator(), System.lineSeparator() + "--"));
             b.append(System.lineSeparator());
         }
 
         b.append(toSql(resolver, query.getBlock(), indent));
-        b.append(toSql(resolver, query.getSet(), indent));
+        b.append(toOutermostSql(resolver, query.getSet(), indent));
         return b.toString();
     }
 
@@ -99,12 +123,12 @@ public class SqlQueryRenderer implements SqlRenderer {
 
     protected StringBuilder toRecursive(LinkResolver resolver, List<Block> block, int indent) {
         StringBuilder b = new StringBuilder();
-        b.append(Identifier.indent(indent) + WITH + " ");
+        b.append(Identifier.indent(indent)).append(WITH).append(" ");
 
         boolean recursive = block.stream().anyMatch(x -> Walker.apply(x, new BlockRecursionDetector(resolver)));
-        if (recursive) {
-            b.append("RECURSIVE ");
-        }
+
+        b.append(dialect.recursive(recursive));
+
         return b;
     }
 
@@ -126,9 +150,6 @@ public class SqlQueryRenderer implements SqlRenderer {
     }
 
     protected String toSql(LinkResolver resolver, String alias, Block block, int indent) {
-
-        Map<String, Source> recursiveAliasToTableMap = Walker.apply(block, new AliasToSourceCollector());
-
 
         return toSql(resolver, alias, block.getSet(), indent);
     }
@@ -163,7 +184,7 @@ public class SqlQueryRenderer implements SqlRenderer {
         if (set.getOperator().equals("UNIONALL")) {
             return "UNION ALL";
         }
-        return set.getOperator();
+        return dialect.mapSetOperator(set.getOperator());
     }
 
     protected String toSql(LinkResolver resolver, Set set, int indent) {
@@ -182,15 +203,33 @@ public class SqlQueryRenderer implements SqlRenderer {
         }
     }
 
+    protected SqlSelectRenderer createSelectRenderer(LinkResolver resolver, IQLVisibilityContext ctx) {
+        return new SqlSelectRenderer(identifier, iqlToContext, resolver, ctx, dialect, modelZone);
+    }
+
+    protected SqlSelectRenderer createOutermostSelectRenderer(LinkResolver resolver, IQLVisibilityContext ctx) {
+        return createSelectRenderer(resolver, ctx);
+    }
+
     protected String toSql(LinkResolver resolver, Select select, int indent) {
+        SqlSelectRenderer s2s = createSelectRenderer(resolver, visibilityContext.child(select));
+        return s2s.toSql(select, indent + 1);
+    }
+
+    protected String toOutermostSql(LinkResolver resolver, Set set, int indent) {
+        if (set.getSelect() != null) {
+            return toOutermostSql(resolver, set.getSelect(), indent);
+        }
         StringBuilder b = new StringBuilder();
-
-        SqlSelectRenderer s2s = new SqlSelectRenderer(identifier, iqlToContext, resolver,
-                visibilityContext.child(select),
-                functionRenderer);
-
-        b.append(s2s.toSql(select, indent + 1));
+        b.append(toOutermostSql(resolver, set.getLeft(), indent + 1));
+        b.append(mapOperator(set)).append(System.lineSeparator());
+        b.append(toOutermostSql(resolver, set.getRight(), indent + 1));
         return b.toString();
+    }
+
+    protected String toOutermostSql(LinkResolver resolver, Select select, int indent) {
+        SqlSelectRenderer s2s = createOutermostSelectRenderer(resolver, visibilityContext.child(select));
+        return s2s.toSql(select, indent + 1);
     }
 
     private String normal(String text) {
@@ -203,11 +242,6 @@ public class SqlQueryRenderer implements SqlRenderer {
 
     private String indent(int l) {
         return Identifier.indent(l);
-    }
-
-    @Override
-    public FunctionRenderer getFunctionTranslator() {
-        return functionRenderer;
     }
 
     public static Select select(Query query) {

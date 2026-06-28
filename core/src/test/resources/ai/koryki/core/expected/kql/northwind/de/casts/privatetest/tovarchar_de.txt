@@ -1,0 +1,2 @@
+FIND kunden c
+FETCH c.firma, to_varchar(c.plz, 10) postal_short

@@ -99,14 +99,16 @@ fetchClause
 ;
 
 fetchItem
- : expression (h=ID)? (label=STRING)? ((ASC | DESC) idx=INT?)?
+ : expression (h=ID (label=STRING)?)? ((ASC | DESC) idx=INT?)?
 ;
 
 expression
  : LEFT_PAREN expression RIGHT_PAREN
+| BAR expression
+| PLUS expression
 | left=expression (MULT | DIV) right=expression
 | left=expression (PLUS | BAR) right=expression
-| date_literal
+| temporal_literal
 | field
 | function
 | INT
@@ -116,11 +118,11 @@ expression
 | LEFT_PAREN select RIGHT_PAREN
 ;
 
-date_literal
- : DATE DATE_FORMAT
-| TIME TIME_FORMAT
-| TIMESTAMP TIMESTAMP_FORMAT
-;
+temporal_literal
+ : DATE_STRING
+| TIME_STRING
+| TIMESTAMP_STRING
+| DURATION;
 
 function
  : func=ID LEFT_PAREN (argument (COMMA argument)*)? RIGHT_PAREN window?
@@ -146,7 +148,7 @@ frame_bound
 ;
 
 argument
- : expression | identity=ID
+ : logical_expression | expression | identity=ID
 ;
 
 field
@@ -176,9 +178,6 @@ FETCH : 'FETCH';
 AND : 'AND';
 OR : 'OR';
 NOT : 'NOT';
-DATE : 'DATE';
-TIME : 'TIME';
-TIMESTAMP : 'TIMESTAMP';
 SET_UNION : 'UNION';
 SET_UNIONALL : 'UNIONALL';
 SET_MINUS : 'MINUS';
@@ -189,53 +188,47 @@ DISTINCT : 'DISTINCT';
 ROLLUP : 'ROLLUP';
 
 
-DATE_FORMAT
- : SINGLE_QUOTE YEAR '-' MONTH '-' DAY SINGLE_QUOTE // 'YYYY-MM-DD'
+TIMESTAMP_STRING
+ : '"' YYYY '-' MM '-' DD ' ' HH ':' MI ':' SS ('.' DIGIT DIGIT DIGIT)? (('+'|'-') HH ':' MI | 'Z')? '"'
 ;
 
-TIME_FORMAT
- : SINGLE_QUOTE HOUR ':' MINUTE ':' SECOND ( '.' DIGIT DIGIT DIGIT)? (('+'|'-') TZ)? SINGLE_QUOTE // 'HH:MI:SS'
+DATE_STRING
+ : '"' YYYY '-' MM '-' DD '"'
 ;
 
-TIMESTAMP_FORMAT
- : SINGLE_QUOTE YEAR '-' MONTH '-' DAY ' ' HOUR ':' MINUTE ':' SECOND ( '.' DIGIT DIGIT DIGIT)? (('+'|'-') TZ)? SINGLE_QUOTE // 'YYYY-MM-DD HH:MI:SS'
+TIME_STRING
+ : '"' HH ':' MI ':' SS ('.' DIGIT DIGIT DIGIT)? (('+'|'-') HH ':' MI | 'Z')? '"'
 ;
-
-TZ
- : HOUR ':' MINUTE
-;
-
 
 fragment DIGIT
  : [0-9]
 ;
 
-
-fragment YEAR
+fragment YYYY
  : DIGIT DIGIT DIGIT DIGIT
 ;
 
-fragment MONTH
+fragment MM
  : '0' [1-9]
 | '1' [0-2]
 ;
 
-fragment DAY
+fragment DD
  : '0' [1-9]
 | [12] DIGIT
 | '3' [01]
 ;
 
-fragment HOUR
+fragment HH
  : [01] DIGIT
 | '2' [0-3]
 ;
 
-fragment MINUTE
+fragment MI
 : [0-5] DIGIT
 ;
 
-fragment SECOND
+fragment SS
 : [0-5] DIGIT
 ;
 
@@ -244,7 +237,7 @@ INT
 ;
 
 NUMBER
-: '-'? ('.' DIGIT+ | DIGIT+ ( '.' DIGIT*)?)
+: ('.' DIGIT+ | DIGIT+ '.' DIGIT*)
 ;
 
 STRING
@@ -297,6 +290,8 @@ HASHMARK (LOWER | DIGIT)*
 ID
 : LOWER (LOWER | DIGIT)*
 ;
+
+DURATION : (DIGIT+ ('ms'|'s'|'min'|'h'|'d'|'w'|'mo'|'q'|'y'))+;
 
 COMMENT
 : '/*' .*? '*/' -> channel(HIDDEN)

@@ -4,11 +4,15 @@ antlr = "4.13.2"
 jackson = "2.21.2"
 junit = "5.9.2"
 
-duckdb = "0.10.2"
+duckdb = "1.2.2.0"
 h2database = "2.4.240"
 postgresql = "42.7.9"
 snowflake = "3.16.1"
 oracle = "23.3.0.23.09"
+trino = "477"
+mariadb = "3.5.8"
+mssql = "13.4.0.jre11"
+sqlite = "3.53.2.0"
 
 spring-boot = "3.5.5"
 spring-dependency-management = "1.1.7"
@@ -35,6 +39,11 @@ h2database = { module = "com.h2database:h2", version.ref = "h2database" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 snowflake = { module = "net.snowflake:snowflake-jdbc", version.ref = "snowflake" }
 oracle = { module = "com.oracle.database.jdbc:ojdbc11", version.ref = "oracle" }
+trino = { module = "io.trino:trino-jdbc", version.ref = "trino" }
+mariadb = { module = "org.mariadb.jdbc:mariadb-java-client", version.ref = "mariadb" }
+mssql = { module = "com.microsoft.sqlserver:mssql-jdbc", version.ref = "mssql" }
+sqlite = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite" }
+
 
 antlr4 = { module = "org.antlr:antlr4", version.ref = "antlr" }
 antlr4-runtime = { module = "org.antlr:antlr4-runtime", version.ref = "antlr" }

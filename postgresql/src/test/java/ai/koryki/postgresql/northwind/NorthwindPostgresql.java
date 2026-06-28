@@ -16,19 +16,24 @@
  */
 package ai.koryki.postgresql.northwind;
 
-import ai.koryki.jdbc.ColumnInfo;
-import ai.koryki.jdbc.JdbcDatabase;
+import ai.koryki.postgresql.PostgresqlDatabase;
 import ai.koryki.jdbc.ResultProcessor;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.time.ZoneId;
 import java.util.Properties;
 
-public class NorthwindPostgresql<P extends ResultProcessor<?>> extends JdbcDatabase<P> {
+public class NorthwindPostgresql<P extends ResultProcessor<?>> extends PostgresqlDatabase<P> {
 
     public NorthwindPostgresql() throws SQLException {
         this("northwind", connection());
+    }
+
+    /** Connect in the given model zone (default UTC). */
+    public NorthwindPostgresql(ZoneId modelZone) throws SQLException {
+        this("northwind", connection(), modelZone);
     }
 
     public NorthwindPostgresql(String name) throws SQLException {
@@ -41,6 +46,10 @@ public class NorthwindPostgresql<P extends ResultProcessor<?>> extends JdbcDatab
 
     public NorthwindPostgresql(String name, Connection conn) {
         super(name, conn);
+    }
+
+    public NorthwindPostgresql(String name, Connection conn, ZoneId modelZone) {
+        super(name, conn, modelZone);
     }
 
     public static Connection connection() throws SQLException {

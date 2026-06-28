@@ -1,0 +1,32 @@
+// to_date / to_time / to_timestamp construction and parsing overloads.
+
+SELECT
+ orders o
+  OUT o.order_id 1
+  OUT to_date(year(o.order_date), month(o.order_date), 1) month_start 2
+  OUT to_date(o.delivered_date) delivery_day 3
+  OUT to_time(o.delivered_date) delivery_time 6
+  OUT to_timestamp(year(o.order_date), month(o.order_date), day(o.order_date), 12, 0, 0) noon 8
+  OUT to_timestamp(o.order_date) order_ts 9
+  OUT to_date(o.delivered_date, 'Europe/Berlin') delivery_day_tz 11
+  OUT to_time(o.delivered_date, 'Europe/Berlin') delivery_time_tz 12
+  OUT to_timestamp(year(o.order_date), month(o.order_date), day(o.order_date), 12, 0, 0, 'Europe/Berlin') noon_tz 14
+  OUT add(o.order_date, to_interval(30, 'DAY')) due_date 21
+  OUT add(o.order_date, to_interval(0, 1, 0, 0, 0, 0)) next_month 22
+  OUT add(o.order_date, 2d4h) later 23
+  OUT add(o.order_date, 1y2mo15d) far_future 24
+  OUT add(o.order_date, 1h30min) meeting_end 25
+  FILTER
+    o.order_id <= 10250
+ALL
+ OUT to_date('2022-07-16', 'YYYY-MM-DD') literal_date 4
+ OUT to_time(8, 30, 0) work_start 5
+ OUT to_time('08:30:00', 'HH24:MI:SS') literal_time 7
+ OUT to_timestamp('2022-07-16 12:00:00', 'YYYY-MM-DD HH24:MI:SS') literal_ts 10
+ OUT to_timestamp('2022-07-16 12:00:00', 'YYYY-MM-DD HH24:MI:SS', 'Europe/Berlin') literal_ts_tz 13
+ OUT to_interval(30, 'DAY') thirty_days 15
+ OUT to_interval(3, 'MONTH') three_months 16
+ OUT to_interval(2, 'HOUR') two_hours 17
+ OUT to_interval(90, 'SECOND') ninety_seconds 18
+ OUT to_interval(500, 'MILLISECOND') half_second 19
+ OUT to_interval(0, 1, 15, 0, 0, 0) one_month_fifteen_days 20

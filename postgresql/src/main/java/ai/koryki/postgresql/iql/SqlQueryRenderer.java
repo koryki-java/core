@@ -16,27 +16,10 @@
  */
 package ai.koryki.postgresql.iql;
 
-import ai.koryki.iql.FunctionRenderer;
-import ai.koryki.iql.query.Set;
-
 public class SqlQueryRenderer extends ai.koryki.iql.SqlQueryRenderer {
 
-    public SqlQueryRenderer() {
-        this(new FunctionRenderer() {
-        });
-    }
-
-    public SqlQueryRenderer(FunctionRenderer functionTranslator) {
-        super(functionTranslator);
-    }
-
-    @Override
-    protected String mapOperator(Set set) {
-        if (set.getOperator().equals("MINUS")) {
-            return "EXCEPT";
-        }
-
-        return super.mapOperator(set);
+    public SqlQueryRenderer(java.time.ZoneId modelZone) {
+        super(PostgreSqlDialect.INSTANCE, modelZone);
     }
 
 }

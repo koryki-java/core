@@ -17,11 +17,12 @@
 package ai.koryki.snowflake.covid19;
 
 import ai.koryki.antlr.AbstractReader;
+import ai.koryki.jdbc.XMLFileResult;
 import ai.koryki.kql.Engine;
 //import ai.koryki.databases.samples.*;
 import ai.koryki.kql.HeaderInfo;
-import ai.koryki.scaffold.Util;
-import ai.koryki.scaffold.schema.Schema;
+import ai.koryki.catalog.Util;
+import ai.koryki.catalog.schema.Schema;
 import ai.koryki.snowflake.SnowflakeUnavailable;
 import ai.koryki.snowflake.iql.SqlQueryRenderer;
 import ai.koryki.snowflake.tools.DataExport;
@@ -52,7 +53,7 @@ public class Covid19Test {
     public static void readCovid19DB() throws Exception {
 
         long start = System.currentTimeMillis();
-        service = new Covid19Service<ListResult<HeaderInfo>>(new Covid19Database<>(), new SqlQueryRenderer());
+        service = new Covid19Service<ListResult<HeaderInfo>>(new Covid19Database<>(), new SqlQueryRenderer(java.time.ZoneId.of("UTC")));
 
         System.out.println("loading " + " : " + (System.currentTimeMillis() - start));
     }
@@ -64,7 +65,7 @@ public class Covid19Test {
         }
     }
 
-    public static final String ROOT = "/ai/koryki/databases/covid19/snowflake";
+    public static final String ROOT = "/ai/koryki/snowflake/databases/covid19";
 
     @Test
     public void kql() throws SQLException {
@@ -146,7 +147,7 @@ public class Covid19Test {
             return;
         }
 
-        Covid19Database db = new Covid19Database();
+        Covid19Database<ListResult<?>> db = new Covid19Database<>();
         SchemaExport e = new SchemaExport(db);
         Schema s = e.readSchema("PUBLIC");
         Util.write(s, new File(new File("build"), "schema.json"));
@@ -161,10 +162,10 @@ public class Covid19Test {
             return;
         }
 
-        Covid19Database db = new Covid19Database();
-        Engine e = Engine.build (db, Covid19Service.resolver(), new SqlQueryRenderer());
+        Covid19Database<XMLFileResult<HeaderInfo>> db = new Covid19Database<>();
+        Engine<HeaderInfo, XMLFileResult<HeaderInfo>> e = Engine.build (db, Covid19Service.resolver(), new SqlQueryRenderer(java.time.ZoneId.of("UTC")));
 
-        DataExport export = new DataExport(e);
+        DataExport<XMLFileResult<HeaderInfo>> export = new DataExport<>(e, XMLFileResult::new);
         File data = new File (new File("build"), "data");
         export.exportData(data);
     }

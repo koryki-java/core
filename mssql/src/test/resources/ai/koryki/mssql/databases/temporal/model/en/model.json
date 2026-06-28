@@ -1,0 +1,164 @@
+{
+  "name": "temporal",
+  "label": null,
+  "comment": null,
+  "description": "Demodatabase for temporal types in SQL Server",
+  "entities": [
+    {
+      "name": "check_temporal",
+      "label": "Check Temporal",
+      "comment": null,
+      "description": null,
+      "attributes": [
+        {
+          "name": "nr",
+          "label": "Nr",
+          "comment": null,
+          "description": "Row identifier (primary key)"
+        },
+        {
+          "name": "time_time",
+          "label": "Time-Time",
+          "comment": null,
+          "description": "Time-encoded time"
+        },
+        {
+          "name": "time_sec_from_midnight",
+          "label": "Time in seconds from midnight",
+          "comment": null,
+          "description": ""
+        },
+        {
+          "name": "ts_new_york",
+          "label": "Timestamp New York",
+          "comment": null,
+          "description": "Wall-clock timestamp stored in America/New_York"
+        },
+        {
+          "name": "date_new_york",
+          "label": "Date New York",
+          "comment": null,
+          "description": "Wall-clock date stored in America/New_York"
+        },
+        {
+          "name": "date_date",
+          "label": "Date",
+          "comment": null,
+          "description": "Date-encoded date"
+        },
+        {
+          "name": "time_from_integer",
+          "label": "Time from integer",
+          "comment": null,
+          "description": "Time of day encoded as HHMMSS integer"
+        },
+        {
+          "name": "time_from_string",
+          "label": "Time from string",
+          "comment": null,
+          "description": "Time of day encoded as HH:MM:SS string"
+        },
+        {
+          "name": "time_from_timestamp",
+          "label": "Time from timestamp",
+          "comment": null,
+          "description": "Time of day carried in a timestamp"
+        },
+        {
+          "name": "date_epoch_day",
+          "label": "Date from epoch day",
+          "comment": null,
+          "description": "Date encoded as days since 1970-01-01"
+        },
+        {
+          "name": "bool_from_int",
+          "label": "Boolean from integer",
+          "comment": null,
+          "description": "Boolean encoded as a 0/1 integer"
+        },
+        {
+          "name": "uuid_binary",
+          "label": "UUID from binary",
+          "comment": null,
+          "description": "UUID encoded as 16-byte binary"
+        },
+        {
+          "name": "uuid_string",
+          "label": "UUID from string",
+          "comment": null,
+          "description": "UUID encoded as a CHAR(36) string"
+        },
+        {
+          "name": "timestamp_zoned",
+          "label": "Timestamp instant",
+          "comment": null,
+          "description": "Zone-aware instant normalized to the model zone"
+        },
+        {
+          "name": "timestamp_unix_epoche",
+          "label": "Timestamp Unix epoch (seconds)",
+          "comment": null,
+          "description": "Instant encoded as seconds since the epoch"
+        },
+        {
+          "name": "timestamp_java_epoche",
+          "label": "Timestamp Java epoch (milliseconds)",
+          "comment": null,
+          "description": "Instant encoded as milliseconds since the epoch"
+        },
+        {
+          "name": "timestamp_timestamp",
+          "label": "Timestamp",
+          "comment": null,
+          "description": "Wall-clock timestamp (UTC)"
+        },
+        {
+          "name": "ts_diff_base",
+          "label": "Elapsed-span anchor",
+          "comment": null,
+          "description": "Anchor timestamp for elapsed-span cases"
+        },
+        {
+          "name": "ts_diff_intraday",
+          "label": "Elapsed-span end (< 1 day)",
+          "comment": null,
+          "description": "Anchor plus a fixed sub-day span"
+        },
+        {
+          "name": "ts_diff_multiday",
+          "label": "Elapsed-span end (> 1 day)",
+          "comment": null,
+          "description": "Anchor plus a fixed span over 24 hours"
+        },
+        {
+          "name": "money_scaled",
+          "label": "Decimal from scaled integer",
+          "comment": null,
+          "description": "Fixed-point decimal stored as minor units"
+        },
+        {
+          "name": "interval_seconds",
+          "label": "Interval seconds",
+          "comment": null,
+          "description": "Interval as a whole-second count"
+        },
+        {
+          "name": "interval_millis",
+          "label": "Interval millis",
+          "comment": null,
+          "description": "Interval as a millisecond count"
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "name": "same_check",
+      "comment": "both tables refer to the same data record",
+      "description": null,
+      "relations": [
+        "pk_check"
+      ]
+    }
+  ]
+}

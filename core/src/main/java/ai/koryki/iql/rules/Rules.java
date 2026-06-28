@@ -26,14 +26,12 @@ import java.util.Map;
 public class Rules {
 
     private LinkResolver resolver;
-    private Aggregate aggregat;
     private Query query;
     private Map<String, Source> blockIdToLeadingTableMap;
     private Map<Object, RuleContext> iqlToContext;
 
-    public Rules(Aggregate aggregat, LinkResolver resolver, Map<String, Source> blockIdToLeadingTableMap, Query query,
+    public Rules(LinkResolver resolver, Map<String, Source> blockIdToLeadingTableMap, Query query,
                  Map<Object, RuleContext> iqlToContext) {
-        this.aggregat = aggregat;
         this.resolver = resolver;
         this.query = query;
         this.blockIdToLeadingTableMap = blockIdToLeadingTableMap;
@@ -43,8 +41,8 @@ public class Rules {
     public Map<String, Source> apply() {
         new PushOutRule().apply(query);
         new InferJoinColumnsToBlockRule(query, resolver, blockIdToLeadingTableMap, iqlToContext).apply();
-        new HavingRule(aggregat, query).apply();
-        new GroupRule(aggregat, query).apply();
+        new HavingRule(query).apply();
+        new GroupRule(query).apply();
         new IdentityRule(blockIdToLeadingTableMap, resolver).apply(query);
         new PushLogicalExpressionRule().apply(query);
         new PushGroupRule().apply(query);

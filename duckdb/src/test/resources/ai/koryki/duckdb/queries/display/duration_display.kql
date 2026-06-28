@@ -1,0 +1,11 @@
+// Business-facing duration rendering (WordedLocaleFormat WIDE, en): variable calendar fields as
+// words, the fixed clock remainder as HH:MM:SS. Contrast with the canonical koryki notation
+// (1h2min3s …) that StableFormat keeps for golden determinism.
+FIND check_temporal c
+FILTER c.nr = 1
+FETCH
+  1h2min3s              clock_only,
+  1y2mo                 year_month,
+  1y2mo3d               year_month_day,
+  1d + 1h2min3s         day_and_clock,
+  1y2mo1d + 1h2min3s    full

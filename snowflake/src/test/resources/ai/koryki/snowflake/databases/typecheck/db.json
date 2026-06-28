@@ -1,0 +1,123 @@
+{
+  "name" : "typecheck",
+  "label" : null,
+  "comment" : null,
+  "description" : "Demodatabase for typechecking in PostgreSQL",
+  "tables" : [ {
+    "name" : "check_type",
+    "label" : "Check Type",
+    "comment" : null,
+    "description" : null,
+    "columns" : [ {
+      "name" : "nr",
+      "label" : "Nr",
+      "comment" : null,
+      "description" : "Row identifier (primary key)",
+      "typeFamily" : "INTEGER",
+      "typeEncoding" : null,
+      "dialectType" : "SMALLINT",
+      "nullable" : false,
+      "pkPos" : 1
+    }, {
+      "name" : "type_smallint",
+      "label" : "type_smallint",
+      "comment" : null,
+      "description" : "2-byte signed integer (-32,768 to 32,767)",
+      "typeFamily" : "INTEGER",
+      "typeEncoding" : null,
+      "dialectType" : "SMALLINT",
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "type_integer",
+      "label" : "type_integer",
+      "comment" : null,
+      "description" : "4-byte signed integer (-2^31 to 2^31-1)",
+      "typeFamily" : "INTEGER",
+      "typeEncoding" : null,
+      "dialectType" : "INTEGER",
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "type_bigint",
+      "label" : "type_bigint",
+      "comment" : null,
+      "description" : "8-byte signed integer (-2^63 to 2^63-1)",
+      "typeFamily" : "INTEGER",
+      "typeEncoding" : null,
+      "dialectType" : "BIGINT",
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "type_decimal",
+      "label" : "type_decimal",
+      "comment" : null,
+      "description" : "Fixed-point exact numeric with 18 significant digits and 4 decimal places",
+      "typeFamily" : "DECIMAL",
+      "typeEncoding" : null,
+      "dialectType" : "DECIMAL(18,4)",
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "type_double",
+      "label" : "type_double",
+      "comment" : null,
+      "description" : "8-byte IEEE 754 double-precision float (~15 significant digits)",
+      "typeFamily" : "DECIMAL",
+      "typeEncoding" : null,
+      "dialectType" : "DOUBLE",
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "type_boolean",
+      "label" : "type_boolean",
+      "comment" : null,
+      "description" : "Logical true/false value; PostgreSQL has native BOOLEAN",
+      "typeFamily" : "BOOLEAN",
+      "typeEncoding" : null,
+      "dialectType" : "BOOLEAN",
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "type_date",
+      "label" : "type_date",
+      "comment" : null,
+      "description" : "Calendar date (year, month, day) with no time component",
+      "typeFamily" : "DATE",
+      "typeEncoding" : null,
+      "dialectType" : "DATE",
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "type_time",
+      "label" : "type_time",
+      "comment" : null,
+      "description" : "Time of day (hour, minute, second, microsecond) with no date component",
+      "typeFamily" : "TIME",
+      "typeEncoding" : null,
+      "dialectType" : "TIME",
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "type_timestamp",
+      "label" : "type_timestamp",
+      "comment" : null,
+      "description" : "Date and time with microsecond precision; no timezone",
+      "typeFamily" : "TIMESTAMP",
+      "typeEncoding" : null,
+      "dialectType" : "TIMESTAMP_NTZ",
+      "nullable" : false,
+      "pkPos" : 0
+    } ]
+  } ],
+  "relations" : [ {
+    "name" : "pk_check",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "check_type",
+    "endTable" : "check_type",
+    "symmetric" : true,
+    "startColumns" : [ "nr" ],
+    "endColumns" : [ "nr" ]
+  } ]
+}

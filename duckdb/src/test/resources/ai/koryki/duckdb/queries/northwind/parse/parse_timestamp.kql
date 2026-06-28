@@ -1,0 +1,5 @@
+// parse_timestamp: filter orders delivered after a parsed timestamp string.
+
+FIND orders o
+FILTER o.delivered_date >= parse_timestamp('1996-07-01 00:00:00', '%Y-%m-%d %H:%M:%S')
+FETCH o.order_id, o.delivered_date

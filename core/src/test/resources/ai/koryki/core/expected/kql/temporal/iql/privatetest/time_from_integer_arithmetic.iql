@@ -1,0 +1,7 @@
+// TIME stored as an HHMMSS integer (TIME_FROM_INTEGER): arithmetic decodes to seconds, adds, re-wraps.
+
+SELECT
+ check_temporal c
+  OUT c.time_from_integer time_from_integer 1
+  OUT add(c.time_from_integer, 1h) time_from_integer_plus1h 2
+  OUT minus(c.time_from_integer, 1h) time_from_integer_minus1h 3

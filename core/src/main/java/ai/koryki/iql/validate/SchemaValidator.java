@@ -77,7 +77,7 @@ public class SchemaValidator implements Collector<List<Violation>> {
                     violations.add(new Violation("schema", field, Range.range(iqlToContext.get(field)), "unknown header " + field.getName()));
                 }
             } else {
-                Optional<ai.koryki.scaffold.domain.Entity> optional = resolver.getModel().getEntity(selectTable.getName());
+                Optional<ai.koryki.catalog.domain.Entity> optional = resolver.getModel().getEntity(selectTable.getName());
                 if (optional.isEmpty()) {
                     violations.add(new Violation("schema", field, Range.range(iqlToContext.get(field)), "invalid table " + selectTable.getName()));
                 }

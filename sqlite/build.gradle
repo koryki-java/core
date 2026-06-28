@@ -1,0 +1,49 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+}
+
+description = 'koryki sqlite databases and services'
+
+java {
+    withSourcesJar() // Optional: Creates the sources JAR
+    withJavadocJar() // Optional: Creates the Javadoc JAR
+}
+
+dependencies {
+
+    implementation(libs.sqlite)
+    implementation libs.jackson.databind
+
+    implementation project(':northwind')
+    implementation project(':core')
+
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly libs.junit.platform.launcher
+}
+
+test {
+    useJUnitPlatform()
+}
+
+tasks.register('SqliteNorthwindScript', JavaExec) {
+    group = "application"
+    description = "Build the Northwind SQLite database file at build/northwind.sqlite"
+
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'ai.koryki.sqlite.northwind.BuildNorthwind'
+}
+
+publishing {
+    publications {
+        // Define the publication for this subproject
+        mavenJava(MavenPublication) {
+            // The 'java' component includes the main JAR artifact and its transitive dependencies
+            from components.java
+
+            // Optionally, override the artifact ID (defaults to project name: 'api')
+            artifactId = 'koryki-sqlite'
+        }
+    }
+}

@@ -44,7 +44,6 @@ publishing {
     }
 }
 
-
 tasks.register('OracleNorthwindScript', JavaExec) {
 
     systemProperty "oracle.northwind.url", project.findProperty("oracle.northwind.url")

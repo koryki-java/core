@@ -173,10 +173,6 @@ public class IQLReader extends AbstractReader<IQLLexer, IQLParser, IQLParser.Que
         return script;
     }
 
-    public String getDescription() {
-        return getComment(getQuery());
-    }
-
     public int getLinesOfCode() {
 
         return lnr != null ? lnr.getLineNumber() : -1;

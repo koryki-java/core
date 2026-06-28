@@ -1,0 +1,6 @@
+// HavingRule: when every FILTER conjunct is an aggregate comparison,
+// all of them move to HAVING and no WHERE clause may remain.
+
+FIND kunden c, c bestellungen o
+FILTER count(o) > 10 AND count(o) < 100
+FETCH c.firma, count(o)

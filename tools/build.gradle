@@ -1,0 +1,111 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+}
+
+description = 'koryki tools'
+
+java {
+    withSourcesJar() // Optional: Creates the sources JAR
+    withJavadocJar() // Optional: Creates the Javadoc JAR
+}
+
+dependencies {
+
+    implementation libs.jackson.databind
+
+    implementation project(':northwind')
+    implementation project(':core')
+
+    testImplementation project(':oracle')
+    testImplementation project(':snowflake')
+    testImplementation project(':mssql')
+    testImplementation project(':postgresql')
+
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly libs.junit.platform.launcher
+}
+
+test {
+    useJUnitPlatform()
+}
+
+// Function doc-coverage worklist: ./gradlew :tools:coverageReport -q
+tasks.register('coverageReport', JavaExec) {
+    group = 'documentation'
+    description = 'Prints the function doc-coverage worklist for docs/functions/*.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'ai.koryki.tools.docs.FunctionDocCoverage'
+}
+
+// Argument-type coverage audit (all overloads): ./gradlew :tools:argTypeAudit -q
+tasks.register('argTypeAudit', JavaExec) {
+    group = 'documentation'
+    description = 'Reports function arguments (across all overloads) with no declared type family.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'ai.koryki.tools.docs.FunctionArgTypeAudit'
+}
+
+// Publish generated function docs to the web project: ./gradlew :tools:publishFunctionDocs
+//   -PwebDocsDir=/path/to/pages/docs       override the destination
+//   -PfunctionPagePrefix= / -PdialectPagePrefix=   override the published filename/link prefixes
+//
+// The web app uses flat, prefixed filenames (e.g. FUNCTION_STRING.md, DIALECT_DUCKDB.md) and links
+// without a path or .md suffix (FUNCTION_STRING). The renaming and link rewriting happen ONLY here,
+// while publishing — the source docs/ tree (filenames and subdirs) is never modified.
+def webDocsDir = (project.findProperty('webDocsDir') ?: '/Users/johanneszemlin/vscode/webui/pages/docs').toString()
+def functionPagePrefix = (project.findProperty('functionPagePrefix') ?: 'FUNCTIONS_').toString()
+def dialectPagePrefix  = (project.findProperty('dialectPagePrefix')  ?: 'DIALECT_').toString()
+
+// page basename -> prefixed, UPPERCASED filename, e.g. ("string.md", "FUNCTION_") -> "FUNCTION_STRING.md"
+def prefixedName = { String fileName, String prefix ->
+    prefix + fileName.substring(0, fileName.lastIndexOf('.')).toUpperCase() + '.md'
+}
+
+// Copy only — never Sync. These tasks add or overwrite the generated pages and never delete anything
+// in the destination, so existing sibling docs in the web project are always preserved. (A page removed
+// from a category/dialect therefore leaves a stale copy in the destination; delete it there by hand.)
+// The golden 'test' runs first, so docs that have drifted from the catalog abort the publish.
+tasks.register('copyFunctionPages', Copy) {
+    dependsOn 'test'
+    from "$rootDir/docs/functions"
+    into webDocsDir
+    rename { String n -> prefixedName(n, functionPagePrefix) }
+}
+tasks.register('copyDialectPages', Copy) {
+    dependsOn 'test'
+    from "$rootDir/docs/dialects"
+    into webDocsDir
+    rename { String n -> prefixedName(n, dialectPagePrefix) }
+}
+tasks.register('copyFunctionIndex', Copy) {
+    dependsOn 'test'
+    from "$rootDir/docs/FUNCTIONS.md"
+    into webDocsDir
+    // Rewrite the index's links to the published route names:
+    //   [String](functions/string.md) -> [String](FUNCTION_STRING)
+    //   [DuckDB](dialects/duckdb.md)   -> [DuckDB](DIALECT_DUCKDB)
+    filter { String line ->
+        line.replaceAll(/\]\(functions\/([A-Za-z0-9_]+)\.md\)/) { m, name -> '](' + functionPagePrefix + name.toUpperCase() + ')' }
+            .replaceAll(/\]\(dialects\/([A-Za-z0-9_]+)\.md\)/)  { m, name -> '](' + dialectPagePrefix  + name.toUpperCase() + ')' }
+    }
+}
+tasks.register('publishFunctionDocs') {
+    group = 'documentation'
+    description = 'Publishes the generated function/dialect pages (flat, prefixed) and the rewritten FUNCTIONS.md index to the webui project (never deletes).'
+    dependsOn 'copyFunctionPages', 'copyDialectPages', 'copyFunctionIndex'
+}
+
+publishing {
+    publications {
+        // Define the publication for this subproject
+        mavenJava(MavenPublication) {
+            // The 'java' component includes the main JAR artifact and its transitive dependencies
+            from components.java
+
+            // Optionally, override the artifact ID (defaults to project name: 'api')
+            artifactId = 'koryki-tools'
+        }
+    }
+}

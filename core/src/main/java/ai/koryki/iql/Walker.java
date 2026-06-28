@@ -335,7 +335,8 @@ public class Walker {
                 visitScoped(expression, () ->
                            walk(expression.getSelect(), visitor)
                         && walk(expression.getFunction(), visitor)
-                        && walk(expression.getField(), visitor), visitor::leave
+                        && walk(expression.getField(), visitor)
+                        && walk(expression.getLogical(), visitor), visitor::leave
         );
     }
 

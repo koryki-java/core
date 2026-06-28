@@ -1,0 +1,2 @@
+FIND bestellposition od
+FETCH od.bestell_id, to_smallint(od.menge) qty_smallint

@@ -1,0 +1,32 @@
+WITH roots AS (
+  SELECT
+  employees e
+   OUT e.first_name fname 1
+   OUT e.last_name lname 2
+   OUT lpad(to_text(e.employee_id), 6, '0') path 5
+   OUT e.employee_id
+ ALL
+  FILTER
+    NOT EXISTS (e reports_to employees r
+   )
+  OUT to_text(NULL) boss 3
+  OUT to_integer(1) lvl 4
+ UNIONALL
+  SELECT
+  employees e
+   OUT e.first_name fname 1
+   OUT e.last_name lname 2
+   OUT e.employee_id
+   JOIN reports_to roots r
+     OUT r.lname boss 3
+     OUT to_integer(add(r.lvl, 1)) lvl 4
+   OWNER
+ ALL
+  OUT concat(r.path, '/', lpad(to_text(e.employee_id), 6, '0')) path 5
+)
+SELECT
+ roots r2
+  OUT r2.lvl 1
+  OUT concat(rpad(' ', multiply(r2.lvl, 2), ' '), r2.fname, ' ', r2.lname) hierarchy 2
+  OUT r2.path 3
+  ORDER r2.path ASC 3

@@ -1,0 +1,5 @@
+// Date literal: greater-than comparison on shipped date.
+
+FIND orders o
+FILTER o.shipped_date > "1997-01-01"
+FETCH o.order_id, o.shipped_date

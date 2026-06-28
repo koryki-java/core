@@ -16,30 +16,15 @@
  */
 package ai.koryki.iql;
 
-import ai.koryki.iql.query.Select;
-
 public class JdbcQueryRenderer extends SqlQueryRenderer {
 
-    public JdbcQueryRenderer() {
-        this(new FunctionRenderer() {});
-    }
-
-    public JdbcQueryRenderer(FunctionRenderer functionRenderer) {
-
-       super(functionRenderer);
-
+    public JdbcQueryRenderer(java.time.ZoneId modelZone) {
+        super(JdbcDialect.INSTANCE, modelZone);
     }
 
     @Override
-    protected String toSql(LinkResolver resolver, Select select, int indent) {
-        StringBuilder b = new StringBuilder();
-
-        SqlSelectRenderer s2s = new JdbcSelectRenderer(getIdentifier(), iqlToContext, resolver,
-                visibilityContext.child(select),
-                getFunctionTranslator());
-
-        b.append(s2s.toSql(select, indent + 1));
-        return b.toString();
+    protected SqlSelectRenderer createSelectRenderer(LinkResolver resolver, IQLVisibilityContext ctx) {
+        return new JdbcSelectRenderer(getIdentifier(), iqlToContext, resolver, ctx, JdbcDialect.INSTANCE, getModelZone());
     }
 
 }

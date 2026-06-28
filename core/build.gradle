@@ -20,7 +20,7 @@ dependencies {
     implementation libs.jackson.databind
 
     testImplementation project(':northwind')
-    testImplementation project(':duckdb')
+    //testImplementation project(':duckdb')
 
 
     // JUnit

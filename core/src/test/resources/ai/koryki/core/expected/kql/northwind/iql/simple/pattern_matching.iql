@@ -1,0 +1,9 @@
+// Pattern-matching chapter: regexp_like maps to DuckDB regexp_matches,
+// regexp_count stays under its canonical name.
+
+SELECT
+ customers c
+  OUT c.company_name 1
+  OUT regexp_like(c.company_name, '^A') 2
+  FILTER
+    regexp_count(c.company_name, 'a') > 1

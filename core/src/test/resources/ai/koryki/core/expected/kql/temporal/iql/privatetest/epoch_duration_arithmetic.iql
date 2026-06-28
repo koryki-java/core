@@ -1,0 +1,10 @@
+// EPOCH-encoded timestamp column ± duration: the epoch integer is materialized to a TIMESTAMP
+// (epochToTimestamp) before the duration is applied, instead of `<bigint> + INTERVAL ...`.
+// duckdb-first.
+
+SELECT
+ check_temporal c
+  OUT add(c.timestamp_unix_epoche, 1d) unix_plus_one_day 1
+  OUT minus(c.timestamp_java_epoche, 2h) java_minus_two_hours 2
+  FILTER
+    c.nr = 1

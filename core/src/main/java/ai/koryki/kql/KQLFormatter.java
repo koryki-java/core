@@ -22,7 +22,7 @@ import ai.koryki.iql.BlockLeadingSourceCollector;
 import ai.koryki.iql.Identifier;
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.Walker;
-import ai.koryki.iql.rules.Math;
+import ai.koryki.iql.functions.MathOp;
 import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.iql.query.*;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
@@ -32,8 +32,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-// TODO BlockID dürfen nie übersetzt werden !!!
-// TODO wenn das Ausgabefeld keinen Header hat, dann ist es eine Spalte die übersetzt werden muss !!!
+/**
+ * Pretty-prints a parsed KQL query; with a {@link Translator}, rewrites it
+ * from one business vocabulary into another (see TranslateToGermanTest).
+ *
+ * <p>Translation invariants:
+ * <ul>
+ *   <li>Block IDs are user-invented names, never vocabulary — they are
+ *       structurally exempt from translation (the constructor wraps the
+ *       translator so a block named like an entity cannot be torn apart
+ *       between its definition and its references).</li>
+ *   <li>An output field without a header is a model attribute and is
+ *       translated via {@code toColumn}; the header itself is user text and
+ *       is emitted verbatim.</li>
+ * </ul>
+ */
 public class KQLFormatter {
 
     private KQLParser.QueryContext script;
@@ -49,7 +62,7 @@ public class KQLFormatter {
     public KQLFormatter(KQLParser.QueryContext script, String description, LinkResolver resolver, Translator translator) {
         this.script = script;
         this.description = description;
-        this.translator = translator;
+        this.translator = blockIdSafe(script, translator);
 
         Map<String, Source> blockIdToLeadingSourceMap = Collections.emptyMap();
         if (resolver != null) {
@@ -58,6 +71,36 @@ public class KQLFormatter {
         }
 
         visibilityContext = new KQLVisibilityContext(blockIdToLeadingSourceMap, select2Alias());
+    }
+
+    /**
+     * Block IDs are user-invented names, never vocabulary: a source reference
+     * to a WITH block must come out exactly as written, or it no longer points
+     * at its (untranslated) definition.
+     */
+    private static Translator blockIdSafe(KQLParser.QueryContext script, Translator translator) {
+        java.util.Set<String> blockIds = script.block().stream()
+                .map(b -> b.ID().getText())
+                .collect(Collectors.toSet());
+        if (blockIds.isEmpty()) {
+            return translator;
+        }
+        return new Translator() {
+            @Override
+            public String source(String source) {
+                return blockIds.contains(source) ? source : translator.source(source);
+            }
+
+            @Override
+            public String field(String source, String field) {
+                return translator.field(source, field);
+            }
+
+            @Override
+            public String crit(String crit) {
+                return translator.crit(crit);
+            }
+        };
     }
 
     private Map<Object, Map<String, KQLParser.SourceContext>> select2Alias() {
@@ -350,15 +393,21 @@ public class KQLFormatter {
             } else if (expression.LEFT_PAREN() != null) {
                 return "(" + toExpression(expression.expression(0), indent) + " )";
             } else if (expression.MULT() != null) {
-                return mathFunction(expression, Math.multiply, indent);
+                return mathFunction(expression, MathOp.multiply, indent);
             } else if (expression.DIV() != null) {
-                return mathFunction(expression, Math.divide, indent);
+                return mathFunction(expression, MathOp.divide, indent);
             } else if (expression.PLUS() != null) {
-                return mathFunction(expression, Math.add, indent);
+                if (expression.left == null) {
+                    return "+" + toExpression(expression.expression(0), indent);
+                }
+                return mathFunction(expression, MathOp.add, indent);
             } else if (expression.BAR() != null) {
-                return mathFunction(expression, Math.minus, indent);
-            } else if (expression.date_literal() != null) {
-                return toExpression(expression.date_literal());
+                if (expression.left == null) {
+                    return "-" + toExpression(expression.expression(0), indent);
+                }
+                return mathFunction(expression, MathOp.minus, indent);
+            } else if (expression.temporal_literal() != null) {
+                return toExpression(expression.temporal_literal());
             } else if (expression.field() != null) {
                 return toColumn(expression.field(), indent);
             } else if (expression.function() != null) {
@@ -376,7 +425,7 @@ public class KQLFormatter {
             }
         }
 
-        private String mathFunction(KQLParser.ExpressionContext expression, ai.koryki.iql.rules.Math name, int indent) {
+        private String mathFunction(KQLParser.ExpressionContext expression, ai.koryki.iql.functions.MathOp name, int indent) {
 
             String op = name.getOperator();
             String left = toExpression(expression.left, indent);
@@ -384,14 +433,15 @@ public class KQLFormatter {
             return left + " " + op + " " + right;
         }
 
-        private String toExpression(KQLParser.Date_literalContext date) {
-
-            if (date.TIME_FORMAT() != null) {
-                return "TIME " + date.TIME_FORMAT().getText();
-            } else if (date.TIMESTAMP_FORMAT() != null) {
-                return "TIMESTAMP " + date.TIMESTAMP_FORMAT().getText();
-            } else if (date.DATE_FORMAT() != null) {
-                return "DATE " + date.DATE_FORMAT().getText();
+        private String toExpression(KQLParser.Temporal_literalContext date) {
+            if (date.TIME_STRING() != null) {
+                return date.TIME_STRING().getText();
+            } else if (date.TIMESTAMP_STRING() != null) {
+                return date.TIMESTAMP_STRING().getText();
+            } else if (date.DATE_STRING() != null) {
+                return date.DATE_STRING().getText();
+            } else if (date.DURATION() != null) {
+                return date.DURATION().getText();
             } else {
                 throw new KorykiaiException();
             }
@@ -447,6 +497,11 @@ public class KQLFormatter {
             if (!window.orderex.isEmpty()) {
                 b.append(" ORDER ");
                 b.append(toExpression(window.orderex, indent));
+                if (window.DESC() != null) {
+                    b.append(" DESC");
+                } else if (window.ASC() != null) {
+                    b.append(" ASC");
+                }
             }
 
             if (window.frame() != null) {
@@ -485,7 +540,9 @@ public class KQLFormatter {
 
         private String toArgument(KQLParser.ArgumentContext argument, int indent) {
 
-            if (argument.expression() != null) {
+            if (argument.logical_expression() != null) {
+                return toLogicalNode(argument.logical_expression(), indent);
+            } else if (argument.expression() != null) {
                 return toExpression(argument.expression(), indent);
             } else if (argument.identity != null) {
                 return argument.identity.getText();

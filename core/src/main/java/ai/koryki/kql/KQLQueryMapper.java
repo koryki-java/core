@@ -24,14 +24,21 @@ import ai.koryki.iql.SelectScopeCollector;
 import ai.koryki.iql.query.*;
 import ai.koryki.iql.query.Set;
 import ai.koryki.iql.logic.Normalizer;
+import ai.koryki.iql.time.Time;
 import org.antlr.v4.runtime.RuleContext;
+import org.antlr.v4.runtime.tree.TerminalNode;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class KQLQueryMapper {
+
+    private static final DateTimeFormatter TIMESTAMP_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss[.SSS]").withLocale(Locale.ROOT);
 
     private KQLParser.QueryContext script;
     private String description;
@@ -318,7 +325,7 @@ public class KQLQueryMapper {
             i = Integer.parseInt(fetch.idx.getText());
         };
         if (fetch.label != null) {
-            o.setLabel(fetch.label.getText());
+            o.setLabel(unquoteDouble(fetch.label.getText()));
         }
         return o;
     }
@@ -363,19 +370,26 @@ public class KQLQueryMapper {
         } else if (expression.LEFT_PAREN() != null) {
             return toExpression(expression.expression(0));
         } else if (expression.MULT() != null) {
-            String name = ai.koryki.iql.rules.Math.multiply.name();
-            return mathFunction(expression, name);
+            return mathFunction(expression, ai.koryki.iql.functions.MathOp.multiply.name());
         } else if (expression.DIV() != null) {
-            String name = ai.koryki.iql.rules.Math.divide.name();
-            return mathFunction(expression, name);
+            return mathFunction(expression, ai.koryki.iql.functions.MathOp.divide.name());
         } else if (expression.PLUS() != null) {
-            String name = ai.koryki.iql.rules.Math.add.name();
-            return mathFunction(expression, name);
+            if (expression.left == null) {
+                return toExpression(expression.expression(0));
+            }
+            return mathFunction(expression, ai.koryki.iql.functions.MathOp.add.name());
         } else if (expression.BAR() != null) {
-            String name = ai.koryki.iql.rules.Math.minus.name();
-            return mathFunction(expression, name);
-        } else if (expression.date_literal() != null) {
-            return toExpression(expression.date_literal());
+            if (expression.left == null) {
+                Expression bean = build(expression, Expression::new);
+                Function f = build(expression, Function::new);
+                f.setFunc(ai.koryki.iql.functions.MathOp.negate.name());
+                f.setArguments(List.of(toExpression(expression.expression(0))));
+                bean.setFunction(f);
+                return bean;
+            }
+            return mathFunction(expression, ai.koryki.iql.functions.MathOp.minus.name());
+        } else if (expression.temporal_literal() != null) {
+            return toExpression(expression.temporal_literal());
         } else if (expression.field() != null) {
             Expression bean = build(expression, Expression::new);
             bean.setField(toField(expression.field()));
@@ -386,11 +400,14 @@ public class KQLQueryMapper {
             return bean;
         } else if (expression.INT() != null) {
             Expression bean = build(expression, Expression::new);
-            bean.setNumber(Double.valueOf(expression.INT().getText()));
+            bean.setNumber(new BigInteger(expression.INT().getText()));
             return bean;
         } else if (expression.NUMBER() != null) {
             Expression bean = build(expression, Expression::new);
-            bean.setNumber(Double.valueOf(expression.NUMBER().getText()));
+
+            BigDecimal bigDecimal = new BigDecimal(expression.NUMBER().getText());
+
+            bean.setNumber(bigDecimal);
             return bean;
         } else if (expression.SQ_STRING() != null) {
             Expression bean = build(expression, Expression::new);
@@ -414,17 +431,27 @@ public class KQLQueryMapper {
         return bean;
     }
 
-    private Expression toExpression(KQLParser.Date_literalContext date) {
+    private Expression toExpression(KQLParser.Temporal_literalContext date) {
         Expression bean = build(date, Expression::new);
 
-        if (date.TIME_FORMAT() != null) {
-            bean.setLocalTime(LocalTime.parse(Identifier.unquote(date.TIME_FORMAT().getText())));
-        } else if (date.TIMESTAMP_FORMAT() != null) {
-            bean.setLocalDateTime(LocalDateTime.parse(Identifier.unquote(date.TIMESTAMP_FORMAT().getText())));
-        } else if (date.DATE_FORMAT() != null) {
-            bean.setLocalDate(LocalDate.parse(Identifier.unquote(date.DATE_FORMAT().getText())));
+        if (date.TIME_STRING() != null) {
+            bean.setLocalTime(LocalTime.parse(unquoteDouble(date.TIME_STRING().getText())));
+        } else if (date.TIMESTAMP_STRING() != null) {
+            bean.setLocalDateTime(LocalDateTime.parse(unquoteDouble(date.TIMESTAMP_STRING().getText()), TIMESTAMP_FMT));
+        } else if (date.DATE_STRING() != null) {
+            bean.setLocalDate(LocalDate.parse(unquoteDouble(date.DATE_STRING().getText())));
+        } else if (date.DURATION() != null) {
+            bean.setDuration(toDuration(date.DURATION()));
         }
         return bean;
+    }
+
+    public Duration toDuration(TerminalNode duration) {
+        return Time.duration(duration.getText());
+    }
+
+    private static String unquoteDouble(String s) {
+        return s.substring(1, s.length() - 1);
     }
 
     private Field toField(KQLParser.FieldContext column) {
@@ -444,7 +471,11 @@ public class KQLQueryMapper {
         f.setFunc(function.ID().getText());
 
         for (KQLParser.ArgumentContext a : function.argument()) {
-            if (a.expression() != null) {
+            if (a.logical_expression() != null) {
+                Expression e = build(a, Expression::new);
+                e.setLogical(toLogicalNode(java.util.Map.of(), a.logical_expression()));
+                f.getArguments().add(e);
+            } else if (a.expression() != null) {
                 f.getArguments().add(toExpression(a.expression()));
             } else {
                 Expression e = build(a, Expression::new);
@@ -466,6 +497,8 @@ public class KQLQueryMapper {
         }
         if (window.orderex != null) {
             bean.setOrder(toExpression(window.orderex));
+            if (window.DESC() != null) bean.setOrderDesc(Order.SORT.DESC);
+            else if (window.ASC() != null) bean.setOrderDesc(Order.SORT.ASC);
         }
         if (window.frame() != null) {
             bean.setLower(toFrameBound(window.frame().lower));

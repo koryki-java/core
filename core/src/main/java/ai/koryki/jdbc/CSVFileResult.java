@@ -1,5 +1,7 @@
 package ai.koryki.jdbc;
 
+import ai.koryki.antlr.KorykiaiException;
+
 import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -23,7 +25,7 @@ public class CSVFileResult<C extends ColumnInfo> implements ResultProcessor<C> {
         try {
             writer = new PrintWriter(new OutputStreamWriter(new FileOutputStream(file), cs));
         } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
+            throw new KorykiaiException(e);
         }
     }
 

@@ -17,17 +17,18 @@
 package ai.koryki.iql;
 
 import ai.koryki.antlr.AbstractReader;
-import ai.koryki.antlr.Interval;
-import ai.koryki.antlr.KorykiaiException;
-import ai.koryki.antlr.PanicException;
+import ai.koryki.antlr.AbstractTranspiler;
+import ai.koryki.antlr.Lazy;
+import ai.koryki.iql.functions.FunctionRenderer;
 import ai.koryki.iql.query.Block;
 import ai.koryki.iql.query.Out;
 import ai.koryki.iql.query.Query;
 import ai.koryki.iql.query.Source;
-import ai.koryki.iql.rules.Aggregate;
+import ai.koryki.iql.rewrite.DateBetweenRewriter;
 import ai.koryki.iql.validate.ValidateException;
 import ai.koryki.iql.validate.Validator;
 import ai.koryki.iql.validate.Violation;
+import org.antlr.v4.runtime.RuleContext;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,116 +36,114 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class IQLTranspiler {
+/**
+ * Lazy pipeline of memoized pure stages:
+ * reader → ctx → mapped (query tree) → analysis (scope maps + validation).
+ * Every accessor is idempotent; no stage mutates the output of another.
+ */
+public class IQLTranspiler extends AbstractTranspiler<IQLReader, IQLParser.QueryContext> {
 
-    private Aggregate aggregat;
-    private LinkResolver resolver;
-    private IQLReader reader;
-    private List<Interval> panic;
-    private String iql;
-    private String description;
-    private IQLParser.QueryContext ctx;
-    private Query query;
-    private IQLQueryMapper iql2Bean;
-    private List<Violation> violations = new ArrayList<>();
-    private IQLVisibilityContext visibilityContext;
+    private final String iql;
+    private final LinkResolver resolver;
+    private final FunctionRenderer functions;
 
+    private final Lazy<Mapped> mapped = Lazy.of(this::map);
+    private final Lazy<Analysis> analysis = Lazy.of(this::analyze);
 
-    public IQLTranspiler(Aggregate aggregat, InputStream iql, LinkResolver resolver) throws IOException {
-        this(aggregat, AbstractReader.readStream(iql), resolver);
+    /** Output of the mapping stage: the query tree and its source-context index. */
+    private record Mapped(Query query, Map<Object, RuleContext> iqlToContext) {}
+
+    /** Everything derived from the mapped tree: visibility maps and validation results. */
+    private record Analysis(IQLVisibilityContext visibility, List<Violation> violations) {}
+
+    public IQLTranspiler(InputStream iql, LinkResolver resolver) throws IOException {
+        this(AbstractReader.readStream(iql), resolver);
     }
 
-    public IQLTranspiler(Aggregate aggregat, String iql, LinkResolver resolver) {
-        this.aggregat = aggregat;
-        this.iql= iql;
+    public IQLTranspiler(String iql, LinkResolver resolver) {
+        this(iql, resolver, null);
+    }
+
+    public IQLTranspiler(InputStream iql, LinkResolver resolver, FunctionRenderer functions) throws IOException {
+        this(AbstractReader.readStream(iql), resolver, functions);
+    }
+
+    /** @param functions dialect function catalog for arity/unsupported validation; null = skip those checks */
+    public IQLTranspiler(String iql, LinkResolver resolver, FunctionRenderer functions) {
+
+        this.iql = iql;
         this.resolver = resolver;
+        this.functions = functions;
     }
 
-    public IQLReader getReader() {
-        if (reader == null) {
-            try {
-                IQLReader r = new IQLReader(iql, false);
-                panic(r.getPanic());
-                reader = r;
-            } catch (IOException e) {
-                throw new KorykiaiException(e);
-            }
-        }
-        return reader;
+    /** Fluent assembly; see {@link IQLTranspilerBuilder}. */
+    public static IQLTranspilerBuilder builder(String iql, LinkResolver resolver) {
+        return new IQLTranspilerBuilder(iql, resolver);
     }
 
-    private void panic(List<Interval> p) {
-        this.panic = p;
-        if (p != null && !p.isEmpty()) {
-            throw new PanicException(p);
-        }
+    /** Fluent assembly from a stream; the source is read eagerly. */
+    public static IQLTranspilerBuilder builder(InputStream iql, LinkResolver resolver) throws IOException {
+        return new IQLTranspilerBuilder(AbstractReader.readStream(iql), resolver);
     }
 
-    public String getDescription() {
-        if (description == null) {
-            description = getReader().getDescription();
-        }
-        return description;
+    @Override
+    protected IQLReader newReader() throws IOException {
+        return new IQLReader(iql, false);
     }
 
-    public IQLParser.QueryContext getCtx() {
-        panic(panic);
-        if (ctx == null) {
-            IQLReader r = getReader();
-            ctx = r.getQuery();
-            panic(r.getPanic());
-        }
-        return ctx;
+    private Mapped map() {
+        IQLQueryMapper mapper = new IQLQueryMapper(getCtx(), getDescription());
+        Query q = mapper.toQuery(getCtx());
+        q.setDescription(getDescription());
+        return new Mapped(q, mapper.getIqlToContext());
     }
 
-    private IQLQueryMapper getIql2Bean() {
-        if (iql2Bean == null) {
-            iql2Bean = new IQLQueryMapper(getCtx(), getDescription());
-        }
-        return iql2Bean;
+    private Analysis analyze() {
+        Mapped m = mapped.get();
+        Query q = m.query();
+
+        Map<String, Source> blockIdToLeadingTableMap = Walker.apply(q, new BlockLeadingSourceCollector());
+        Map<String, Block> blockIdToBlockMap = Walker.apply(q, new BlockRegistryCollector());
+        // must not execute rules here, IQL has to be valid in text form!
+
+        SelectScopeCollector select2Aliases = new SelectScopeCollector(m.iqlToContext());
+        Map<Object, Map<String, Source>> s2a = Walker.apply(q, select2Aliases);
+        IQLVisibilityContext visibility = new IQLVisibilityContext(blockIdToBlockMap, blockIdToLeadingTableMap, s2a);
+
+        List<Violation> v = new ArrayList<>();
+        v.addAll(new Validator(q, resolver, blockIdToLeadingTableMap, m.iqlToContext(), functions, visibility).validate());
+        v.addAll(select2Aliases.violations());
+
+        return new Analysis(visibility, List.copyOf(v));
     }
 
     public String getSql(SqlRenderer renderer) {
 
-        return renderer.toSql(resolver, visibility(), getQuery(), getIql2Bean().getIqlToContext());
+        Analysis a = validAnalysis();
+        Query q = getQuery();
+        Runnable restore = DateBetweenRewriter.rewrite(q);
+        try {
+            return renderer.toSql(resolver, a.visibility(), q, mapped.get().iqlToContext());
+        } finally {
+            restore.run();
+        }
     }
 
-    private IQLVisibilityContext visibility() {
-        if (visibilityContext == null) {
-            violations(violations);
-            Query q = getQuery();
-            List<Violation> v = new ArrayList<>();
-
-            Map<String, Source> blockIdToLeadingTableMap = Walker.apply(q, new BlockLeadingSourceCollector());
-            Map<String, Block> blockIdToBlockMap =  Walker.apply(q, new BlockRegistryCollector());
-                    // must not execute rules here, IQL has to be valid in text form!
-
-            IQLQueryMapper l = getIql2Bean();
-            Validator validator = new Validator(aggregat, q, resolver, blockIdToLeadingTableMap, l.getIqlToContext());
-            v.addAll(validator.validate());
-            SelectScopeCollector select2Aliases = new SelectScopeCollector(l.getIqlToContext());
-            Map<Object, Map<String, Source>> s2a = Walker.apply(q, select2Aliases);
-            v.addAll(select2Aliases.violations());
-            violations(v);
-
-            visibilityContext = new IQLVisibilityContext(blockIdToBlockMap, blockIdToLeadingTableMap, s2a);
-        }
-        return visibilityContext;
+    /** Validation results as a value; never throws. */
+    public List<Violation> violations() {
+        return analysis.get().violations();
     }
 
-    private void violations(List<Violation> v) {
-        this.violations = v;
-        if (v != null && !v.isEmpty()) {
-            throw new ValidateException(v);
+    private Analysis validAnalysis() {
+        Analysis a = analysis.get();
+        if (!a.violations().isEmpty()) {
+            throw new ValidateException(a.violations());
         }
+        return a;
     }
 
     public Query getQuery() {
-        if (query == null) {
-            query = getIql2Bean().toQuery(getCtx());
-            query.setDescription(getDescription());
-        }
-        return query;
+        return mapped.get().query();
     }
 
     public List<Out> getOut() {

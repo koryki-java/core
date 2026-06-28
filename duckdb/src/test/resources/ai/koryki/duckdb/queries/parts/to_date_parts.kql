@@ -1,0 +1,30 @@
+// to_date / to_time / to_timestamp construction and parsing overloads.
+
+FIND orders o
+FILTER o.order_id <= 10250
+FETCH
+  o.order_id,
+  to_date(year(o.order_date), month(o.order_date), 1)                    month_start,
+  to_date(o.delivered_date)                                               delivery_day,
+  to_date('2022-07-16', 'YYYY-MM-DD')                                      literal_date,
+  to_time(8, 30, 0)                                                       work_start,
+  to_time(o.delivered_date)                                               delivery_time,
+  to_time('08:30:00', 'HH24:MI:SS')                                       literal_time,
+  to_timestamp(year(o.order_date), month(o.order_date), day(o.order_date), 12, 0, 0)   noon,
+  to_timestamp(o.order_date)                                              order_ts,
+  to_timestamp('2022-07-16 12:00:00', 'YYYY-MM-DD HH24:MI:SS')           literal_ts,
+  to_date(o.delivered_date, 'Europe/Berlin')                              delivery_day_tz,
+  to_time(o.delivered_date, 'Europe/Berlin')                              delivery_time_tz,
+  to_timestamp('2022-07-16 12:00:00', 'YYYY-MM-DD HH24:MI:SS', 'Europe/Berlin')   literal_ts_tz,
+  to_timestamp(year(o.order_date), month(o.order_date), day(o.order_date), 12, 0, 0, 'Europe/Berlin')   noon_tz,
+  to_interval(30, 'DAY')                                                  thirty_days,
+  to_interval(3, 'MONTH')                                                 three_months,
+  to_interval(2, 'HOUR')                                                  two_hours,
+  to_interval(90, 'SECOND')                                               ninety_seconds,
+  to_interval(500, 'MILLISECOND')                                         half_second,
+  to_interval(0, 1, 15, 0, 0, 0)                                         one_month_fifteen_days,
+  o.order_date + to_interval(30, 'DAY')                                   due_date,
+  o.order_date + to_interval(0, 1, 0, 0, 0, 0)                           next_month,
+  o.order_date + 2d4h                                                     later,
+  o.order_date + 1y2mo15d                                                 far_future,
+  o.order_date + 1h30min                                                  meeting_end
