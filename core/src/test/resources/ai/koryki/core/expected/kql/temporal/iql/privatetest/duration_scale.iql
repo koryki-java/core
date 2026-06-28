@@ -1,0 +1,12 @@
+// integer × DURATION → DURATION (component-wise scale). A constant factor × duration literal is folded
+// to a scaled duration literal, so it renders portably (no `n * INTERVAL`) and decodes as an Interval.
+// duckdb-first.
+
+SELECT
+ check_temporal c
+  OUT add(c.date_date, multiply(2, 1d)) date_plus_two_days 3
+  FILTER
+    c.nr = 1
+ALL
+ OUT multiply(2, 1h2min3s) twice_clock 1
+ OUT multiply(1y2mo, 3) thrice_year_month 2

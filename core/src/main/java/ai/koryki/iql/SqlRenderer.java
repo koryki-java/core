@@ -16,15 +16,44 @@
  */
 package ai.koryki.iql;
 
+import ai.koryki.iql.functions.FunctionRenderer;
+import ai.koryki.iql.query.Expression;
+import ai.koryki.iql.query.Out;
 import ai.koryki.iql.query.Query;
+import ai.koryki.iql.types.ExpressionTypeResolver;
+import ai.koryki.catalog.schema.types.TypeDescriptor;
 import org.antlr.v4.runtime.RuleContext;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public interface SqlRenderer {
 
-
     String toSql(LinkResolver resolver, IQLVisibilityContext visibilityContext, Query query, Map<Object, RuleContext> iqlToContext);
 
-    FunctionRenderer getFunctionTranslator();
+     FunctionRenderer getFunctionRenderer();
+
+    /**
+     * Resolved output schema of the most recent {@link #toSql} call — the
+     * single source of truth shared with the read layer ({@code ColumnInfo}).
+     * Empty for renderers that don't resolve outputs.
+     */
+     List<OutputColumn> outputSchema() ;
+
+    /**
+     * Resolves the type of every top-level output column once, with this
+     * renderer's catalog and visibility scope. Exceptions propagate (a query
+     * whose output type can't be resolved is not renderable).
+     */
+    default List<OutputColumn> resolveOutputs(LinkResolver resolver, IQLVisibilityContext visibility, Query query) {
+        ExpressionTypeResolver types = new ExpressionTypeResolver(
+                resolver, visibility.child(SqlQueryRenderer.select(query)), getFunctionRenderer());
+        List<OutputColumn> columns = new ArrayList<>();
+        for (Out o : SqlQueryRenderer.collectOut(query)) {
+            Expression e = o.getExpression();
+            columns.add(new OutputColumn(o, types.resolve(e)));
+        }
+        return columns;
+    }
 }

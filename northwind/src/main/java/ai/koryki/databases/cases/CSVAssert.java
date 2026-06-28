@@ -1,26 +1,25 @@
 package ai.koryki.databases.cases;
 
-import ai.koryki.antlr.AbstractReader;
 import ai.koryki.kql.Engine;
 import ai.koryki.databases.FileAsserter;
-import ai.koryki.scaffold.Util;
+import ai.koryki.catalog.Util;
 import ai.koryki.jdbc.ColumnInfo;
-import ai.koryki.jdbc.ListResult;
 
 import java.io.File;
-import java.io.IOException;
+import java.util.List;
 import java.util.function.Supplier;
 
 
-public class CSVAssert implements TestCase {
+public class CSVAssert<I extends ColumnInfo> implements TestCase {
 
     private String kql;
+    private String sql;
     private String expected;
-    private Engine<ColumnInfo, ListResult<ColumnInfo>> engine;
+    private Engine<I, ListWithSqlResult<I>> engine;
     private String name;
+    private ListWithSqlResult<I> result;
 
-
-    public CSVAssert(Engine<ColumnInfo, ListResult<ColumnInfo>> engine, String kql, String expected, String name) {
+    public CSVAssert(Engine<I, ListWithSqlResult<I>> engine, String kql, String expected, String name) {
         this.engine = engine;
         this.kql = kql;
         this.expected = expected;
@@ -28,7 +27,7 @@ public class CSVAssert implements TestCase {
         run();
     }
 
-    public CSVAssert(Engine<ColumnInfo, ListResult<ColumnInfo>> engine, String kql, String name) {
+    public CSVAssert(Engine<I, ListWithSqlResult<I>> engine, String kql, String name) {
         this.engine = engine;
         this.kql = kql;
         this.name = name;
@@ -39,21 +38,25 @@ public class CSVAssert implements TestCase {
     public void run()  {
 
         String csv = getCsv();
-        check(csv, expected);
+        check(csv, expected, "");
     }
 
-    public void check(String csv, String expected) {
+    public void check(String csv, String expected, String suffix) {
         if (name != null) {
-            Util.text(csv, new File("build/" + name + ".csv"));
+            Util.text(csv, new File("build/" + name + suffix));
         }
         FileAsserter.scriptAssert(expected, csv, "");
     }
 
     public String getCsv() {
-        Supplier<ListResult<ColumnInfo>> processor = ListResult::new;
-        engine.setInfo((t) -> t.infos(StableFormatInfo::new));
-        ListResult<ColumnInfo> result = engine.executeKQL(kql, processor);
+        Supplier<ListWithSqlResult<I>> processor = ListWithSqlResult::new;
 
+        sql =  engine.toSql(kql);
+        // formatting comes from the engine's configured Format (engine.setFormat),
+        // not from the processor — don't force one here.
+        result = engine.executeKQL(kql, processor);
+
+        //sql = result.getSql();
 
         if (name.endsWith("stable")) {
             return result.toCSV();
@@ -62,4 +65,11 @@ public class CSVAssert implements TestCase {
         return csv;
     }
 
+    public String getSql() {
+        return sql;
+    }
+
+    public ListWithSqlResult<I> getResult() {
+        return result;
+    }
 }

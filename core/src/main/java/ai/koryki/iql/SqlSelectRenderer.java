@@ -18,13 +18,21 @@ package ai.koryki.iql;
 
 import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.antlr.Range;
+import ai.koryki.antlr.RangeException;
 import ai.koryki.iql.logic.Normalizer;
 import ai.koryki.iql.query.*;
-import ai.koryki.iql.rules.Math;
-import ai.koryki.scaffold.schema.Relation;
+import ai.koryki.iql.functions.FunctionRenderer;
+import ai.koryki.iql.types.ExpressionTypeResolver;
+import ai.koryki.catalog.schema.Relation;
+import ai.koryki.catalog.schema.types.TypeDescriptor;
 import org.antlr.v4.runtime.RuleContext;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.time.ZoneId;
+import java.util.Locale;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -42,19 +50,35 @@ public class SqlSelectRenderer {
     private final Identifier identifier;
 
     protected LinkResolver resolver;
+    private final SqlDialect dialect;
     private final FunctionRenderer functionRenderer;
     protected IQLVisibilityContext visibilityContext;
     private final Map<Object, RuleContext> iqlToContext;
+    private final ZoneId modelZone;
+
 
     public SqlSelectRenderer(Identifier identifier, Map<Object, RuleContext> iqlToContext,
                              LinkResolver resolver,
                              IQLVisibilityContext visibilityContext,
-                             FunctionRenderer functionRenderer) {
+                             SqlDialect dialect,
+                             ZoneId modelZone) {
         this.identifier = identifier;
         this.iqlToContext = iqlToContext;
         this.resolver = resolver;
         this.visibilityContext = visibilityContext;
-        this.functionRenderer = functionRenderer;
+        this.dialect = dialect;
+        this.functionRenderer = dialect.getFunctionRenderer();
+        this.modelZone = modelZone;
+    }
+
+    /** The model zone (docs/TEMPORAL.md), used by zone-aware literal reconciliation in the dialect. */
+    public ZoneId getModelZone() {
+        return modelZone;
+    }
+
+    /** Cached once per renderer — the dialect's registry is built on construction, not per node. */
+    public FunctionRenderer getFunctionRenderer() {
+        return functionRenderer;
     }
 
     protected String toSql(Select select, int indent) {
@@ -66,12 +90,12 @@ public class SqlSelectRenderer {
 
         b.append(groupbyClause(select, indent));
         b.append(havingClause(select, indent));
-        b.append(orderbyClause(select, indent));
+
+        String orderBy = orderbyClause(select, indent);
+        b.append(orderBy);
 
         if (select.getLimit() > 0) {
-            b.append(indent(indent));
-            b.append("FETCH FIRST ").append(select.getLimit()).append(" ROWS ONLY");
-            b.append(System.lineSeparator());
+            b.append(dialect.limitClause(select.getLimit(), !orderBy.isBlank(), indent));
         }
         return b.toString();
     }
@@ -162,13 +186,15 @@ public class SqlSelectRenderer {
     }
 
     protected String toSql(Out out, int indent) {
-        StringBuilder b = new StringBuilder();
-
-        b.append(toSql(out.getExpression(), indent));
+        String sql = renderOut(out.getExpression(), out, indent);
         if (out.getHeader() != null) {
-            b.append(" AS ").append(normal(out.getHeader()));
+            sql = sql + " AS " + normal(out.getHeader());
         }
-        return b.toString();
+        return sql;
+    }
+
+    protected String renderOut(Expression expression, Out out, int indent) {
+        return toSql(expression, indent);
     }
 
 
@@ -238,8 +264,8 @@ public class SqlSelectRenderer {
         for (Join j : join) {
             if (j.getSource() != null) {
                 l.addAll(j.getSource().getGroup());
-                l.addAll(collectGroup(j.getJoin()));
             }
+            l.addAll(collectGroup(j.getJoin()));
         }
         return l;
     }
@@ -249,8 +275,8 @@ public class SqlSelectRenderer {
         for (Join j : join) {
             if (j.getSource() != null) {
                 l.addAll(j.getSource().getOrder());
-                l.addAll(collectOrder(j.getJoin()));
             }
+            l.addAll(collectOrder(j.getJoin()));
         }
         return l;
     }
@@ -264,7 +290,7 @@ public class SqlSelectRenderer {
         list.addAll(select.getStart().getGroup());
         list.addAll(collectGroup(select.getJoin()));
 
-        return groupbyClause(select.isRollup(), list, select.getJoin(), indent);
+        return groupbyClause(select.isRollup(), list, indent);
     }
 
     private String groupbyClause(boolean rollup, Source start, List<Join> join, int indent) {
@@ -286,10 +312,10 @@ public class SqlSelectRenderer {
         };
         list.sort(c);
 
-        return groupbyClause(rollup, list, join, indent);
+        return groupbyClause(rollup, list, indent);
     }
 
-    private String groupbyClause(boolean rollup, List<Group> list, List<Join> join, int indent) {
+    private String groupbyClause(boolean rollup, List<Group> list, int indent) {
 
         String group = list.stream().map(o -> toSql(o, indent + 1)).collect(Collectors.joining(System.lineSeparator() + indent(indent) + ", "));
 
@@ -297,12 +323,12 @@ public class SqlSelectRenderer {
             StringBuilder b = new StringBuilder();
             b.append(indent(indent) + GROUP_BY);
             if (rollup) {
-                b.append(" ROLLUP (");
+                b.append(dialect.rollupPrefix());
             }
             b.append(System.lineSeparator());
             b.append(indent(indent + 2) + group);
             if (rollup) {
-                b.append(")");
+                b.append(dialect.rollupSuffix());
             }
             b.append(System.lineSeparator());
             return b.toString();
@@ -473,27 +499,22 @@ public class SqlSelectRenderer {
     }
 
     private String toSql(Source parent, UnaryLogicalExpression unaryLogicalExpression, int indent) {
-
         if (unaryLogicalExpression.getExists() != null) {
             return System.lineSeparator() + toSql(parent, unaryLogicalExpression.getExists(), indent);
         } else if (unaryLogicalExpression.getNode() != null) {
             return "(" + System.lineSeparator() + toSql(parent, unaryLogicalExpression.getNode(), indent, false) + System.lineSeparator() + indent(indent) + ")";
         } else {
-            StringBuilder b = new StringBuilder();
-
-            b.append(toSql(unaryLogicalExpression.getLeft(), indent));
-            b.append(" " + toOp(unaryLogicalExpression.getOp()));
-
-            if (isInterval(unaryLogicalExpression.getOp())) {
-                b.append(" " + toInterval(unaryLogicalExpression.getRight().get(0), unaryLogicalExpression.getRight().get(1), indent));
-            } else if (isSet(unaryLogicalExpression.getOp())) {
-                b.append(" (" + unaryLogicalExpression.getRight().stream().map(e -> toSql(e, indent)).collect(Collectors.joining(", ")) + ")");
-            } else {
-                if (!unaryLogicalExpression.getRight().isEmpty()) {
-                    b.append(" " + unaryLogicalExpression.getRight().stream().map(e -> toSql(e, indent)).collect(Collectors.joining(" ")));
+            Expression left = unaryLogicalExpression.getLeft();
+            List<Expression> right = unaryLogicalExpression.getRight();
+            String op = unaryLogicalExpression.getOp();
+            if (left.getFunction() != null && right.isEmpty() && (op == null || op.isBlank())) {
+                String predicateSql = toSqlPredicate(left, indent);
+                if (predicateSql != null) {
+                    return predicateSql;
                 }
             }
-            return b.toString();
+            TypeDescriptor leftType = resolveType(left);
+            return dialect.renderComparison(this, left, leftType, op, right, indent);
         }
     }
 
@@ -503,17 +524,6 @@ public class SqlSelectRenderer {
 
     public static boolean isInterval(String op) {
         return "BETWEEN".equalsIgnoreCase(op);
-    }
-
-    protected String toInterval(Expression left, Expression right, int indent) {
-        return toSql(left, indent) + " AND " + toSql(right, indent);
-    }
-
-    protected String toOp(String op) {
-        if ("ISNULL".equalsIgnoreCase(op)) {
-            return "IS NULL";
-        }
-        return op;
     }
 
     private String toSql(Source left, Exists exists, int indent) {
@@ -532,10 +542,7 @@ public class SqlSelectRenderer {
     }
 
     protected SqlSelectRenderer subSelect(Map<Object, RuleContext> iqlToContext, Object child) {
-
-
-        SqlSelectRenderer s2s = new SqlSelectRenderer(identifier, iqlToContext, resolver, visibilityContext.child(child), functionRenderer);
-        return s2s;
+        return new SqlSelectRenderer(identifier, iqlToContext, resolver, visibilityContext.child(child), dialect, modelZone);
     }
 
     private String existsSubselect(Source left, Exists exists, int indent) {
@@ -551,19 +558,14 @@ public class SqlSelectRenderer {
 
         String j = joinCols(left, exists, indent + 1);
 
+        b.append(indent(indent)).append(WHERE);
+        b.append(System.lineSeparator());
+        b.append(j);
+        b.append(System.lineSeparator());
         if (!w.isEmpty()) {
-            b.append(indent(indent)).append(WHERE);
-            b.append(System.lineSeparator());
-            b.append(j);
-            b.append(System.lineSeparator());
             b.append(indent(indent)).append("AND");
             b.append(System.lineSeparator());
             b.append(w);
-        } else {
-            b.append(indent(indent)).append(WHERE);
-            b.append(System.lineSeparator());
-            b.append(j);
-            b.append(System.lineSeparator());
         }
 
         b.append(groupbyClause(false, exists.getStart(), exists.getJoin(), indent));
@@ -616,8 +618,8 @@ public class SqlSelectRenderer {
 
     private String joinColumns(Range range, int indent, String startName, String startAlias, String endName, String endAlias, String crit, String msg, Source right) {
 
-        String firstQualifier = startAlias != null ? strip(startAlias) : strip(startName);
-        String secondQualifier = endAlias != null ? strip(endAlias) : strip(endName);
+        String firstQualifier = startAlias != null ? startAlias : startName;
+        String secondQualifier = endAlias != null ? endAlias : endName;
 
         StringBuilder b = new StringBuilder();
         b.append(indent(indent));
@@ -631,24 +633,25 @@ public class SqlSelectRenderer {
 
         for (int i = 0; i < r.getStartColumns().size(); i++) {
 
-            String startCol = joinColumn(startBlock, getRelationStartColumn(r, i));
-            String endCol = joinColumn(endBlock, getRelationEndColumn(r, i));
-
-            lines.add(
-                    (firstQualifier != null ? firstQualifier + "." : "") +
-                            startCol + " = " +
-                            (secondQualifier != null ? secondQualifier + "." : "")
-                            + endCol);
+            Expression leftExpr  = joinColumnExpression(startBlock, getRelationStartColumn(r, i), firstQualifier);
+            Expression rightExpr = joinColumnExpression(endBlock,   getRelationEndColumn(r, i),   secondQualifier);
+            TypeDescriptor leftType = resolveType(leftExpr);
+            lines.add(dialect.renderComparison(this, leftExpr, leftType, "=", List.of(rightExpr), indent));
         }
         b.append(
-                lines.stream().collect(Collectors.joining(System.lineSeparator() + Identifier.indent(indent))));
+                lines.stream().collect(Collectors.joining(
+                        System.lineSeparator() + Identifier.indent( indent -1)  + "AND" +
+                        System.lineSeparator() + Identifier.indent(indent)
+                        )));
         return b.toString();
     }
 
 
     private String getRelationEndColumn(Relation r, int i) {
         // Do not translate, Relation already has target language
-        return r.getEndColumns().get(i);
+        String column = r.getEndColumns().get(i);
+
+        return column;
     }
 
     private String getRelationStartColumn(Relation r, int i) {
@@ -656,17 +659,30 @@ public class SqlSelectRenderer {
         return r.getStartColumns().get(i);
     }
 
-    private String joinColumn(Source blockSource, String translatedJoinCol) {
-        if (blockSource == null) {
-            return translatedJoinCol;
-        }
-        for (Out o : blockSource.getOut()) {
-            Field field = o.getExpression().getField();
-            if (field != null && toSql(blockSource, field).equals(translatedJoinCol)) {
-                return o.getHeader() != null ? o.getHeader() : toSql(blockSource, field);
+    private Expression joinColumnExpression(Source blockSource, String translatedJoinCol, String qualifier) {
+        String fieldName;
+        if (blockSource != null) {
+            for (Out o : blockSource.getOut()) {
+                Field outField = o.getExpression().getField();
+                if (outField != null && toSql(blockSource, outField).equals(translatedJoinCol)) {
+                    fieldName = o.getHeader() != null ? o.getHeader() : outField.getName();
+                    Field f = new Field();
+                    f.setAlias(qualifier);
+                    f.setName(fieldName);
+                    Expression e = new Expression();
+                    e.setField(f);
+                    return e;
+                }
             }
+            throw new KorykiaiException("missing joinColumn: " + translatedJoinCol + " " + blockSource.getAlias());
+        } else {
+            Field f = new Field();
+            f.setAlias(qualifier);
+            f.setName(translatedJoinCol);
+            Expression e = new Expression();
+            e.setField(f);
+            return e;
         }
-        throw new KorykiaiException("missing joinColumn: " + translatedJoinCol + " " + blockSource.getAlias());
     }
 
     private String toSql(Source source, Field field) {
@@ -685,11 +701,11 @@ public class SqlSelectRenderer {
         return resolver.getDialectColumn(sourcename, field.getName()).orElse(field.getName());
     }
 
-    protected String toSql(List<Expression> expression, int indent) {
-        return expression.stream().map(e -> toSql(e, 0)).collect(Collectors.joining(", "));
+    public String toSql(List<Expression> expression, int indent) {
+        return expression.stream().map(e -> toSql(e, indent)).collect(Collectors.joining(", "));
     }
 
-    protected String toSql(Expression expression, int indent) {
+    public String toSql(Expression expression, int indent) {
         if (expression.getSelect() != null) {
 
             StringBuilder b = new StringBuilder();
@@ -708,35 +724,60 @@ public class SqlSelectRenderer {
             text = text.replace("\\'", "''");
             return text;
         } else if (expression.getNumber() != null) {
-            DecimalFormat df = new DecimalFormat("#.######");  // Up to 2 decimals
-            return df.format(expression.getNumber());
+            if (expression.getNumber() instanceof BigInteger bigInteger) {
+                return bigInteger.toString();
+            } else if (expression.getNumber() instanceof BigDecimal bigDecimal) {
+                // canonical form: drop trailing zeros (0.0 -> 0) but keep full precision
+                return bigDecimal.stripTrailingZeros().toPlainString();
+            } else {
+                throw new KorykiaiException("unsupported number type: " + expression.getNumber().getClass());
+            }
         } else if (expression.getLocalDate() != null) {
             return dateExpression(expression);
         } else if (expression.getLocalDateTime() != null) {
             return timestampExpression(expression);
         } else if (expression.getLocalTime() != null) {
             return timeExpression(expression);
+        } else if (expression.getDuration() != null) {
+            return dialect.durationLiteral(expression.getDuration());
         } else if (expression.getField() != null) {
-            return toSql(expression.getField(), indent);
+            String col = toSql(expression.getField(), indent);
+            return wallClockWrapped(col, expression);
         } else if (expression.isNull()) {
             return "NULL";
+        } else if (expression.getLogical() != null) {
+            return toSqlInline(expression.getLogical(), indent);
         } else if (expression.getIdentity() != null) {
             throw new KorykiaiException("identity is not allowed here");
         } else {
-            throw new KorykiaiException();
+            throw new KorykiaiException("can't render empty expression");
         }
     }
 
+    /** Inline (single-line) rendering of a boolean logical expression used as a function argument. */
+    private String toSqlInline(LogicalExpression logical, int indent) {
+        if (logical.isNot()) {
+            return "NOT (" + toSqlInline(logical.getChildren().get(0), indent) + ")";
+        }
+        if (logical.isValue()) {
+            return toSql((Source) null, logical.getUnaryRelationalExpression(), indent);
+        }
+        String op = " " + logical.getType().name() + " ";
+        return "(" + logical.getChildren().stream()
+                .map(c -> toSqlInline(c, indent))
+                .collect(Collectors.joining(op)) + ")";
+    }
+
     protected String timeExpression(Expression expression) {
-        return "TIME '" + expression.getLocalTime() + "'";
+        return dialect.timeLiteral(expression.getLocalTime());
     }
 
     protected String timestampExpression(Expression expression) {
-        return "TIMESTAMP '" + expression.getLocalDateTime() + "'";
+        return dialect.timestampLiteral(expression.getLocalDateTime());
     }
 
     protected String dateExpression(Expression expression) {
-        return "DATE '" + expression.getLocalDate() + "'";
+        return dialect.dateLiteral(expression.getLocalDate());
     }
 
     protected String toSql(Field field, int indent) {
@@ -747,89 +788,63 @@ public class SqlSelectRenderer {
 
         Source source = visibilityContext.getSource(field.getAlias());
         if (source == null) {
-            throw new RuntimeException(field.getAlias());
+            throw new KorykiaiException("unknown source alias '" + field.getAlias() + "' for field " + field.getName());
         }
 
         b.append(normal(toSql(source, field)));
         return b.toString();
     }
 
+    // One resolver per renderer: fixed (resolver, visibility, functions) scope, with its own
+    // identity memo. Subselects get their own renderer (subSelect()), hence their own resolver.
+    private ExpressionTypeResolver typeResolver;
+
+    public TypeDescriptor resolveType(Expression expression) {
+        if (typeResolver == null) {
+            typeResolver = new ExpressionTypeResolver(resolver, visibilityContext, functionRenderer);
+        }
+        return typeResolver.resolve(expression);
+    }
+
+    /**
+     * If {@code fieldExpr} is a wall-clock(zone) column, wrap its rendered SQL in the dialect's
+     * declared-zone → model-zone conversion (docs/TEMPORAL.md). Applied wherever a column is rendered,
+     * so a bare column, an arithmetic operand and a comparison operand all carry the model-zone value
+     * (the conversion is SQL-side and precedes any arithmetic). Best-effort: an un-typable field is bare.
+     */
+    private String wallClockWrapped(String columnSql, Expression fieldExpr) {
+        TypeDescriptor t;
+        try {
+            t = resolveType(fieldExpr);
+        } catch (RuntimeException unresolved) {
+            return columnSql;
+        }
+        if (t != null && t.getTypeEncoding() instanceof ai.koryki.catalog.schema.types.WallClockEncoding wc) {
+            return dialect.wallClockToModelZone(columnSql, wc, modelZone);
+        }
+        return columnSql;
+    }
+
+    public String toSqlPredicate(Expression expression, int indent) {
+        if (expression.getFunction() != null) {
+            String sql = functionRenderer.predicate(this, expression.getFunction(), indent);
+            if (sql != null) return sql;
+        }
+        return toSql(expression, indent);
+    }
+
     protected String toSql(Function function, int indent) {
-        StringBuilder b = new StringBuilder();
-
-        String operator = Math.operator(function.getFunc());
-        if (operator != null) {
-            b.append(function.getArguments().stream().map(
-                    a -> toSql(a, indent)).collect(Collectors.joining(" " + operator + " ")));
-        } else {
-            b.append(functionRenderer.function(this, function, indent));
-        }
-        b.append(toSql(function.getWindow(), indent));
-
-        return b.toString();
-    }
-
-    protected String toSql(Window window, int indent) {
-        if (window == null) {
-            return "";
-        }
-        StringBuilder b = new StringBuilder();
-
-        b.append(" OVER (");
-
-        if (!window.getPartition().isEmpty()) {
-            b.append("PARTITION BY " + toSql(window.getPartition(), indent));
-        }
-
-        if (!window.getOrder().isEmpty()) {
-            b.append(" ORDER BY ");
-            b.append(toSql(window.getOrder(), indent));
-        }
-
-        if (window.getLower() != null) {
-            b.append(" ROWS BETWEEN ");
-            b.append(toSql(window.getLower()));
-            b.append(" AND ");
-            b.append(toSql(window.getUpper()));
-        }
-
-        b.append(")");
-        return b.toString();
-    }
-
-    protected String toSql(Limit limit) {
-        return (limit.getNum() > 0 ? limit.getNum() + " " : "") + limit.getName();
+        String sql = functionRenderer.function(this, function, indent);
+        return sql;
     }
 
     private String normal(String text) {
         return Identifier.normal(identifier, text);
     }
 
-    private String normal(int l, String text) {
-        return indent(l) + normal(text);
-    }
-
     private String indent(int l) {
         return Identifier.indent(l);
     }
-
-    public static String strip(String text) {
-
-        if (text == null) {
-            return null;
-        }
-
-        String n = text.toLowerCase();
-
-        if (n.startsWith("\"")) {
-            n = n.substring(1);
-        }
-        if (n.endsWith("\"")) {
-            n = n.substring(0, n.length() - 1);
-        }
-        return n;
-    }
-
 
     protected String getSource(String source) {
         if (resolver.isEntity(source)) {
@@ -852,17 +867,25 @@ public class SqlSelectRenderer {
         Optional<Relation> o = resolver.findRelation(range, Identifier.normal(Identifier.lowercase, startSource), Identifier.normal(Identifier.lowercase, endSource), crit);
 
         if (o.isEmpty()) {
-            throw new KorykiaiException(msg + " " + crit + " " + right);
+            throw new RangeException(range, msg + " " + crit + " " + right);
         }
         Relation r = o.get();
         return r;
     }
 
-    protected FunctionRenderer getFunctionTranslator() {
-        return functionRenderer;
+    public IQLVisibilityContext getVisibilityContext() {
+        return visibilityContext;
+    }
+
+    public LinkResolver getResolver() {
+        return resolver;
     }
 
     public Identifier getIdentifier() {
         return identifier;
+    }
+
+    public SqlDialect getDialect() {
+        return dialect;
     }
 }

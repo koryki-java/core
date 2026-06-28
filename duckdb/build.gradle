@@ -17,6 +17,7 @@ dependencies {
 
 
     implementation project(':core')
+    testImplementation project(':northwind')
 
     testImplementation platform(libs.junit.bom)
     testImplementation libs.junit.jupiter
@@ -27,6 +28,14 @@ test {
     useJUnitPlatform()
 }
 
+tasks.register('DuckdbNorthwindScript', JavaExec) {
+    group = "application"
+    description = "Build the Northwind DuckDB database file at build/northwind.duckdb"
+
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'ai.koryki.databases.northwind.duckdb.BuildNorthwind'
+}
+
 publishing {
     publications {
         // Define the publication for this subproject
@@ -34,7 +43,6 @@ publishing {
             // The 'java' component includes the main JAR artifact and its transitive dependencies
             from components.java
 
-            group = 'ai.koryki.duckdb'
             // Optionally, override the artifact ID (defaults to project name: 'api')
             artifactId = 'koryki-duckdb'
         }

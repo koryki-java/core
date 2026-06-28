@@ -1,0 +1,14 @@
+// TEMPORAL.md normative examples as result assertions (java.time reference).
+// Uniform-rendering subset: distances + end functions render identically across
+// dialects. Clamping (month_add) and begin (month_begin) are deferred until the
+// DATE->TIMESTAMP type promotion (task #22) is fixed, since their rendering diverges.
+
+SELECT
+ check_temporal c
+ALL
+ OUT months_between("2023-01-31", "2023-03-31") whole_two 1
+ OUT months_between("2023-01-31", "2023-03-30") not_complete_one 2
+ OUT days_between("2023-03-01", "2023-02-01") signed_minus28 3
+ OUT month_end("2024-02-10") end_leap 4
+ OUT quarter_end("2024-05-20") end_q2 5
+ OUT year_end("2024-05-20") end_year 6

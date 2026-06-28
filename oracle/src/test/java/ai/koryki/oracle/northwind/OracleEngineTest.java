@@ -1,82 +1,42 @@
 package ai.koryki.oracle.northwind;
 
-import ai.koryki.databases.FileAsserter;
-import ai.koryki.databases.cases.CSVAssert;
-import ai.koryki.databases.cases.StableFormatInfo;
-import ai.koryki.databases.northwind.NorthwindService;
-import ai.koryki.iql.LinkResolver;
-import ai.koryki.jdbc.ColumnInfo;
-import ai.koryki.jdbc.Database;
-import ai.koryki.jdbc.ListResult;
+import ai.koryki.databases.cases.BaseEngineTest;
+import ai.koryki.databases.cases.ListWithSqlResult;
+import ai.koryki.databases.cases.StableFormat;
+import ai.koryki.kql.HeaderInfo;
+import java.util.Locale;
+import ai.koryki.databases.cases.TestUtil;
+import ai.koryki.databases.northwind.duckdb.NorthwindService;
 import ai.koryki.kql.Engine;
 import ai.koryki.oracle.OracleUnavailable;
 import ai.koryki.oracle.iql.SqlQueryRenderer;
-import ai.koryki.scaffold.Util;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileVisitOption;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
-import java.util.stream.Stream;
 
 @OracleUnavailable
-public class OracleEngineTest {
+public class OracleEngineTest extends BaseEngineTest<HeaderInfo> {
 
-    public static final String NORTHWIND_ROOT = "../../core/core/src/test/resources/ai/koryki/kql/northwind";
-    public static final String SUFFIX = ".kql";
+    @Override protected String queriesRoot() { return "src/test/resources/ai/koryki/oracle/queries/northwind"; }
+    @Override protected String expectedCsv() { return "src/test/resources/ai/koryki/oracle/expected/northwind/csv"; }
+    @Override protected String expectedSql() { return "src/test/resources/ai/koryki/oracle/expected/northwind/sql"; }
 
-    private static LinkResolver resolver;
-    private static Database<ListResult<ColumnInfo>> database;
-    private static Engine<ColumnInfo, ListResult<ColumnInfo>> engine;
+    public OracleEngineTest() {
+        super("oracle");
+    }
 
     @BeforeAll
-    public static void readNorthwindDB() throws IOException, SQLException {
-
-        resolver = NorthwindService.resolver();
-        database = new NorthwindOracle<>();
-        engine = new Engine<>(database, resolver, new SqlQueryRenderer(), StableFormatInfo::new);
+    public void readNorthwindDB() throws IOException, SQLException {
+        engine = Engine.builder(new NorthwindOracle<ListWithSqlResult<HeaderInfo>>(), NorthwindService.resolver(),
+                new SqlQueryRenderer(java.time.ZoneId.of("UTC"))).format(new StableFormat(Locale.ROOT)).build();
     }
 
-    static Stream<Path> testFiles() throws IOException {
-
-        return Files.walk(Path.of(NORTHWIND_ROOT), FileVisitOption.FOLLOW_LINKS)
-                .filter(p -> p.toString().endsWith(SUFFIX));
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("testFiles")
-    void testEachFile(Path kql) throws IOException {
-
-        test(kql);
-    }
-
-//    @Test
-//    public void testSingleFile() throws IOException {
-//
-//        Path p = Path.of("../../core/core/src/test/resources/ai/koryki/kql/northwind/privatetest/consistency/orders.kql");
-//
-//        test(p);
-//    }
-
-    private static void test(Path kql) throws IOException {
-
-        Path sibling = FileAsserter.getSibling(kql, SUFFIX, ".csv");
-        File expectedFile = sibling.toFile();
-
-        String query = Files.readString(kql);
-        CSVAssert csv = new CSVAssert(engine, query, kql.toFile().getName());
-        String result = csv.getCsv();
-        if (expectedFile.canRead()) {
-            String expected = Files.readString(sibling);
-            csv.check(result, expected);
-        } else {
-            Util.text(result, expectedFile);
-        }
+    @Test
+    public void testSingleFile() throws IOException {
+        Path kql = Path.of("src/test/resources/ai/koryki/oracle/queries/northwind/parse/parse_date.kql");
+        TestUtil.test(kql, suffix(), engine, Path.of(queriesRoot()), Path.of(expectedCsv()), Path.of(expectedSql()));
     }
 }

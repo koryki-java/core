@@ -12,24 +12,27 @@ public class BuildNorthwind {
 
         try (Connection connection = NorthwindPostgresql.connection()) {
             connection.setAutoCommit(false);
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/postgresql/drop.sql");
+            Script.executeScript(connection, "/ai/koryki/postgresql/databases/northwind/drop.sql");
 
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/postgresql/tables.sql");
+            Script.executeScript(connection, "/ai/koryki/postgresql/databases/northwind/tables.sql");
 
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/postgresql/data_categories.sql");
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/postgresql/data_customers.sql");
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/postgresql/data_employees.sql");
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/postgresql/data_employees_territories.sql");
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/postgresql/data_order_details.sql");
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/postgresql/data_orders.sql");
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/postgresql/data_products.sql");
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/postgresql/data_region.sql");
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/postgresql/data_shippers.sql");
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/postgresql/data_suppliers.sql");
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/postgresql/data_territories.sql");
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/postgresql/data_us_states.sql");
+            Script.executeScript(connection, "/ai/koryki/postgresql/databases/northwind/data_categories.sql");
+            Script.executeScript(connection, "/ai/koryki/postgresql/databases/northwind/data_customers.sql");
+            Script.executeScript(connection, "/ai/koryki/postgresql/databases/northwind/data_employees.sql");
+            Script.executeScript(connection, "/ai/koryki/postgresql/databases/northwind/data_employees_territories.sql");
+            Script.executeScript(connection, "/ai/koryki/postgresql/databases/northwind/data_order_details.sql");
+            Script.executeScript(connection, "/ai/koryki/postgresql/databases/northwind/data_orders.sql");
+            Script.executeScript(connection, "/ai/koryki/postgresql/databases/northwind/data_products.sql");
+            Script.executeScript(connection, "/ai/koryki/postgresql/databases/northwind/data_region.sql");
+            Script.executeScript(connection, "/ai/koryki/postgresql/databases/northwind/data_shippers.sql");
+            Script.executeScript(connection, "/ai/koryki/postgresql/databases/northwind/data_suppliers.sql");
+            Script.executeScript(connection, "/ai/koryki/postgresql/databases/northwind/data_territories.sql");
+            Script.executeScript(connection, "/ai/koryki/postgresql/databases/northwind/data_us_states.sql");
+
+            Script.executeScript(connection, "/ai/koryki/postgresql/databases/northwind/data_check_temporal.sql");
+            Script.executeScript(connection, "/ai/koryki/postgresql/databases/northwind/data_check_type.sql");
             connection.commit();
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/postgresql/constraints.sql");
+            Script.executeScript(connection, "/ai/koryki/postgresql/databases/northwind/constraints.sql");
             connection.commit();
         }
     }

@@ -1,0 +1,5 @@
+// Unary minus: negated field and negated arithmetic expression in FETCH.
+
+FIND bestellposition od
+FILTER od.rabatt > 0.0
+FETCH od.bestell_id, -od.rabatt, -(od.preis_je_einheit * od.menge )

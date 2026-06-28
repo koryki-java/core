@@ -1,6 +1,6 @@
-# Package `ai.koryki.scaffold`
+# Package `ai.koryki.catalog`
 
-`ai.koryki.scaffold` provides the two-layer structural and semantic description of a
+`ai.koryki.catalog` provides the two-layer structural and semantic description of a
 relational database used by the **koryki** platform.
 
 - The **schema layer** (`schema/`) models the raw database structure: tables, columns,
@@ -23,7 +23,7 @@ falling back to the schema layer.
 
 
 
-## Package `ai.koryki.scaffold.schema`
+## Package `ai.koryki.catalog.schema`
 
 Provides a plain Java object graph that represents the physical structure of a relational
 database schema. It is the lowest-level representation of "what the database looks like":
@@ -145,10 +145,10 @@ Composite foreign keys (where multiple columns participate) are supported via th
 | `symmetric` | `boolean` | When `true`, the relationship is considered bidirectional; the start/end distinction is not significant for join resolution. |
 
 
-# Package `ai.koryki.scaffold.domain`
+# Package `ai.koryki.catalog.domain`
 
-`ai.koryki.scaffold.domain` is the **semantic layer** of the scaffold. It mirrors the
-physical structure of `ai.koryki.scaffold.schema` but replaces database-centric concepts
+`ai.koryki.catalog.domain` is the **semantic layer** of the scaffold. It mirrors the
+physical structure of `ai.koryki.catalog.schema` but replaces database-centric concepts
 with business-oriented domain concepts and may be restricted to a subset:
 
 | Schema layer | Domain layer |
@@ -338,21 +338,21 @@ Inside schema definition we will write:
       "columns" : [ {
         "name" : "username",
         "label" : "Username",
-        "genericType" : "varchar",
+        "genericType" : "TEXT",
         "dialectType" : "character varying",
         "nullable" : false,
         "pkPos" : 0
       }, {
         "name" : "serial#",
         "label" : "Serial",
-        "genericType" : "varchar",
+        "genericType" : "TEXT",
         "dialectType" : "character varying",
         "nullable" : false,
         "pkPos" : 0
       }, {
         "name" : "SID",
         "label" : "SID",
-        "genericType" : "varchar",
+        "genericType" : "TEXT",
         "dialectType" : "character varying",
         "nullable" : false,
         "pkPos" : 1

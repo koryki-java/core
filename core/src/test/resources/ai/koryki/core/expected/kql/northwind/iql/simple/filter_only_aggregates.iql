@@ -1,0 +1,14 @@
+// HavingRule: when every FILTER conjunct is an aggregate comparison,
+// all of them move to HAVING and no WHERE clause may remain.
+
+SELECT
+ customers c
+  OUT c.company_name 1
+  GROUP c.company_name 1
+  JOIN same_customer orders o
+    OUT count(o.order_id) 2
+    HAVING 
+     count(o.order_id) < 100
+    AND
+     count(o.order_id) > 10
+  OWNER

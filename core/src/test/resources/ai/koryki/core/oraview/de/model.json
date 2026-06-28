@@ -1,0 +1,42 @@
+{
+  "name" : "oraview",
+  "label" : "Ora-Sichten",
+  "description" : "Beispielschema zum Test von dialect-spezfischen Namen die nicht kompatibel zu KQL oder IQL Identifier sind.",
+  "entities" : [ {
+    "name" : "vduser",
+    "label" : "Benutzersicht",
+    "table" : "v$user",
+    "attributes" : [ {
+      "name" : "benutzer",
+      "label" : "Benutzer",
+      "column" : "username"
+    }, {
+      "name" : "id",
+      "label" : "Id",
+      "column" : "_id"
+    } ]
+  }, {
+    "name" : "vdsession",
+    "label" : "Sessionsicht",
+    "table" : "v$session",
+    "attributes" : [ {
+      "name" : "benutzer",
+      "label" : "Benutzer",
+      "column" : "username"
+    }, {
+      "name" : "serial#",
+      "label" : "Serial",
+      "column" : "serial#"
+    }, {
+      "name" : "sid",
+      "label" : "SID",
+      "column" : "SID"
+    } ]
+  } ],
+  "links" : [ {
+    "name" : "gleicher_benutzer",
+    "comment" : "beide Datensätze verweisen auf den gleichen Benutzer",
+    "base" : "same_user",
+    "relations" : [ "fk_user" ]
+  } ]
+}

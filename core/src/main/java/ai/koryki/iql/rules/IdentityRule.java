@@ -20,9 +20,7 @@ import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.Visitor;
 import ai.koryki.iql.Walker;
 import ai.koryki.iql.query.*;
-import ai.koryki.scaffold.domain.Model;
-import ai.koryki.scaffold.schema.Column;
-import ai.koryki.scaffold.schema.Schema;
+import ai.koryki.catalog.schema.Column;
 
 import java.util.*;
 
@@ -88,7 +86,7 @@ public class IdentityRule {
                 }
             } else {
 
-                Optional<ai.koryki.scaffold.schema.Table> ot = resolver.getDialectTable(source.getName())
+                Optional<ai.koryki.catalog.schema.Table> ot = resolver.getDialectTable(source.getName())
                         .flatMap(table -> resolver.getSchema().getTable(table));
 
                 // check pkPos == 1 only, multipart pk also require first part only !

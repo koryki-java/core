@@ -1,0 +1,11 @@
+// Duration literals across the unit classes, including combined calendar+clock compositions, rendered
+// as the dialect's interval literal (no normalization across the calendar/clock boundary).
+
+SELECT
+ check_temporal c
+ALL
+ OUT 1h2min3s time_duration 1
+ OUT add(1d, 1h2min3s) day_time_duration 2
+ OUT 1y2mo year_month_duration 3
+ OUT 1y2mo3d year_month_day_duration 4
+ OUT add(1y2mo1d, 1h2min3s) mixed_duration 5

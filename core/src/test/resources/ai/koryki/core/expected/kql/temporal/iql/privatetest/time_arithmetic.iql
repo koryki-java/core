@@ -1,0 +1,14 @@
+// TIME stored as seconds-from-midnight: arithmetic is integer seconds, wrapped mod 86400 so that
+// crossing midnight in either direction stays a valid time-of-day.
+//   overflow:  23:30 + 2h  -> 01:30
+//   underflow: 00:30 - 3h  -> 21:30
+// A calendar unit (d, w, mo, q, y) on a TIME is a validation error — a time-of-day
+// has no calendar context (docs/TEMPORAL.md, "Applying a duration -> TIME").
+
+SELECT
+ check_temporal c
+  OUT c.time_sec_from_midnight base_time 1
+  OUT add(c.time_sec_from_midnight, 2h) plus_two_hours 2
+  OUT add(c.time_sec_from_midnight, 1h30min) plus_ninety_minutes 3
+  OUT minus(c.time_sec_from_midnight, 3h) minus_three_hours 4
+  OUT add(c.time_sec_from_midnight, to_interval(45, 'MINUTE')) plus_interval 5

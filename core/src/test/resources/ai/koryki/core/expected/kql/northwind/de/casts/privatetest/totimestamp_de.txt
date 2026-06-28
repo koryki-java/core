@@ -1,0 +1,2 @@
+FIND bestellungen o
+FETCH o.bestell_id, to_timestamp(o.bestelldatum) ordered_at

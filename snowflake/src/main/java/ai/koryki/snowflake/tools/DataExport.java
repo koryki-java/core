@@ -18,18 +18,21 @@ package ai.koryki.snowflake.tools;
 
 import ai.koryki.jdbc.XMLFileResult;
 import ai.koryki.kql.Engine;
-import ai.koryki.scaffold.schema.Schema;
-import ai.koryki.scaffold.schema.Table;
+import ai.koryki.catalog.schema.Schema;
+import ai.koryki.catalog.schema.Table;
 
 import java.io.File;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class DataExport {
+public class DataExport<C extends XMLFileResult<?>> {
 
-    private final Engine<?, XMLFileResult<?>> engine;
-    public DataExport(Engine<?, XMLFileResult<?>> engine) {
+    private final Engine<?, C> engine;
+    private final Function<File, C> resultFactory;
 
+    public DataExport(Engine<?, C> engine, Function<File, C> resultFactory) {
         this.engine = engine;
+        this.resultFactory = resultFactory;
     }
 
     public void exportData(File dir) {
@@ -56,7 +59,7 @@ public class DataExport {
             System.out.print(file);
             System.out.flush();
 
-            XMLFileResult<?> result = engine.executeKQL(kql, () -> new XMLFileResult(file));
+            C result = engine.executeKQL(kql, () -> resultFactory.apply(file));
 
             System.out.println(" " +  result.getFile().length() + " " + (System.currentTimeMillis() - start));
         } catch (RuntimeException e) {

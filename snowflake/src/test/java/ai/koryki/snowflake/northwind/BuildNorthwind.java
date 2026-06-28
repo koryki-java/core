@@ -28,14 +28,19 @@ public class BuildNorthwind {
     public static void main(String[] args) throws Exception {
 
         ObjectMapper mapper = new ObjectMapper();
-        InputStream inputStream = BuildNorthwind.class.getResourceAsStream("/ai/koryki/databases/northwind/snowflake/data.json");
+        InputStream inputStream = BuildNorthwind.class.getResourceAsStream("/ai/koryki/snowflake/databases/northwind/data.json");
         JsonNode root = mapper.readTree(inputStream);
 
         try (Connection connection = NorthwindSnowflake.connection()) {
             connection.setAutoCommit(false);
 
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/snowflake/drop.sql");
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/snowflake/tables.sql");
+            Script.executeScript(connection, "/ai/koryki/snowflake/databases/northwind/drop.sql");
+            Script.executeScript(connection, "/ai/koryki/snowflake/databases/northwind/tables.sql");
+
+            // check_temporal / check_type are dialect-specific and tiny — populated from SQL
+            // scripts (single INSERTs), not the dialect-neutral JSON batch path.
+            Script.executeScript(connection, "/ai/koryki/snowflake/databases/northwind/data_check_type.sql");
+            Script.executeScript(connection, "/ai/koryki/snowflake/databases/northwind/data_check_temporal.sql");
 
             importTable(connection,
                     "INSERT INTO categories (category_id, category_name, description, root_category_id, super_category_id) VALUES (?,?,?,?,?)",
@@ -82,7 +87,7 @@ public class BuildNorthwind {
                     });
 
             importTable(connection,
-                    "INSERT INTO employees (employee_id, last_name, first_name, title, title_of_courtesy, birth_date, hire_date, address, city, region, postal_code, country, home_phone, extension, notes, reports_to, photo_path) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "INSERT INTO employees (employee_id, last_name, first_name, title, title_of_courtesy, birth_date, hire_date, working_hour_from, working_hour_to, address, city, region, postal_code, country, home_phone, extension, notes, reports_to, photo_path) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     mapper.convertValue(root.get(ExportJson.EMPLOYEES), new TypeReference<List<ExportJson.Employee>>() {}),
                     (ps, r) -> {
                         ps.setShort(1, r.employeeId());
@@ -92,16 +97,18 @@ public class BuildNorthwind {
                         setNullableString(ps, 5, r.titleOfCourtesy());
                         setNullableString(ps, 6, r.birthDate());
                         setNullableString(ps, 7, r.hireDate());
-                        setNullableString(ps, 8, r.address());
-                        setNullableString(ps, 9, r.city());
-                        setNullableString(ps, 10, r.region());
-                        setNullableString(ps, 11, r.postalCode());
-                        setNullableString(ps, 12, r.country());
-                        setNullableString(ps, 13, r.homePhone());
-                        setNullableString(ps, 14, r.extension());
-                        setNullableString(ps, 15, r.notes());
-                        setNullableShort(ps, 16, r.reportsTo());
-                        setNullableString(ps, 17, r.photoPath());
+                        setNullableString(ps, 8, r.workingHourFrom());
+                        setNullableString(ps, 9, r.workingHourTo());
+                        setNullableString(ps, 10, r.address());
+                        setNullableString(ps, 11, r.city());
+                        setNullableString(ps, 12, r.region());
+                        setNullableString(ps, 13, r.postalCode());
+                        setNullableString(ps, 14, r.country());
+                        setNullableString(ps, 15, r.homePhone());
+                        setNullableString(ps, 16, r.extension());
+                        setNullableString(ps, 17, r.notes());
+                        setNullableShort(ps, 18, r.reportsTo());
+                        setNullableString(ps, 19, r.photoPath());
                     });
 
             importTable(connection,
@@ -124,7 +131,7 @@ public class BuildNorthwind {
                     });
 
             importTable(connection,
-                    "INSERT INTO orders (order_id, customer_id, employee_id, order_date, required_date, shipped_date, ship_via, freight, ship_name, ship_address, ship_city, ship_region, ship_postal_code, ship_country) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "INSERT INTO orders (order_id, customer_id, employee_id, order_date, required_date, shipped_date, delivered_date, ship_via, freight, ship_name, ship_address, ship_city, ship_region, ship_postal_code, ship_country) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     mapper.convertValue(root.get(ExportJson.ORDERS), new TypeReference<List<ExportJson.Order>>() {}),
                     (ps, r) -> {
                         ps.setShort(1, r.orderId());
@@ -133,14 +140,15 @@ public class BuildNorthwind {
                         setNullableString(ps, 4, r.orderDate());
                         setNullableString(ps, 5, r.requiredDate());
                         setNullableString(ps, 6, r.shippedDate());
-                        setNullableShort(ps, 7, r.shipVia());
-                        setNullableBigDecimal(ps, 8, r.freight());
-                        setNullableString(ps, 9, r.shipName());
-                        setNullableString(ps, 10, r.shipAddress());
-                        setNullableString(ps, 11, r.shipCity());
-                        setNullableString(ps, 12, r.shipRegion());
-                        setNullableString(ps, 13, r.shipPostalCode());
-                        setNullableString(ps, 14, r.shipCountry());
+                        setNullableString(ps, 7, r.deliveredDate());
+                        setNullableShort(ps, 8, r.shipVia());
+                        setNullableBigDecimal(ps, 9, r.freight());
+                        setNullableString(ps, 10, r.shipName());
+                        setNullableString(ps, 11, r.shipAddress());
+                        setNullableString(ps, 12, r.shipCity());
+                        setNullableString(ps, 13, r.shipRegion());
+                        setNullableString(ps, 14, r.shipPostalCode());
+                        setNullableString(ps, 15, r.shipCountry());
                     });
 
             importTable(connection,

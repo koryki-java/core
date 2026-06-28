@@ -1,0 +1,45 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+}
+
+description = 'koryki trino databases and services'
+
+java {
+    withSourcesJar() // Optional: Creates the sources JAR
+    withJavadocJar() // Optional: Creates the Javadoc JAR
+}
+
+dependencies {
+
+    implementation(libs.trino)
+    implementation libs.jackson.databind
+
+    implementation project(':northwind')
+    implementation project(':core')
+
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly libs.junit.platform.launcher
+}
+
+test {
+    useJUnitPlatform()
+    systemProperty "trino.northwind.url", project.findProperty("trino.northwind.url")
+    systemProperty "trino.northwind.user", project.findProperty("trino.northwind.user")
+    systemProperty "trino.northwind.password", project.findProperty("trino.northwind.password")
+
+}
+
+publishing {
+    publications {
+        // Define the publication for this subproject
+        mavenJava(MavenPublication) {
+            // The 'java' component includes the main JAR artifact and its transitive dependencies
+            from components.java
+
+            // Optionally, override the artifact ID (defaults to project name: 'api')
+            artifactId = 'koryki-trino'
+        }
+    }
+}

@@ -1,0 +1,6 @@
+// PostgreSQL math chapter as functions (no operator forms in KQL):
+// mod/sqrt/power instead of % |/ ^, plus the round(value, scale) overload.
+
+FIND bestellungen o
+FILTER mod(o.bestell_id, 7) = 0
+FETCH o.bestell_id, round(o.gewicht, 2), sqrt(o.gewicht), power(o.gewicht, 2)

@@ -1,0 +1,11 @@
+// to_utc(value, 'Zone'): the inverse of at_zone -- read value as a wall-clock in the named zone and
+// return the model-zone wall-clock value (docs/TEMPORAL.md "Time zones"). Named to_utc because the model
+// zone defaults to UTC. nr 1 only (interpret 2024-06-01 09:00 as New York wall-clock, unambiguous).
+// SQLite has no time-zone database, so zone crossing is impossible there and is permanently skipped.
+
+SELECT
+ check_temporal c
+  OUT c.ts_diff_base base 1
+  OUT to_utc(c.ts_diff_base, 'America/New_York') from_new_york 2
+  FILTER
+    c.nr = 1

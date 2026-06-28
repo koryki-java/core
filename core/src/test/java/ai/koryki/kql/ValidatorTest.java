@@ -16,8 +16,7 @@
  */
 package ai.koryki.kql;
 
-import ai.koryki.iql.rules.Aggregate;
-import ai.koryki.databases.northwind.NorthwindService;
+import ai.koryki.databases.northwind.duckdb.NorthwindService;
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.Walker;
 import ai.koryki.iql.query.Query;
@@ -43,7 +42,7 @@ public class ValidatorTest {
     @Test
     public void cycle1() throws IOException {
 
-        InputStream kql = ValidatorTest.class.getResourceAsStream("/ai/koryki/kql/validator/cycle_1.kql");
+        InputStream kql = ValidatorTest.class.getResourceAsStream("/ai/koryki/core/validator/cycle_1.kql");
 
         KQLReader r = new KQLReader(kql);
 
@@ -52,7 +51,7 @@ public class ValidatorTest {
         KQLQueryMapper l = new KQLQueryMapper(resolver, script, r.getDescription());
         Query query = l.toBean();
 
-        FunctionValidator v = new FunctionValidator(new Aggregate() {}, l.getIqlToContext());
+        FunctionValidator v = new FunctionValidator(l.getIqlToContext());
         new Walker().walk(query, v);
         assertTrue(v.collect().isEmpty());
     }
@@ -60,7 +59,7 @@ public class ValidatorTest {
     @Test
     public void expression1() throws IOException {
 
-        InputStream kql = ValidatorTest.class.getResourceAsStream("/ai/koryki/kql/validator/invalid_expression_1.kql");
+        InputStream kql = ValidatorTest.class.getResourceAsStream("/ai/koryki/core/validator/invalid_expression_1.kql");
 
         KQLReader r = new KQLReader(kql);
 
@@ -69,7 +68,7 @@ public class ValidatorTest {
         KQLQueryMapper l = new KQLQueryMapper(resolver, script, r.getDescription());
         Query query = l.toBean();
 
-        FunctionValidator v = new FunctionValidator(new Aggregate() {}, l.getIqlToContext());
+        FunctionValidator v = new FunctionValidator(l.getIqlToContext());
         new Walker().walk(query, v);
         assertFalse(v.collect().isEmpty());
     }
@@ -77,7 +76,7 @@ public class ValidatorTest {
     @Test
     public void expression2() throws IOException {
 
-        InputStream kql = ValidatorTest.class.getResourceAsStream("/ai/koryki/kql/validator/invalid_expression_2.kql");
+        InputStream kql = ValidatorTest.class.getResourceAsStream("/ai/koryki/core/validator/invalid_expression_2.kql");
 
         KQLReader r = new KQLReader(kql);
 
@@ -86,7 +85,7 @@ public class ValidatorTest {
         KQLQueryMapper l = new KQLQueryMapper(resolver, script, r.getDescription());
         Query query = l.toBean();
 
-        FunctionValidator v = new FunctionValidator(new Aggregate() {}, l.getIqlToContext());
+        FunctionValidator v = new FunctionValidator(l.getIqlToContext());
         new Walker().walk(query, v);
         assertFalse(v.collect().isEmpty());
     }
@@ -94,7 +93,7 @@ public class ValidatorTest {
     @Test
     public void function1() throws IOException {
 
-        InputStream kql = ValidatorTest.class.getResourceAsStream("/ai/koryki/kql/validator/invalid_function_1.kql");
+        InputStream kql = ValidatorTest.class.getResourceAsStream("/ai/koryki/core/validator/invalid_function_1.kql");
 
         KQLReader r = new KQLReader(kql);
 
@@ -103,7 +102,7 @@ public class ValidatorTest {
         KQLQueryMapper l = new KQLQueryMapper(resolver, script, r.getDescription());
         Query query = l.toBean();
 
-        FunctionValidator v = new FunctionValidator(new Aggregate() {}, l.getIqlToContext());
+        FunctionValidator v = new FunctionValidator(l.getIqlToContext());
         new Walker().walk(query, v);
         assertFalse(v.collect().isEmpty());
     }
@@ -111,7 +110,7 @@ public class ValidatorTest {
     @Test
     public void function2() throws IOException {
 
-        InputStream kql = ValidatorTest.class.getResourceAsStream("/ai/koryki/kql/validator/function_2.kql");
+        InputStream kql = ValidatorTest.class.getResourceAsStream("/ai/koryki/core/validator/function_2.kql");
 
         KQLReader r = new KQLReader(kql);
 
@@ -120,7 +119,7 @@ public class ValidatorTest {
         KQLQueryMapper l = new KQLQueryMapper(resolver, script, r.getDescription());
         Query query = l.toBean();
 
-        FunctionValidator v = new FunctionValidator(new Aggregate() {}, l.getIqlToContext());
+        FunctionValidator v = new FunctionValidator(l.getIqlToContext());
         new Walker().walk(query, v);
         assertTrue(v.collect().isEmpty());
     }
@@ -128,7 +127,7 @@ public class ValidatorTest {
     @Test
     public void function3() throws IOException {
 
-        InputStream kql = ValidatorTest.class.getResourceAsStream("/ai/koryki/kql/validator/function_3.kql");
+        InputStream kql = ValidatorTest.class.getResourceAsStream("/ai/koryki/core/validator/function_3.kql");
 
         KQLReader r = new KQLReader(kql);
 
@@ -137,7 +136,7 @@ public class ValidatorTest {
         KQLQueryMapper l = new KQLQueryMapper(resolver, script, r.getDescription());
         Query query = l.toBean();
 
-        FunctionValidator v = new FunctionValidator(new Aggregate() {}, l.getIqlToContext());
+        FunctionValidator v = new FunctionValidator(l.getIqlToContext());
         new Walker().walk(query, v);
         assertTrue(v.collect().isEmpty());
     }
@@ -145,7 +144,7 @@ public class ValidatorTest {
     @Test
     public void function4() throws IOException {
 
-        InputStream kql = ValidatorTest.class.getResourceAsStream("/ai/koryki/kql/validator/function_4.kql");
+        InputStream kql = ValidatorTest.class.getResourceAsStream("/ai/koryki/core/validator/function_4.kql");
 
         KQLReader r = new KQLReader(kql);
 
@@ -154,7 +153,7 @@ public class ValidatorTest {
         KQLQueryMapper l = new KQLQueryMapper(resolver, script, r.getDescription());
         Query query = l.toBean();
 
-        FunctionValidator v = new FunctionValidator(new Aggregate() {}, l.getIqlToContext());
+        FunctionValidator v = new FunctionValidator(l.getIqlToContext());
         new Walker().walk(query, v);
         assertTrue(v.collect().isEmpty());
     }
@@ -162,7 +161,7 @@ public class ValidatorTest {
     @Test
     public void function5() throws IOException {
 
-        InputStream kql = ValidatorTest.class.getResourceAsStream("/ai/koryki/kql/validator/function_5.kql");
+        InputStream kql = ValidatorTest.class.getResourceAsStream("/ai/koryki/core/validator/function_5.kql");
 
         KQLReader r = new KQLReader(kql);
 
@@ -171,7 +170,7 @@ public class ValidatorTest {
         KQLQueryMapper l = new KQLQueryMapper(resolver, script, r.getDescription());
         Query query = l.toBean();
 
-        FunctionValidator v = new FunctionValidator(new Aggregate() {}, l.getIqlToContext());
+        FunctionValidator v = new FunctionValidator(l.getIqlToContext());
         new Walker().walk(query, v);
         assertTrue(v.collect().isEmpty());
     }
@@ -179,7 +178,7 @@ public class ValidatorTest {
     @Test
     public void function6() throws IOException {
 
-        InputStream kql = ValidatorTest.class.getResourceAsStream("/ai/koryki/kql/validator/function_6.kql");
+        InputStream kql = ValidatorTest.class.getResourceAsStream("/ai/koryki/core/validator/function_6.kql");
 
         KQLReader r = new KQLReader(kql);
 
@@ -188,7 +187,7 @@ public class ValidatorTest {
         KQLQueryMapper l = new KQLQueryMapper(resolver, script, r.getDescription());
         Query query = l.toBean();
 
-        FunctionValidator v = new FunctionValidator(new Aggregate() {}, l.getIqlToContext());
+        FunctionValidator v = new FunctionValidator(l.getIqlToContext());
         new Walker().walk(query, v);
         assertTrue(v.collect().isEmpty());
     }
@@ -196,7 +195,7 @@ public class ValidatorTest {
     @Test
     public void function7() throws IOException {
 
-        InputStream kql = ValidatorTest.class.getResourceAsStream("/ai/koryki/kql/validator/function_7.kql");
+        InputStream kql = ValidatorTest.class.getResourceAsStream("/ai/koryki/core/validator/function_7.kql");
 
         KQLReader r = new KQLReader(kql);
 
@@ -205,7 +204,7 @@ public class ValidatorTest {
         KQLQueryMapper l = new KQLQueryMapper(resolver, script, r.getDescription());
         Query query = l.toBean();
 
-        FunctionValidator v = new FunctionValidator(new Aggregate() {}, l.getIqlToContext());
+        FunctionValidator v = new FunctionValidator(l.getIqlToContext());
         new Walker().walk(query, v);
         assertTrue(v.collect().isEmpty());
     }
@@ -213,7 +212,7 @@ public class ValidatorTest {
     @Test
     public void function8() throws IOException {
 
-        InputStream kql = ValidatorTest.class.getResourceAsStream("/ai/koryki/kql/validator/function_8.kql");
+        InputStream kql = ValidatorTest.class.getResourceAsStream("/ai/koryki/core/validator/function_8.kql");
 
         KQLReader r = new KQLReader(kql);
 
@@ -222,7 +221,7 @@ public class ValidatorTest {
         KQLQueryMapper l = new KQLQueryMapper(resolver, script, r.getDescription());
         Query query = l.toBean();
 
-        FunctionValidator v = new FunctionValidator(new Aggregate() {}, l.getIqlToContext());
+        FunctionValidator v = new FunctionValidator(l.getIqlToContext());
         new Walker().walk(query, v);
         assertTrue(v.collect().isEmpty());
     }

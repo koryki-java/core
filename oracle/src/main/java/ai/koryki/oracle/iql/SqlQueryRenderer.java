@@ -16,42 +16,10 @@
  */
 package ai.koryki.oracle.iql;
 
-import ai.koryki.iql.*;
-import ai.koryki.iql.query.Block;
-import ai.koryki.iql.query.Set;
-
-import java.util.List;
-
 public class SqlQueryRenderer extends ai.koryki.iql.SqlQueryRenderer {
 
-    public SqlQueryRenderer() {
-        this(new FunctionRenderer() {
-        });
-    }
-
-    public SqlQueryRenderer(FunctionRenderer functionTranslator) {
-        super(functionTranslator);
-    }
-
-    @Override
-    protected String mapOperator(Set set) {
-        if (set.getOperator().equals("MINUS")) {
-            return "EXCEPT";
-        }
-
-        return super.mapOperator(set);
-    }
-
-    @Override
-    protected StringBuilder toRecursive(LinkResolver resolver, List<Block> block, int indent) {
-        StringBuilder b = new StringBuilder();
-        b.append(Identifier.indent(indent) + WITH + " ");
-
-        boolean recursive = block.stream().anyMatch(x -> Walker.apply(x, new BlockRecursionDetector(resolver)));
-        if (recursive) {
-            //b.append("RECURSIVE ");
-        }
-        return b;
+    public SqlQueryRenderer(java.time.ZoneId modelZone) {
+        super(OracleDialect.INSTANCE, modelZone);
     }
 
 }
