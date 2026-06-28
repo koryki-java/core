@@ -16,19 +16,24 @@
  */
 package ai.koryki.oracle.northwind;
 
-import ai.koryki.jdbc.ColumnInfo;
-import ai.koryki.jdbc.JdbcDatabase;
+import ai.koryki.oracle.OracleDatabase;
 import ai.koryki.jdbc.ResultProcessor;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.time.ZoneId;
 import java.util.Properties;
 
-public class NorthwindOracle<P extends ResultProcessor<?>> extends JdbcDatabase<P> {
+public class NorthwindOracle<P extends ResultProcessor<?>> extends OracleDatabase<P> {
 
     public NorthwindOracle() throws SQLException {
         this("northwind", connection());
+    }
+
+    /** Connect in the given model zone (default UTC). */
+    public NorthwindOracle(ZoneId modelZone) throws SQLException {
+        this("northwind", connection(), modelZone);
     }
 
     public NorthwindOracle(String name) throws SQLException {
@@ -41,6 +46,33 @@ public class NorthwindOracle<P extends ResultProcessor<?>> extends JdbcDatabase<
 
     public NorthwindOracle(String name, Connection conn) {
         super(name, conn);
+    }
+
+    public NorthwindOracle(String name, Connection conn, ZoneId modelZone) {
+        super(name, conn, modelZone);
+    }
+
+    @Override
+    public void execute(String sql, java.util.function.Consumer<java.sql.PreparedStatement> statementConsumer) {
+        try {
+            super.execute(sql, statementConsumer);
+        } catch (RuntimeException e) {
+            recoverConnection();
+            throw e;
+        }
+    }
+
+    private void recoverConnection() {
+        try {
+            getConnection().rollback();
+        } catch (SQLException rollbackEx) {
+            try {
+                setConnection(connection());
+            } catch (SQLException reconnectEx) {
+                reconnectEx.addSuppressed(rollbackEx);
+                throw new RuntimeException(reconnectEx);
+            }
+        }
     }
 
     public static Connection connection() throws SQLException {

@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 public class ListResult<C extends ColumnInfo> implements ResultProcessor<C> {
 
     private List<C> infos;
+    private Format format;
     private final List<List<Object>> rows = new ArrayList<>();
 
     public ListResult() {
@@ -32,7 +33,7 @@ public class ListResult<C extends ColumnInfo> implements ResultProcessor<C> {
         StringBuilder b = new StringBuilder();
 
         if (getInfos() != null) {
-            b.append(CSVFileResult.toCSV(formatRow(getInfos(), getInfos())));
+            b.append(CSVFileResult.toCSV(formatHeader(getInfos(), getInfos())));
         }
 
         rows.forEach(l -> {
@@ -47,7 +48,7 @@ public class ListResult<C extends ColumnInfo> implements ResultProcessor<C> {
         StringBuilder b = new StringBuilder();
 
         if (getInfos() != null) {
-            b.append(CSVFileResult.toCSV(formatRow(getInfos(), getInfos())));
+            b.append(CSVFileResult.toCSV(formatHeader(getInfos(), getInfos())));
         }
 
         List<String> rl = new ArrayList<>(rows.stream().map(r -> CSVFileResult.toCSV(formatRow(r, getInfos()))).toList());
@@ -58,7 +59,7 @@ public class ListResult<C extends ColumnInfo> implements ResultProcessor<C> {
         return b.toString();
     }
 
-
+    @Override
     public List<C> getInfos() {
         return infos;
     }
@@ -66,5 +67,15 @@ public class ListResult<C extends ColumnInfo> implements ResultProcessor<C> {
     @Override
     public void setInfos(List<C> infos) {
         this.infos = infos;
+    }
+
+    @Override
+    public Format getFormat() {
+        return format;
+    }
+
+    @Override
+    public void setFormat(Format format) {
+        this.format = format;
     }
 }

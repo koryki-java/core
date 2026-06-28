@@ -19,11 +19,22 @@ package ai.koryki.iql;
 import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.iql.query.*;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class IQLSerializer {
+
+    private static final DateTimeFormatter TIMESTAMP_FMT     = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withLocale(Locale.ROOT);
+    private static final DateTimeFormatter TIMESTAMP_FMT_MS  = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS").withLocale(Locale.ROOT);
+    private static final DateTimeFormatter TIME_FMT           = DateTimeFormatter.ofPattern("HH:mm:ss").withLocale(Locale.ROOT);
+    private static final DateTimeFormatter TIME_FMT_MS        = DateTimeFormatter.ofPattern("HH:mm:ss.SSS").withLocale(Locale.ROOT);
 
     private Query query;
 
@@ -327,20 +338,33 @@ public class IQLSerializer {
         } else if (expression.getText() != null) {
             return expression.getText();
         } else if (expression.getNumber() != null) {
-            DecimalFormat df = new DecimalFormat("#.######");  // Up to 2 decimals
-            return df.format(expression.getNumber());
+            if (expression.getNumber() instanceof BigInteger bigInteger) {
+                return bigInteger.toString();
+            } else if (expression.getNumber() instanceof BigDecimal bigDecimal) {
+                return bigDecimal.stripTrailingZeros().toPlainString();
+            } else {
+                throw new KorykiaiException("unsupported number type: " + expression.getNumber().getClass());
+            }
         } else if (expression.getLocalDateTime() != null) {
-            return "TIMESTAMP '" + expression.getLocalDateTime() + "'";
+            LocalDateTime dt = expression.getLocalDateTime();
+            DateTimeFormatter fmt = dt.getNano() != 0 ? TIMESTAMP_FMT_MS : TIMESTAMP_FMT;
+            return '"' + dt.format(fmt) + '"';
         } else if (expression.getLocalDate() != null) {
-            return "DATE '" + expression.getLocalDate() + "'";
+            return '"' + expression.getLocalDate().toString() + '"';
         } else if (expression.getLocalTime() != null) {
-            return "TIME '" + expression.getLocalTime() + "'";
+            java.time.LocalTime lt = expression.getLocalTime();
+            DateTimeFormatter fmt = lt.getNano() != 0 ? TIME_FMT_MS : TIME_FMT;
+            return '"' + lt.format(fmt) + '"';
         } else if (expression.getFunction() != null) {
             return toString(expression.getFunction(), indent);
+        } else if (expression.getLogical() != null) {
+            return toString(expression.getLogical(), indent, false);
         } else if (expression.getSelect() != null) {
             b.append("(" + System.lineSeparator() + toString(expression.getSelect(), indent + 1) + indent(indent) + ")");
         } else if (expression.getIdentity() != null) {
             b.append(expression.getIdentity());
+        } else if (expression.getDuration() != null) {
+            return expression.getDuration().toString();
         } else if (expression.isNull()) {
             b.append("NULL");
         } else {
@@ -379,6 +403,11 @@ public class IQLSerializer {
         if (!window.getOrder().isEmpty()) {
             b.append(" ORDER ");
             b.append(toString(window.getOrder(), indent));
+            if (window.isOrderDesc() == Order.SORT.DESC) {
+                b.append(" DESC");
+            } else if (window.isOrderDesc() == Order.SORT.ASC) {
+                b.append(" ASC");
+            }
         }
 
         if (window.getLower() != null) {

@@ -19,6 +19,7 @@ package ai.koryki.kql;
 public class HeaderInfo implements ai.koryki.jdbc.ColumnInfo {
 
     private String header;
+    private ai.koryki.catalog.schema.types.TypeDescriptor type;
 
     public String getHeader() {
         return header;
@@ -26,6 +27,16 @@ public class HeaderInfo implements ai.koryki.jdbc.ColumnInfo {
 
     public void setHeader(String header) {
         this.header = header;
+    }
+
+    @Override
+    public void setTypeDescriptor(ai.koryki.catalog.schema.types.TypeDescriptor type) {
+        this.type = type;
+    }
+
+    @Override
+    public ai.koryki.catalog.schema.types.TypeDescriptor getTypeDescriptor() {
+        return type;
     }
 
     @Override

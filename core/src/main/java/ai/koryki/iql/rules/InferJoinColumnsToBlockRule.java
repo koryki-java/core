@@ -18,11 +18,10 @@ package ai.koryki.iql.rules;
 
 import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.antlr.Range;
-import ai.koryki.antlr.RangeException;
 import ai.koryki.iql.Identifier;
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.query.*;
-import ai.koryki.scaffold.schema.Relation;
+import ai.koryki.catalog.schema.Relation;
 import org.antlr.v4.runtime.RuleContext;
 
 import java.util.List;
@@ -92,7 +91,7 @@ public class InferJoinColumnsToBlockRule {
             //boolean invers = join.isInvers();
             boolean invers = resolver.isInverse(join.getCrit());
 
-                    Source start = invers ? right : left;
+            Source start = invers ? right : left;
             Source end = invers ? left : right;
 
             joinColumns(block, start, end, crit, msg, right);

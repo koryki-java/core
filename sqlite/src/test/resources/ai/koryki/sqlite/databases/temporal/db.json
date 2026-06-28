@@ -1,0 +1,285 @@
+{
+  "name": "temporal",
+  "label": null,
+  "comment": null,
+  "description": "Demodatabase for temporal types in SQLite (physical storage TEXT/INTEGER)",
+  "tables": [
+    {
+      "name": "check_temporal",
+      "label": "Check Temporal",
+      "comment": null,
+      "description": null,
+      "columns": [
+        {
+          "name": "nr",
+          "label": "Nr",
+          "comment": null,
+          "description": "Row identifier (primary key)",
+          "typeFamily": "INTEGER",
+          "typeEncoding": null,
+          "dialectType": "SMALLINT",
+          "nullable": false,
+          "pkPos": 1
+        },
+        {
+          "name": "time_time",
+          "label": "Time",
+          "comment": null,
+          "description": "TIME",
+          "typeFamily": "TIME",
+          "typeEncoding": null,
+          "dialectType": "TIME",
+          "nullable": false,
+          "pkPos": 0
+        },
+        {
+          "name": "time_sec_from_midnight",
+          "label": "Time seconds from midnight",
+          "comment": null,
+          "description": "TIME encoded seconds from Midnight",
+          "typeFamily": "TIME",
+          "typeEncoding": "TIME_SECONDS_FROM_MIDNIGHT",
+          "dialectType": "INTEGER",
+          "nullable": false,
+          "pkPos": 0
+        },
+        {
+          "name": "ts_new_york",
+          "label": "Timestamp New York",
+          "comment": null,
+          "description": "TIMESTAMP stored as wall-clock America/New_York",
+          "typeFamily": "TIMESTAMP",
+          "typeEncoding": "TIMESTAMP_WALLCLOCK:America/New_York",
+          "dialectType": "TEXT",
+          "nullable": true,
+          "pkPos": 0
+        },
+        {
+          "name": "date_new_york",
+          "label": "Date New York",
+          "comment": null,
+          "description": "DATE stored as wall-clock America/New_York",
+          "typeFamily": "DATE",
+          "typeEncoding": "DATE_WALLCLOCK:America/New_York",
+          "dialectType": "TEXT",
+          "nullable": true,
+          "pkPos": 0
+        },
+        {
+          "name": "date_date",
+          "label": "Date",
+          "comment": null,
+          "description": "DATE",
+          "typeFamily": "DATE",
+          "typeEncoding": null,
+          "dialectType": "TEXT",
+          "nullable": true,
+          "pkPos": 0
+        },
+        {
+          "name": "time_from_integer",
+          "label": "Time from integer",
+          "comment": null,
+          "description": "TIME encoded as HHMMSS integer (123050)",
+          "typeFamily": "TIME",
+          "typeEncoding": "TIME_FROM_INTEGER",
+          "dialectType": "INTEGER",
+          "nullable": true,
+          "pkPos": 0
+        },
+        {
+          "name": "time_from_string",
+          "label": "Time from string",
+          "comment": null,
+          "description": "TIME encoded as 'HH:MM:SS' string",
+          "typeFamily": "TIME",
+          "typeEncoding": "TIME_FROM_STRING",
+          "dialectType": "VARCHAR(8)",
+          "nullable": true,
+          "pkPos": 0
+        },
+        {
+          "name": "time_from_timestamp",
+          "label": "Time from timestamp",
+          "comment": null,
+          "description": "TIME carried in the time part of a TIMESTAMP",
+          "typeFamily": "TIME",
+          "typeEncoding": "TIME_FROM_TIMESTAMP",
+          "dialectType": "TEXT",
+          "nullable": true,
+          "pkPos": 0
+        },
+        {
+          "name": "date_epoch_day",
+          "label": "Date from epoch day",
+          "comment": null,
+          "description": "DATE as INTEGER days since 1970-01-01",
+          "typeFamily": "DATE",
+          "typeEncoding": "DATE_FROM_EPOCH_DAY",
+          "dialectType": "INTEGER",
+          "nullable": true,
+          "pkPos": 0
+        },
+        {
+          "name": "bool_from_int",
+          "label": "Boolean from integer",
+          "comment": null,
+          "description": "BOOLEAN as 0/1 INTEGER",
+          "typeFamily": "BOOLEAN",
+          "typeEncoding": "BOOLEAN_FROM_INTEGER",
+          "dialectType": "INTEGER",
+          "nullable": true,
+          "pkPos": 0
+        },
+        {
+          "name": "uuid_binary",
+          "label": "UUID from binary",
+          "comment": null,
+          "description": "UUID as 16-byte BLOB",
+          "typeFamily": "UUID",
+          "typeEncoding": "UUID_FROM_BINARY",
+          "dialectType": "BLOB",
+          "nullable": true,
+          "pkPos": 0
+        },
+        {
+          "name": "uuid_string",
+          "label": "UUID from string",
+          "comment": null,
+          "description": "UUID as CHAR(36) text",
+          "typeFamily": "UUID",
+          "typeEncoding": "UUID_FROM_STRING",
+          "dialectType": "TEXT",
+          "nullable": true,
+          "pkPos": 0
+        },
+        {
+          "name": "timestamp_zoned",
+          "label": "Timestamp instant",
+          "comment": null,
+          "description": "Zone-aware instant stored as ISO-8601 text with offset",
+          "typeFamily": "TIMESTAMP",
+          "typeEncoding": "INSTANT",
+          "dialectType": "TEXT",
+          "nullable": true,
+          "pkPos": 0
+        },
+        {
+          "name": "timestamp_unix_epoche",
+          "label": "Timestamp Unix epoch (seconds)",
+          "comment": null,
+          "description": "Instant as seconds since 1970-01-01T00:00:00Z",
+          "typeFamily": "TIMESTAMP",
+          "typeEncoding": "EPOCH:SECONDS",
+          "dialectType": "INTEGER",
+          "nullable": true,
+          "pkPos": 0
+        },
+        {
+          "name": "timestamp_java_epoche",
+          "label": "Timestamp Java epoch (milliseconds)",
+          "comment": null,
+          "description": "Instant as milliseconds since 1970-01-01T00:00:00Z",
+          "typeFamily": "TIMESTAMP",
+          "typeEncoding": "EPOCH:MILLIS",
+          "dialectType": "INTEGER",
+          "nullable": true,
+          "pkPos": 0
+        },
+        {
+          "name": "timestamp_timestamp",
+          "label": "Timestamp",
+          "comment": null,
+          "description": "Wall-clock timestamp (UTC)",
+          "typeFamily": "TIMESTAMP",
+          "typeEncoding": null,
+          "dialectType": "TIMESTAMP",
+          "nullable": true,
+          "pkPos": 0
+        },
+        {
+          "name": "ts_diff_base",
+          "label": "Elapsed-span anchor",
+          "comment": null,
+          "description": "Anchor timestamp for elapsed-span cases",
+          "typeFamily": "TIMESTAMP",
+          "typeEncoding": null,
+          "dialectType": "TIMESTAMP",
+          "nullable": true,
+          "pkPos": 0
+        },
+        {
+          "name": "ts_diff_intraday",
+          "label": "Elapsed-span end (< 1 day)",
+          "comment": null,
+          "description": "Anchor plus a fixed sub-day span",
+          "typeFamily": "TIMESTAMP",
+          "typeEncoding": null,
+          "dialectType": "TIMESTAMP",
+          "nullable": true,
+          "pkPos": 0
+        },
+        {
+          "name": "ts_diff_multiday",
+          "label": "Elapsed-span end (> 1 day)",
+          "comment": null,
+          "description": "Anchor plus a fixed span over 24 hours",
+          "typeFamily": "TIMESTAMP",
+          "typeEncoding": null,
+          "dialectType": "TIMESTAMP",
+          "nullable": true,
+          "pkPos": 0
+        },
+        {
+          "name": "money_scaled",
+          "label": "Decimal from scaled integer",
+          "comment": null,
+          "description": "Fixed-point DECIMAL stored as minor units (scale 2)",
+          "typeFamily": "DECIMAL",
+          "typeEncoding": "SCALED:2",
+          "dialectType": "INTEGER",
+          "nullable": true,
+          "pkPos": 0
+        },
+        {
+          "name": "interval_seconds",
+          "label": "Interval seconds",
+          "comment": null,
+          "description": "Interval as a whole-second count",
+          "typeFamily": "INTERVAL",
+          "typeEncoding": "INTERVAL:SECONDS",
+          "dialectType": "INTEGER",
+          "nullable": true,
+          "pkPos": 0
+        },
+        {
+          "name": "interval_millis",
+          "label": "Interval millis",
+          "comment": null,
+          "description": "Interval as a millisecond count",
+          "typeFamily": "INTERVAL",
+          "typeEncoding": "INTERVAL:MILLIS",
+          "dialectType": "BIGINT",
+          "nullable": true,
+          "pkPos": 0
+        }
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "name": "pk_check",
+      "comment": null,
+      "description": null,
+      "startTable": "check_temporal",
+      "endTable": "check_temporal",
+      "symmetric": true,
+      "startColumns": [
+        "nr"
+      ],
+      "endColumns": [
+        "nr"
+      ]
+    }
+  ]
+}

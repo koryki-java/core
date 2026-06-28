@@ -79,7 +79,9 @@ exists
 
 expression
     : LEFT_PAREN expression RIGHT_PAREN
-    | date_literal
+    | MINUS_SIGN expression
+    | PLUS_SIGN expression
+    | temporal_literal
     | field
     | function
     | INT
@@ -89,10 +91,11 @@ expression
     | LEFT_PAREN select RIGHT_PAREN
 ;
 
-date_literal
-    : DATE DATE_FORMAT
-    | TIME TIME_FORMAT
-    | TIMESTAMP TIMESTAMP_FORMAT
+temporal_literal
+    : DATE_STRING
+    | TIME_STRING
+    | TIMESTAMP_STRING
+    | DURATION
 ;
 
 function
@@ -119,7 +122,7 @@ limit
 ;
 
 argument
-    : expression | identity=ID
+    : logical_expression | expression | identity=ID
 ;
 
 field
@@ -131,7 +134,7 @@ source
 ;
 
 out
-    : OUT expression (h=ID)? (label=STRING)? (idx=INT)?
+    : OUT expression (h=ID (label=STRING)?)? (idx=INT)?
 ;
 
 group
@@ -337,59 +340,43 @@ OR
     : 'OR'
 ;
 
-DATE
-    : 'DATE'
+TIMESTAMP_STRING
+    : '"' YYYY '-' MM '-' DD ' ' HH ':' MI ':' SS ('.' DIGIT DIGIT DIGIT)? (('+'|'-') HH ':' MI | 'Z')? '"'
 ;
 
-TIME
-    : 'TIME'
+DATE_STRING
+    : '"' YYYY '-' MM '-' DD '"'
 ;
 
-TIMESTAMP
-    :  'TIMESTAMP'
+TIME_STRING
+    : '"' HH ':' MI ':' SS ('.' DIGIT DIGIT DIGIT)? (('+'|'-') HH ':' MI | 'Z')? '"'
 ;
 
-DATE_FORMAT
-    : SINGLE_QUOTE YEAR '-' MONTH '-' DAY SINGLE_QUOTE                           // 'YYYY-MM-DD'
-    ;
-
-TIME_FORMAT
-    : SINGLE_QUOTE HOUR ':' MINUTE ':' SECOND ( '.' DIGIT DIGIT DIGIT)? (('+'|'-') OFFSET)? SINGLE_QUOTE                         // 'HH:MI:SS'
-    ;
-
-TIMESTAMP_FORMAT
-    : SINGLE_QUOTE YEAR '-' MONTH '-' DAY ' ' HOUR ':' MINUTE ':' SECOND ( '.' DIGIT DIGIT DIGIT)? (('+'|'-') OFFSET)?  SINGLE_QUOTE                      // 'YYYY-MM-DD HH:MI:SS'
-    ;
-
-OFFSET
-    : HOUR ':' MINUTE
-;
-
-fragment YEAR
+fragment YYYY
     : DIGIT DIGIT DIGIT DIGIT
 ;
 
-fragment MONTH
+fragment MM
     : '0' [1-9]
     | '1' [0-2]
 ;
 
-fragment DAY
+fragment DD
     : '0' [1-9]
     | [12] DIGIT
     | '3' [01]
 ;
 
-fragment HOUR
+fragment HH
     : [01] DIGIT
     | '2' [0-3]
 ;
 
-fragment MINUTE
+fragment MI
     : [0-5] DIGIT
 ;
 
-fragment SECOND
+fragment SS
     : [0-5] DIGIT
 ;
 
@@ -398,7 +385,7 @@ INT
 ;
 
 NUMBER
-    : '-'? ('.' DIGIT+ | DIGIT+ ( '.' DIGIT*)?)
+    : ('.' DIGIT+ | DIGIT+ '.' DIGIT*)
 ;
 
 fragment DIGIT
@@ -455,6 +442,7 @@ ID
     : LOWER (LOWER | DIGIT)*
 ;
 
+DURATION : (DIGIT+ ('ms'|'s'|'min'|'h'|'d'|'w'|'mo'|'q'|'y'))+;
 
 COMMENT
     : '/*' .*? '*/' -> channel(HIDDEN)

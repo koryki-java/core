@@ -19,28 +19,27 @@ package ai.koryki.iql;
 import ai.koryki.iql.query.Expression;
 import org.antlr.v4.runtime.RuleContext;
 
+import java.time.ZoneId;
 import java.util.Map;
 
 public class JdbcSelectRenderer extends SqlSelectRenderer {
 
     public JdbcSelectRenderer(Identifier identifier, Map<Object, RuleContext> iqlToContext, LinkResolver resolver,
                               IQLVisibilityContext visibilityContext,
-                              FunctionRenderer functionRenderer) {
-        super(identifier, iqlToContext, resolver, visibilityContext,
-
-                functionRenderer);
+                              SqlDialect dialect,
+                              ZoneId modelZone) {
+        super(identifier, iqlToContext, resolver, visibilityContext, dialect, modelZone);
     }
 
     @Override
     protected SqlSelectRenderer subSelect(Map<Object, RuleContext> iqlToContext, Object child) {
-
-        JdbcSelectRenderer s2s = new JdbcSelectRenderer(
+        return new JdbcSelectRenderer(
                 getIdentifier(),
                 iqlToContext,
                 resolver,
                 visibilityContext.child(child),
-                getFunctionTranslator());
-        return s2s;
+                getDialect(),
+                getModelZone());
     }
 
     @Override

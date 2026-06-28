@@ -1,0 +1,13 @@
+// wall-clock(zone) DATE storage: a column declared in a named zone, converted declared-zone -> model
+// zone at the storage boundary (docs/TEMPORAL.md). A wall-clock date is anchored at start-of-day in its
+// zone, so it can land on the adjacent model-zone day. KQL stays zone-free; the conversion is the
+// engine's job. Only unambiguous instants (nr 1,2) are asserted (see zoned_wallclock_timestamp).
+// SQLite has no time-zone database, so wall-clock(zone) is impossible there and is permanently skipped.
+
+SELECT
+ check_temporal c
+  OUT c.date_new_york date_new_york 1
+  OUT add(c.date_new_york, 1q) date_new_york_plus1q 2
+  OUT add(c.date_new_york, 1h) date_new_york_plus1h 3
+  FILTER
+    c.nr <= 2

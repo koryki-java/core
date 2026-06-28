@@ -41,6 +41,10 @@ public abstract class AbstractReader<L extends Lexer, P extends Parser, C extend
         return getTokens() != null ? getTokens().size() : -1;
     }
 
+    public String getDescription() {
+        return getComment(getCtx());
+    }
+
     public String getComment(ParseTree node) {
         List<Token> hiddenTokens =
                 getTokens().getHiddenTokensToLeft(node.getSourceInterval().a);

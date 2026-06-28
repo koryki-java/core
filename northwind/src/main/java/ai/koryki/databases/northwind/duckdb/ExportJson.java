@@ -5,10 +5,13 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 
 import java.io.File;
 import java.math.BigDecimal;
+import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +32,8 @@ public class ExportJson {
     public static final String SUPPLIERS = "suppliers";
     public static final String TERRITORIES = "territories";
     public static final String US_STATES = "usStates";
+    public static final String CHECK_TYPE    = "checkType";
+    public static final String CHECK_TEMPORAL = "checkTemporal";
 
     public record Category(
             short categoryId,
@@ -70,6 +75,8 @@ public class ExportJson {
             String titleOfCourtesy,
             String birthDate,
             String hireDate,
+            String workingHourFrom,
+            String workingHourTo,
             String address,
             String city,
             String region,
@@ -102,6 +109,7 @@ public class ExportJson {
             String orderDate,
             String requiredDate,
             String shippedDate,
+            String deliveredDate,
             Short shipVia,
             BigDecimal freight,
             String shipName,
@@ -164,8 +172,49 @@ public class ExportJson {
             String stateRegion
     ) {}
 
+    public record CheckType(
+            short nr,
+            Byte typeTinyint,
+            Short typeSmallint,
+            Integer typeInteger,
+            Long typeBigint,
+            BigDecimal typeHugeint,
+            Short typeUtinyint,
+            Integer typeUsmallint,
+            Long typeUinteger,
+            BigDecimal typeUbigint,
+            BigDecimal typeDecimal,
+            BigDecimal typeNumeric,
+            Float typeReal,
+            Float typeFloat,
+            Double typeDouble,
+            Boolean typeBoolean,
+            String typeChar,
+            String typeVarchar,
+            String typeText,
+            String typeString,
+            String typeBlob,
+            String typeBit,
+            String typeDate,
+            String typeTime,
+            String typeTimestamp,
+            String typeTimestampS,
+            String typeTimestampMs,
+            String typeTimestampNs,
+            String typeTimestamptz,
+            String typeInterval,
+            String typeUuid,
+            String typeJson
+    ) {}
+
+    public record CheckTemporal(
+            short nr,
+            String timeTime,
+            Integer timeSecFromMidnight
+    ) {}
+
     public static void main(String[] args) throws Exception {
-        String output = args.length > 0 ? args[0] : "northwind.json";
+        String output = args.length > 0 ? args[0] : "build/northwind.json";
 
         try (Connection conn = NorthwindDuckdb.fromResource(NorthwindDuckdb.DUCKDB)) {
             Map<String, Object> data = new LinkedHashMap<>();
@@ -183,6 +232,8 @@ public class ExportJson {
             data.put(SUPPLIERS, readSuppliers(conn));
             data.put(TERRITORIES, readTerritories(conn));
             data.put(US_STATES, readUsStates(conn));
+            data.put(CHECK_TYPE, readCheckType(conn));
+            data.put(CHECK_TEMPORAL, readCheckTemporal(conn));
 
             ObjectMapper mapper = new ObjectMapper();
             mapper.enable(SerializationFeature.INDENT_OUTPUT);
@@ -261,7 +312,7 @@ public class ExportJson {
         try (Statement st = conn.createStatement();
              ResultSet rs = st.executeQuery(
                      "SELECT employee_id, last_name, first_name, title, title_of_courtesy, birth_date, hire_date, " +
-                     "address, city, region, postal_code, country, home_phone, extension, notes, reports_to, photo_path FROM employees")) {
+                     "working_hour_from, working_hour_to, address, city, region, postal_code, country, home_phone, extension, notes, reports_to, photo_path FROM employees")) {
             while (rs.next()) {
                 short reportsToRaw = rs.getShort("reports_to");
                 Short reportsTo = rs.wasNull() ? null : reportsToRaw;
@@ -273,6 +324,8 @@ public class ExportJson {
                         rs.getString("title_of_courtesy"),
                         rs.getString("birth_date"),
                         rs.getString("hire_date"),
+                        rs.getString("working_hour_from"),
+                        rs.getString("working_hour_to"),
                         rs.getString("address"),
                         rs.getString("city"),
                         rs.getString("region"),
@@ -321,7 +374,7 @@ public class ExportJson {
         List<Order> list = new ArrayList<>();
         try (Statement st = conn.createStatement();
              ResultSet rs = st.executeQuery(
-                     "SELECT order_id, customer_id, employee_id, order_date, required_date, shipped_date, " +
+                     "SELECT order_id, customer_id, employee_id, order_date, required_date, shipped_date, delivered_date, " +
                      "ship_via, freight, ship_name, ship_address, ship_city, ship_region, ship_postal_code, ship_country FROM orders")) {
             while (rs.next()) {
                 short employeeIdRaw = rs.getShort("employee_id");
@@ -335,6 +388,7 @@ public class ExportJson {
                         rs.getString("order_date"),
                         rs.getString("required_date"),
                         rs.getString("shipped_date"),
+                        rs.getString("delivered_date"),
                         shipVia,
                         rs.getBigDecimal("freight"),
                         rs.getString("ship_name"),
@@ -452,6 +506,101 @@ public class ExportJson {
                         rs.getString("state_name"),
                         rs.getString("state_abbr"),
                         rs.getString("state_region")
+                ));
+            }
+        }
+        return list;
+    }
+
+    private static String blobToHex(Blob blob) throws SQLException {
+        if (blob == null) return null;
+        byte[] bytes = blob.getBytes(1, (int) blob.length());
+        return HexFormat.of().formatHex(bytes);
+    }
+
+    private static List<CheckType> readCheckType(Connection conn) throws Exception {
+        List<CheckType> list = new ArrayList<>();
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery(
+                     "SELECT nr, type_tinyint, type_smallint, type_integer, type_bigint, type_hugeint, " +
+                     "type_utinyint, type_usmallint, type_uinteger, type_ubigint, " +
+                     "type_decimal, type_numeric, type_real, type_float, type_double, type_boolean, " +
+                     "type_char, type_varchar, type_text, type_string, type_blob, type_bit, " +
+                     "type_date, type_time, type_timestamp, type_timestamp_s, type_timestamp_ms, " +
+                     "type_timestamp_ns, type_timestamptz, type_interval, type_uuid, type_json FROM check_type")) {
+            while (rs.next()) {
+                byte tinyintRaw = rs.getByte("type_tinyint");
+                Byte typeTinyint = rs.wasNull() ? null : tinyintRaw;
+                short smallintRaw = rs.getShort("type_smallint");
+                Short typeSmallint = rs.wasNull() ? null : smallintRaw;
+                int integerRaw = rs.getInt("type_integer");
+                Integer typeInteger = rs.wasNull() ? null : integerRaw;
+                long bigintRaw = rs.getLong("type_bigint");
+                Long typeBigint = rs.wasNull() ? null : bigintRaw;
+                short utinyintRaw = rs.getShort("type_utinyint");
+                Short typeUtinyint = rs.wasNull() ? null : utinyintRaw;
+                int usmallintRaw = rs.getInt("type_usmallint");
+                Integer typeUsmallint = rs.wasNull() ? null : usmallintRaw;
+                long uintegerRaw = rs.getLong("type_uinteger");
+                Long typeUinteger = rs.wasNull() ? null : uintegerRaw;
+                float realRaw = rs.getFloat("type_real");
+                Float typeReal = rs.wasNull() ? null : realRaw;
+                float floatRaw = rs.getFloat("type_float");
+                Float typeFloat = rs.wasNull() ? null : floatRaw;
+                double doubleRaw = rs.getDouble("type_double");
+                Double typeDouble = rs.wasNull() ? null : doubleRaw;
+                boolean booleanRaw = rs.getBoolean("type_boolean");
+                Boolean typeBoolean = rs.wasNull() ? null : booleanRaw;
+                list.add(new CheckType(
+                        rs.getShort("nr"),
+                        typeTinyint,
+                        typeSmallint,
+                        typeInteger,
+                        typeBigint,
+                        rs.getBigDecimal("type_hugeint"),
+                        typeUtinyint,
+                        typeUsmallint,
+                        typeUinteger,
+                        rs.getBigDecimal("type_ubigint"),
+                        rs.getBigDecimal("type_decimal"),
+                        rs.getBigDecimal("type_numeric"),
+                        typeReal,
+                        typeFloat,
+                        typeDouble,
+                        typeBoolean,
+                        rs.getString("type_char"),
+                        rs.getString("type_varchar"),
+                        rs.getString("type_text"),
+                        rs.getString("type_string"),
+                        blobToHex(rs.getBlob("type_blob")),
+                        rs.getString("type_bit"),
+                        rs.getString("type_date"),
+                        rs.getString("type_time"),
+                        rs.getString("type_timestamp"),
+                        rs.getString("type_timestamp_s"),
+                        rs.getString("type_timestamp_ms"),
+                        rs.getString("type_timestamp_ns"),
+                        rs.getString("type_timestamptz"),
+                        rs.getString("type_interval"),
+                        rs.getString("type_uuid"),
+                        rs.getString("type_json")
+                ));
+            }
+        }
+        return list;
+    }
+
+    private static List<CheckTemporal> readCheckTemporal(Connection conn) throws Exception {
+        List<CheckTemporal> list = new ArrayList<>();
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("SELECT nr, time_time, time_sec_from_midnight FROM check_temporal")) {
+            while (rs.next()) {
+                int secRaw = rs.getInt("time_sec_from_midnight");
+                Integer timeSecFromMidnight = rs.wasNull() ? null : secRaw;
+                list.add(new CheckTemporal(
+                        rs.getShort("nr"),
+                        rs.getString("time_time"),
+                        timeSecFromMidnight
                 ));
             }
         }

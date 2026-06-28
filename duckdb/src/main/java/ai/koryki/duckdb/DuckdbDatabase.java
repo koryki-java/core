@@ -16,6 +16,7 @@
  */
 package ai.koryki.duckdb;
 
+import ai.koryki.jdbc.ColumnInfo;
 import ai.koryki.jdbc.JdbcDatabase;
 import ai.koryki.jdbc.ResultProcessor;
 
@@ -28,19 +29,20 @@ import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.time.ZoneId;
 
 public class DuckdbDatabase<P extends ResultProcessor<?>> extends JdbcDatabase<P> {
 
-    public DuckdbDatabase() {
-        super("duckdb", connection(null));
+
+    public DuckdbDatabase(String name, Connection connection, ZoneId modelZone) {
+        super(name, connection, modelZone);
+        setDecoder(new DuckdbDecoder(modelZone));   // native INTERVAL verbose string -> Interval
     }
 
-    public DuckdbDatabase(String file) {
-        super("duckdb", connection(file));
-    }
-
-    public DuckdbDatabase(String name, Connection connection) {
-        super(name, connection);
+    /** Pin the session so TIMESTAMPTZ reads are reproducible (TEMPORAL.md). */
+    @Override
+    protected String sessionTimeZoneStatement(ZoneId zone) {
+        return "SET TimeZone = '" + zoneLiteral(zone) + "'";
     }
 
     /*
@@ -48,16 +50,18 @@ public class DuckdbDatabase<P extends ResultProcessor<?>> extends JdbcDatabase<P
      */
     public static Connection fromResource(String resource, Path tempFile) {
 
-        if (!Files.exists(tempFile)){
-            try (InputStream in = DuckdbDatabase.class.getResourceAsStream(resource)) {
+        if (Files.exists(tempFile)){
+            tempFile.toFile().delete();
+        }
 
-                if (in == null) {
-                    throw new IllegalStateException("DB resource missing");
-                }
-                Files.copy(in, tempFile, StandardCopyOption.REPLACE_EXISTING);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+        try (InputStream in = DuckdbDatabase.class.getResourceAsStream(resource)) {
+
+            if (in == null) {
+                throw new IllegalStateException("DB resource missing");
             }
+            Files.copy(in, tempFile, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
 
         return connection(tempFile.toString());

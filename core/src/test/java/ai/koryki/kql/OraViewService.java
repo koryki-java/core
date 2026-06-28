@@ -21,15 +21,15 @@ import ai.koryki.iql.SqlRenderer;
 import ai.koryki.jdbc.ColumnInfo;
 import ai.koryki.jdbc.Database;
 import ai.koryki.jdbc.ResultProcessor;
-import ai.koryki.scaffold.Util;
-import ai.koryki.scaffold.domain.Model;
-import ai.koryki.scaffold.schema.Schema;
+import ai.koryki.catalog.Util;
+import ai.koryki.catalog.domain.Model;
+import ai.koryki.catalog.schema.Schema;
 
 import java.util.function.Supplier;
 
 public class OraViewService<I extends ColumnInfo, P extends ResultProcessor<I>> {
 
-    public static final String ROOT = "/ai/koryki/scaffold/oraview";
+    public static final String ROOT = "/ai/koryki/core/oraview";
 
     private final Engine<I, P> engine;
 
@@ -66,8 +66,7 @@ public class OraViewService<I extends ColumnInfo, P extends ResultProcessor<I>> 
 
         Schema db = Util.db(ROOT);
         Model schema = Util.model(ROOT, locale);
-        LinkResolver resolver = new LinkResolver(locale, db, schema);
-        resolver.setStrict(true);
+        LinkResolver resolver = new LinkResolver(locale, db, schema, true);
         return resolver;
     }
 

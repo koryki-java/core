@@ -1,0 +1,60 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+}
+
+description = 'koryki mssql databases and services'
+
+java {
+    withSourcesJar() // Optional: Creates the sources JAR
+    withJavadocJar() // Optional: Creates the Javadoc JAR
+}
+
+dependencies {
+
+    implementation(libs.mssql)
+    implementation libs.jackson.databind
+
+    implementation project(':northwind')
+    implementation project(':core')
+
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly libs.junit.platform.launcher
+}
+
+test {
+    useJUnitPlatform()
+    systemProperty "mssql.northwind.url", project.findProperty("mssql.northwind.url")
+    systemProperty "mssql.northwind.user", project.findProperty("mssql.northwind.user")
+    systemProperty "mssql.northwind.password", project.findProperty("mssql.northwind.password")
+
+}
+
+publishing {
+    publications {
+        // Define the publication for this subproject
+        mavenJava(MavenPublication) {
+            // The 'java' component includes the main JAR artifact and its transitive dependencies
+            from components.java
+
+            // Optionally, override the artifact ID (defaults to project name: 'api')
+            artifactId = 'koryki-mssql'
+        }
+    }
+}
+
+tasks.register('MssqlNorthwindScript', JavaExec) {
+
+    systemProperty "mssql.northwind.url", project.findProperty("mssql.northwind.url")
+    systemProperty "mssql.northwind.user", project.findProperty("mssql.northwind.user")
+    systemProperty "mssql.northwind.password", project.findProperty("mssql.northwind.password")
+
+    group = "application"
+    description = "Build Northwind Database for mssql"
+
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'ai.koryki.mssql.northwind.BuildNorthwind'
+
+    args
+}

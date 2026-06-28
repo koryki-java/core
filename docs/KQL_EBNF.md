@@ -121,8 +121,9 @@ and implicitly defines how rows are grouped.
 ![EBNF Railroad diagram for fetch_item rule](kql/fetch_item.png)
 
 A `fetch_item` is a single output expression — a field, a computed value, or an aggregate function.
-An optional `header` identifier gives the expression a name in the result,
-and an optional `label` provides a display string for UI rendering.
+An optional `header` identifier gives the expression a name in the result.
+A `label` is a double-quoted display string for UI rendering and may only appear when a `header` is present —
+a label without a header is not permitted.
 
 Each `fetch_item` can carry a sort direction (`ASC` or `DESC`), replacing the need for
 a separate `ORDER BY` clause. When multiple items specify a sort direction, sort priority
@@ -218,12 +219,17 @@ defined in the semantic layer; the second is the `alias` used in all subsequent 
 
 ![EBNF Railroad diagram for expression rule](kql/expression.png)
 
-An `expression` is a value-producing term used throughout the query. 
-It covers arithmetic (`*`, `/`, `+`, `-`), field references, 
-function calls, literals (`INT`, `NUMBER`, `SQ_STRING`, `NULL`), `date_literal`, 
+An `expression` is a value-producing term used throughout the query.
+It covers unary negation (`-expr`, `+expr`), arithmetic (`*`, `/`, `+`, `-`), field references,
+function calls, literals (`INT`, `NUMBER`, `SQ_STRING`, `NULL`), `date_literal`,
 and sub-selects. Parentheses can be used to group and override arithmetic precedence.
 
-Literal values are written as integers (42), decimal numbers (3.14), single-quoted strings ('text'), NULL, or date literals.
+Unary `-` negates a value; unary `+` is a no-op included for symmetry. Both bind more tightly than
+binary operators, so `-a * b` means `(-a) * b`. Use parentheses to negate a compound expression:
+`-(a * b)`.
+
+Literal values are written as integers (`42`), decimal numbers (`3.14`), single-quoted strings (`'text'`), `NULL`, or date literals.
+Negative literals are written with a leading unary minus: `-3.14`.
 
 ## KQL Function Rule
 
@@ -283,13 +289,22 @@ fixed number of rows before or after the current row.
 
 ![EBNF Railroad diagram for date_literal rule](kql/date_literal.png)
 
-A `date_literal` pairs a type keyword with a formatted single-quoted string. 
+A `date_literal` is a double-quoted temporal value or a compact `DURATION` token.
+Double quotes delimit temporal values; single quotes delimit text strings — a consistent,
+learnable distinction that also eliminates ambiguity with arithmetic operators.
 
-| Keyword       | Format                                | Example                           | 
-|---------------|---------------------------------------|-----------------------------------| 
-| `DATE`        | `'YYYY-MM-DD'`                        | `DATE '2023-01-31'`               | 
-| `TIME`        | `'HH:MI:SS[.mmm][±HH:MI]'`           | `TIME '14:30:00'`                 | 
-| `TIMESTAMP`   | `'YYYY-MM-DD HH:MI:SS[.mmm][±HH:MI]'`| `TIMESTAMP '2023-01-31 14:30:00'` |
+| Token              | Format                                        | Example                              |
+|--------------------|-----------------------------------------------|--------------------------------------|
+| `DATE_STRING`      | `"YYYY-MM-DD"`                                | `"2023-01-31"`                       |
+| `TIME_STRING`      | `"HH:MI:SS[.mmm][±HH:MI\|Z]"`                | `"14:30:00"`                         |
+| `TIMESTAMP_STRING` | `"YYYY-MM-DD HH:MI:SS[.mmm][±HH:MI\|Z]"`     | `"2023-01-31 14:30:00"`              |
+| `DURATION`         | `<n>(ms\|s\|min\|h\|d\|w\|mo\|q\|y)`         | `30d`, `2h`, `15min`                 |
+
+`TIMESTAMP_STRING` uses a natural space separator between date and time; the surrounding
+quotes make the space unambiguous to the lexer.
+
+`DURATION` is a compact notation for a time span used in date arithmetic. The sign is not part of the
+token — write `now() - 30d` (subtraction) to go back 30 days, not `-30d`.
 
 
 ## Concept SQL & KQL

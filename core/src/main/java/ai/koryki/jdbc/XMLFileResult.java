@@ -1,5 +1,7 @@
 package ai.koryki.jdbc;
 
+import ai.koryki.antlr.KorykiaiException;
+
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
@@ -59,7 +61,7 @@ public class XMLFileResult<C extends ColumnInfo> implements ResultProcessor<C> {
 
 
         } catch (XMLStreamException | IOException e) {
-            throw new RuntimeException(e);
+            throw new KorykiaiException(e);
         }
     }
 
@@ -82,7 +84,7 @@ public class XMLFileResult<C extends ColumnInfo> implements ResultProcessor<C> {
             writer.writeEndElement();
             writer.writeCharacters(System.lineSeparator());
         } catch (XMLStreamException e) {
-            throw new RuntimeException(e);
+            throw new KorykiaiException(e);
         }
 
     }
@@ -108,7 +110,7 @@ public class XMLFileResult<C extends ColumnInfo> implements ResultProcessor<C> {
             writer.writeEndElement();
             writer.writeCharacters(System.lineSeparator());
         } catch (XMLStreamException e) {
-            throw new RuntimeException(e);
+            throw new KorykiaiException(e);
         }
     }
 
@@ -122,7 +124,7 @@ public class XMLFileResult<C extends ColumnInfo> implements ResultProcessor<C> {
                 writer.close();
                 outputStream.close();
             } catch (XMLStreamException | IOException e) {
-                throw new RuntimeException(e);
+                throw new KorykiaiException(e);
             }
         }
     }
@@ -139,6 +141,7 @@ public class XMLFileResult<C extends ColumnInfo> implements ResultProcessor<C> {
         this.spaces = spaces;
     }
 
+    @Override
     public List<C> getInfos() {
         return infos;
     }

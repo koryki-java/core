@@ -19,19 +19,28 @@ package ai.koryki.iql;
 import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.iql.logic.Normalizer;
 import ai.koryki.iql.query.*;
+import ai.koryki.iql.functions.MathOp;
+import ai.koryki.iql.time.Time;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class IQLQueryMapper {
+
+    private static final DateTimeFormatter TIMESTAMP_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss[.SSS]").withLocale(Locale.ROOT);
+
 
     private final IQLParser.QueryContext script;
     private final String description;
@@ -246,7 +255,7 @@ public class IQLQueryMapper {
         bean.setExpression(toExpression(out.expression()));
 
         if (out.label != null) {
-            bean.setLabel(Identifier.unquote(out.label.getText()));
+            bean.setLabel(unquoteDouble(out.label.getText()));
         }
 
         if (out.idx != null) {
@@ -262,7 +271,16 @@ public class IQLQueryMapper {
 
     public Expression toExpression(IQLParser.ExpressionContext expression) {
 
-        if (expression.LEFT_PAREN() != null) {
+        if (expression.MINUS_SIGN() != null) {
+            Expression bean = build(expression, Expression::new);
+            Function f = build(expression, Function::new);
+            f.setFunc(MathOp.negate.name());
+            f.setArguments(List.of(toExpression(expression.expression())));
+            bean.setFunction(f);
+            return bean;
+        } else if (expression.PLUS_SIGN() != null) {
+            return toExpression(expression.expression());
+        } else if (expression.LEFT_PAREN() != null) {
             if (expression.expression() != null) {
                 return toExpression(expression.expression());
             } else if (expression.select() != null) {
@@ -272,15 +290,16 @@ public class IQLQueryMapper {
             } else {
                 throw new KorykiaiException();
             }
-        } else if (expression.date_literal() != null) {
-            return toExpression(expression.date_literal());
+        } else if (expression.temporal_literal() != null) {
+            return toExpression(expression.temporal_literal());
         } else if (expression.INT() != null) {
             Expression bean = build(expression, Expression::new);
-            bean.setNumber(Double.valueOf(expression.INT().getText()));
+            bean.setNumber(new BigInteger(expression.INT().getText()));
             return bean;
         } else if (expression.NUMBER() != null) {
             Expression bean = build(expression, Expression::new);
-            bean.setNumber(Double.valueOf(expression.NUMBER().getText()));
+            BigDecimal bigDecimal = new BigDecimal(expression.NUMBER().getText());
+            bean.setNumber(bigDecimal);
             return bean;
         } else if (expression.SQ_STRING() != null) {
             Expression bean = build(expression, Expression::new);
@@ -374,7 +393,11 @@ public class IQLQueryMapper {
 
 
     public Expression toExpression(IQLParser.ArgumentContext argument) {
-         if (argument.expression() != null) {
+         if (argument.logical_expression() != null) {
+             Expression e = build(argument, Expression::new);
+             e.setLogical(toLogicalNode(argument.logical_expression()));
+             return e;
+         } else if (argument.expression() != null) {
              return toExpression(argument.expression());
          } else {
              Expression e = build(argument, Expression::new);
@@ -383,17 +406,27 @@ public class IQLQueryMapper {
          }
     }
 
-    public Expression toExpression(IQLParser.Date_literalContext date) {
+    public Expression toExpression(IQLParser.Temporal_literalContext date) {
         Expression bean = build(date, Expression::new);
 
-        if (date.TIME_FORMAT() != null) {
-            bean.setLocalTime(LocalTime.parse(Identifier.unquote(date.TIME_FORMAT().getText())));
-        } else if (date.TIMESTAMP_FORMAT() != null) {
-            bean.setLocalDateTime(LocalDateTime.parse(Identifier.unquote(date.TIMESTAMP_FORMAT().getText())));
-        } else if (date.DATE_FORMAT() != null) {
-            bean.setLocalDate(LocalDate.parse(Identifier.unquote(date.DATE_FORMAT().getText())));
+        if (date.TIME_STRING() != null) {
+            bean.setLocalTime(LocalTime.parse(unquoteDouble(date.TIME_STRING().getText())));
+        } else if (date.TIMESTAMP_STRING() != null) {
+            bean.setLocalDateTime(LocalDateTime.parse(unquoteDouble(date.TIMESTAMP_STRING().getText()), TIMESTAMP_FMT));
+        } else if (date.DATE_STRING() != null) {
+            bean.setLocalDate(LocalDate.parse(unquoteDouble(date.DATE_STRING().getText())));
+        } else if (date.DURATION() != null) {
+            bean.setDuration(toDuration(date.DURATION()));
         }
         return bean;
+    }
+
+    public Duration toDuration(TerminalNode duration) {
+        return Time.duration(duration.getText());
+    }
+
+    private static String unquoteDouble(String s) {
+        return s.substring(1, s.length() - 1);
     }
 
     public LogicalExpression toLogicalNode(IQLParser.FilterContext filter) {

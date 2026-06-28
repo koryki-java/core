@@ -5,6 +5,8 @@ import java.util.List;
 public class Window {
     private List<Expression> partition;
     private List<Expression> order;
+
+    private Order.SORT sort;
     private Limit upper;
     private Limit lower;
 
@@ -22,6 +24,14 @@ public class Window {
 
     public void setOrder(List<Expression> order) {
         this.order = order;
+    }
+
+    public Order.SORT isOrderDesc() {
+        return sort;
+    }
+
+    public void setOrderDesc(Order.SORT orderDesc) {
+        this.sort = orderDesc;
     }
 
     public Limit getUpper() {

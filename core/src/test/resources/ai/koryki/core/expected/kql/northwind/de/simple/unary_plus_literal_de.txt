@@ -1,0 +1,6 @@
+// Unary plus: positive number literal in filter comparison.
+// Unary plus is a no-op and should render identically to the bare literal.
+
+FIND bestellposition od
+FILTER od.rabatt > +0.1
+FETCH od.bestell_id, od.rabatt

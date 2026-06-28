@@ -1,0 +1,5 @@
+// time_from_date: read a TIME held in the time part of a DATE column (TIME_FROM_DATE encoding).
+
+SELECT
+ check_temporal c
+  OUT c.time_from_date wall_time 1

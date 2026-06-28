@@ -1,0 +1,7 @@
+// DATE stored as a day-count since 1970 (DATE_FROM_EPOCH_DAY) + duration: arithmetic materializes the
+// epoch-day to a date first, then applies the duration (a clock component promotes to TIMESTAMP).
+
+SELECT
+ check_temporal c
+  OUT c.date_epoch_day date_epoch_day 1
+  OUT minus(c.date_epoch_day, 1d1h30min10s) minus_1day90min10seconds 2

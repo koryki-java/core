@@ -1,0 +1,5 @@
+// Timestamp literal: BETWEEN range on delivered_date.
+
+FIND bestellungen o
+FILTER o.zustell_datum BETWEEN "1996-07-01 00:00:00" AND "1996-12-31 23:59:59"
+FETCH o.bestell_id, o.zustell_datum

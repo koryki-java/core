@@ -1,0 +1,13 @@
+// wall-clock(zone) TIMESTAMP storage: a column declared in a named zone, converted declared-zone ->
+// model zone at the storage boundary (docs/TEMPORAL.md). KQL stays zone-free; the conversion is the
+// engine's job. Only unambiguous instants (nr 1,2) are asserted -- the DST fall-back overlap hour
+// (nr 3,4: 01:30 in America/New_York) resolves differently per engine, so it is not portable.
+// SQLite has no time-zone database, so wall-clock(zone) is impossible there and is permanently skipped.
+
+SELECT
+ check_temporal c
+  OUT c.ts_new_york ts_new_york 1
+  OUT add(c.ts_new_york, 1h) ts_new_york_plus1h 2
+  OUT minus(c.ts_new_york, 1h) ts_new_york_minus1h 3
+  FILTER
+    c.nr <= 2

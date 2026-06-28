@@ -31,24 +31,22 @@ import java.util.List;
 public class GroupRule {
 
     private final Query query;
-    private final Aggregate aggregate;
 
-    public GroupRule(Aggregate aggregate, Query query) {
-        this.aggregate = aggregate;
+    public GroupRule(Query query) {
+
         this.query = query;
     }
 
     public void apply() {
 
-        GroupVisitor v = new GroupVisitor(aggregate);
+        GroupVisitor v = new GroupVisitor();
         new Walker().walk(query, v);
     }
 
     private static class GroupVisitor implements Visitor {
 
-        private final Aggregate aggregate;
-        public GroupVisitor(Aggregate aggregate) {
-            this.aggregate = aggregate;
+        public GroupVisitor() {
+
         }
 
         @Override
@@ -60,10 +58,10 @@ public class GroupRule {
         private void apply(Select select) {
 
             List<Out> list = SqlQueryRenderer.collectOut(select);
-            if (hasAggregate(aggregate, list) || hasHaving(select)) {
+            if (hasAggregate(list) || hasHaving(select)) {
 
                 list.forEach(o -> {
-                    if (!isAggregate(aggregate, o)) {
+                    if (!isAggregate( o)) {
 
                         Group g = new Group();
                         g.setIdx(o.getIdx());
@@ -98,13 +96,13 @@ public class GroupRule {
             return join.getJoin().stream().anyMatch(GroupVisitor::hasHaving);
         }
 
-        private static boolean hasAggregate(Aggregate aggregate, List<Out> list) {
+        private static boolean hasAggregate(List<Out> list) {
 
-            return list.stream().anyMatch(o -> isAggregate(aggregate, o));
+            return list.stream().anyMatch(o -> isAggregate(o));
         }
     }
 
-    private static boolean isAggregate(Aggregate aggregate, Out o) {
-        return FunctionValidator.isAggregatOfColumnOrIdentity(o.getExpression(), aggregate);
+    private static boolean isAggregate(Out o) {
+        return FunctionValidator.isAggregateOfColumnOrIdentity(o.getExpression());
     }
 }

@@ -27,12 +27,16 @@ public class Expression {
     private Function function;
     private String text;
     private String identity;
-    private Double number;
+    private Number number;
     private LocalDate localDate;
     private LocalDateTime localDateTime;
     private LocalTime localTime;
     private boolean isNull;
 
+    private Duration duration;
+
+    /** A boolean-valued logical expression used as a function argument (e.g. the condition of {@code if}). */
+    private LogicalExpression logical;
 
     public Select getSelect() {
         return select;
@@ -90,11 +94,11 @@ public class Expression {
         this.localTime = localTime;
     }
 
-    public Double getNumber() {
+    public Number getNumber() {
         return number;
     }
 
-    public void setNumber(Double number) {
+    public void setNumber(Number number) {
         this.number = number;
     }
 
@@ -112,5 +116,21 @@ public class Expression {
 
     public void setNull(boolean aNull) {
         isNull = aNull;
+    }
+
+    public Duration getDuration() {
+        return duration;
+    }
+
+    public void setDuration(Duration duration) {
+        this.duration = duration;
+    }
+
+    public LogicalExpression getLogical() {
+        return logical;
+    }
+
+    public void setLogical(LogicalExpression logical) {
+        this.logical = logical;
     }
 }

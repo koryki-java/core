@@ -16,16 +16,20 @@
  */
 package ai.koryki.iql;
 
+import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.antlr.Range;
 import ai.koryki.antlr.RangeException;
 import ai.koryki.kql.DictionaryTranslator;
 import ai.koryki.kql.TableDictionary;
-import ai.koryki.scaffold.domain.Attribute;
-import ai.koryki.scaffold.domain.Entity;
-import ai.koryki.scaffold.domain.Link;
-import ai.koryki.scaffold.domain.Model;
-import ai.koryki.scaffold.schema.Relation;
-import ai.koryki.scaffold.schema.Schema;
+import ai.koryki.catalog.domain.Attribute;
+import ai.koryki.catalog.domain.Entity;
+import ai.koryki.catalog.domain.Link;
+import ai.koryki.catalog.domain.Model;
+import ai.koryki.catalog.schema.Column;
+import ai.koryki.catalog.schema.Relation;
+import ai.koryki.catalog.schema.Schema;
+import ai.koryki.catalog.schema.types.TypeDescriptor;
+import ai.koryki.catalog.schema.types.TypeDescriptorParser;
 
 import java.util.*;
 import java.util.function.Function;
@@ -37,64 +41,68 @@ public class LinkResolver {
     private final Schema db;
     private final Model model;
 
+    private Map<Column, TypeDescriptor> columnToTypedescriptor = new HashMap<>();
+
+
     private final Map<String, Link> linkMap;
     private final boolean alignedOnly;
     private final boolean qualifiedOnly;
-    private boolean strict;
+    private final boolean strict;
 
     public LinkResolver(Locale locale, Schema db, Model model) {
-        this(locale, db, model, false, false);
+        this(locale, db, model, false);
+    }
+
+    public LinkResolver(Locale locale, Schema db, Model model, boolean strict) {
+        this(locale, db, model, false, false, strict);
     }
 
     public LinkResolver(Locale locale, Schema db, Model model, boolean alignedOnly, boolean qualifiedOnly) {
+        this(locale, db, model, alignedOnly, qualifiedOnly, false);
+    }
+
+    public LinkResolver(Locale locale, Schema db, Model model, boolean alignedOnly, boolean qualifiedOnly, boolean strict) {
         this.locale = locale;
         this.db = db;
         this.model = model;
         this.linkMap = model.getLinks().stream().collect(Collectors.toMap(Link::getName, Function.identity()));
         this.alignedOnly = alignedOnly;
         this.qualifiedOnly = qualifiedOnly;
+        this.strict = strict;
+
+         TypeDescriptorParser parser = new TypeDescriptorParser() {
+        };
+
+        db.getTables().forEach(t -> {
+            t.getColumns().forEach(c -> {
+                TypeDescriptor d = parser.parse(c);
+                columnToTypedescriptor.put(c, d);
+            });
+        });
     }
 
-    private List<Relation> _listTypedAligned(String crit, String start, String end) {
+    private List<Relation> listRelations(String crit, String start, String end, boolean typed, boolean reverse) {
 
-        List<Relation> rl = db.linkRelations(
-                getDialectTable(start).orElseThrow(() -> new RuntimeException("unknown start entity: " + start)),
-                getDialectTable(end).orElseThrow(() -> new RuntimeException("unknown end entity: " + end)), crit);
-        return rl;
-    }
+        String startTable = getDialectTable(start).orElseThrow(() -> new KorykiaiException("unknown start entity: " + start));
+        String endTable = getDialectTable(end).orElseThrow(() -> new KorykiaiException("unknown end entity: " + end));
+        String first = reverse ? endTable : startTable;
+        String second = reverse ? startTable : endTable;
 
-    private List<Relation> _listTypedReverse(String crit, String start, String end) {
-
-        List<Relation> rl = db.linkRelations(
-                getDialectTable(end).orElseThrow(() -> new RuntimeException("unknown end entity: " + end)),
-                getDialectTable(start).orElseThrow(() -> new RuntimeException("unknown start entity: " + start)), crit);
-        return rl;
-    }
-
-    private List<Relation> _listUntypedAligned(String crit, String start, String end) {
-
-        List<Relation> rl =db.linkRelations(
-                getDialectTable(start).orElseThrow(() -> new RuntimeException("unknown start entity: " + start)),
-                getDialectTable(end).orElseThrow(() -> new RuntimeException("unknown end entity: " + end)));
-        return strict && crit != null ? Collections.emptyList() : rl;
-    }
-
-    private List<Relation> _listUntypedReverse(String crit, String start, String end) {
-
-        List<Relation> rl =db.linkRelations(
-                getDialectTable(end).orElseThrow(() -> new RuntimeException("unknown end entity: " + end)),
-                getDialectTable(start).orElseThrow(() -> new RuntimeException("unknown start entity: " + start)));
-        return strict && crit != null ? Collections.emptyList() : rl;
+        if (typed) {
+            return db.linkRelations(first, second, crit);
+        }
+        // untyped lookup must not satisfy an explicitly qualified link in strict mode
+        return strict && crit != null ? Collections.emptyList() : db.linkRelations(first, second);
     }
 
     private boolean compareStart(String start, Relation relation) {
         return relation.getStartTable().equals(
-                getDialectTable(start).orElseThrow(() -> new RuntimeException("unknown start entity: " + start)));
+                getDialectTable(start).orElseThrow(() -> new KorykiaiException("unknown start entity: " + start)));
     }
 
     private boolean compareEnd(String end, Relation relation) {
         return relation.getEndTable().equals(
-                getDialectTable(end).orElseThrow(() -> new RuntimeException("unknown end entity: " + end)));
+                getDialectTable(end).orElseThrow(() -> new KorykiaiException("unknown end entity: " + end)));
     }
 
     public boolean isEntity(String entity) {
@@ -103,18 +111,21 @@ public class LinkResolver {
 
     public boolean isInverse(String link) {
 
-
-        String l = relation(link);
-        return linkMap.entrySet().stream().filter(e -> e.getValue().getName().equals(l)).findFirst().map(LinkResolver::isInverse).orElseThrow(() -> new RuntimeException(link));
+        Link l = linkMap.get(relation(link));
+        if (l == null) {
+            throw new KorykiaiException("unknown link: " + link);
+        }
+        return isInverse(l);
     }
 
 
     private String relation(String link) {
-        return model.getLink(link).get().getRelation() != null ? model.getLink(link).get().getRelation() : model.getLink(link).get().getName();
+        Link l = model.getLink(link).orElseThrow(() -> new KorykiaiException("unknown link: " + link));
+        return l.getRelation() != null ? l.getRelation() : l.getName();
     }
 
-    private static boolean isInverse(Map.Entry<String, Link> e) {
-        return e.getValue().getNature() != null && e.getValue().getNature().contains("inverse");
+    private static boolean isInverse(Link link) {
+        return link.getNature() != null && link.getNature().contains("inverse");
     }
 
     private String resolveForeignKey(Range range, String startTable, String endTable, String link) {
@@ -186,13 +197,13 @@ public class LinkResolver {
         String foreignKey = resolveForeignKey(range, startTable, endTable, link);
 
 
-        Relation d = checkSingleR(range, start, end, foreignKey, _listTypedAligned(foreignKey, start, end), true, false);
+        Relation d = checkSingleR(range, start, end, foreignKey, listRelations(foreignKey, start, end, true, false), true, false);
         if (d != null) {
             return Optional.of(d);
         }
 
         if (!alignedOnly) {
-            d = checkSingleR(range, start, end, foreignKey, _listTypedReverse(foreignKey, start, end), true, true);
+            d = checkSingleR(range, start, end, foreignKey, listRelations(foreignKey, start, end, true, true), true, true);
             if (d != null) {
                 return Optional.of(d);
             }
@@ -200,13 +211,13 @@ public class LinkResolver {
 
         if (!qualifiedOnly) {
 
-            d = checkSingleR(range, start, end, foreignKey, _listUntypedAligned(foreignKey, start, end), false, false);
+            d = checkSingleR(range, start, end, foreignKey, listRelations(foreignKey, start, end, false, false), false, false);
             if (d != null) {
                 return Optional.of(d);
             }
 
             if (!alignedOnly) {
-                d = checkSingleR(range, start, end, foreignKey, _listUntypedReverse(foreignKey, start, end), false, true);
+                d = checkSingleR(range, start, end, foreignKey, listRelations(foreignKey, start, end, false, true), false, true);
                 if (d != null) {
 
                     //toLink(d);
@@ -220,8 +231,11 @@ public class LinkResolver {
     }
 
     private String toLink(String fk) {
-        String link = linkMap.entrySet().stream().filter((entry) -> entry.getValue().getRelations().contains(fk)).map(entry -> entry.getKey()).findFirst().get();
-        return link;
+        return linkMap.entrySet().stream()
+                .filter(entry -> entry.getValue().getRelations().contains(fk))
+                .map(Map.Entry::getKey)
+                .findFirst()
+                .orElseThrow(() -> new KorykiaiException("no link references foreign key: " + fk));
     }
 
     private Relation checkSingleR(Range range, String startTable, String endTable, String foreignKey, List<Relation> check, boolean strict, boolean symmetricOnly) {
@@ -239,10 +253,6 @@ public class LinkResolver {
 
     public boolean isStrict() {
         return strict;
-    }
-
-    public void setStrict(boolean strict) {
-        this.strict = strict;
     }
 
     public Model getModel() {
@@ -313,4 +323,7 @@ public class LinkResolver {
         return attribute.getColumn() != null ? attribute.getColumn() : attribute.getName();
     }
 
+    public TypeDescriptor getTypeDescriptor(Column column) {
+        return columnToTypedescriptor.get(column);
+    }
 }
