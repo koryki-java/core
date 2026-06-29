@@ -33,7 +33,7 @@ public class NorthwindDuckDBEngineTest extends BaseEngineTest<HeaderInfo> {
 
     @Test
     public void testSingleFile() throws IOException {
-        Path kql = Path.of("src/test/resources/ai/koryki/duckdb/queries/northwind/privatetest/window/window_rank_revenue_per_category.kql");
+        Path kql = Path.of("src/test/resources/ai/koryki/duckdb/queries/northwind/privatetest/expression/arithmetic.kql");
         TestUtil.test(kql, suffix(), engine, Path.of(queriesRoot()), Path.of(expectedCsv()), Path.of(expectedSql()));
     }
 }

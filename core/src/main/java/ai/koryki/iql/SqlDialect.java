@@ -308,7 +308,22 @@ public interface SqlDialect {
                 default     -> expr;   // SECONDS: already epoch-seconds
             };
         }
-        return timestampToEpochSeconds(expr, isInstant(enc));
+        return timestampToEpochSeconds(unwrapOuterParens(expr), isInstant(enc));
+    }
+
+    // Strip one matching outer layer of parentheses so that function-call wrappers
+    // (UNIX_TIMESTAMP, EXTRACT EPOCH) don't produce double parens around already-
+    // parenthesized KQL sub-expressions like (c.ts - 3h20min30s).
+    private static String unwrapOuterParens(String expr) {
+        if (expr.length() < 2 || expr.charAt(0) != '(') return expr;
+        int depth = 0;
+        for (int i = 0; i < expr.length(); i++) {
+            if (expr.charAt(i) == '(') depth++;
+            else if (expr.charAt(i) == ')' && --depth == 0) {
+                return i == expr.length() - 1 ? expr.substring(1, expr.length() - 1) : expr;
+            }
+        }
+        return expr;
     }
 
     private static boolean isInstant(ai.koryki.catalog.schema.types.TypeEncoding enc) {
@@ -322,7 +337,8 @@ public interface SqlDialect {
      * Default is the SQL-standard {@code EXTRACT(EPOCH ...)} (duckdb/postgres); others override.
      */
     default String timestampToEpochSeconds(String expr, boolean instant) {
-        return "CAST(EXTRACT(EPOCH FROM (" + expr + ")) AS BIGINT)";
+        String wrapped = expr.startsWith("(") ? expr : "(" + expr + ")";
+        return "CAST(EXTRACT(EPOCH FROM " + wrapped + ") AS BIGINT)";
     }
 
     /**

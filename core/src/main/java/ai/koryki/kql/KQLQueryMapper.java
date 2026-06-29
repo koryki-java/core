@@ -368,7 +368,9 @@ public class KQLQueryMapper {
             bean.setSelect(toSelect(expression.select()));
             return bean;
         } else if (expression.LEFT_PAREN() != null) {
-            return toExpression(expression.expression(0));
+            Expression inner = toExpression(expression.expression(0));
+            inner.setParenthesized(true);
+            return inner;
         } else if (expression.MULT() != null) {
             return mathFunction(expression, ai.koryki.iql.functions.MathOp.multiply.name());
         } else if (expression.DIV() != null) {
