@@ -27,6 +27,7 @@ import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.iql.query.*;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -54,9 +55,15 @@ public class KQLFormatter {
     private Translator translator;
     private Query query;
     private KQLVisibilityContext visibilityContext;
+    private int maxLineLength = 0;
 
     public KQLFormatter(KQLParser.QueryContext script, String description) {
         this(script, description, null, new Translator() {});
+    }
+
+    public KQLFormatter withMaxLineLength(int maxLineLength) {
+        this.maxLineLength = maxLineLength;
+        return this;
     }
 
     public KQLFormatter(KQLParser.QueryContext script, String description, LinkResolver resolver, Translator translator) {
@@ -204,35 +211,36 @@ public class KQLFormatter {
             StringBuilder b = new StringBuilder();
 
 
-            b.append(indent(indent)).append("FIND ");
-
-            b.append(toSource(select.source(), indent));
-
-            StringBuilder l = new StringBuilder();
-            l.append(
-                    select.link().stream().map(j -> toLink(j)).collect(Collectors.joining(", ")));
-            if (!l.isEmpty()) {
-                b.append(", ").append(l.toString());
-            }
+            List<String> findItems = new ArrayList<>();
+            findItems.add(toSource(select.source(), indent));
+            select.link().stream().map(this::toLink).forEach(findItems::add);
+            b.append(renderClause(indent, "FIND ", findItems));
             b.append(System.lineSeparator());
+
             if (select.filterClause() != null) {
                 String where = toLogicalNode(select.filterClause().logical_expression(), indent);
                 if (!where.isEmpty()) {
-                    b.append(indent(indent)).append("FILTER ").append(where);
+                    if (maxLineLength > 0
+                            && !where.contains(System.lineSeparator())
+                            && (indent(indent) + "FILTER " + where).length() > maxLineLength) {
+                        b.append(indent(indent)).append("FILTER").append(System.lineSeparator())
+                         .append(indent(indent + 1)).append(where);
+                    } else {
+                        b.append(indent(indent)).append("FILTER ").append(where);
+                    }
                     b.append(System.lineSeparator());
                 }
             }
             if (select.fetchClause() != null) {
-                String f = select.fetchClause().fetchItem().stream().map(r -> toOut(r, indent)).collect(Collectors.joining(", "));
-                if (!f.isEmpty()) {
-                    b.append(indent(indent)).append("FETCH ");
-                    if (select.fetchClause().DISTINCT() != null) {
-                        b.append(" DISTINCT ");
-                    }
-                    b.append(f);
+                List<String> fetchItems = select.fetchClause().fetchItem().stream()
+                        .map(r -> toOut(r, indent)).collect(Collectors.toList());
+                if (!fetchItems.isEmpty()) {
+                    String keyword = select.fetchClause().DISTINCT() != null ? "FETCH DISTINCT " : "FETCH ";
+                    String fetchStr = renderClause(indent, keyword, fetchItems);
                     if (select.fetchClause().ROLLUP() != null) {
-                        b.append(" ROLLUP");
+                        fetchStr += " ROLLUP";
                     }
+                    b.append(fetchStr);
                     b.append(System.lineSeparator());
                 }
             }
@@ -263,13 +271,36 @@ public class KQLFormatter {
                 return toUnaryLogicalExpression(logicalExpression.unary_logical_expression(), indent);
             } else if (logicalExpression.NOT() != null) {
                 return "NOT " + toLogicalNode(logicalExpression.negate, indent);
-
             } else {
-                String left = toLogicalNode(logicalExpression.left, indent);
-                String right = toLogicalNode(logicalExpression.right, indent);
                 String op = logicalExpression.AND() != null ? "AND" : "OR";
-                return left + " " + op + " " + right;
+                List<String> terms = collectSameOp(logicalExpression, op, indent);
+                String single = String.join(" " + op + " ", terms);
+                if (maxLineLength > 0
+                        && terms.stream().noneMatch(t -> t.contains(System.lineSeparator()))
+                        && (indent(indent) + "FILTER " + single).length() > maxLineLength) {
+                    String cont = System.lineSeparator() + indent(indent + 1) + op + " ";
+                    StringBuilder sb = new StringBuilder(terms.get(0));
+                    for (int i = 1; i < terms.size(); i++) {
+                        sb.append(cont).append(terms.get(i));
+                    }
+                    return sb.toString();
+                }
+                return single;
             }
+        }
+
+        private List<String> collectSameOp(KQLParser.Logical_expressionContext node, String op, int indent) {
+            if (node.left != null && node.right != null) {
+                String nodeOp = node.AND() != null ? "AND" : "OR";
+                if (nodeOp.equals(op)) {
+                    List<String> result = new ArrayList<>(collectSameOp(node.left, op, indent));
+                    result.addAll(collectSameOp(node.right, op, indent));
+                    return result;
+                }
+            }
+            List<String> result = new ArrayList<>();
+            result.add(toLogicalNode(node, indent));
+            return result;
         }
 
         private String toUnaryLogicalExpression(KQLParser.Unary_logical_expressionContext unaryLogicalExpressionContext, int indent) {
@@ -391,7 +422,7 @@ public class KQLFormatter {
             if (expression.select() != null) {
                 return toSelect(expression.select(), indent);
             } else if (expression.LEFT_PAREN() != null) {
-                return "(" + toExpression(expression.expression(0), indent) + " )";
+                return "(" + toExpression(expression.expression(0), indent) + ")";
             } else if (expression.MULT() != null) {
                 return mathFunction(expression, MathOp.multiply, indent);
             } else if (expression.DIV() != null) {
@@ -599,6 +630,15 @@ public class KQLFormatter {
             b.append(source.alias.getText());
             return b.toString();
         }
+    }
+
+    private String renderClause(int indent, String keyword, List<String> items) {
+        String single = indent(indent) + keyword + String.join(", ", items);
+        if (maxLineLength == 0 || items.size() <= 1 || single.length() <= maxLineLength) {
+            return single;
+        }
+        String cont = "," + System.lineSeparator() + indent(indent + 1);
+        return indent(indent) + keyword + String.join(cont, items);
     }
 
     private String indent(int l) {

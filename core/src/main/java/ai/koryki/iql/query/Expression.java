@@ -38,6 +38,8 @@ public class Expression {
     /** A boolean-valued logical expression used as a function argument (e.g. the condition of {@code if}). */
     private LogicalExpression logical;
 
+    private boolean parenthesized;
+
     public Select getSelect() {
         return select;
     }
@@ -132,5 +134,13 @@ public class Expression {
 
     public void setLogical(LogicalExpression logical) {
         this.logical = logical;
+    }
+
+    public boolean isParenthesized() {
+        return parenthesized;
+    }
+
+    public void setParenthesized(boolean parenthesized) {
+        this.parenthesized = parenthesized;
     }
 }

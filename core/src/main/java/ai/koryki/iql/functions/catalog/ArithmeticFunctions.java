@@ -51,7 +51,9 @@ public final class ArithmeticFunctions {
             public String render(SqlSelectRenderer renderer, Function function, int indent) {
                 Expression operand = function.getArguments().get(0);
                 String inner = renderer.toSql(operand, indent);
-                return operand.getFunction() != null ? "-(" + inner + ")" : "-" + inner;
+                // toSql already wraps parenthesized operands in (); only add our own parens
+                // for unparenthesized function calls (e.g. -sum(...) → -(sum(...)))
+                return (operand.getFunction() != null && !operand.isParenthesized()) ? "-(" + inner + ")" : "-" + inner;
             }
         }.category(FunctionCategory.ARITHMETIC)
                 .args(arg("value", Families.ANY))

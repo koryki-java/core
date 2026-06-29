@@ -706,6 +706,13 @@ public class SqlSelectRenderer {
     }
 
     public String toSql(Expression expression, int indent) {
+        if (expression.isParenthesized()) {
+            return "(" + toSqlUnparenthesized(expression, indent) + ")";
+        }
+        return toSqlUnparenthesized(expression, indent);
+    }
+
+    private String toSqlUnparenthesized(Expression expression, int indent) {
         if (expression.getSelect() != null) {
 
             StringBuilder b = new StringBuilder();
