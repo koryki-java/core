@@ -323,6 +323,92 @@ public class LinkResolver {
         return attribute.getColumn() != null ? attribute.getColumn() : attribute.getName();
     }
 
+    /**
+     * Returns all link names that are reachable from {@code entity} as the source side.
+     * <p>
+     * A link is included when at least one of its canonical FK relations has the entity's
+     * dialect table as {@code startTable} (forward link) or {@code endTable} (inverse link).
+     * Symmetric relations count in both directions. Link aliases ({@link Link#getRelation()})
+     * are resolved one level deep to find the canonical relations list.
+     *
+     * @param entity model-level entity name (as used in KQL FIND clauses)
+     * @return sorted list of link names valid for the given entity
+     */
+    public List<String> linksFrom(String entity) {
+        String dialectTable = getDialectTable(entity)
+                .orElseThrow(() -> new KorykiaiException("unknown entity: " + entity));
+        return linkMap.values().stream()
+                .filter(link -> isLinkEndpoint(dialectTable, link, true))
+                .map(Link::getName)
+                .sorted()
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Returns all link names that can reach {@code entity} as the target side -
+     * the mirror of {@link #linksFrom(String)}.
+     *
+     * @param entity model-level entity name (as used in KQL FIND clauses)
+     * @return sorted list of link names valid toward the given entity
+     */
+    public List<String> linksTo(String entity) {
+        String dialectTable = getDialectTable(entity)
+                .orElseThrow(() -> new KorykiaiException("unknown entity: " + entity));
+        return linkMap.values().stream()
+                .filter(link -> isLinkEndpoint(dialectTable, link, false))
+                .map(Link::getName)
+                .sorted()
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Returns all link names that connect {@code startEntity} to {@code endEntity}.
+     * <p>
+     * Each candidate link is tested with the same {@link #findRelation} resolution the
+     * query engine uses at execution time, so a link is listed here exactly when a
+     * {@code startEntity VIA link endEntity} clause would resolve - suggestions can
+     * never drift from executor behavior. Links whose resolution is ambiguous (more
+     * than one matching foreign key) are excluded, matching the executor's rejection.
+     *
+     * @param startEntity model-level entity name of the source side
+     * @param endEntity   model-level entity name of the target side
+     * @return sorted list of link names valid between the two entities
+     */
+    public List<String> linksBetween(String startEntity, String endEntity) {
+        getDialectTable(startEntity)
+                .orElseThrow(() -> new KorykiaiException("unknown entity: " + startEntity));
+        getDialectTable(endEntity)
+                .orElseThrow(() -> new KorykiaiException("unknown entity: " + endEntity));
+        Range range = new Range(0, 0, 0, 0);
+        return linkMap.keySet().stream()
+                .filter(name -> {
+                    try {
+                        return findRelation(range, startEntity, endEntity, name).isPresent();
+                    } catch (RuntimeException e) {
+                        return false;
+                    }
+                })
+                .sorted()
+                .collect(Collectors.toList());
+    }
+
+    private boolean isLinkEndpoint(String dialectTable, Link link, boolean asSource) {
+        String canonical = link.getRelation() != null ? link.getRelation() : link.getName();
+        Link canonicalLink = linkMap.get(canonical);
+        if (canonicalLink == null) return false;
+        List<String> rels = canonicalLink.getRelations();
+        if (rels == null || rels.isEmpty()) return false;
+        // an inverse link reads its FK relations in the opposite direction
+        boolean fromStartSide = asSource != isInverse(link);
+        return rels.stream()
+                .map(name -> db.getRelation(name))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .anyMatch(rel -> fromStartSide
+                        ? rel.getStartTable().equals(dialectTable) || (rel.isSymmetric() && rel.getEndTable().equals(dialectTable))
+                        : rel.getEndTable().equals(dialectTable) || (rel.isSymmetric() && rel.getStartTable().equals(dialectTable)));
+    }
+
     public TypeDescriptor getTypeDescriptor(Column column) {
         return columnToTypedescriptor.get(column);
     }

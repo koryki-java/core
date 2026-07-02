@@ -147,9 +147,13 @@ public class Engine<I extends ColumnInfo, C extends ResultConsumer<I>> {
 
     /** Pretty-prints the KQL (the former behavior of validateKQL). */
     public String formatKQL(String kql) {
+        return formatKQL(kql, 0);
+    }
+
+    public String formatKQL(String kql, int maxlinesize) {
         KQLTranspiler transpiler = KQLTranspiler.builder(kql, resolver).build();
 
-        KQLFormatter formatter = new KQLFormatter(transpiler.getCtx(), transpiler.getDescription());
+        KQLFormatter formatter = new KQLFormatter(transpiler.getCtx(), transpiler.getDescription()).withMaxLineLength(maxlinesize);
         return formatter.format();
     }
 
