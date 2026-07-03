@@ -392,6 +392,75 @@ public class LinkResolver {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Returns the names of all entities reachable from {@code entity} via any link -
+     * the candidate targets for a join. An entity is included when at least one link's
+     * canonical FK relation leads from {@code entity}'s dialect table to that entity's
+     * table (inverse links read their relations in the opposite direction, symmetric
+     * relations count both ways). Self-links include the entity itself.
+     *
+     * @param entity model-level entity name (as used in KQL FIND clauses)
+     * @return sorted distinct list of reachable entity names
+     */
+    public List<String> linkedEntities(String entity) {
+        String dialectTable = getDialectTable(entity)
+                .orElseThrow(() -> new KorykiaiException("unknown entity: " + entity));
+        Set<String> result = new TreeSet<>();
+        for (Link link : linkMap.values()) {
+            collectLinkTargets(link, dialectTable, result);
+        }
+        return new ArrayList<>(result);
+    }
+
+    /**
+     * Returns the names of all entities reachable via the given link criterion,
+     * optionally restricted to journeys starting at {@code fromEntity} - the
+     * candidate sources after {@code from? VIA criterion} in a KQL link clause.
+     *
+     * @param linkName   model-level (localized) link criterion name
+     * @param fromEntity optional entity name of the from side; {@code null} for any
+     * @return sorted distinct list of reachable entity names
+     */
+    public List<String> linkTargets(String linkName, String fromEntity) {
+        Link link = linkMap.get(linkName);
+        if (link == null) {
+            throw new KorykiaiException("unknown link: " + linkName);
+        }
+        String fromTable = fromEntity == null ? null : getDialectTable(fromEntity)
+                .orElseThrow(() -> new KorykiaiException("unknown entity: " + fromEntity));
+        Set<String> result = new TreeSet<>();
+        collectLinkTargets(link, fromTable, result);
+        return new ArrayList<>(result);
+    }
+
+    /**
+     * Adds the entity names reachable over {@code link} to {@code result}. With a
+     * non-null {@code fromTable}, only relations whose from side (inverse-aware)
+     * matches it contribute; with {@code null}, every relation of the link does.
+     */
+    private void collectLinkTargets(Link link, String fromTable, Set<String> result) {
+        String canonical = link.getRelation() != null ? link.getRelation() : link.getName();
+        Link canonicalLink = linkMap.get(canonical);
+        if (canonicalLink == null || canonicalLink.getRelations() == null) return;
+        Map<String, String> tableToEntity = model.getEntities().stream()
+                .collect(Collectors.toMap(LinkResolver::getDialectTable, Entity::getName, (a, b) -> a));
+        boolean inverse = isInverse(link);
+        for (String relationName : canonicalLink.getRelations()) {
+            Relation relation = db.getRelation(relationName).orElse(null);
+            if (relation == null) continue;
+            String from = inverse ? relation.getEndTable() : relation.getStartTable();
+            String to = inverse ? relation.getStartTable() : relation.getEndTable();
+            if (fromTable == null || from.equals(fromTable)) {
+                String target = tableToEntity.get(to);
+                if (target != null) result.add(target);
+            }
+            if (relation.isSymmetric() && (fromTable == null || to.equals(fromTable))) {
+                String target = tableToEntity.get(from);
+                if (target != null) result.add(target);
+            }
+        }
+    }
+
     private boolean isLinkEndpoint(String dialectTable, Link link, boolean asSource) {
         String canonical = link.getRelation() != null ? link.getRelation() : link.getName();
         Link canonicalLink = linkMap.get(canonical);
