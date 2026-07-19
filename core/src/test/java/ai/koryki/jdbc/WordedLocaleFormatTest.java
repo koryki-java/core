@@ -1,6 +1,6 @@
 package ai.koryki.jdbc;
 
-import ai.koryki.catalog.schema.types.TypeDescriptor;
+import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.jdbc.WordedLocaleFormat.Width;
 import org.junit.jupiter.api.Test;
 

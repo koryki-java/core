@@ -16,26 +16,23 @@
  */
 package ai.koryki.mssql.iql;
 
+import ai.koryki.catalog.types.WallClockEncoding;
 import ai.koryki.iql.Identifier;
 import ai.koryki.iql.SqlDialect;
 import ai.koryki.iql.SqlSelectRenderer;
-import ai.koryki.iql.functions.FunctionDefinition;
 import ai.koryki.iql.functions.FunctionRegistry;
 import ai.koryki.iql.functions.FunctionRenderer;
-import ai.koryki.iql.functions.ReturnTypes;
 import ai.koryki.iql.functions.StandardFunctions;
 import ai.koryki.iql.query.Duration;
 import ai.koryki.iql.query.Expression;
-import ai.koryki.iql.query.Function;
-import ai.koryki.iql.types.TimeEncodings;
-import ai.koryki.catalog.schema.types.CoreTypeEncoding;
-import ai.koryki.catalog.schema.types.CoreTypeFamily;
-import ai.koryki.catalog.schema.types.TypeDescriptor;
+import ai.koryki.iql.typing.TimeEncodings;
+import ai.koryki.catalog.types.CoreTypeEncoding;
+import ai.koryki.catalog.types.CoreTypeFamily;
+import ai.koryki.catalog.types.TypeDescriptor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.stream.Collectors;
 
 public class MssqlDialect implements SqlDialect {
 
@@ -71,11 +68,11 @@ public class MssqlDialect implements SqlDialect {
     /** Wall-clock(zone) → model zone: {@code AT TIME ZONE} (Windows names) reads naive as declared, then shifts. */
     @Override
     public String wallClockToModelZone(String columnSql,
-            ai.koryki.catalog.schema.types.WallClockEncoding enc, java.time.ZoneId modelZone) {
+                                       WallClockEncoding enc, java.time.ZoneId modelZone) {
         String decl = "'" + windowsZone(enc.getZone()) + "'";
         String model = "'" + windowsZone(modelZone) + "'";
         String shifted = "(CAST(" + columnSql + " AS datetime2) AT TIME ZONE " + decl + ") AT TIME ZONE " + model;
-        String target = ai.koryki.catalog.schema.types.CoreTypeFamily.DATE.equals(enc.family()) ? "DATE" : "datetime2";
+        String target = CoreTypeFamily.DATE.equals(enc.family()) ? "DATE" : "datetime2";
         return "CAST((" + shifted + ") AS " + target + ")";
     }
 
@@ -92,8 +89,14 @@ public class MssqlDialect implements SqlDialect {
         return s.length() >= 2 && s.startsWith("'") && s.endsWith("'") ? s.substring(1, s.length() - 1) : s;
     }
 
+    private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();
+
     @Override
     public FunctionRenderer getFunctionRenderer() {
+        return FUNCTION_RENDERER;
+    }
+
+    private static FunctionRenderer buildFunctionRenderer() {
         FunctionRegistry registry = StandardFunctions.registry();
         // to_text is the rolled-out, tested function: keep its dialect cast-type override.
         registry.overrideAll("to_text", "CAST({0} AS VARCHAR(MAX))");

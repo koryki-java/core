@@ -1,0 +1,342 @@
+# koryki — Verifiable, AI-Assisted Semantic Querying for Relational Databases
+
+> koryki lets people and AI query relational databases in a compact, human-readable language
+> called **KQL** (Koryki Query Language) that is easy to read, validate, and trust. Every KQL
+> query is transformed **deterministically** into SQL and runs unchanged across many database
+> engines. koryki is the safe middle ground between "learn SQL" and "let an AI guess SQL": the
+> point you have to verify is a short, business-oriented query — not a wall of generated SQL.
+
+koryki is a platform and open-source Java library for **semantic querying**, **self-service data
+analysis**, and **AI-assisted (natural-language-to-query) database access**. It is a controllable
+alternative to text-to-SQL: instead of trusting generated SQL, you read and approve a concise KQL
+query, and koryki compiles it to SQL by fixed rules.
+
+- Platform: https://koryki.ai
+- Live demo: https://demo.koryki.ai
+- License: Apache 2.0 (open source, early stage)
+- Contact: info@koryki.ai
+
+---
+
+## What koryki is
+
+koryki is built around **KQL**, a small, readable query language designed to be written and
+understood *without* SQL knowledge. A user (or an LLM) expresses *what* they want in KQL; koryki
+handles *how* to fetch it — joins, grouping, dialect quirks, and optimizations are derived
+automatically. The core value is **verifiability**: because KQL is short and speaks in business
+terms, a human can confirm at a glance that a query matches their intent, and the translation to
+SQL is deterministic and auditable rather than probabilistic.
+
+koryki spans three layers:
+
+1. **A semantic model** — business-oriented entities, named relationships, and attributes that map
+   onto the physical database schema.
+2. **A deterministic transpiler** — KQL → an intermediate representation (**IQL**) → SQL, applying
+   explicit, testable rewrite rules.
+3. **AI assistance** — an MCP server and prompts that let an LLM produce KQL (and charts) which are
+   validated before anything runs.
+
+---
+
+## The problem it solves
+
+A marketing manager, analyst, or researcher regularly has questions IT was not prepared for. Today
+they have three poor options:
+
+- **Wait for IT** — file a ticket and wait days for a report.
+- **Learn SQL** — spend months on `INNER JOIN`, `GROUP BY`, `HAVING`, window functions, and
+  per-database dialect differences.
+- **Ask an LLM for SQL** — fast, but to trust the answer you must be able to read and validate SQL,
+  which defeats the purpose.
+
+Traditional text-to-SQL puts the burden of understanding SQL on the user. koryki **shifts the point
+of trust** from SQL to KQL — a language that is compact, readable, and hard to get subtly wrong.
+Once a KQL query is approved, its transformation to SQL is rule-based and reliable, so the human
+stays in control of exactly what is queried and executed.
+
+---
+
+## KQL — the Koryki Query Language
+
+KQL is inspired by SQL and shares its concepts, but operates at a higher level of abstraction. Its
+guiding conventions:
+
+- **Keywords are UPPERCASE** (`FIND`, `FILTER`, `FETCH`); **identifiers are lowercase** (entities,
+  aliases, attributes). Case alone tells you whether a token is a keyword or a name — easy to read
+  and to verify, for humans and for LLMs.
+- **No explicit joins.** You declare *which* entities to connect using named relationships from the
+  semantic model; koryki resolves *how* to connect them.
+- **Grouping and having are inferred** from the `FETCH` and `FILTER` clauses, not written by hand.
+
+### The three core clauses
+
+- **FIND** — the entities (and their relationships) the query is about.
+- **FILTER** — a logical expression (`AND`, `OR`, `NOT`, `BETWEEN`, `LIKE`, `EXISTS`, comparisons).
+- **FETCH** — the result columns, with optional inline `ASC`/`DESC` sorting.
+
+### Example
+
+Business question: *find customers who placed more than 10 orders in January 2023; return company
+name and order count, sorted by count.*
+
+```
+FIND customers c, orders o
+FILTER count(o) > 10
+   AND o.order_date BETWEEN "2023-01-01" AND "2023-01-31"
+FETCH c.company_name, count(o) DESC
+```
+
+There is no `JOIN`, no `GROUP BY`, no `HAVING` — koryki derives them. The `customers`–`orders`
+relationship is resolved from the semantic model.
+
+### Relationships (links)
+
+Entities are connected by **named links** declared in the semantic model:
+
+- **Anonymous** link when only one relationship exists between two entities: `c orders o`.
+- **Named** link with `VIA` when several exist: `c VIA same_customer orders o`.
+- **Optional** link (outer join) by placing `+` at one end: `m VIA reports_to + employees boss`.
+
+### More language features
+
+- **Nested queries** inside expressions (e.g. compare against a correlated sub-query average).
+- **Set operations**: `UNION`, `UNIONALL`, `MINUS`, `INTERSECT`.
+- **Query blocks**: `WITH name AS ( … )` for reusable sub-queries.
+- **`EXISTS` / `NOT EXISTS`** to test for present or absent related records (the idiomatic way to
+  ask "customers *without* orders", instead of null-checking foreign keys).
+- **`LIMIT n`** to cap result rows.
+- **Comments**: block `/* … */` and line `// …`.
+
+A full grammar reference (EBNF with railroad diagrams) is published so both people and LLMs can
+learn and validate the language.
+
+---
+
+## Deterministic pipeline: KQL → IQL → SQL
+
+koryki does not translate KQL to SQL in one opaque step. It compiles through a shared intermediate
+representation, **IQL**, applying explicit rewrite rules that are individually testable:
+
+1. **Parse** KQL (ANTLR4 grammar) into a query model.
+2. **Rewrite** into IQL — resolve `FILTER` into `FILTER`/`HAVING` depending on aggregation, insert
+   `GROUP BY` where required, resolve identity/primary keys for functions like `count`, and keep
+   relationships as named joins.
+3. **Render** to SQL — resolve named relationships to concrete join columns and emit
+   dialect-correct SQL.
+
+Because each step is deterministic and rule-based, the same KQL query runs **unchanged across every
+supported database**; the transpiler absorbs dialect differences. This also makes results
+reproducible and the whole path auditable.
+
+---
+
+## Supported databases (dialects)
+
+The same KQL query is portable across all of these engines:
+
+- **DuckDB**
+- **MariaDB / MySQL**
+- **Microsoft SQL Server (MSSQL)**
+- **Oracle**
+- **PostgreSQL**
+- **Snowflake**
+- **SQLite**
+- **Trino**
+
+Dialect-specific SQL generation, type handling, and temporal semantics are handled by koryki, so
+authors never write engine-specific SQL.
+
+---
+
+## Semantic model and dimension analysis
+
+koryki presents a **semantic layer** — domain entities, named relationships, and attributes —
+instead of raw tables and columns. Beyond naming, it attaches *meaning* to the columns a query
+returns. Every output column is analysed along several dimensions:
+
+- **Column role** — whether it is a descriptive dimension or a measured quantity, and how it was
+  aggregated or ordered.
+- **Physical quantity and unit** — the kind of value it holds (currency, count, ratio, duration)
+  and its unit, so magnitudes are never confused.
+- **Temporal grain** — the resolution of a date/time column (day, month, year), driving correct
+  formatting and ordering.
+- **Derived metric** — a business name concluded from an expression's shape; e.g. a sum of unit
+  price × quantity is recognised as *net revenue* in euros.
+
+This dimensional analysis is derived deterministically from the model and the query — not guessed
+from column names — so it stays reliable and explainable even for AI-generated queries. It powers
+sensible defaults, flags combinations that make no dimensional sense, and gives both users and
+language models a precise, machine-readable description of what each result represents.
+
+---
+
+## Grammar of Graphics — the VISUALISE clause
+
+The same "readable and verifiable" principle extends to visualization. koryki can describe a chart
+with an optional **`VISUALISE`** clause appended to a query — a declarative **Grammar of Graphics**
+that compiles deterministically to a standard [Vega-Lite](https://vega.github.io/vega-lite/)
+specification.
+
+Rather than choosing from a fixed catalogue of chart types, a chart is a composition of independent
+parts you can change one at a time:
+
+- **Aesthetic mappings** — which columns map to which visual channels (`x`, `y`, `color`, `size`,
+  `theta`, `longitude`/`latitude`, …).
+- **Marks / geoms** — `point`, `line`, `bar`, `area`, `text`, and statistical geoms (`histogram`,
+  `boxplot`, `smooth`/trend line, `density`, `violin`, `heatmap`); layers stack.
+- **Scales** — linear, log, ordinal, colour schemes, custom domains and relabelling.
+- **Coordinate systems** — cartesian, polar (pie/donut), and map projections (rendered
+  client-side, so point maps work on every dialect with no spatial extension).
+- **Facets** — small multiples, one panel per category.
+- **Labels** — chart and axis titles.
+
+Two design choices stand out: **statistical summaries are computed in the database** (histograms,
+quartiles, regressions, KDE) to keep clients light and results consistent, and the **dimension
+analysis supplies smart defaults** — metric names become axis titles, units are appended, temporal
+axes use grain-based formats, and measures of different physical dimensions get independent scales.
+A chart is added only when it helps; an explicit choice always overrides a default.
+
+Example — customers per country as a bar chart, with the count computed in the database:
+
+```
+FIND customers c
+FETCH c.country country
+VISUALISE country AS x
+DRAW bar SETTING aggregate => 'count'
+```
+
+The VISUALISE clause is inspired by the ggsql project (Posit); koryki's implementation is an
+independent Java/ANTLR rewrite.
+
+---
+
+## AI assistance — safe by construction
+
+koryki treats AI as a **front-end that proposes**, while deterministic code **verifies and
+executes**. Because KQL is small and well-defined, it is both easy for an LLM to generate and easy
+to validate before anything touches the database.
+
+- **MCP server.** koryki ships a Model Context Protocol (https://modelcontextprotocol.io) server so
+  AI models can gain *read* access to databases through KQL, with the schema, grammar, and semantic
+  model published as context.
+- **Validate before execute.** Generated KQL is validated (and, for charts, rendered structurally)
+  before execution; errors are precise and fed back for automatic repair.
+- **Two-stage generation.** For visualization, the LLM first writes the data query (no chart);
+  koryki then computes the per-column findings (roles, quantities, units, metrics, grain) and hands
+  them back so the LLM can add a `VISUALISE` clause *grounded in the real column semantics* rather
+  than guessing from names — and only when a chart is meaningful.
+- **Human in the loop.** The user reads and approves a short KQL query, not opaque SQL — keeping
+  full control over what is queried and run.
+
+A demo chat application is available at https://demo.koryki.ai.
+
+---
+
+## Temporal support
+
+KQL infers temporal types from literal *format* (no keyword prefix; always double-quoted):
+
+- Date — `"2023-01-31"`
+- Timestamp — `"2023-01-31 14:30:00.000+02:00"`
+- Time of day — `"14:30:00"`
+- Duration — `30d`, `2h30min`, `1y2mo15d` (combine units freely)
+
+Durations combine with dates in arithmetic (`order_date + 30d`, `now() - 1y`); a bare number never
+combines with a temporal value. koryki normalizes temporal semantics (including time zones and
+`INSTANT`/timestamp handling) across all dialects.
+
+## Functions
+
+KQL provides a curated, portable function set:
+
+- **Aggregates** — `count`, `sum`, `min`, `max`, `avg`, `string_agg`
+- **Arithmetic** — `+`, `-`, `*`, `/`
+- **Strings** — `lower`, `upper`, `substr`, `length`, `concat`, `trim`, `replace`
+- **Math** — `round`, `abs`, `mod`
+- **Date/time** — `now`, `today`, `year`, `month`, `day`, `month_begin`, `month_end`, `year_begin`,
+  `year_end`, `day_add`, `month_add`, `year_add`, `days_between`, `months_between`, `years_between`
+- **Conditional** — `coalesce`
+- **Type casts** — `to_date`, `to_timestamp`, `to_integer`, `to_text`
+
+Window functions (`OVER`, `PARTITION`, `ORDER`, framing) are supported for running totals, moving
+averages, ranks, and lag/lead deltas.
+
+---
+
+## Architecture (for developers)
+
+koryki is a Java 21 library, parsed with ANTLR4, organized into focused packages/modules:
+
+The `Engine` exposes `executeKQL` / `executeVegaLite` (run and render), `validateAndRender`
+(validate + render a chart without executing SQL — the deterministic check for an LLM
+generate→validate→fix loop), and `analyze` (per-column findings without executing SQL).
+
+---
+
+## Who koryki is for
+
+- **Business & domain users** (marketing, sales, research, operations) who need answers without SQL
+  or waiting on IT — self-service analytics on their own terms.
+- **Data teams** who want to expose databases safely to non-experts and to AI, with a verifiable
+  query layer and named relationships instead of ad-hoc SQL.
+- **AI / LLM applications** that need a compact, checkable target language and an MCP integration
+  for read access to relational data — a controllable alternative to raw text-to-SQL.
+- **Developers** embedding portable, dialect-agnostic querying and charting into applications.
+
+---
+
+## Key facts (quick reference)
+
+- **What:** human- and AI-readable query language (KQL) that compiles deterministically to SQL.
+- **Why:** shift verification from generated SQL to a short, business-oriented query.
+- **Databases:** DuckDB, MariaDB, MSSQL, Oracle, PostgreSQL, Snowflake, SQLite, Trino.
+- **Charts:** declarative Grammar of Graphics via `VISUALISE` → Vega-Lite; stats computed in-DB.
+- **Semantics:** business entities/links/attributes + per-column dimension analysis (role, unit,
+  grain, metric).
+- **AI:** MCP server, validated generation, two-stage query+chart flow, human-in-the-loop.
+- **Tech:** Java 21, ANTLR4, KQL → IQL → SQL pipeline.
+- **License:** Apache 2.0, open source, early stage.
+
+---
+
+## Links
+
+- Platform: https://koryki.ai
+- Demo: https://demo.koryki.ai
+- Purpose & philosophy: /docs/PURPOSE.md
+- Language guide: /docs/LANGUAGE.md
+- Grammar reference (EBNF + railroad diagrams): /docs/KQL_EBNF.md
+- Grammar of Graphics: /docs/GG.md
+- Semantic layer: /docs/SEMANTIC_LAYER.md
+- Sample query (KQL → IQL → SQL): /docs/SAMPLE_QUERY.md
+- Model Context Protocol: https://modelcontextprotocol.io
+- Vega-Lite: https://vega.github.io/vega-lite
+- ggsql (inspiration for VISUALISE, MIT): https://github.com/posit-dev/ggsql
+
+---
+
+## FAQ
+
+**Is koryki a text-to-SQL tool?**
+It is a safer alternative. Text-to-SQL asks you to trust generated SQL. koryki has AI generate
+**KQL** — short, readable, business-oriented — which you validate, and which then compiles to SQL by
+deterministic rules.
+
+**Do users need to know SQL?**
+No. KQL is designed to be written and read without SQL knowledge; joins, grouping, and dialect
+differences are handled automatically.
+
+**Does the same query work on different databases?**
+Yes. A KQL query is portable across all supported dialects; koryki emits dialect-correct SQL.
+
+**How does koryki make charts?**
+With an optional `VISUALISE` clause — a Grammar of Graphics that compiles to Vega-Lite. Statistical
+charts are computed in the database, and chart defaults (titles, units, formats, scales) come from
+koryki's per-column dimension analysis.
+
+**How does the AI stay trustworthy?**
+The LLM only *proposes* KQL; deterministic code validates it (and renders charts) before execution,
+and a human approves the readable query. Nothing runs on a guess.
+
+**Is it open source?**
+Yes — Apache 2.0. Feedback is welcome at info@koryki.ai.

@@ -1,8 +1,8 @@
 package ai.koryki.jdbc;
 
-import ai.koryki.catalog.schema.types.CoreTypeEncoding;
-import ai.koryki.catalog.schema.types.CoreTypeFamily;
-import ai.koryki.catalog.schema.types.TypeDescriptor;
+import ai.koryki.catalog.types.CoreTypeEncoding;
+import ai.koryki.catalog.types.CoreTypeFamily;
+import ai.koryki.catalog.types.TypeDescriptor;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;

@@ -50,8 +50,14 @@ public class StandardFunctions {
         return r;
     }
 
-    /** Standard (dialect-neutral) registry, built once, for classification queries like {@link #isAggregate}. */
+    /** Standard (dialect-neutral) registry, built once, for classification queries like {@link #isAggregate}
+     *  and as the shared render catalog for dialects that add no functions of their own. */
     private static final FunctionRegistry CANONICAL = registry();
+
+    /** The dialect-neutral function renderer — assembled once and shared read-only. */
+    public static FunctionRenderer canonical() {
+        return CANONICAL;
+    }
 
     /** Whether a function is an aggregate, per the canonical function metadata (single source of truth). */
     public static boolean isAggregate(String name) {

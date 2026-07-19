@@ -19,20 +19,16 @@ package ai.koryki.iql;
 import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.antlr.Range;
 import ai.koryki.antlr.RangeException;
+import ai.koryki.catalog.types.WallClockEncoding;
 import ai.koryki.iql.logic.Normalizer;
 import ai.koryki.iql.query.*;
 import ai.koryki.iql.functions.FunctionRenderer;
-import ai.koryki.iql.types.ExpressionTypeResolver;
+import ai.koryki.iql.typing.ExpressionTypeResolver;
 import ai.koryki.catalog.schema.Relation;
-import ai.koryki.catalog.schema.types.TypeDescriptor;
+import ai.koryki.catalog.types.TypeDescriptor;
 import org.antlr.v4.runtime.RuleContext;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
 import java.time.ZoneId;
-import java.util.Locale;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -111,7 +107,7 @@ public class SqlSelectRenderer {
             b.append(indent(indent)).append("DISTINCT ");
         }
 
-        List<Out> out = collectOut(select);
+        List<Out> out = SqlQueryRenderer.collectOut(select);
 
         if (out.isEmpty()) {
             b.append("1").append(System.lineSeparator());
@@ -119,23 +115,6 @@ public class SqlSelectRenderer {
             b.append(selectClause(out, indent));
         }
         return b.toString();
-    }
-
-    public static List<Out> collectOut(Select select) {
-        List<Out> out = new ArrayList<>();
-        out.addAll(select.getStart().getOut());
-        out.addAll(collectOut(select.getJoin()));
-        out.addAll(select.getOut());
-
-        Comparator<Out> c = (o1, o2) -> {
-
-            int p1 = o1.getIdx() == 0 ? Integer.MAX_VALUE : o1.getIdx();
-            int p2 = o2.getIdx() == 0 ? Integer.MAX_VALUE : o2.getIdx();
-            return p1 - p2;
-        };
-
-        out.sort(c);
-        return out;
     }
 
     private String fromClause(Select select, int indent) {
@@ -158,17 +137,6 @@ public class SqlSelectRenderer {
         b.append(s);
         b.append(System.lineSeparator());
         return b.toString();
-    }
-
-    public static List<Out> collectOut(List<Join> join) {
-        List<Out> l = new ArrayList<>();
-        for (Join j : join) {
-            if (j.getSource() != null) {
-                l.addAll(j.getSource().getOut());
-            }
-            l.addAll(collectOut(j.getJoin()));
-        }
-        return l;
     }
 
     protected String toSql(Source source, int indent) {
@@ -234,27 +202,36 @@ public class SqlSelectRenderer {
     }
 
     protected List<LogicalExpression> collectInnerFilter(List<Join> join) {
-        List<LogicalExpression> l = new ArrayList<>();
-        for (Join j : join) {
-            if (!j.isOptional()) {
-                if (j.getSource() != null && j.getSource().getFilter() != null) {
-
-                    l.add(j.getSource().getFilter());
-                }
-                l.addAll(collectInnerFilter(j.getJoin()));
-            }
-        }
-        return l;
+        // inner joins only: an optional join's filter renders in its LEFT JOIN ... ON, not the WHERE
+        return collectClause(join, Source::getFilter, true);
     }
 
     protected List<LogicalExpression> collectHaving(List<Join> join) {
+        // HAVING is collected from every join, optional ones included
+        return collectClause(join, Source::getHaving, false);
+    }
+
+    /**
+     * Walks the join tree collecting one clause slot (filter or having) from each source.
+     * The slot is addressed by accessor so filter- and having-collection share this walk;
+     * {@code innerOnly} skips optional joins and their subtree (the filter semantics).
+     */
+    private static List<LogicalExpression> collectClause(List<Join> join,
+                                                         java.util.function.Function<Source, LogicalExpression> slot,
+                                                         boolean innerOnly) {
         List<LogicalExpression> l = new ArrayList<>();
         for (Join j : join) {
-            if (j.getSource() != null && j.getSource().getHaving() != null) {
-
-                l.add(j.getSource().getHaving());
+            if (innerOnly && j.isOptional()) {
+                continue;
             }
-            l.addAll(collectHaving(j.getJoin()));
+            Source s = j.getSource();
+            if (s != null) {
+                LogicalExpression e = slot.apply(s);
+                if (e != null) {
+                    l.add(e);
+                }
+            }
+            l.addAll(collectClause(j.getJoin(), slot, innerOnly));
         }
         return l;
     }
@@ -731,14 +708,7 @@ public class SqlSelectRenderer {
             text = text.replace("\\'", "''");
             return text;
         } else if (expression.getNumber() != null) {
-            if (expression.getNumber() instanceof BigInteger bigInteger) {
-                return bigInteger.toString();
-            } else if (expression.getNumber() instanceof BigDecimal bigDecimal) {
-                // canonical form: drop trailing zeros (0.0 -> 0) but keep full precision
-                return bigDecimal.stripTrailingZeros().toPlainString();
-            } else {
-                throw new KorykiaiException("unsupported number type: " + expression.getNumber().getClass());
-            }
+            return Literals.number(expression.getNumber());
         } else if (expression.getLocalDate() != null) {
             return dateExpression(expression);
         } else if (expression.getLocalDateTime() != null) {
@@ -826,7 +796,7 @@ public class SqlSelectRenderer {
         } catch (RuntimeException unresolved) {
             return columnSql;
         }
-        if (t != null && t.getTypeEncoding() instanceof ai.koryki.catalog.schema.types.WallClockEncoding wc) {
+        if (t != null && t.getTypeEncoding() instanceof WallClockEncoding wc) {
             return dialect.wallClockToModelZone(columnSql, wc, modelZone);
         }
         return columnSql;

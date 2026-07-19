@@ -1,6 +1,6 @@
 package ai.koryki.databases.cases;
 
-import ai.koryki.catalog.schema.types.TypeDescriptor;
+import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.jdbc.LocaleFormat;
 
 import java.math.BigDecimal;

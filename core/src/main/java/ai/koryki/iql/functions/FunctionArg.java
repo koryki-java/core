@@ -16,7 +16,7 @@
  */
 package ai.koryki.iql.functions;
 
-import ai.koryki.catalog.schema.types.TypeFamily;
+import ai.koryki.catalog.types.TypeFamily;
 
 /**
  * One declared argument of a function signature.

@@ -1,0 +1,5 @@
+// unit price against ordered quantity, detail data - explicitly ordered so the
+// golden's inline data.values array is deterministic
+
+FIND order_details od
+FETCH od.unit_price ASC 1, od.quantity ASC 2

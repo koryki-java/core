@@ -16,8 +16,8 @@
  */
 package ai.koryki.tools.docs;
 
-import ai.koryki.catalog.schema.types.TypeDescriptor;
-import ai.koryki.catalog.schema.types.TypeFamily;
+import ai.koryki.catalog.types.TypeDescriptor;
+import ai.koryki.catalog.types.TypeFamily;
 import ai.koryki.iql.functions.Fixity;
 import ai.koryki.iql.functions.FunctionArg;
 import ai.koryki.iql.functions.FunctionCategory;

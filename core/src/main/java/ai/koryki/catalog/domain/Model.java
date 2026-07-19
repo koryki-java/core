@@ -16,11 +16,6 @@
  */
 package ai.koryki.catalog.domain;
 
-import ai.koryki.catalog.schema.Column;
-import ai.koryki.catalog.schema.Relation;
-import ai.koryki.catalog.schema.Schema;
-import ai.koryki.catalog.schema.Table;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -28,9 +23,9 @@ import java.util.stream.Collectors;
 
 public class Model {
 
+
     private String name;
     private String label;
-    private String table;
     private String comment;
     private String description;
     private List<Entity> entities;
@@ -143,54 +138,6 @@ public class Model {
         copy.setName(relation.getName());
         copy.setComment(relation.getComment());
         copy.setDescription(relation.getDescription());
-        return copy;
-    }
-
-
-    public static Model deepCopy(Schema schema) {
-        Model copy = new Model();
-        copy.setName(schema.getName());
-        copy.setLabel(schema.getLabel());
-        copy.setComment(schema.getComment());
-        copy.setDescription(schema.getDescription());
-        copy.setName(schema.getName());
-
-        copy.setEntities(schema.getTables().stream().map(t -> deepCopy(t)).collect(Collectors.toList()));
-        copy.setLinks(schema.getRelations().stream().map(r -> deepCopy(r)).collect(Collectors.toList()));
-
-        return copy;
-    }
-
-    public static Entity deepCopy(Table tabpe) {
-        Entity copy = new Entity();
-
-        copy.setName(tabpe.getName());
-        copy.setLabel(tabpe.getLabel());
-        copy.setComment(tabpe.getComment());
-        copy.setDescription(tabpe.getDescription());
-        copy.setAttributes(tabpe.getColumns().stream().map(c -> deepCopy(c)).collect(Collectors.toList()));
-
-        return copy;
-    }
-
-    public static Attribute deepCopy(Column tabpe) {
-        Attribute copy = new Attribute();
-
-        copy.setName(tabpe.getName());
-        copy.setLabel(tabpe.getLabel());
-        copy.setComment(tabpe.getComment());
-        copy.setDescription(tabpe.getDescription());
-
-        return copy;
-    }
-
-    public static Link deepCopy(Relation relation) {
-        Link copy = new Link();
-
-        copy.setName(relation.getName());
-        copy.setComment(relation.getComment());
-        copy.setDescription(relation.getDescription());
-
         return copy;
     }
 

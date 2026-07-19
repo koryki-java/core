@@ -1,0 +1,3 @@
+FIND bestellungen b, b bestellposition bp, bp produkte p, p kategorien k
+FILTER b.bestelldatum BETWEEN "2023-01-01" AND "2023-12-31"
+FETCH k.kategorie_name, month(b.bestelldatum) monat, sum(bp.preis_je_einheit * bp.menge * (1 - bp.rabatt)) umsatz ASC 1

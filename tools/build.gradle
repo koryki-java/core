@@ -29,6 +29,10 @@ dependencies {
 
 test {
     useJUnitPlatform()
+    // Forward -Ddocs.write=true from the CLI to the forked test JVM so the doc-golden
+    // tests (FunctionDocsTest / DialectSpecTest) regenerate the pages instead of asserting.
+    // (The DOCS_WRITE=true env var is inherited automatically; the -D property is not.)
+    systemProperty 'docs.write', System.getProperty('docs.write', 'false')
 }
 
 // Function doc-coverage worklist: ./gradlew :tools:coverageReport -q
@@ -54,7 +58,10 @@ tasks.register('argTypeAudit', JavaExec) {
 // The web app uses flat, prefixed filenames (e.g. FUNCTION_STRING.md, DIALECT_DUCKDB.md) and links
 // without a path or .md suffix (FUNCTION_STRING). The renaming and link rewriting happen ONLY here,
 // while publishing — the source docs/ tree (filenames and subdirs) is never modified.
-def webDocsDir = (project.findProperty('webDocsDir') ?: '/Users/johanneszemlin/vscode/webui/pages/docs').toString()
+// Per-machine only — set `webDocsDir=/path/to/pages/docs` in ~/.gradle/gradle.properties
+// (or pass -PwebDocsDir=...). Defaults to this module's build dir so the repo carries no
+// local path and a plain build/test never needs it configured.
+def webDocsDir = (project.findProperty('webDocsDir') ?: layout.buildDirectory.dir('web-docs').get().asFile).toString()
 def functionPagePrefix = (project.findProperty('functionPagePrefix') ?: 'FUNCTIONS_').toString()
 def dialectPagePrefix  = (project.findProperty('dialectPagePrefix')  ?: 'DIALECT_').toString()
 

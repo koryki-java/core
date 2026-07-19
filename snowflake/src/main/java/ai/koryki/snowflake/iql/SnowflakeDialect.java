@@ -16,11 +16,10 @@
  */
 package ai.koryki.snowflake.iql;
 
-import ai.koryki.catalog.schema.types.CoreTypeEncoding;
+import ai.koryki.catalog.types.CoreTypeFamily;
+import ai.koryki.catalog.types.WallClockEncoding;
 import ai.koryki.iql.SqlDialect;
 import ai.koryki.iql.SqlSelectRenderer;
-import ai.koryki.iql.functions.ConditionalFunctionDefinition;
-import ai.koryki.iql.functions.FunctionArg;
 import ai.koryki.iql.functions.FunctionDefinition;
 import ai.koryki.iql.functions.FunctionKind;
 import ai.koryki.iql.functions.FunctionRegistry;
@@ -28,8 +27,8 @@ import ai.koryki.iql.functions.FunctionRenderer;
 import ai.koryki.iql.functions.ReturnTypes;
 import ai.koryki.iql.functions.StandardFunctions;
 import ai.koryki.iql.query.Expression;
-import ai.koryki.iql.query.Function;
-import ai.koryki.catalog.schema.types.TypeDescriptor;
+import ai.koryki.catalog.types.TypeDescriptor;
+import ai.koryki.iql.typing.TimeEncodings;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -49,10 +48,10 @@ public class SnowflakeDialect implements SqlDialect {
     /** Wall-clock(zone) → model zone via 3-arg {@code CONVERT_TIMEZONE(src, tgt, naive_ts)} → NTZ. */
     @Override
     public String wallClockToModelZone(String columnSql,
-            ai.koryki.catalog.schema.types.WallClockEncoding enc, java.time.ZoneId modelZone) {
+                                       WallClockEncoding enc, java.time.ZoneId modelZone) {
         String decl = "'" + enc.getZone().getId() + "'";
         String model = "'" + modelZone.getId() + "'";
-        if (ai.koryki.catalog.schema.types.CoreTypeFamily.DATE.equals(enc.family())) {
+        if (CoreTypeFamily.DATE.equals(enc.family())) {
             return "CAST(CONVERT_TIMEZONE(" + decl + ", " + model + ", CAST(" + columnSql
                     + " AS TIMESTAMP_NTZ)) AS DATE)";
         }
@@ -64,8 +63,14 @@ public class SnowflakeDialect implements SqlDialect {
         return "CONVERT_TIMEZONE(" + fromZoneSql + ", " + toZoneSql + ", " + valueSql + ")";
     }
 
+    private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();
+
     @Override
     public FunctionRenderer getFunctionRenderer() {
+        return FUNCTION_RENDERER;
+    }
+
+    private static FunctionRenderer buildFunctionRenderer() {
         FunctionRegistry registry = StandardFunctions.registry();
 
         // string_agg → LISTAGG
@@ -117,8 +122,8 @@ public class SnowflakeDialect implements SqlDialect {
     @Override
     public String renderComparisonOperand(SqlSelectRenderer renderer, Expression expression,
             TypeDescriptor leftType, TypeDescriptor rightType, int indent) {
-        return ai.koryki.iql.types.TimeEncodings.secondsFromMidnightLiteral(leftType, expression)
-                .or(() -> ai.koryki.iql.types.TimeEncodings.reconcile(renderer, expression, leftType, rightType, indent))
+        return TimeEncodings.secondsFromMidnightLiteral(leftType, expression)
+                .or(() -> TimeEncodings.reconcile(renderer, expression, leftType, rightType, indent))
                 .orElseGet(() -> SqlDialect.super.renderComparisonOperand(renderer, expression, leftType, rightType, indent));
     }
 

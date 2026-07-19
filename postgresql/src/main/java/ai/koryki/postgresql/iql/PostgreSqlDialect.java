@@ -16,8 +16,8 @@
  */
 package ai.koryki.postgresql.iql;
 
+import ai.koryki.catalog.types.WallClockEncoding;
 import ai.koryki.iql.SqlDialect;
-import ai.koryki.iql.SqlSelectRenderer;
 import ai.koryki.iql.functions.FunctionArg;
 import ai.koryki.iql.functions.FunctionDefinition;
 import ai.koryki.iql.functions.FunctionKind;
@@ -25,7 +25,6 @@ import ai.koryki.iql.functions.FunctionRegistry;
 import ai.koryki.iql.functions.FunctionRenderer;
 import ai.koryki.iql.functions.ReturnTypes;
 import ai.koryki.iql.functions.StandardFunctions;
-import ai.koryki.iql.query.Function;
 
 public class PostgreSqlDialect implements SqlDialect {
 
@@ -37,7 +36,7 @@ public class PostgreSqlDialect implements SqlDialect {
     /** Wall-clock(zone) → model zone. PostgreSQL's {@code AT TIME ZONE} flips naive - instant like DuckDB. */
     @Override
     public String wallClockToModelZone(String columnSql,
-            ai.koryki.catalog.schema.types.WallClockEncoding enc, java.time.ZoneId modelZone) {
+                                       WallClockEncoding enc, java.time.ZoneId modelZone) {
         return SqlDialect.atTimeZoneToModelZone(columnSql, enc, modelZone);
     }
 
@@ -46,8 +45,14 @@ public class PostgreSqlDialect implements SqlDialect {
         return SqlDialect.atTimeZoneShift(valueSql, fromZoneSql, toZoneSql);
     }
 
+    private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();
+
     @Override
     public FunctionRenderer getFunctionRenderer() {
+        return FUNCTION_RENDERER;
+    }
+
+    private static FunctionRenderer buildFunctionRenderer() {
         FunctionRegistry registry = StandardFunctions.registry();
 
         // date-part extraction

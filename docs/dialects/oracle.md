@@ -111,17 +111,17 @@ order: 22
 | to_bigint | conversion | scalar | standard | `CAST(value AS BIGINT)` |
 | to_boolean | conversion | scalar | standard | `CAST(value AS BOOLEAN)` |
 | to_char | formatting | scalar | standard | `to_char(value, format)` |
-| to_date | other | scalar | overridden | `to_date(…) — dialect-specific rendering` |
+| to_date | other | scalar | overridden | `CAST(value AS DATE)`<br>`to_date(…) — dialect-specific rendering`<br>`TO_DATE(year || '-' || month || '-' || day, 'YYYY-MM-DD')` |
 | to_decimal | conversion | scalar | standard | `CAST(value AS DECIMAL(precision, scale))` |
 | to_double | conversion | scalar | standard | `CAST(value AS DOUBLE)` |
 | to_float | conversion | scalar | standard | `CAST(value AS FLOAT)` |
 | to_hex | string | scalar | standard | `to_hex(number)` |
 | to_integer | conversion | scalar | standard | `CAST(value AS INTEGER)` |
-| to_interval | other | scalar | native | `to_interval(…) — dialect-specific rendering` |
+| to_interval | other | scalar | native | `to_interval(…) — dialect-specific rendering`<br>`to_interval(…) — dialect-specific rendering` |
 | to_number | formatting | scalar | standard | `to_number(value, format)` |
 | to_smallint | conversion | scalar | standard | `CAST(value AS SMALLINT)` |
 | to_text | conversion | scalar | overridden | `CAST(value AS VARCHAR(4000))`<br>`CAST(value AS VARCHAR(4000))`<br>`CAST(value AS VARCHAR(4000))`<br>`CAST(value AS VARCHAR(4000))`<br>`CAST(value AS VARCHAR(4000))`<br>`CAST(value AS VARCHAR(4000))`<br>`CAST(value AS VARCHAR(4000))`<br>`CAST(value AS VARCHAR(4000))`<br>`CAST(value AS VARCHAR(4000))`<br>`CAST(value AS VARCHAR(4000))`<br>`CAST(value AS VARCHAR(4000))`<br>`CAST(value AS VARCHAR(4000))` |
-| to_time | other | scalar | overridden | `to_time(…) — dialect-specific rendering` |
+| to_time | other | scalar | overridden | `to_time(…) — dialect-specific rendering`<br>`to_time(…) — dialect-specific rendering`<br>`LPAD(hour, 2, '0') || ':' || LPAD(minute, 2, '0') || ':' || LPAD(second, 2, '0')` |
 | to_timestamp | other | scalar | overridden | `CAST(value AS TIMESTAMP)`<br>`TO_TIMESTAMP(value, format)`<br>`FROM_TZ(TO_TIMESTAMP(value, format), 'UTC') AT TIME ZONE tz`<br>`TO_TIMESTAMP(year || '-' || month || '-' || day || ' ' || hour || ':' || minute || ':' || second, 'YYYY-MM-DD HH24:MI:SS')`<br>`FROM_TZ(TO_TIMESTAMP(year || '-' || month || '-' || day || ' ' || hour || ':' || minute || ':' || second, 'YYYY-MM-DD HH24:MI:SS'), 'UTC') AT TIME ZONE tz` |
 | to_utc | other | scalar | standard | `to_utc(…) — dialect-specific rendering` |
 | to_varchar | conversion | scalar | standard | `CAST(value AS VARCHAR(length))` |

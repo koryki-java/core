@@ -16,14 +16,15 @@
  */
 package ai.koryki.sqlite.iql;
 
+import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.iql.Identifier;
 import ai.koryki.iql.SqlDialect;
 import ai.koryki.iql.SqlSelectRenderer;
 import ai.koryki.iql.query.Duration;
 import ai.koryki.iql.query.Expression;
-import ai.koryki.iql.types.TimeEncodings;
-import ai.koryki.catalog.schema.types.CoreTypeEncoding;
-import ai.koryki.catalog.schema.types.TypeDescriptor;
+import ai.koryki.iql.typing.TimeEncodings;
+import ai.koryki.catalog.types.CoreTypeEncoding;
+import ai.koryki.catalog.types.TypeDescriptor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -108,7 +109,7 @@ public class SqliteDialect implements SqlDialect {
         // A TIMESTAMP base (e.g. an EPOCH-materialized column, or a wall-clock timestamp) keeps its
         // time-of-day even for a date-only shift, so render through datetime() not date().
         boolean timestampBase = leftType != null
-                && ai.koryki.catalog.schema.types.CoreTypeFamily.TIMESTAMP.equals(leftType.getTypeFamily());
+                && CoreTypeFamily.TIMESTAMP.equals(leftType.getTypeFamily());
 
         int sign = "-".equals(operator) ? -1 : 1;
         long months = 0;

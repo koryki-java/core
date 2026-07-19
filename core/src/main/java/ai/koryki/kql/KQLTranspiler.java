@@ -29,7 +29,7 @@ import ai.koryki.iql.SqlQueryRenderer;
 import ai.koryki.iql.SqlRenderer;
 import ai.koryki.iql.OutputColumn;
 import ai.koryki.iql.functions.FunctionCatalog;
-import ai.koryki.iql.types.ExpressionTypeResolver;
+import ai.koryki.iql.typing.ExpressionTypeResolver;
 import ai.koryki.iql.Walker;
 import ai.koryki.iql.query.Block;
 import ai.koryki.iql.query.Expression;
@@ -37,7 +37,7 @@ import ai.koryki.iql.query.Out;
 import ai.koryki.iql.query.Query;
 import ai.koryki.iql.rewrite.DateBetweenRewriter;
 import ai.koryki.iql.query.Source;
-import ai.koryki.catalog.schema.types.TypeDescriptor;
+import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.iql.rules.Rules;
 import ai.koryki.iql.validate.ValidateException;
 import ai.koryki.iql.validate.Validator;
@@ -142,10 +142,10 @@ public class KQLTranspiler extends AbstractTranspiler<KQLReader, KQLParser.Query
         Query q = a.query();
         Runnable restore = DateBetweenRewriter.rewrite(q);
         try {
-            String sql = renderer.toSql(resolver, a.visibility(), q, a.iqlToContext());
+            SqlRenderer.Rendered rendered = renderer.toSql(resolver, a.visibility(), q, a.iqlToContext());
             // capture the schema the renderer resolved, so infos() reuses it instead of recomputing
-            this.renderedSchema = renderer.outputSchema();
-            return sql;
+            this.renderedSchema = rendered.outputs();
+            return rendered.sql();
         } finally {
             restore.run();
         }

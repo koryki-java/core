@@ -41,8 +41,6 @@ public class SqlQueryRenderer implements SqlRenderer {
     protected Map<Object, RuleContext> iqlToContext;
 
     // Per-render output schema: resolved once in toSql, exposed for the read layer (ColumnInfo).
-    private java.util.List<OutputColumn> outputs = java.util.List.of();
-
     private ai.koryki.iql.functions.FunctionRenderer functionRenderer;
 
     @Override
@@ -69,7 +67,7 @@ public class SqlQueryRenderer implements SqlRenderer {
     }
 
     @Override
-    public String toSql(LinkResolver resolver, IQLVisibilityContext visibilityContext, Query query, Map<Object, RuleContext> iqlToContext) {
+    public Rendered toSql(LinkResolver resolver, IQLVisibilityContext visibilityContext, Query query, Map<Object, RuleContext> iqlToContext) {
         this.iqlToContext = iqlToContext;
         this.visibilityContext = visibilityContext;
         this.query = query;
@@ -77,14 +75,9 @@ public class SqlQueryRenderer implements SqlRenderer {
         // resolve the output schema once — consumed by the read layer's ColumnInfo (decode).
         // Output columns render as plain toSql; encodings are decoded at the read boundary,
         // never converted in SQL.
-        this.outputs = resolveOutputs(resolver, visibilityContext, query);
+        List<OutputColumn> outputs = resolveOutputs(resolver, visibilityContext, query);
 
-        return toSql(resolver);
-    }
-
-    @Override
-    public java.util.List<OutputColumn> outputSchema() {
-        return outputs;
+        return new Rendered(toSql(resolver), outputs);
     }
 
     private String toSql(LinkResolver resolver) {
@@ -304,14 +297,6 @@ public class SqlQueryRenderer implements SqlRenderer {
             l.addAll(collectOut(j.getJoin()));
         }
         return l;
-    }
-
-    public static boolean isSet(String op) {
-        return "IN".equalsIgnoreCase(op);
-    }
-
-    public static boolean isInterval(String op) {
-        return "BETWEEN".equalsIgnoreCase(op);
     }
 
     public Identifier getIdentifier() {

@@ -5,7 +5,7 @@ import ai.koryki.iql.SqlRenderer;
 import ai.koryki.jdbc.*;
 import ai.koryki.kql.Engine;
 import ai.koryki.kql.HeaderInfo;
-import ai.koryki.catalog.Util;
+import ai.koryki.catalog.CatalogLoader;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Schema;
 
@@ -36,8 +36,8 @@ public class Covid19Service<P extends ResultConsumer<HeaderInfo>> {
 
     public static LinkResolver resolver(java.util.Locale locale) {
 
-        Schema db = Util.db(ROOT);
-        Model schema = Util.model(ROOT, locale);
+        Schema db = CatalogLoader.db(ROOT);
+        Model schema = CatalogLoader.model(ROOT, locale);
         LinkResolver resolver = new LinkResolver(locale, db, schema, true);
         return resolver;
     }

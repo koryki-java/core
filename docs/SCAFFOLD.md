@@ -165,9 +165,10 @@ and `Model.getColumn()` use these overrides to translate domain names back to ph
 for SQL rendering.
 
 
-`Model` is also the bridge between the two layers: `Model.deepCopy(Schema)` converts an
-entire `Schema` object graph into a `Model` object graph, mapping `Table → Entity`,
-`Column → Attribute`, and `Relation → Link`.
+The `SchemaToModel` adapter (at the catalog root) bridges the two layers:
+`SchemaToModel.convert(Schema)` converts an entire `Schema` object graph into a `Model`
+object graph, mapping `Table → Entity`, `Column → Attribute`, and `Relation → Link`.
+Keeping the converter out of both packages lets `domain` and `schema` stay independent.
 
 
 
@@ -215,8 +216,8 @@ used by the SQL renderer:
   physical column name, using `Attribute.column` if set, otherwise falling back to the
   attribute name itself.
 
-Also hosts the static `deepCopy` family of methods for both model-to-model cloning and
-schema-to-model conversion.
+Also hosts the static `deepCopy` family of methods for model-to-model cloning
+(schema-to-model conversion now lives in the `SchemaToModel` adapter at the catalog root).
 
 #### Fields
 

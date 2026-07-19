@@ -16,10 +16,10 @@
  */
 package ai.koryki.iql.functions;
 
-import ai.koryki.catalog.schema.types.*;
+import ai.koryki.catalog.types.*;
 import ai.koryki.iql.query.Duration;
 import ai.koryki.iql.query.Expression;
-import ai.koryki.iql.types.TimeEncodings;
+import ai.koryki.iql.typing.TimeEncodings;
 
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;

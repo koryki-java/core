@@ -20,8 +20,8 @@ import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.iql.SqlSelectRenderer;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
-import ai.koryki.catalog.schema.types.TypeDescriptor;
-import ai.koryki.catalog.schema.types.TypeFamily;
+import ai.koryki.catalog.types.TypeDescriptor;
+import ai.koryki.catalog.types.TypeFamily;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -117,19 +117,9 @@ public class FunctionRegistry implements FunctionRenderer {
     }
 
     private static FunctionDefinition copyForOverlay(FunctionDefinition base) {
-        FunctionDefinition copy = new FunctionDefinition(
-                base.getName(), base.getReturnTypeInference(), base.getKind());
-        if (base.getSignature() != null) {
-            copy.signature(base.getSignature());
-        }
-        copy.category(base.getCategory());
-        if (base.getDescription() != null) {
-            copy.doc(base.getDescription());
-        }
-        if (base.getExample() != null) {
-            copy.example(base.getExample());
-        }
-        return copy;
+        // Full-fidelity copy (incl. fixity + paragraph); callers then set the new template
+        // or mark it unsupported. See FunctionDefinition's copy constructor.
+        return new FunctionDefinition(base);
     }
 
     /** Representative definition for name-level questions (kind, existence). */

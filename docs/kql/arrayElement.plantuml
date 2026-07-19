@@ -1,0 +1,12 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title arrayElement
+
+arrayElement =
+    "STRING" | "INT" | "NUMBER" | "NULL" | "ID"
+;
+
+@endebnf

@@ -228,3 +228,11 @@ ALTER TABLE customer_customer_demo
 ALTER TABLE employees
     ADD CONSTRAINT fk_employees_employees FOREIGN KEY (reports_to) REFERENCES employees;
 
+
+
+--
+-- Name: pk_countries; Type: Constraint; Schema: -; Owner: -
+--
+
+ALTER TABLE countries
+    ADD CONSTRAINT pk_countries PRIMARY KEY (country_name);

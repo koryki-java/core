@@ -1380,11 +1380,32 @@ _No runnable sample yet._
 
 ## to_date
 
-**`to_date(…)`** → DATE
+**`to_date(value)`** → DATE
 
-Arguments: none.
+| # | argument | family | required |
+|---|---|---|---|
+| 1 | value | any | required |
+
+Rendering: `CAST(value AS DATE)`
+
+**`to_date(value, format)`** → DATE
+
+| # | argument | family | required |
+|---|---|---|---|
+| 1 | value | any | required |
+| 2 | format | any | required |
 
 Rendering: `to_date(…) — dialect-specific rendering`
+
+**`to_date(year, month, day)`** → DATE
+
+| # | argument | family | required |
+|---|---|---|---|
+| 1 | year | any | required |
+| 2 | month | any | required |
+| 3 | day | any | required |
+
+Rendering: `TO_DATE(year || '-' || month || '-' || day, 'YYYY-MM-DD')`
 
 _No runnable sample yet._
 
@@ -1577,11 +1598,32 @@ FROM
 
 ## to_time
 
-**`to_time(…)`** → TEXT
+**`to_time(value)`** → TEXT
 
-Arguments: none.
+| # | argument | family | required |
+|---|---|---|---|
+| 1 | value | any | required |
 
 Rendering: `to_time(…) — dialect-specific rendering`
+
+**`to_time(value, format)`** → TEXT
+
+| # | argument | family | required |
+|---|---|---|---|
+| 1 | value | any | required |
+| 2 | format | any | required |
+
+Rendering: `to_time(…) — dialect-specific rendering`
+
+**`to_time(hour, minute, second)`** → TEXT
+
+| # | argument | family | required |
+|---|---|---|---|
+| 1 | hour | any | required |
+| 2 | minute | any | required |
+| 3 | second | any | required |
+
+Rendering: `LPAD(hour, 2, '0') || ':' || LPAD(minute, 2, '0') || ':' || LPAD(second, 2, '0')`
 
 _No runnable sample yet._
 

@@ -16,8 +16,8 @@
  */
 package ai.koryki.iql.functions;
 
-import ai.koryki.catalog.schema.types.CoreTypeFamily;
-import ai.koryki.catalog.schema.types.Families;
+import ai.koryki.catalog.types.CoreTypeFamily;
+import ai.koryki.catalog.types.Families;
 import ai.koryki.iql.SqlSelectRenderer;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;

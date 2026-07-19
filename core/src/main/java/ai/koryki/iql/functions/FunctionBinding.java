@@ -18,7 +18,7 @@ package ai.koryki.iql.functions;
 
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
-import ai.koryki.catalog.schema.types.TypeDescriptor;
+import ai.koryki.catalog.types.TypeDescriptor;
 
 import java.util.HashMap;
 import java.util.Map;

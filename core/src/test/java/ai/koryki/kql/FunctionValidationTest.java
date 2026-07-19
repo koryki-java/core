@@ -1,6 +1,6 @@
 package ai.koryki.kql;
 
-import ai.koryki.catalog.schema.types.CoreTypeFamily;
+import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.databases.northwind.duckdb.NorthwindService;
 import ai.koryki.iql.DuckdbBaseDialect;
 import ai.koryki.iql.LinkResolver;

@@ -37,6 +37,9 @@ The optional `WITH` clause introduces named sub-queries (blocks) separated by co
 The mandatory `set` at the end is the main result expression and may be a plain `select` or a set 
 operation via `UNION`, `UNIONALL`, `MINUS`, or `INTERSECT`.
 
+An optional `visualiseClause` may follow the result to describe a chart for it — see
+[Visualisation (VISUALISE Clause)](#visualisation-visualise-clause) below.
+
 
 ## KQL Block Rule
 
@@ -306,6 +309,151 @@ quotes make the space unambiguous to the lexer.
 `DURATION` is a compact notation for a time span used in date arithmetic. The sign is not part of the
 token — write `now() - 30d` (subtraction) to go back 30 days, not `-30d`.
 
+
+
+## KQL Visualise Clause
+
+![EBNF Railroad diagram for visualiseClause rule](kql/visualiseClause.png)
+
+`visualiseClause` follows the `set` at the end of a `query`. An optional leading `mappingList` binds
+columns to visual channels for the whole chart, followed by any number of `vizClause` layers and
+settings.
+
+## KQL  Viz Clause
+
+![EBNF Railroad diagram for vizClause rule](kql/vizClause.png)
+
+Each `vizClause` is one building block of the chart: a `drawClause` or `placeClause` (marks), a
+`scaleClause`, a `facetClause`, a `projectClause`, or a `labelClause`. They may appear in any order
+and any number.
+
+## KQL Draw Clause
+
+![EBNF Railroad diagram for drawClause rule](kql/drawClause.png)
+
+`DRAW` adds a mark (geom) — `point`, `line`, `bar`, `area`, `text`, or a statistical geom
+(`histogram`, `boxplot`, `smooth`, `density`, `violin`, `heatmap`). Multiple `DRAW` clauses stack as
+layers. A per-layer `mappingClause` adds channels for this mark; a `remappingClause` overrides a
+channel (typically onto a statistical output such as `density`); a `settingClause` passes options
+such as `aggregate` or `position`.
+
+## KQL Place Clause
+
+![EBNF Railroad diagram for placeClause rule](kql/placeClause.png)
+
+`PLACE` draws an annotation mark whose aesthetics are literal `SETTING` values rather than data
+columns — for example a reference `rule` at a fixed position.
+
+## KQL Scale Clause
+
+![EBNF Railroad diagram for scaleClause rule](kql/scaleClause.png)
+
+`SCALE` configures how one channel maps data to pixels or colours: an optional `scaleType`, the
+channel name, an optional input domain (`scaleFrom`), an output range or named palette (`scaleTo`),
+a transform (`scaleVia`, e.g. `log`), further `settingClause` options (`breaks`, `reverse`), and
+axis/legend relabelling (`renamingClause`).
+
+## KQL Facet Clause
+
+![EBNF Railroad diagram for facetClause rule](kql/facetClause.png)
+
+`FACET` splits the chart into small multiples — one panel per value of the given `facetVars`. A
+second group after `BY` produces a row/column grid; a `settingClause` controls the column count
+(`ncol`) and independent scale resolution (`free`).
+
+## KQL Project Clause
+
+![EBNF Railroad diagram for projectClause rule](kql/projectClause.png)
+
+`PROJECT [projectAes] TO coord` selects the coordinate system: `cartesian` (listing aesthetics
+swaps the axes), `polar` (pie/donut), or a named map projection (`mercator`, `orthographic`,
+`albers`, …). A `settingClause` carries projection options such as `origin`, `parallel`, `sphere`,
+and `graticule`.
+
+## KQL Label Clause
+
+![EBNF Railroad diagram for labelClause rule](kql/labelClause.png)
+
+`LABEL target => 'text'` sets titles: `title` for the whole chart, or a channel name (`x`, `y`,
+`color`, …) for that axis or legend. Each entry is a `labelAssign`.
+
+## KQL Mappings
+
+![EBNF Railroad diagram for mappingList rule](kql/mappingList.png)
+
+![EBNF Railroad diagram for mapping rule](kql/mapping.png)
+
+A `mappingList` is a comma-separated list of `mapping`s, used both globally (after `VISUALISE`) and
+per layer (inside `mappingClause` / `remappingClause`). Each `mapping` binds a `mappingValue` to a
+channel with `value AS channel`, names a channel that shares its column name, or is `*` to auto-map
+every output column whose name is a known channel.
+
+![EBNF Railroad diagram for mappingValue rule](kql/mappingValue.png)
+
+![EBNF Railroad diagram for literal rule](kql/literal.png)
+
+A `mappingValue` is a column identifier or a `literal` — a string, integer, number, or null — which
+produces a constant channel value.
+
+![EBNF Railroad diagram for mappingClause rule](kql/mappingClause.png)
+
+![EBNF Railroad diagram for remappingClause rule](kql/remappingClause.png)
+
+`mappingClause` (`MAPPING`) and `remappingClause` (`REMAPPING`) each wrap a `mappingList` for a
+single `DRAW` layer.
+
+## KQL Settings
+
+![EBNF Railroad diagram for settingClause rule](kql/settingClause.png)
+
+![EBNF Railroad diagram for parameterAssignment rule](kql/parameterAssignment.png)
+
+A `settingClause` (`SETTING name => value, …`) passes options to a clause. Each `parameterAssignment`
+maps an option name to a `parameterValue`.
+
+![EBNF Railroad diagram for parameterValue rule](kql/parameterValue.png)
+
+![EBNF Railroad diagram for array rule](kql/array.png)
+
+![EBNF Railroad diagram for arrayElement rule](kql/arrayElement.png)
+
+A `parameterValue` is a string, integer, number, null, identifier, or an `array` — a bracket- or
+parenthesis-delimited list of `arrayElement`s (used for domains, ranges, and coordinate pairs such
+as `origin => (10, 50)`).
+
+## KQL Scale Building Blocks
+
+![EBNF Railroad diagram for scaleType rule](kql/scaleType.png)
+
+`scaleType` is one of `CONTINUOUS`, `DISCRETE`, `BINNED`, `ORDINAL`, or `IDENTITY`.
+
+![EBNF Railroad diagram for scaleFrom rule](kql/scaleFrom.png)
+
+![EBNF Railroad diagram for scaleTo rule](kql/scaleTo.png)
+
+![EBNF Railroad diagram for scaleVia rule](kql/scaleVia.png)
+
+`scaleFrom` (`FROM array`) gives the input domain, `scaleTo` (`TO array` or a palette name) the
+output range, and `scaleVia` (`VIA transform`) the scale transform (e.g. `log`, `sqrt`).
+
+![EBNF Railroad diagram for renamingClause rule](kql/renamingClause.png)
+
+![EBNF Railroad diagram for renameAssign rule](kql/renameAssign.png)
+
+`renamingClause` (`RENAMING`) relabels individual tick or legend entries; each `renameAssign` maps a
+source value (or `*`) to a replacement label.
+
+## KQL Facet and Project Variables
+
+![EBNF Railroad diagram for facetVars rule](kql/facetVars.png)
+
+![EBNF Railroad diagram for projectAes rule](kql/projectAes.png)
+
+![EBNF Railroad diagram for labelAssign rule](kql/labelAssign.png)
+
+`facetVars` and `projectAes` are comma-separated identifier lists — the facet columns and the
+projected-aesthetic order, respectively. `labelAssign` maps a target (chart or channel) to a string
+or null.
 
 ## Concept SQL & KQL
 

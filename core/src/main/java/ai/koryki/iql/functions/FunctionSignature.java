@@ -16,7 +16,7 @@
  */
 package ai.koryki.iql.functions;
 
-import ai.koryki.catalog.schema.types.TypeFamily;
+import ai.koryki.catalog.types.TypeFamily;
 
 import java.util.List;
 import java.util.stream.Collectors;

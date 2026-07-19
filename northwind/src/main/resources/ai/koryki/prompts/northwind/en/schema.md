@@ -168,6 +168,20 @@ Stores information about suppliers delivering products.
 Stores Territories.
 - territory_description: Description of the territory.
 
+## countries
+Lookup of the countries referenced by customer, supplier, employee and order shipping addresses, with geographic coordinates and outline for map visualisations.
+- country_name: The country name as used in the address columns (e.g. 'Germany', 'UK', 'USA').
+
+- iso_code: The ISO 3166-1 alpha-2 code of the country.
+
+- continent: The continent the country belongs to.
+
+- latitude: Latitude of the country label point (centroid), in degrees.
+
+- longitude: Longitude of the country label point (centroid), in degrees.
+
+- geometry: Simplified country outline as a GeoJSON (Multi)Polygon, for choropleth maps (DRAW spatial).
+
 ## Relations / Links
 ## same_product
 
@@ -344,5 +358,17 @@ both tables refer to the same customer data record
 - customer_customer_demo - customers
 - orders - customers
 - customers - customers
+
+
+## same_country
+
+both tables refer to the same country data record; address country and order ship-to country reference the countries lookup by name
+
+### Relations / Links:
+- customers - countries
+- suppliers - countries
+- employees - countries
+- orders - countries
+- countries - countries
 
 

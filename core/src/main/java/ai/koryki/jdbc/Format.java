@@ -1,6 +1,6 @@
 package ai.koryki.jdbc;
 
-import ai.koryki.catalog.schema.types.TypeDescriptor;
+import ai.koryki.catalog.types.TypeDescriptor;
 
 /**
  * Result-set-wide value&rarr;string strategy: a pure function of the value and

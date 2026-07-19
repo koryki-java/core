@@ -60,7 +60,7 @@ public class PushGroupRule {
                     table.getGroup().add(g);
                     return true;
                 }
-                return true;
+                return false;
             });
             return true;
         }

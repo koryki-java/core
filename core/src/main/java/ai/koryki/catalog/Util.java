@@ -17,98 +17,21 @@
 package ai.koryki.catalog;
 
 import ai.koryki.antlr.KorykiaiException;
-
-import ai.koryki.catalog.domain.Link;
-import ai.koryki.catalog.domain.Model;
-import ai.koryki.catalog.schema.Schema;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 
+/**
+ * Writes text and JSON output to files (golden generation and exports). Catalog loading lives
+ * in {@link CatalogLoader}.
+ */
 public class Util {
-
-    public static final String DB_RESOURCE = "/db.json";
-    public static final String MODEL_RESOURCE = "/model.json";
-    @Deprecated
-    public static final String SCHEMA_RESOURCE = "/schema.json";
-    public static final String BLACKLIST_RESOURCE = "/blacklist.json";
-
-    public static Schema db(String resourceRoot) {
-        InputStream i = Util.class.getResourceAsStream(resource(resourceRoot, DB_RESOURCE));
-        return readSchemaJson(i);
-    }
-
-    public static Model model(String resourceRoot, Locale locale) {
-        InputStream i = Util.class.getResourceAsStream(modelResource(resourceRoot, locale));
-        Model m = readModelJson(i);
-        return m;
-    }
-
-
-    public static String modelResource(String resourceRoot, Locale locale) {
-        String r = localResource(resourceRoot, locale, MODEL_RESOURCE);
-        return r;
-    }
-
-
-    public static Map<String, List<String>> blacklist(String root) {
-        String r = root;
-        if (r.endsWith("/")) {
-            r = r.substring(1);
-        }
-        return readHashSetFromResource(r + BLACKLIST_RESOURCE);
-    }
-
-    public static String localResource(String root, Locale locale, String resource) {
-        String r = root;
-        if (!r.endsWith("/")) {
-            r = r + "/";
-        }
-        String s = resource;
-        if (s.startsWith("/")) {
-            s = s.substring(1);
-        }
-        return r + (locale != null ? locale.getLanguage() + "/" : Locale.ENGLISH) + s;
-    }
-
-    public static String resource(String root, String resource) {
-        String r = root;
-        if (!r.endsWith("/")) {
-            r = r + "/";
-        }
-        String s = resource;
-        if (s.startsWith("/")) {
-            s = s.substring(1);
-        }
-        return r + s;
-    }
-
-    public static List<Link> readInfos(InputStream in) {
-
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            try (Reader r = new InputStreamReader(in, StandardCharsets.UTF_8)) {
-                return mapper.readValue(r, new TypeReference<List<Link>>() {});
-            }
-        } catch (IOException e) {
-            throw new KorykiaiException(e);
-        }
-    }
-
-    public static List<Link> readInfos(String json) {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            return mapper.readValue(json, new TypeReference<List<Link>>() {});
-        } catch (IOException e) {
-            throw new KorykiaiException(e);
-        }
-    }
 
     public static void text(Object text, File out) {
         text(text, out, StandardCharsets.UTF_8);
@@ -142,90 +65,4 @@ public class Util {
             throw new KorykiaiException(e);
         }
     }
-
-    public static Schema readSchemaJson(String json) {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            //mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            return mapper.readValue(json, Schema.class);
-        } catch (IOException e) {
-            throw new KorykiaiException(e);
-        }
-    }
-
-    public static Model readModelJson(InputStream in) {
-
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            //mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            try (Reader r = new InputStreamReader(in, StandardCharsets.UTF_8)) {
-                Model model = mapper.readValue(r, Model.class);
-                return model;
-            }
-        } catch (IOException e) {
-            throw new KorykiaiException(e);
-        }
-    }
-
-    public static Schema readSchemaJson(InputStream in) {
-
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            //mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            try (Reader r = new InputStreamReader(in, StandardCharsets.UTF_8)) {
-                return mapper.readValue(r, Schema.class);
-            }
-        } catch (IOException e) {
-            throw new KorykiaiException(e);
-        }
-    }
-
-
-    public static <K, V> Map<K, V> readHashSetFromStream(InputStream in, TypeReference<Map<K, V>> ref) {
-
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            try (Reader r = new InputStreamReader(in, StandardCharsets.UTF_8)) {
-
-                return  mapper.readValue(r, ref);
-            }
-        } catch (IOException e) {
-            throw new KorykiaiException(e);
-        }
-    }
-
-    public static Map<String, List<String>> readHashSetFromResource(String resource) {
-        return readHashSetFromStream(
-                Util.class.getResourceAsStream(resource),
-                new TypeReference<Map<String, List<String>>>() { });
-    }
-
-    public static <K, V> Map<K, V>  readHashSetFromResource(String resource, TypeReference<Map<K, V>> ref) {
-        return readHashSetFromStream(
-                Util.class.getResourceAsStream(resource),
-                ref);
-    }
-
-    public static Map<String, List<String>> readHashSetFromStream(InputStream in) {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            try (Reader r = new InputStreamReader(in, StandardCharsets.UTF_8)) {
-                return  mapper.readValue(r, new TypeReference<Map<String, List<String>>>() {});
-            }
-        } catch (IOException e) {
-            throw new KorykiaiException(e);
-        }
-    }
-
-    public static <K, V> Map<K, V> readHashSet(String json, TypeReference<Map<K, V>> ref) {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            try (Reader r = new StringReader(json)) {
-                return  mapper.readValue(r, ref);
-            }
-        } catch (IOException e) {
-            throw new KorykiaiException(e);
-        }
-    }
-
 }

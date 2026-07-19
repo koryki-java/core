@@ -28,19 +28,19 @@ public class BuildNorthwind {
     public static void main(String[] args) throws Exception {
 
         ObjectMapper mapper = new ObjectMapper();
-        InputStream inputStream = BuildNorthwind.class.getResourceAsStream("/ai/koryki/snowflake/databases/northwind/data.json");
+        InputStream inputStream = BuildNorthwind.class.getResourceAsStream("/ai/koryki/databases/northwind/snowflake/data.json");
         JsonNode root = mapper.readTree(inputStream);
 
         try (Connection connection = NorthwindSnowflake.connection()) {
             connection.setAutoCommit(false);
 
-            Script.executeScript(connection, "/ai/koryki/snowflake/databases/northwind/drop.sql");
-            Script.executeScript(connection, "/ai/koryki/snowflake/databases/northwind/tables.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/snowflake/drop.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/snowflake/tables.sql");
 
             // check_temporal / check_type are dialect-specific and tiny — populated from SQL
             // scripts (single INSERTs), not the dialect-neutral JSON batch path.
-            Script.executeScript(connection, "/ai/koryki/snowflake/databases/northwind/data_check_type.sql");
-            Script.executeScript(connection, "/ai/koryki/snowflake/databases/northwind/data_check_temporal.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/snowflake/data_check_type.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/snowflake/data_check_temporal.sql");
 
             importTable(connection,
                     "INSERT INTO categories (category_id, category_name, description, root_category_id, super_category_id) VALUES (?,?,?,?,?)",
@@ -51,6 +51,18 @@ public class BuildNorthwind {
                         setNullableString(ps, 3, r.description());
                         ps.setShort(4, r.rootCategoryId());
                         setNullableShort(ps, 5, r.superCategoryId());
+                    });
+
+            importTable(connection,
+                    "INSERT INTO countries (country_name, iso_code, continent, latitude, longitude, geometry) VALUES (?,?,?,?,?,?)",
+                    mapper.convertValue(root.get(ExportJson.COUNTRIES), new TypeReference<List<ExportJson.Country>>() {}),
+                    (ps, r) -> {
+                        ps.setString(1, r.countryName());
+                        ps.setString(2, r.isoCode());
+                        ps.setString(3, r.continent());
+                        ps.setBigDecimal(4, r.latitude());
+                        ps.setBigDecimal(5, r.longitude());
+                        setNullableString(ps, 6, r.geometry());
                     });
 
             importTable(connection,

@@ -280,10 +280,6 @@ OPTIONAL
     : 'OPTIONAL'
 ;
 
-INVERS
-    : 'INVERS'
-;
-
 ALL
     : 'ALL'
 ;

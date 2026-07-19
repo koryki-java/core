@@ -16,21 +16,16 @@
  */
 package ai.koryki.mariadb.iql;
 
-import ai.koryki.catalog.schema.types.CoreTypeEncoding;
-import ai.koryki.catalog.schema.types.CoreTypeFamily;
-import ai.koryki.catalog.schema.types.TypeDescriptor;
+import ai.koryki.catalog.types.CoreTypeEncoding;
+import ai.koryki.catalog.types.CoreTypeFamily;
+import ai.koryki.catalog.types.TypeDescriptor;
+import ai.koryki.catalog.types.WallClockEncoding;
 import ai.koryki.iql.SqlDialect;
 import ai.koryki.iql.SqlSelectRenderer;
 import ai.koryki.iql.functions.*;
 import ai.koryki.iql.query.Duration;
 import ai.koryki.iql.query.Expression;
-import ai.koryki.iql.query.Function;
-
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Locale;
-import java.util.stream.Collectors;
+import ai.koryki.iql.typing.TimeEncodings;
 
 public class MariadbDialect implements SqlDialect {
 
@@ -42,10 +37,10 @@ public class MariadbDialect implements SqlDialect {
     /** Wall-clock(zone) → model zone via {@code CONVERT_TZ} (named zones; server tz tables must be loaded). */
     @Override
     public String wallClockToModelZone(String columnSql,
-            ai.koryki.catalog.schema.types.WallClockEncoding enc, java.time.ZoneId modelZone) {
+                                       WallClockEncoding enc, java.time.ZoneId modelZone) {
         String decl = "'" + enc.getZone().getId() + "'";
         String model = "'" + modelZone.getId() + "'";
-        if (ai.koryki.catalog.schema.types.CoreTypeFamily.DATE.equals(enc.family())) {
+        if (CoreTypeFamily.DATE.equals(enc.family())) {
             return "CAST(CONVERT_TZ(CAST(" + columnSql + " AS DATETIME), " + decl + ", " + model + ") AS DATE)";
         }
         return "CONVERT_TZ(" + columnSql + ", " + decl + ", " + model + ")";
@@ -56,8 +51,14 @@ public class MariadbDialect implements SqlDialect {
         return "CONVERT_TZ(" + valueSql + ", " + fromZoneSql + ", " + toZoneSql + ")";
     }
 
+    private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();
+
     @Override
     public FunctionRenderer getFunctionRenderer() {
+        return FUNCTION_RENDERER;
+    }
+
+    private static FunctionRenderer buildFunctionRenderer() {
         FunctionRegistry registry = StandardFunctions.registry();
         // to_text is the rolled-out, tested function: keep its dialect cast-type override.
         registry.overrideAll("to_text", "CAST({0} AS CHAR)");
@@ -108,7 +109,7 @@ public class MariadbDialect implements SqlDialect {
         if (diff != null) {
             return diff;
         }
-        java.util.Optional<String> time = ai.koryki.iql.types.TimeEncodings
+        java.util.Optional<String> time = TimeEncodings
                 .secondsArithmetic(renderer, leftSql, leftType, operator, right, indent);
         if (time.isPresent()) {
             return time.get();

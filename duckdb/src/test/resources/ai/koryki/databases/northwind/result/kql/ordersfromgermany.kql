@@ -1,0 +1,5 @@
+// Show me all customers from Germanywith their company names and contact information
+
+FIND customers c
+FILTER c.country = 'Germany'
+FETCH c.company_name, c.contact_name, c.city

@@ -7,7 +7,7 @@ import ai.koryki.kql.HeaderInfo;
 import ai.koryki.databases.cases.TestUtil;
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.kql.Engine;
-import ai.koryki.catalog.Util;
+import ai.koryki.catalog.CatalogLoader;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.snowflake.SnowflakeUnavailable;
@@ -37,8 +37,8 @@ public class TemporalDBEngineTest extends BaseEngineTest<HeaderInfo> {
     @BeforeAll
     public void readNorthwindDB() throws Exception {
         Locale locale = Locale.ENGLISH;
-        Schema db = Util.db(DB);
-        Model schema = Util.model(MODEL, locale);
+        Schema db = CatalogLoader.db(DB);
+        Model schema = CatalogLoader.model(MODEL, locale);
         LinkResolver resolver = new LinkResolver(locale, db, schema, true);
         engine = Engine.builder(new NorthwindSnowflake<ListWithSqlResult<HeaderInfo>>(), resolver,
                 new SqlQueryRenderer(java.time.ZoneId.of("UTC"))).format(new StableFormat(Locale.ROOT)).build();

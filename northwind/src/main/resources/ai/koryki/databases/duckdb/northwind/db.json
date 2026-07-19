@@ -571,6 +571,7 @@
       "description" : null,
       "typeFamily" : "FLOAT",
       "typeEncoding" : null,
+      "unit" : "EUR",
       "dialectType" : "real",
       "nullable" : true,
       "pkPos" : 0
@@ -667,6 +668,8 @@
       "description" : null,
       "typeFamily" : "FLOAT",
       "typeEncoding" : null,
+      "unit" : "EUR",
+      "quantity" : "unit-price",
       "dialectType" : "real",
       "nullable" : false,
       "pkPos" : 0
@@ -677,6 +680,7 @@
       "description" : null,
       "typeFamily" : "INTEGER",
       "typeEncoding" : null,
+      "quantity" : "count",
       "dialectType" : "smallint",
       "nullable" : false,
       "pkPos" : 0
@@ -687,6 +691,7 @@
       "description" : null,
       "typeFamily" : "FLOAT",
       "typeEncoding" : null,
+      "quantity" : "ratio",
       "dialectType" : "real",
       "nullable" : false,
       "pkPos" : 0
@@ -753,6 +758,7 @@
       "description" : null,
       "typeFamily" : "FLOAT",
       "typeEncoding" : null,
+      "unit" : "EUR",
       "dialectType" : "real",
       "nullable" : true,
       "pkPos" : 0
@@ -1067,6 +1073,72 @@
       "nullable" : true,
       "pkPos" : 0
     } ]
+  }, {
+    "name" : "countries",
+    "label" : "Country",
+    "comment" : "Lookup of the countries referenced by customer, supplier, employee and order shipping addresses, with geographic coordinates and outline for map visualisations.",
+    "description" : null,
+    "columns" : [ {
+      "name" : "country_name",
+      "label" : "Name",
+      "comment" : "The country name as used in the address columns (e.g. 'Germany', 'UK', 'USA').",
+      "description" : null,
+      "typeFamily" : "TEXT",
+      "typeEncoding" : null,
+      "dialectType" : "character varying",
+      "nullable" : false,
+      "pkPos" : 1
+    }, {
+      "name" : "iso_code",
+      "label" : "ISO Code",
+      "comment" : "The ISO 3166-1 alpha-2 code of the country.",
+      "description" : null,
+      "typeFamily" : "TEXT",
+      "typeEncoding" : null,
+      "dialectType" : "character varying",
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "continent",
+      "label" : "Continent",
+      "comment" : "The continent the country belongs to.",
+      "description" : null,
+      "typeFamily" : "TEXT",
+      "typeEncoding" : null,
+      "dialectType" : "character varying",
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "latitude",
+      "label" : "Latitude",
+      "comment" : "Latitude of the country label point (centroid), in degrees.",
+      "description" : null,
+      "typeFamily" : "DECIMAL",
+      "typeEncoding" : null,
+      "dialectType" : "numeric",
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "longitude",
+      "label" : "Longitude",
+      "comment" : "Longitude of the country label point (centroid), in degrees.",
+      "description" : null,
+      "typeFamily" : "DECIMAL",
+      "typeEncoding" : null,
+      "dialectType" : "numeric",
+      "nullable" : false,
+      "pkPos" : 0
+    }, {
+      "name" : "geometry",
+      "label" : "Geometry",
+      "comment" : "Simplified country outline as a GeoJSON (Multi)Polygon, for choropleth maps (DRAW spatial).",
+      "description" : null,
+      "typeFamily" : "TEXT",
+      "typeEncoding" : null,
+      "dialectType" : "character varying",
+      "nullable" : true,
+      "pkPos" : 0
+    } ]
   } ],
   "relations" : [ {
     "name" : "pk_categories",
@@ -1329,5 +1401,50 @@
     "symmetric" : true,
     "startColumns" : [ "state_id" ],
     "endColumns" : [ "state_id" ]
+  }, {
+    "name" : "pk_countries",
+    "comment" : null,
+    "description" : null,
+    "startTable" : "countries",
+    "endTable" : "countries",
+    "symmetric" : true,
+    "startColumns" : [ "country_name" ],
+    "endColumns" : [ "country_name" ]
+  }, {
+    "name" : "fk_customers_countries",
+    "comment" : "the customer address country references the countries lookup by name",
+    "description" : null,
+    "startTable" : "customers",
+    "endTable" : "countries",
+    "symmetric" : false,
+    "startColumns" : [ "country" ],
+    "endColumns" : [ "country_name" ]
+  }, {
+    "name" : "fk_suppliers_countries",
+    "comment" : "the supplier address country references the countries lookup by name",
+    "description" : null,
+    "startTable" : "suppliers",
+    "endTable" : "countries",
+    "symmetric" : false,
+    "startColumns" : [ "country" ],
+    "endColumns" : [ "country_name" ]
+  }, {
+    "name" : "fk_employees_countries",
+    "comment" : "the employee address country references the countries lookup by name",
+    "description" : null,
+    "startTable" : "employees",
+    "endTable" : "countries",
+    "symmetric" : false,
+    "startColumns" : [ "country" ],
+    "endColumns" : [ "country_name" ]
+  }, {
+    "name" : "fk_orders_countries",
+    "comment" : "the order ship-to country references the countries lookup by name",
+    "description" : null,
+    "startTable" : "orders",
+    "endTable" : "countries",
+    "symmetric" : false,
+    "startColumns" : [ "ship_country" ],
+    "endColumns" : [ "country_name" ]
   } ]
 }

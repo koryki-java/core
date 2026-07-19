@@ -131,7 +131,21 @@ public class KQLFormatter {
             b.append(toMap(script.block(), 0));
         }
         b.append(toSet(script.set(), 0));
+        if (script.visualiseClause() != null) {
+            // Viz identifiers (channels, marks, output-column aliases) are user
+            // text, not model vocabulary, so the clause is re-emitted verbatim
+            // from the original source — this also keeps it correct under
+            // translation, where nothing in it should be rewritten.
+            b.append(System.lineSeparator());
+            b.append(verbatim(script.visualiseClause()));
+        }
         return b.toString();
+    }
+
+    private static String verbatim(org.antlr.v4.runtime.ParserRuleContext ctx) {
+        return ctx.getStart().getInputStream().getText(
+                org.antlr.v4.runtime.misc.Interval.of(
+                        ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex()));
     }
 
     private String toMap(List<KQLParser.BlockContext> cte, int indent) {

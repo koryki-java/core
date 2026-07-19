@@ -16,12 +16,12 @@
  */
 package ai.koryki.oracle.iql;
 
-import ai.koryki.catalog.schema.types.CoreTypeEncoding;
-import ai.koryki.catalog.schema.types.CoreTypeFamily;
+import ai.koryki.catalog.types.CoreTypeEncoding;
+import ai.koryki.catalog.types.CoreTypeFamily;
+import ai.koryki.catalog.types.WallClockEncoding;
 import ai.koryki.iql.SqlDialect;
-import ai.koryki.iql.types.TimeEncodings;
+import ai.koryki.iql.typing.TimeEncodings;
 import ai.koryki.iql.SqlSelectRenderer;
-import ai.koryki.iql.functions.ConditionalFunctionDefinition;
 import ai.koryki.iql.functions.FunctionArg;
 import ai.koryki.iql.functions.FunctionDefinition;
 import ai.koryki.iql.functions.FunctionKind;
@@ -32,7 +32,7 @@ import ai.koryki.iql.functions.StandardFunctions;
 import ai.koryki.iql.query.Duration;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
-import ai.koryki.catalog.schema.types.TypeDescriptor;
+import ai.koryki.catalog.types.TypeDescriptor;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -52,11 +52,11 @@ public class OracleDialect implements SqlDialect {
     /** Wall-clock(zone) → model zone: {@code FROM_TZ} reads the naive value as the declared zone, then shift. */
     @Override
     public String wallClockToModelZone(String columnSql,
-            ai.koryki.catalog.schema.types.WallClockEncoding enc, java.time.ZoneId modelZone) {
+                                       WallClockEncoding enc, java.time.ZoneId modelZone) {
         String decl = "'" + enc.getZone().getId() + "'";
         String model = "'" + modelZone.getId() + "'";
         String shifted = "FROM_TZ(CAST(" + columnSql + " AS TIMESTAMP), " + decl + ") AT TIME ZONE " + model;
-        if (ai.koryki.catalog.schema.types.CoreTypeFamily.DATE.equals(enc.family())) {
+        if (CoreTypeFamily.DATE.equals(enc.family())) {
             // Oracle DATE carries a time-of-day, and CAST(<tstz> AS DATE) keeps the converted clock time
             // (NY-midnight surfaces as 04:00 UTC); TRUNC drops it so a wall-clock DATE is a pure calendar day.
             return "TRUNC(CAST(" + shifted + " AS DATE))";
@@ -141,7 +141,7 @@ public class OracleDialect implements SqlDialect {
         // A DATE stored as an epoch-day integer must become a DATE before an interval is chained
         // (NUMBER ± INTERVAL is ORA-30081). Oracle DATE + NUMBER adds days, recovering the date.
         if (leftType != null
-                && ai.koryki.catalog.schema.types.CoreTypeEncoding.DATE_FROM_EPOCH_DAY.equals(leftType.getTypeEncoding())) {
+                && CoreTypeEncoding.DATE_FROM_EPOCH_DAY.equals(leftType.getTypeEncoding())) {
             leftSql = "(DATE '1970-01-01' + " + leftSql + ")";
         }
         Duration dur = right.getDuration();
@@ -195,69 +195,64 @@ public class OracleDialect implements SqlDialect {
         return leftSql + " " + operator + " " + renderer.toSql(right, indent);
     }
 
+    private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();
+
     @Override
     public FunctionRenderer getFunctionRenderer() {
+        return FUNCTION_RENDERER;
+    }
+
+    private static FunctionRenderer buildFunctionRenderer() {
         FunctionRegistry registry = StandardFunctions.registry();
 
         // to_date(value) | to_date(value, format) | to_date(ts, tz) | to_date(year, month, day)
+        registry.register(new FunctionDefinition("to_date", ReturnTypes.DATE)
+                .args(FunctionArg.arg("value"))
+                .template("CAST({0} AS DATE)"));
         registry.register(new FunctionDefinition("to_date", ReturnTypes.DATE) {
             @Override
             public String render(SqlSelectRenderer renderer, Function function, int indent) {
-                return switch (function.getArguments().size()) {
-                    case 1 -> "CAST(" + renderer.toSql(function.getArguments().get(0), indent) + " AS DATE)";
-                    case 2 -> {
-                        String a0 = renderer.toSql(function.getArguments().get(0), indent);
-                        String a1 = renderer.toSql(function.getArguments().get(1), indent);
-                        TypeDescriptor t0 = renderer.resolveType(function.getArguments().get(0));
-                        if (t0 != null && CoreTypeFamily.TIMESTAMP.equals(t0.getTypeFamily()))
-                            // tz conversion: treat source as UTC, return local DATE
-                            yield "CAST(FROM_TZ(CAST(" + a0 + " AS TIMESTAMP), 'UTC') AT TIME ZONE " + a1 + " AS DATE)";
-                        // parse string with Oracle-native format mask
-                        yield "TO_DATE(" + a0 + ", " + a1 + ")";
-                    }
-                    case 3 -> {
-                        String y  = renderer.toSql(function.getArguments().get(0), indent);
-                        String mo = renderer.toSql(function.getArguments().get(1), indent);
-                        String d  = renderer.toSql(function.getArguments().get(2), indent);
-                        yield "TO_DATE(" + y + " || '-' || " + mo + " || '-' || " + d + ", 'YYYY-MM-DD')";
-                    }
-                    default -> throw new IllegalArgumentException("to_date requires 1, 2, or 3 arguments");
-                };
+                String a0 = renderer.toSql(function.getArguments().get(0), indent);
+                String a1 = renderer.toSql(function.getArguments().get(1), indent);
+                TypeDescriptor t0 = renderer.resolveType(function.getArguments().get(0));
+                if (t0 != null && CoreTypeFamily.TIMESTAMP.equals(t0.getTypeFamily()))
+                    // tz conversion: treat source as UTC, return local DATE
+                    return "CAST(FROM_TZ(CAST(" + a0 + " AS TIMESTAMP), 'UTC') AT TIME ZONE " + a1 + " AS DATE)";
+                // parse string with Oracle-native format mask
+                return "TO_DATE(" + a0 + ", " + a1 + ")";
             }
-        });
+        }.args(FunctionArg.arg("value"), FunctionArg.arg("format")));
+        registry.register(new FunctionDefinition("to_date", ReturnTypes.DATE)
+                .args(FunctionArg.arg("year"), FunctionArg.arg("month"), FunctionArg.arg("day"))
+                .template("TO_DATE({0} || '-' || {1} || '-' || {2}, 'YYYY-MM-DD')"));
 
         // to_time(value) | to_time(value, format) | to_time(ts, tz) | to_time(hour, minute, second)
         // Oracle has no TIME type — all overloads return VARCHAR2 in HH24:MI:SS format.
         registry.register(new FunctionDefinition("to_time", ReturnTypes.TEXT) {
             @Override
             public String render(SqlSelectRenderer renderer, Function function, int indent) {
-                return switch (function.getArguments().size()) {
-                    case 1 -> {
-                        Expression arg = function.getArguments().getFirst();
-                        TypeDescriptor src = renderer.resolveType(arg);
-                        String sql = renderer.toSql(arg, indent);
-                        if (src != null && CoreTypeEncoding.TIME_SECONDS_FROM_MIDNIGHT.equals(src.getTypeEncoding()))
-                            yield "TO_CHAR(DATE '1970-01-01' + " + sql + " / 86400, 'HH24:MI:SS')";
-                        yield "TO_CHAR(" + sql + ", 'HH24:MI:SS')";
-                    }
-                    case 2 -> {
-                        String a0 = renderer.toSql(function.getArguments().get(0), indent);
-                        String a1 = renderer.toSql(function.getArguments().get(1), indent);
-                        TypeDescriptor t0 = renderer.resolveType(function.getArguments().get(0));
-                        if (t0 != null && CoreTypeFamily.TIMESTAMP.equals(t0.getTypeFamily()))
-                            yield "TO_CHAR(FROM_TZ(CAST(" + a0 + " AS TIMESTAMP), 'UTC') AT TIME ZONE " + a1 + ", 'HH24:MI:SS')";
-                        yield "TO_CHAR(TO_TIMESTAMP(" + a0 + ", " + a1 + "), 'HH24:MI:SS')";
-                    }
-                    case 3 -> {
-                        String h  = renderer.toSql(function.getArguments().get(0), indent);
-                        String mi = renderer.toSql(function.getArguments().get(1), indent);
-                        String s  = renderer.toSql(function.getArguments().get(2), indent);
-                        yield "LPAD(" + h + ", 2, '0') || ':' || LPAD(" + mi + ", 2, '0') || ':' || LPAD(" + s + ", 2, '0')";
-                    }
-                    default -> throw new IllegalArgumentException("to_time requires 1, 2, or 3 arguments");
-                };
+                Expression arg = function.getArguments().getFirst();
+                TypeDescriptor src = renderer.resolveType(arg);
+                String sql = renderer.toSql(arg, indent);
+                if (src != null && CoreTypeEncoding.TIME_SECONDS_FROM_MIDNIGHT.equals(src.getTypeEncoding()))
+                    return "TO_CHAR(DATE '1970-01-01' + " + sql + " / 86400, 'HH24:MI:SS')";
+                return "TO_CHAR(" + sql + ", 'HH24:MI:SS')";
             }
-        });
+        }.args(FunctionArg.arg("value")));
+        registry.register(new FunctionDefinition("to_time", ReturnTypes.TEXT) {
+            @Override
+            public String render(SqlSelectRenderer renderer, Function function, int indent) {
+                String a0 = renderer.toSql(function.getArguments().get(0), indent);
+                String a1 = renderer.toSql(function.getArguments().get(1), indent);
+                TypeDescriptor t0 = renderer.resolveType(function.getArguments().get(0));
+                if (t0 != null && CoreTypeFamily.TIMESTAMP.equals(t0.getTypeFamily()))
+                    return "TO_CHAR(FROM_TZ(CAST(" + a0 + " AS TIMESTAMP), 'UTC') AT TIME ZONE " + a1 + ", 'HH24:MI:SS')";
+                return "TO_CHAR(TO_TIMESTAMP(" + a0 + ", " + a1 + "), 'HH24:MI:SS')";
+            }
+        }.args(FunctionArg.arg("value"), FunctionArg.arg("format")));
+        registry.register(new FunctionDefinition("to_time", ReturnTypes.TEXT)
+                .args(FunctionArg.arg("hour"), FunctionArg.arg("minute"), FunctionArg.arg("second"))
+                .template("LPAD({0}, 2, '0') || ':' || LPAD({1}, 2, '0') || ':' || LPAD({2}, 2, '0')"));
 
         // to_timestamp(value) | to_timestamp(value, format) | to_timestamp(value, format, tz)
         // | to_timestamp(year, month, day, hour, minute, second)
@@ -289,40 +284,39 @@ public class OracleDialect implements SqlDialect {
         registry.register(new FunctionDefinition("to_interval", ReturnTypes.INTERVAL) {
             @Override
             public String render(SqlSelectRenderer renderer, Function function, int indent) {
-                return switch (function.getArguments().size()) {
-                    case 2 -> {
-                        String value = renderer.toSql(function.getArguments().get(0), indent);
-                        String unit  = renderer.toSql(function.getArguments().get(1), indent);
-                        yield oracleToIntervalUnit(value, unit);
-                    }
-                    case 6 -> {
-                        // Standalone 6-arg: only valid if all non-zero values belong to one family.
-                        // For arithmetic use, renderEncodedArithmetic handles the expansion.
-                        var args = function.getArguments();
-                        String[] vals = new String[6];
-                        for (int i = 0; i < 6; i++) vals[i] = renderer.toSql(args.get(i), indent);
-                        boolean hasYM = !"0".equals(vals[0].trim()) || !"0".equals(vals[1].trim());
-                        boolean hasDS = !"0".equals(vals[2].trim()) || !"0".equals(vals[3].trim())
-                                || !"0".equals(vals[4].trim()) || !"0".equals(vals[5].trim());
-                        if (hasYM && hasDS) {
-                            throw new UnsupportedOperationException(
-                                    "Oracle cannot represent a mixed YEAR-TO-MONTH + DAY-TO-SECOND interval as a standalone value. "
-                                    + "Use date arithmetic: date + to_interval(...) instead.");
-                        }
-                        List<String> parts = new java.util.ArrayList<>();
-                        if (!"0".equals(vals[0].trim())) parts.add("NUMTOYMINTERVAL(" + vals[0] + ", 'YEAR')");
-                        if (!"0".equals(vals[1].trim())) parts.add("NUMTOYMINTERVAL(" + vals[1] + ", 'MONTH')");
-                        if (!"0".equals(vals[2].trim())) parts.add("NUMTODSINTERVAL(" + vals[2] + ", 'DAY')");
-                        if (!"0".equals(vals[3].trim())) parts.add("NUMTODSINTERVAL(" + vals[3] + ", 'HOUR')");
-                        if (!"0".equals(vals[4].trim())) parts.add("NUMTODSINTERVAL(" + vals[4] + ", 'MINUTE')");
-                        if (!"0".equals(vals[5].trim())) parts.add("NUMTODSINTERVAL(" + vals[5] + ", 'SECOND')");
-                        if (parts.isEmpty()) parts.add("NUMTODSINTERVAL(0, 'SECOND')");
-                        yield String.join(" + ", parts);
-                    }
-                    default -> throw new IllegalArgumentException("to_interval requires 2 or 6 arguments");
-                };
+                String value = renderer.toSql(function.getArguments().get(0), indent);
+                String unit  = renderer.toSql(function.getArguments().get(1), indent);
+                return oracleToIntervalUnit(value, unit);
             }
-        });
+        }.args(FunctionArg.arg("value"), FunctionArg.arg("unit")));
+        registry.register(new FunctionDefinition("to_interval", ReturnTypes.INTERVAL) {
+            @Override
+            public String render(SqlSelectRenderer renderer, Function function, int indent) {
+                // Standalone 6-arg: only valid if all non-zero values belong to one family.
+                // For arithmetic use, renderEncodedArithmetic handles the expansion.
+                var args = function.getArguments();
+                String[] vals = new String[6];
+                for (int i = 0; i < 6; i++) vals[i] = renderer.toSql(args.get(i), indent);
+                boolean hasYM = !"0".equals(vals[0].trim()) || !"0".equals(vals[1].trim());
+                boolean hasDS = !"0".equals(vals[2].trim()) || !"0".equals(vals[3].trim())
+                        || !"0".equals(vals[4].trim()) || !"0".equals(vals[5].trim());
+                if (hasYM && hasDS) {
+                    throw new UnsupportedOperationException(
+                            "Oracle cannot represent a mixed YEAR-TO-MONTH + DAY-TO-SECOND interval as a standalone value. "
+                            + "Use date arithmetic: date + to_interval(...) instead.");
+                }
+                List<String> parts = new java.util.ArrayList<>();
+                if (!"0".equals(vals[0].trim())) parts.add("NUMTOYMINTERVAL(" + vals[0] + ", 'YEAR')");
+                if (!"0".equals(vals[1].trim())) parts.add("NUMTOYMINTERVAL(" + vals[1] + ", 'MONTH')");
+                if (!"0".equals(vals[2].trim())) parts.add("NUMTODSINTERVAL(" + vals[2] + ", 'DAY')");
+                if (!"0".equals(vals[3].trim())) parts.add("NUMTODSINTERVAL(" + vals[3] + ", 'HOUR')");
+                if (!"0".equals(vals[4].trim())) parts.add("NUMTODSINTERVAL(" + vals[4] + ", 'MINUTE')");
+                if (!"0".equals(vals[5].trim())) parts.add("NUMTODSINTERVAL(" + vals[5] + ", 'SECOND')");
+                if (parts.isEmpty()) parts.add("NUMTODSINTERVAL(0, 'SECOND')");
+                return String.join(" + ", parts);
+            }
+        }.args(FunctionArg.arg("years"), FunctionArg.arg("months"), FunctionArg.arg("days"),
+               FunctionArg.arg("hours"), FunctionArg.arg("minutes"), FunctionArg.arg("seconds")));
 
 
         // date-part extraction
@@ -333,16 +327,6 @@ public class OracleDialect implements SqlDialect {
 
         // position(substr, str) → INSTR(str, substr)
         registry.register(new FunctionDefinition("instr", ReturnTypes.INTEGER));
-
-        // left/right → SUBSTR
-
-        // log2/log10 → Oracle LOG(base, value)
-
-        // pi() → ACOS(-1)
-
-        // random() → DBMS_RANDOM.VALUE
-
-        // cbrt(x) → POWER(x, 1.0/3)
 
         // parse_date/time/timestamp(value, format) → TO_DATE / TO_TIMESTAMP
         // Oracle format strings are canonical in KQL — no translation needed.
@@ -444,7 +428,7 @@ public class OracleDialect implements SqlDialect {
             TypeDescriptor leftType, TypeDescriptor rightType, int indent) {
         // DATE-encoded TIME columns compare against an epoch-anchored DATE, not a seconds number
         java.util.Optional<java.time.LocalDateTime> anchored =
-                ai.koryki.iql.types.TimeEncodings.timeFromDateOperand(leftType, expression);
+                TimeEncodings.timeFromDateOperand(leftType, expression);
         if (anchored.isPresent()) {
             return "TO_DATE('" + anchored.get().format(TIMESTAMP_FMT) + "', 'YYYY-MM-DD HH24:MI:SS')";
         }
@@ -452,7 +436,7 @@ public class OracleDialect implements SqlDialect {
             return String.valueOf(expression.getLocalTime().toSecondOfDay());
         }
         java.util.Optional<String> reconciled =
-                ai.koryki.iql.types.TimeEncodings.reconcile(renderer, expression, leftType, rightType, indent);
+                TimeEncodings.reconcile(renderer, expression, leftType, rightType, indent);
         if (reconciled.isPresent()) {
             return reconciled.get();
         }
