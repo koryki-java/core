@@ -1,6 +1,5 @@
 ![Java](https://img.shields.io/badge/Java-21-blue)
 ![ANTLR](https://img.shields.io/badge/Parser-ANTLR-blueviolet)
-
 ![DuckDB](https://img.shields.io/badge/DuckDB-FFF000?style=flat&logo=duckdb&logoColor=black)
 ![MariaDB](https://img.shields.io/badge/MariaDB-003545?style=flat&logo=mariadb&logoColor=white)
 ![Microsoft SQL Server](https://img.shields.io/badge/SQL%20Server-CC2927?style=flat&logo=microsoftsqlserver&logoColor=white)
@@ -9,8 +8,6 @@
 ![Snowflake](https://img.shields.io/badge/Snowflake-29B5E8?style=flat&logo=snowflake&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat&logo=sqlite&logoColor=white)
 ![Trino](https://img.shields.io/badge/Trino-DD00A1?style=flat&logo=trino&logoColor=white)
-
-VISUALISE-clause is [**inspired by ggsql**](https://github.com/posit-dev/ggsql "(https://github.com/posit-dev/ggsql)")
 
 
 # Verifiable AI-Assisted Semantic Querying for Relational Databases
@@ -29,6 +26,7 @@ The purpose of **koryki** is:
 - Shift control to human-centric queries
 - Simplify data analysis
 - Enhance workflows with AI while keeping full control
+- Visualise results with a declarative `VISUALISE` clause (grammar of graphics)
 
 [Read more](./docs/PURPOSE.md "purpose of the koryki.ai platform"), 
 see  [sample query](./docs/SAMPLE_QUERY.md "sample query"),
@@ -76,7 +74,13 @@ Any kind of feedback is welcome: info@koryki.ai
 
 ## Acknowledgements
 
-The VISUALISE language in Koryki is inspired by the excellent [`ggsql`](.https://github.com/posit-dev/ggsql "ggsql") project from Posit. 
+The VISUALISE language in Koryki is inspired by the excellent [`ggsql`](https://github.com/posit-dev/ggsql "ggsql") project from Posit. 
 ggsql demonstrates how the principles of Leland Wilkinson's Grammar of Graphics can be expressed in a SQL-oriented syntax. 
-Koryki integrates a compatible visualization grammar into its semantic query language while combining it with schema-aware 
+Koryki integrates an adopted visualization grammar into its semantic query language while combining it with schema-aware 
 querying.
+
+## Related projects
+
+[<img src="docs/ggsql-logo.png" alt="ggsql" height="40">](https://github.com/posit-dev/ggsql)
+
+[**ggsql**](https://github.com/posit-dev/ggsql) — a SQL extension for declarative data visualization based on the Grammar of Graphics, from Posit. Koryki's VISUALISE clause is inspired by it.
