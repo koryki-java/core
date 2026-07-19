@@ -1356,11 +1356,32 @@ _No runnable sample yet._
 
 ## to_date
 
-**`to_date(…)`** → DATE
+**`to_date(value)`** → DATE
 
-Arguments: none.
+| # | argument | family | required |
+|---|---|---|---|
+| 1 | value | any | required |
+
+Rendering: `CAST(value AS DATE)`
+
+**`to_date(value, format)`** → DATE
+
+| # | argument | family | required |
+|---|---|---|---|
+| 1 | value | any | required |
+| 2 | format | any | required |
 
 Rendering: `to_date(…) — dialect-specific rendering`
+
+**`to_date(year, month, day)`** → DATE
+
+| # | argument | family | required |
+|---|---|---|---|
+| 1 | year | any | required |
+| 2 | month | any | required |
+| 3 | day | any | required |
+
+Rendering: `MAKE_DATE(year, month, day)`
 
 _No runnable sample yet._
 
@@ -1553,21 +1574,90 @@ FROM
 
 ## to_time
 
-**`to_time(…)`** → TIME
+**`to_time(value)`** → TIME
 
-Arguments: none.
+| # | argument | family | required |
+|---|---|---|---|
+| 1 | value | any | required |
+
+Rendering: `CAST(value AS TIME)`
+
+**`to_time(value, format)`** → TIME
+
+| # | argument | family | required |
+|---|---|---|---|
+| 1 | value | any | required |
+| 2 | format | any | required |
 
 Rendering: `to_time(…) — dialect-specific rendering`
+
+**`to_time(hour, minute, second)`** → TIME
+
+| # | argument | family | required |
+|---|---|---|---|
+| 1 | hour | any | required |
+| 2 | minute | any | required |
+| 3 | second | any | required |
+
+Rendering: `MAKE_TIME(hour, minute, second::DOUBLE)`
 
 _No runnable sample yet._
 
 ## to_timestamp
 
-**`to_timestamp(…)`** → TIMESTAMP
+**`to_timestamp(value)`** → TIMESTAMP
 
-Arguments: none.
+| # | argument | family | required |
+|---|---|---|---|
+| 1 | value | any | required |
+
+Rendering: `CAST(value AS TIMESTAMP)`
+
+**`to_timestamp(value, format)`** → TIMESTAMP
+
+| # | argument | family | required |
+|---|---|---|---|
+| 1 | value | any | required |
+| 2 | format | any | required |
 
 Rendering: `to_timestamp(…) — dialect-specific rendering`
+
+**`to_timestamp(value, format, tz)`** → TIMESTAMP
+
+| # | argument | family | required |
+|---|---|---|---|
+| 1 | value | any | required |
+| 2 | format | any | required |
+| 3 | tz | any | required |
+
+Rendering: `to_timestamp(…) — dialect-specific rendering`
+
+**`to_timestamp(year, month, day, hour, minute, second)`** → TIMESTAMP
+
+| # | argument | family | required |
+|---|---|---|---|
+| 1 | year | any | required |
+| 2 | month | any | required |
+| 3 | day | any | required |
+| 4 | hour | any | required |
+| 5 | minute | any | required |
+| 6 | second | any | required |
+
+Rendering: `MAKE_TIMESTAMP(year, month, day, hour, minute, second)`
+
+**`to_timestamp(year, month, day, hour, minute, second, tz)`** → TIMESTAMP
+
+| # | argument | family | required |
+|---|---|---|---|
+| 1 | year | any | required |
+| 2 | month | any | required |
+| 3 | day | any | required |
+| 4 | hour | any | required |
+| 5 | minute | any | required |
+| 6 | second | any | required |
+| 7 | tz | any | required |
+
+Rendering: `timezone(tz, MAKE_TIMESTAMP(year, month, day, hour, minute, second)::TIMESTAMPTZ)`
 
 _No runnable sample yet._
 

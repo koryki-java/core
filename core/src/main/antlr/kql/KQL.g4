@@ -11,14 +11,19 @@
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
+ * specific language governing permissions and limitationsf
  * under the License.
+ *
+ * koryki.ai's KQL-parser was inspired by and partially derived from the excellent ggsql
+ * project by Posit (https://github.com/posit-dev/ggsql).
+ * visualiseClause in grammar and parser were reimplemented in Java/ANTLR4 based on the
+ * concepts principles of Leland Wilkinson's Grammar of Graphics.
  */
 
 grammar KQL;
 
 query
- : (WITH (block) (COMMA block)*)? set EOF
+ : (WITH (block) (COMMA block)*)? set visualiseClause? EOF
 ;
 
 block :
@@ -155,6 +160,77 @@ field
  : alias=ID DOT name=ID
 ;
 
+// ── VISUALISE clause (Grammar of Graphics → Vega-Lite) ──────────────────────
+// Keywords are uppercase tokens; channel/mark/coord/palette/transform/enum
+// names are lowercase ID, validated semantically in KQLQueryMapper.
+
+visualiseClause
+ : VISUALISE mappingList? vizClause*
+;
+
+vizClause
+ : drawClause
+ | placeClause
+ | scaleClause
+ | facetClause
+ | projectClause
+ | labelClause
+;
+
+drawClause
+ : DRAW mark=ID mappingClause? remappingClause? settingClause?
+;
+
+placeClause
+ : PLACE mark=ID settingClause?
+;
+
+mappingClause   : MAPPING mappingList ;
+remappingClause : REMAPPING mappingList ;
+settingClause   : SETTING parameterAssignment (COMMA parameterAssignment)* ;
+parameterAssignment : name=ID ARROW value=parameterValue ;
+
+scaleClause
+ : SCALE scaleType? channel=ID scaleFrom? scaleTo? scaleVia? settingClause? renamingClause?
+;
+scaleType : CONTINUOUS | DISCRETE | BINNED | ORDINAL | IDENTITY ;
+scaleFrom : FROM array ;
+scaleTo   : TO (array | palette=ID) ;
+scaleVia  : VIA transform=ID ;
+renamingClause : RENAMING renameAssign (COMMA renameAssign)* ;
+renameAssign : from=(MULT | SQ_STRING | INT | NULL) ARROW to=(SQ_STRING | NULL) ;
+
+facetClause
+ : FACET facetVars (BY facetVars)? settingClause?
+;
+facetVars : ID (COMMA ID)* ;
+
+projectClause
+ : PROJECT projectAes? TO coord=ID settingClause?
+;
+projectAes : ID (COMMA ID)* ;
+
+labelClause
+ : LABEL labelAssign (COMMA labelAssign)*
+;
+labelAssign : target=ID ARROW value=(SQ_STRING | NULL) ;
+
+mappingList : mapping (COMMA mapping)* ;
+mapping
+ : MULT
+ | value=mappingValue AS channel=ID
+ | channel=ID
+;
+mappingValue : ID | literal ;
+literal : SQ_STRING | INT | NUMBER | NULL ;
+
+parameterValue : SQ_STRING | INT | NUMBER | NULL | ID | array ;
+array
+ : LEFT_BRACKET (arrayElement (COMMA arrayElement)*)? RIGHT_BRACKET
+ | LEFT_PAREN   (arrayElement (COMMA arrayElement)*)? RIGHT_PAREN
+;
+arrayElement : SQ_STRING | INT | NUMBER | NULL | ID ;
+
 
 OVER : 'OVER';
 ORDER : 'ORDER';
@@ -186,6 +262,27 @@ EXISTS : 'EXISTS';
 
 DISTINCT : 'DISTINCT';
 ROLLUP : 'ROLLUP';
+
+// VISUALISE clause keywords
+VISUALISE : 'VISUALISE';
+DRAW : 'DRAW';
+PLACE : 'PLACE';
+SCALE : 'SCALE';
+FACET : 'FACET';
+PROJECT : 'PROJECT';
+LABEL : 'LABEL';
+MAPPING : 'MAPPING';
+REMAPPING : 'REMAPPING';
+SETTING : 'SETTING';
+RENAMING : 'RENAMING';
+CONTINUOUS : 'CONTINUOUS';
+DISCRETE : 'DISCRETE';
+BINNED : 'BINNED';
+ORDINAL : 'ORDINAL';
+IDENTITY : 'IDENTITY';
+FROM : 'FROM';
+TO : 'TO';
+BY : 'BY';
 
 
 TIMESTAMP_STRING
@@ -257,6 +354,7 @@ DOT: '.';
 BAR: '-';
 VIA: 'VIA';
 
+ARROW: '=>';
 EQUALS: '=';
 HASHMARK: '#';
 COMMA: ',';

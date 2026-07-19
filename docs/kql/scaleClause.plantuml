@@ -1,0 +1,12 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title scaleClause
+
+scaleClause =
+    "SCALE", [scaleType], "ID", [scaleFrom], [scaleTo], [scaleVia], [settingClause], [renamingClause]
+;
+
+@endebnf

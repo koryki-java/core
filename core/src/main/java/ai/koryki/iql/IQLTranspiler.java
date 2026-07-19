@@ -123,7 +123,7 @@ public class IQLTranspiler extends AbstractTranspiler<IQLReader, IQLParser.Query
         Query q = getQuery();
         Runnable restore = DateBetweenRewriter.rewrite(q);
         try {
-            return renderer.toSql(resolver, a.visibility(), q, mapped.get().iqlToContext());
+            return renderer.toSql(resolver, a.visibility(), q, mapped.get().iqlToContext()).sql();
         } finally {
             restore.run();
         }

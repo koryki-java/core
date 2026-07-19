@@ -20,8 +20,7 @@ import ai.koryki.iql.functions.FunctionRenderer;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Out;
 import ai.koryki.iql.query.Query;
-import ai.koryki.iql.types.ExpressionTypeResolver;
-import ai.koryki.catalog.schema.types.TypeDescriptor;
+import ai.koryki.iql.typing.ExpressionTypeResolver;
 import org.antlr.v4.runtime.RuleContext;
 
 import java.util.ArrayList;
@@ -30,16 +29,17 @@ import java.util.Map;
 
 public interface SqlRenderer {
 
-    String toSql(LinkResolver resolver, IQLVisibilityContext visibilityContext, Query query, Map<Object, RuleContext> iqlToContext);
+    /**
+     * A render's SQL text together with its resolved output schema, returned as one value so
+     * the schema can never be read before — or out of sync with — the {@code toSql} that
+     * produced it. (It previously lived in a field set by {@code toSql} and read by a separate
+     * {@code outputSchema()} call.) Outputs are empty for renderers that don't resolve them.
+     */
+    record Rendered(String sql, List<OutputColumn> outputs) {}
+
+    Rendered toSql(LinkResolver resolver, IQLVisibilityContext visibilityContext, Query query, Map<Object, RuleContext> iqlToContext);
 
      FunctionRenderer getFunctionRenderer();
-
-    /**
-     * Resolved output schema of the most recent {@link #toSql} call — the
-     * single source of truth shared with the read layer ({@code ColumnInfo}).
-     * Empty for renderers that don't resolve outputs.
-     */
-     List<OutputColumn> outputSchema() ;
 
     /**
      * Resolves the type of every top-level output column once, with this

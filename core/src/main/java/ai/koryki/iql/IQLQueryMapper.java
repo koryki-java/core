@@ -171,7 +171,6 @@ public class IQLQueryMapper {
             bean.setRef(join.ref.getText());
         }
         bean.setOptional(join.OPTIONAL() != null);
-        //bean.setInvers(join.INVERS() != null);
         if (join.join_entity() != null) {
             bean.setSource(toEntity(join.join_entity()));
         }
@@ -187,7 +186,6 @@ public class IQLQueryMapper {
         Exists bean = build(exists, Exists::new);
         bean.setParent(exists.parent.getText());
         bean.setCrit(exists.crit.getText());
-        //bean.setInvers(exists.INVERS() != null);
         bean.setSource(toEntity(exists.exists_entity()));
 
         if (exists.link() != null) {

@@ -16,12 +16,12 @@
  */
 package ai.koryki.duckdb;
 
-import ai.koryki.catalog.schema.types.CoreTypeEncoding;
-import ai.koryki.catalog.schema.types.CoreTypeFamily;
-import ai.koryki.catalog.schema.types.IntervalStringEncoding;
-import ai.koryki.catalog.schema.types.IntervalTypeEncoding;
-import ai.koryki.catalog.schema.types.TypeDescriptor;
-import ai.koryki.catalog.schema.types.TypeEncoding;
+import ai.koryki.catalog.types.CoreTypeEncoding;
+import ai.koryki.catalog.types.CoreTypeFamily;
+import ai.koryki.catalog.types.IntervalStringEncoding;
+import ai.koryki.catalog.types.IntervalTypeEncoding;
+import ai.koryki.catalog.types.TypeDescriptor;
+import ai.koryki.catalog.types.TypeEncoding;
 import ai.koryki.jdbc.ColumnInfo;
 import ai.koryki.jdbc.CoreDecoder;
 import ai.koryki.jdbc.Interval;

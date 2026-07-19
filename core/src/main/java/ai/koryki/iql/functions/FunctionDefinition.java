@@ -18,7 +18,7 @@ package ai.koryki.iql.functions;
 
 import ai.koryki.iql.SqlSelectRenderer;
 import ai.koryki.iql.query.Function;
-import ai.koryki.catalog.schema.types.TypeDescriptor;
+import ai.koryki.catalog.types.TypeDescriptor;
 
 /**
  * One function overload: identity (name + kind), one signature, return type
@@ -57,6 +57,26 @@ public class FunctionDefinition {
         this.name = name;
         this.returnType = returnType;
         this.kind = kind;
+    }
+
+    /**
+     * Copy constructor for dialect overlays — carries <em>every</em> value field. Keep it in
+     * sync with the fields above so an overlay (override / overrideAll / unsupported) can never
+     * silently drop one: {@code fixity} and {@code paragraph} used to be lost, which reset an
+     * overridden operator (LIKE / BETWEEN / IN) to {@link Fixity#PREFIX} and dropped it out of
+     * comparison dispatch. Note it does not preserve a {@code render()} override on {@code base}
+     * — an overlay always replaces rendering with a template or marks the call unsupported.
+     */
+    public FunctionDefinition(FunctionDefinition base) {
+        this(base.name, base.returnType, base.kind);
+        this.signature = base.signature;
+        this.category = base.category;
+        this.description = base.description;
+        this.paragraph = base.paragraph;
+        this.example = base.example;
+        this.template = base.template;
+        this.unsupported = base.unsupported;
+        this.fixity = base.fixity;
     }
 
     public FunctionDefinition signature(FunctionSignature signature) {

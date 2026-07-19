@@ -1,0 +1,12 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title array
+
+array =
+    ("[", [arrayElement, {",", arrayElement}], "]") | ("(", [arrayElement, {",", arrayElement}], ")")
+;
+
+@endebnf

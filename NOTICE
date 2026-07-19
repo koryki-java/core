@@ -4,6 +4,23 @@ NOTICE
 Third-Party Content
 -------------------
 
+ggsql
+-----
+
+This project contains work inspired by and partially derived from
+the ggsql project.
+
+Copyright (c) Posit Software, PBC
+
+Licensed under the MIT License.
+
+The Java/ANTLR4 implementation in this repository is an independent
+reimplementation based on the behavior and concepts of ggsql.
+
+
+NORTHWIND
+---------
+
 This project includes a modified version of the Microsoft Northwind sample database.
 Modifications by Johannes Zemlin, 2025.
 

@@ -112,3 +112,6 @@ bin/
 /snowflake/src/data/
 /oracle/src/data/
 /northwind/src/main/resources/ai/koryki/databases/northwind/duckdb/northwind.duckdb.wal
+
+# local untracked working copy — not part of the repo
+/import/

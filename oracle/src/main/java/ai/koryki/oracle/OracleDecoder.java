@@ -16,9 +16,9 @@
  */
 package ai.koryki.oracle;
 
-import ai.koryki.catalog.schema.types.CoreTypeEncoding;
-import ai.koryki.catalog.schema.types.TypeDescriptor;
-import ai.koryki.catalog.schema.types.TypeEncoding;
+import ai.koryki.catalog.types.CoreTypeEncoding;
+import ai.koryki.catalog.types.TypeDescriptor;
+import ai.koryki.catalog.types.TypeEncoding;
 import ai.koryki.jdbc.ColumnInfo;
 import ai.koryki.jdbc.CoreDecoder;
 import ai.koryki.jdbc.Interval;

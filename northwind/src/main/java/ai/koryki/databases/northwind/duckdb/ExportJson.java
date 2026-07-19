@@ -19,6 +19,7 @@ import java.util.Map;
 public class ExportJson {
 
     public static final String CATEGORIES = "categories";
+    public static final String COUNTRIES = "countries";
     public static final String CUSTOMER_CUSTOMER_DEMO = "customer_customer_demo";
     public static final String CUSTOMER_DEMOGRAPHICS = "customer_demographics";
     public static final String CUSTOMERS = "customers";
@@ -41,6 +42,15 @@ public class ExportJson {
             String description,
             short rootCategoryId,
             Short superCategoryId
+    ) {}
+
+    public record Country(
+            String countryName,
+            String isoCode,
+            String continent,
+            BigDecimal latitude,
+            BigDecimal longitude,
+            String geometry
     ) {}
 
     public record CustomerCustomerDemo(
@@ -219,6 +229,7 @@ public class ExportJson {
         try (Connection conn = NorthwindDuckdb.fromResource(NorthwindDuckdb.DUCKDB)) {
             Map<String, Object> data = new LinkedHashMap<>();
             data.put(CATEGORIES, readCategories(conn));
+            data.put(COUNTRIES, readCountries(conn));
             data.put(CUSTOMER_CUSTOMER_DEMO, readCustomerCustomerDemo(conn));
             data.put(CUSTOMER_DEMOGRAPHICS, readCustomerDemographics(conn));
             data.put(CUSTOMERS, readCustomers(conn));
@@ -256,6 +267,24 @@ public class ExportJson {
                         rs.getString("description"),
                         rs.getShort("root_category_id"),
                         superCategoryId
+                ));
+            }
+        }
+        return list;
+    }
+
+    private static List<Country> readCountries(Connection conn) throws Exception {
+        List<Country> list = new ArrayList<>();
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("SELECT country_name, iso_code, continent, latitude, longitude, geometry FROM countries")) {
+            while (rs.next()) {
+                list.add(new Country(
+                        rs.getString("country_name"),
+                        rs.getString("iso_code"),
+                        rs.getString("continent"),
+                        rs.getBigDecimal("latitude"),
+                        rs.getBigDecimal("longitude"),
+                        rs.getString("geometry")
                 ));
             }
         }

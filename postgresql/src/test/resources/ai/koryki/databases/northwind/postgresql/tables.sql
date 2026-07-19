@@ -130,6 +130,7 @@ CREATE TABLE orders (
     order_date date,
     required_date date,
     shipped_date date,
+    delivered_date timestamp,
     ship_via smallint,
     freight NUMERIC(10,3),
     ship_name character varying(40),
@@ -221,4 +222,18 @@ CREATE TABLE us_states (
     state_name character varying(100),
     state_abbr character varying(2),
     state_region character varying(50)
+);
+
+
+--
+-- Name: countries; Type: TABLE; Schema: public; Owner: -; Tablespace:
+--
+
+CREATE TABLE countries (
+    country_name character varying(15) NOT NULL,
+    iso_code character varying(2) NOT NULL,
+    continent character varying(15) NOT NULL,
+    latitude numeric(8,4) NOT NULL,
+    longitude numeric(9,4) NOT NULL,
+    geometry VARCHAR(4000)
 );

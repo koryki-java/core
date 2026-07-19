@@ -217,6 +217,20 @@ CREATE TABLE us_states (
 );
 
 
+--
+-- Name: countries; Type: TABLE; Schema: public; Owner: -; Tablespace:
+--
+
+CREATE TABLE countries (
+    country_name character varying(15) NOT NULL,
+    iso_code character varying(2) NOT NULL,
+    continent character varying(15) NOT NULL,
+    latitude numeric(8,4) NOT NULL,
+    longitude numeric(9,4) NOT NULL,
+    geometry VARCHAR(4000)
+);
+
+
 
 CREATE TABLE check_type (
     nr              smallint NOT NULL,

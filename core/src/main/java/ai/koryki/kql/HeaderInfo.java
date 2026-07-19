@@ -16,10 +16,12 @@
  */
 package ai.koryki.kql;
 
+import ai.koryki.catalog.types.TypeDescriptor;
+
 public class HeaderInfo implements ai.koryki.jdbc.ColumnInfo {
 
     private String header;
-    private ai.koryki.catalog.schema.types.TypeDescriptor type;
+    private TypeDescriptor type;
 
     public String getHeader() {
         return header;
@@ -30,12 +32,12 @@ public class HeaderInfo implements ai.koryki.jdbc.ColumnInfo {
     }
 
     @Override
-    public void setTypeDescriptor(ai.koryki.catalog.schema.types.TypeDescriptor type) {
+    public void setTypeDescriptor(TypeDescriptor type) {
         this.type = type;
     }
 
     @Override
-    public ai.koryki.catalog.schema.types.TypeDescriptor getTypeDescriptor() {
+    public TypeDescriptor getTypeDescriptor() {
         return type;
     }
 

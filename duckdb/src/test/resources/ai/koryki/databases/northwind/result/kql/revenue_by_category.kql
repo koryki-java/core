@@ -1,0 +1,6 @@
+// revenue per product category - explicitly ordered so the golden's inline
+// data.values array is deterministic (and exercises R5's preserve-query-order
+// branch: sort "none" instead of "-y")
+
+FIND order_details od, od products p, p categories c
+FETCH c.category_name, sum(od.unit_price * od.quantity * (1 - od.discount)) revenue DESC 1

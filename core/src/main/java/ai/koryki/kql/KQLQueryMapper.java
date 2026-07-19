@@ -23,9 +23,11 @@ import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.SelectScopeCollector;
 import ai.koryki.iql.query.*;
 import ai.koryki.iql.query.Set;
+import ai.koryki.iql.query.viz.*;
 import ai.koryki.iql.logic.Normalizer;
 import ai.koryki.iql.time.Time;
 import org.antlr.v4.runtime.RuleContext;
+import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.math.BigDecimal;
@@ -68,8 +70,242 @@ public class KQLQueryMapper {
             bean.setBlock(toList(script.block()));
         }
         bean.setSet(toSet(script.set()));
+        if (script.visualiseClause() != null) {
+            bean.setVisualise(toVisualise(script.visualiseClause()));
+        }
 
         return bean;
+    }
+
+    // ── VISUALISE clause → Visualise bean ───────────────────────────────────
+
+    private Visualise toVisualise(KQLParser.VisualiseClauseContext ctx) {
+        Visualise v = build(ctx, Visualise::new);
+        if (ctx.mappingList() != null) {
+            v.setGlobal(toMappingList(ctx.mappingList()));
+        }
+        for (KQLParser.VizClauseContext vc : ctx.vizClause()) {
+            if (vc.drawClause() != null) {
+                v.getLayers().add(toLayer(vc.drawClause()));
+            } else if (vc.placeClause() != null) {
+                v.getLayers().add(toPlace(vc.placeClause()));
+            } else if (vc.scaleClause() != null) {
+                v.getScales().add(toScale(vc.scaleClause()));
+            } else if (vc.facetClause() != null) {
+                v.setFacet(toFacet(vc.facetClause()));
+            } else if (vc.projectClause() != null) {
+                v.setProject(toProject(vc.projectClause()));
+            } else if (vc.labelClause() != null) {
+                v.getLabels().addAll(toLabels(vc.labelClause()));
+            }
+        }
+        return v;
+    }
+
+    private List<Mapping> toMappingList(KQLParser.MappingListContext ctx) {
+        List<Mapping> list = new ArrayList<>();
+        for (KQLParser.MappingContext m : ctx.mapping()) {
+            Mapping mm = build(m, Mapping::new);
+            if (m.MULT() != null) {
+                mm.setWildcard(true);
+            } else if (m.value != null) {
+                if (m.value.ID() != null) {
+                    mm.setColumn(m.value.ID().getText());
+                } else {
+                    mm.setLiteral(toLiteral(m.value.literal()));
+                }
+                mm.setChannel(m.channel.getText());
+            } else {
+                // implicit `x` == `x AS x`
+                mm.setChannel(m.channel.getText());
+                mm.setColumn(m.channel.getText());
+            }
+            list.add(mm);
+        }
+        return list;
+    }
+
+    private Layer toLayer(KQLParser.DrawClauseContext ctx) {
+        Layer l = build(ctx, Layer::new);
+        l.setMark(ctx.mark.getText());
+        if (ctx.mappingClause() != null) {
+            l.setMapping(toMappingList(ctx.mappingClause().mappingList()));
+        }
+        if (ctx.remappingClause() != null) {
+            l.setRemapping(toMappingList(ctx.remappingClause().mappingList()));
+        }
+        if (ctx.settingClause() != null) {
+            l.setSettings(toSettings(ctx.settingClause()));
+        }
+        return l;
+    }
+
+    private Layer toPlace(KQLParser.PlaceClauseContext ctx) {
+        Layer l = build(ctx, Layer::new);
+        l.setPlace(true);
+        l.setMark(ctx.mark.getText());
+        if (ctx.settingClause() != null) {
+            l.setSettings(toSettings(ctx.settingClause()));
+        }
+        return l;
+    }
+
+    private ScaleSpec toScale(KQLParser.ScaleClauseContext ctx) {
+        ScaleSpec s = build(ctx, ScaleSpec::new);
+        if (ctx.scaleType() != null) {
+            s.setType(ctx.scaleType().getText().toLowerCase(Locale.ROOT));
+        }
+        s.setChannel(ctx.channel.getText());
+        if (ctx.scaleFrom() != null) {
+            s.setFrom(toArray(ctx.scaleFrom().array()));
+        }
+        if (ctx.scaleTo() != null) {
+            KQLParser.ScaleToContext to = ctx.scaleTo();
+            if (to.array() != null) {
+                s.setTo(toArray(to.array()));
+            } else {
+                s.setTo(to.palette.getText());
+                s.setToPalette(true);
+            }
+        }
+        if (ctx.scaleVia() != null) {
+            s.setVia(ctx.scaleVia().transform.getText());
+        }
+        if (ctx.settingClause() != null) {
+            s.setSettings(toSettings(ctx.settingClause()));
+        }
+        if (ctx.renamingClause() != null) {
+            s.setRenaming(toRenaming(ctx.renamingClause()));
+        }
+        return s;
+    }
+
+    private List<Rename> toRenaming(KQLParser.RenamingClauseContext ctx) {
+        List<Rename> list = new ArrayList<>();
+        for (KQLParser.RenameAssignContext r : ctx.renameAssign()) {
+            Rename rn = build(r, Rename::new);
+            rn.setFrom(renameKey(r.from));
+            rn.setTo(r.to.getType() == KQLLexer.SQ_STRING ? unquote(r.to.getText()) : null);
+            list.add(rn);
+        }
+        return list;
+    }
+
+    private Object renameKey(Token t) {
+        if (t.getType() == KQLLexer.MULT) {
+            return "*";
+        } else if (t.getType() == KQLLexer.SQ_STRING) {
+            return unquote(t.getText());
+        } else if (t.getType() == KQLLexer.INT) {
+            return Long.parseLong(t.getText());
+        }
+        return null; // NULL
+    }
+
+    private FacetSpec toFacet(KQLParser.FacetClauseContext ctx) {
+        FacetSpec f = build(ctx, FacetSpec::new);
+        f.setVars(ids(ctx.facetVars(0)));
+        if (ctx.facetVars().size() > 1) {
+            f.setBy(ids(ctx.facetVars(1)));
+        }
+        if (ctx.settingClause() != null) {
+            f.setSettings(toSettings(ctx.settingClause()));
+        }
+        return f;
+    }
+
+    private Projection toProject(KQLParser.ProjectClauseContext ctx) {
+        Projection p = build(ctx, Projection::new);
+        if (ctx.projectAes() != null) {
+            List<String> aes = new ArrayList<>();
+            for (TerminalNode id : ctx.projectAes().ID()) {
+                aes.add(id.getText());
+            }
+            p.setAesthetics(aes);
+        }
+        p.setCoord(ctx.coord.getText());
+        if (ctx.settingClause() != null) {
+            p.setSettings(toSettings(ctx.settingClause()));
+        }
+        return p;
+    }
+
+    private List<Label> toLabels(KQLParser.LabelClauseContext ctx) {
+        List<Label> list = new ArrayList<>();
+        for (KQLParser.LabelAssignContext la : ctx.labelAssign()) {
+            Label lb = build(la, Label::new);
+            lb.setTarget(la.target.getText());
+            lb.setValue(la.value.getType() == KQLLexer.SQ_STRING ? unquote(la.value.getText()) : null);
+            list.add(lb);
+        }
+        return list;
+    }
+
+    private Map<String, Object> toSettings(KQLParser.SettingClauseContext ctx) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        for (KQLParser.ParameterAssignmentContext pa : ctx.parameterAssignment()) {
+            m.put(pa.name.getText(), toParameterValue(pa.value));
+        }
+        return m;
+    }
+
+    private Object toParameterValue(KQLParser.ParameterValueContext ctx) {
+        if (ctx.SQ_STRING() != null) {
+            return unquote(ctx.SQ_STRING().getText());
+        } else if (ctx.INT() != null) {
+            return Long.parseLong(ctx.INT().getText());
+        } else if (ctx.NUMBER() != null) {
+            return new BigDecimal(ctx.NUMBER().getText());
+        } else if (ctx.NULL() != null) {
+            return null;
+        } else if (ctx.ID() != null) {
+            return ctx.ID().getText();
+        }
+        return toArray(ctx.array());
+    }
+
+    private List<Object> toArray(KQLParser.ArrayContext ctx) {
+        List<Object> list = new ArrayList<>();
+        for (KQLParser.ArrayElementContext e : ctx.arrayElement()) {
+            list.add(toArrayElement(e));
+        }
+        return list;
+    }
+
+    private Object toArrayElement(KQLParser.ArrayElementContext ctx) {
+        if (ctx.SQ_STRING() != null) {
+            return unquote(ctx.SQ_STRING().getText());
+        } else if (ctx.INT() != null) {
+            return Long.parseLong(ctx.INT().getText());
+        } else if (ctx.NUMBER() != null) {
+            return new BigDecimal(ctx.NUMBER().getText());
+        } else if (ctx.ID() != null) {
+            return ctx.ID().getText();
+        }
+        return null; // NULL
+    }
+
+    private Object toLiteral(KQLParser.LiteralContext ctx) {
+        if (ctx.SQ_STRING() != null) {
+            return unquote(ctx.SQ_STRING().getText());
+        } else if (ctx.INT() != null) {
+            return Long.parseLong(ctx.INT().getText());
+        } else if (ctx.NUMBER() != null) {
+            return new BigDecimal(ctx.NUMBER().getText());
+        }
+        return null; // NULL
+    }
+
+    private List<String> ids(KQLParser.FacetVarsContext ctx) {
+        List<String> list = new ArrayList<>();
+        for (TerminalNode id : ctx.ID()) {
+            list.add(id.getText());
+        }
+        return list;
+    }
+
+    private static String unquote(String s) {
+        return s.substring(1, s.length() - 1);
     }
 
     private List<Block> toList(List<KQLParser.BlockContext> cte) {

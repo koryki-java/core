@@ -36,7 +36,7 @@
   "links" : [ {
     "name" : "gleicher_benutzer",
     "comment" : "beide Datensätze verweisen auf den gleichen Benutzer",
-    "base" : "same_user",
+    "canonical" : "same_user",
     "relations" : [ "fk_user" ]
   } ]
 }

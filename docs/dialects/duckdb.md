@@ -120,18 +120,18 @@ order: 21
 | to_bigint | conversion | scalar | standard | `CAST(value AS BIGINT)` |
 | to_boolean | conversion | scalar | standard | `CAST(value AS BOOLEAN)` |
 | to_char | formatting | scalar | standard | `to_char(value, format)` |
-| to_date | other | scalar | overridden | `to_date(…) — dialect-specific rendering` |
+| to_date | other | scalar | overridden | `CAST(value AS DATE)`<br>`to_date(…) — dialect-specific rendering`<br>`MAKE_DATE(year, month, day)` |
 | to_decimal | conversion | scalar | standard | `CAST(value AS DECIMAL(precision, scale))` |
 | to_double | conversion | scalar | standard | `CAST(value AS DOUBLE)` |
 | to_float | conversion | scalar | standard | `CAST(value AS FLOAT)` |
 | to_hex | other | scalar | overridden | `to_hex(…)` |
 | to_integer | conversion | scalar | standard | `CAST(value AS INTEGER)` |
-| to_interval | other | scalar | native | `to_interval(…) — dialect-specific rendering` |
+| to_interval | other | scalar | native | `to_interval(…) — dialect-specific rendering`<br>`to_years(years) + to_months(months) + to_days(days) + to_hours(hours) + to_minutes(minutes) + to_seconds(seconds)` |
 | to_number | formatting | scalar | standard | `to_number(value, format)` |
 | to_smallint | conversion | scalar | standard | `CAST(value AS SMALLINT)` |
 | to_text | conversion | scalar | standard | `CAST(value AS TEXT)`<br>`CAST(value AS TEXT)`<br>`CAST(value AS TEXT)`<br>`CAST(value AS TEXT)`<br>`CAST(value AS TEXT)`<br>`CAST(value AS TEXT)`<br>`CAST(value AS TEXT)`<br>`CAST(value AS TEXT)`<br>`CAST(value AS TEXT)`<br>`CAST(value AS TEXT)`<br>`CAST(value AS TEXT)`<br>`CAST(value AS TEXT)` |
-| to_time | other | scalar | overridden | `to_time(…) — dialect-specific rendering` |
-| to_timestamp | other | scalar | overridden | `to_timestamp(…) — dialect-specific rendering` |
+| to_time | other | scalar | overridden | `CAST(value AS TIME)`<br>`to_time(…) — dialect-specific rendering`<br>`MAKE_TIME(hour, minute, second::DOUBLE)` |
+| to_timestamp | other | scalar | overridden | `CAST(value AS TIMESTAMP)`<br>`to_timestamp(…) — dialect-specific rendering`<br>`to_timestamp(…) — dialect-specific rendering`<br>`MAKE_TIMESTAMP(year, month, day, hour, minute, second)`<br>`timezone(tz, MAKE_TIMESTAMP(year, month, day, hour, minute, second)::TIMESTAMPTZ)` |
 | to_utc | other | scalar | standard | `to_utc(…) — dialect-specific rendering` |
 | to_varchar | conversion | scalar | standard | `CAST(value AS VARCHAR(length))` |
 | today | datetime | scalar | standard | `CURRENT_DATE` |

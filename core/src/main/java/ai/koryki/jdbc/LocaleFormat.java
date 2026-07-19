@@ -16,10 +16,10 @@
  */
 package ai.koryki.jdbc;
 
-import ai.koryki.catalog.schema.types.CoreTypeEncoding;
-import ai.koryki.catalog.schema.types.CoreTypeFamily;
-import ai.koryki.catalog.schema.types.TypeDescriptor;
-import ai.koryki.catalog.schema.types.TypeFamily;
+import ai.koryki.catalog.types.CoreTypeEncoding;
+import ai.koryki.catalog.types.CoreTypeFamily;
+import ai.koryki.catalog.types.TypeDescriptor;
+import ai.koryki.catalog.types.TypeFamily;
 
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -30,7 +30,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
 import java.util.Locale;
 
 /**

@@ -59,7 +59,7 @@ public class PushOrderRule {
                     table.getOrder().add(o);
                     return true;
                 }
-                return true;
+                return false;
             });
             return true;
         }

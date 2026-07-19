@@ -16,6 +16,7 @@
  */
 package ai.koryki.iql;
 
+import ai.koryki.catalog.types.*;
 import ai.koryki.iql.functions.Fixity;
 import ai.koryki.iql.functions.FunctionDefinition;
 import ai.koryki.iql.functions.FunctionRenderer;
@@ -23,7 +24,10 @@ import ai.koryki.iql.functions.StandardFunctions;
 import ai.koryki.iql.query.Duration;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
-import ai.koryki.catalog.schema.types.TypeDescriptor;
+import ai.koryki.iql.typing.EpochEncodings;
+import ai.koryki.iql.typing.InstantEncodings;
+import ai.koryki.iql.typing.IntervalEncodings;
+import ai.koryki.iql.typing.TimeEncodings;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -34,8 +38,13 @@ import java.util.stream.Collectors;
 
 public interface SqlDialect {
 
+    /**
+     * The function renderer for this dialect. The default is the shared, dialect-neutral
+     * canonical set; dialects that add or replace functions override this to return their
+     * own {@code static final} renderer (assembled once at class load).
+     */
     default FunctionRenderer getFunctionRenderer() {
-        return StandardFunctions.registry();
+        return StandardFunctions.canonical();
     }
 
     default String timeLiteral(LocalTime time) {
@@ -131,7 +140,7 @@ public interface SqlDialect {
 
     /**
      * Renders a column type for DDL (CREATE TABLE) — the write-side dual of
-     * {@link ai.koryki.catalog.schema.types.TypeDescriptorParser}.
+     * {@link TypeDescriptorParser}.
      *
      * <p>The default echoes the parsed physical type verbatim (a faithful round-trip
      * for the same dialect). Dialects override to map a canonical {@link TypeDescriptor}
@@ -166,7 +175,7 @@ public interface SqlDialect {
      * such dialects (e.g. SQLite, which has no time-zone database at all). See docs/TEMPORAL.md.
      */
     default String wallClockToModelZone(String columnSql,
-            ai.koryki.catalog.schema.types.WallClockEncoding enc, java.time.ZoneId modelZone) {
+                                        WallClockEncoding enc, java.time.ZoneId modelZone) {
         throw new ai.koryki.antlr.KorykiaiException(
                 "wall-clock(zone) storage (" + enc.name() + ") is not supported by this dialect");
     }
@@ -177,10 +186,10 @@ public interface SqlDialect {
      * as model-zone local. A {@code DATE_WALLCLOCK} converts at start-of-day and is taken back to a date.
      */
     static String atTimeZoneToModelZone(String columnSql,
-            ai.koryki.catalog.schema.types.WallClockEncoding enc, java.time.ZoneId modelZone) {
+                                        WallClockEncoding enc, java.time.ZoneId modelZone) {
         String declared = enc.getZone().getId();
         String model = modelZone.getId();
-        if (ai.koryki.catalog.schema.types.CoreTypeFamily.DATE.equals(enc.family())) {
+        if (CoreTypeFamily.DATE.equals(enc.family())) {
             return "CAST(((CAST(" + columnSql + " AS TIMESTAMP) AT TIME ZONE '" + declared
                     + "') AT TIME ZONE '" + model + "') AS DATE)";
         }
@@ -211,7 +220,7 @@ public interface SqlDialect {
         if (diff != null) {
             return diff;
         }
-        return ai.koryki.iql.types.TimeEncodings
+        return TimeEncodings
                 .secondsArithmetic(renderer, leftSql, leftType, operator, right, indent)
                 .orElseGet(() -> materializeTemporalLeft(leftSql, leftType)
                         + " " + operator + " " + parenthesizeDuration(renderer, operator, right, indent));
@@ -225,7 +234,7 @@ public interface SqlDialect {
      */
     default String materializeTemporalLeft(String leftSql, TypeDescriptor leftType) {
         if (leftType != null
-                && ai.koryki.catalog.schema.types.CoreTypeEncoding.DATE_FROM_EPOCH_DAY.equals(leftType.getTypeEncoding())) {
+                && CoreTypeEncoding.DATE_FROM_EPOCH_DAY.equals(leftType.getTypeEncoding())) {
             return "(DATE '1970-01-01' + " + leftSql + ")";
         }
         return materializeEpochTimestampLeft(leftSql, leftType);
@@ -237,7 +246,7 @@ public interface SqlDialect {
      * epoch case — they keep their own DATE_FROM_EPOCH_DAY handling.
      */
     default String materializeEpochTimestampLeft(String leftSql, TypeDescriptor leftType) {
-        if (leftType != null && leftType.getTypeEncoding() instanceof ai.koryki.catalog.schema.types.EpochTypeEncoding e) {
+        if (leftType != null && leftType.getTypeEncoding() instanceof EpochTypeEncoding e) {
             return epochToTimestamp(leftSql, e.getUnit());
         }
         return leftSql;
@@ -288,7 +297,7 @@ public interface SqlDialect {
     }
 
     private static boolean isTimestamp(TypeDescriptor t) {
-        return t != null && ai.koryki.catalog.schema.types.CoreTypeFamily.TIMESTAMP.equals(t.getTypeFamily());
+        return t != null && CoreTypeFamily.TIMESTAMP.equals(t.getTypeFamily());
     }
 
     /**
@@ -300,7 +309,7 @@ public interface SqlDialect {
      */
     default String epochSeconds(String expr, TypeDescriptor type) {
         var enc = type != null ? type.getTypeEncoding() : null;
-        if (enc instanceof ai.koryki.catalog.schema.types.EpochTypeEncoding e) {
+        if (enc instanceof EpochTypeEncoding e) {
             return switch (e.getUnit()) {
                 case MILLIS -> "(" + expr + " / 1000)";
                 case MICROS -> "(" + expr + " / 1000000)";
@@ -326,8 +335,8 @@ public interface SqlDialect {
         return expr;
     }
 
-    private static boolean isInstant(ai.koryki.catalog.schema.types.TypeEncoding enc) {
-        return ai.koryki.catalog.schema.types.CoreTypeEncoding.INSTANT.equals(enc);
+    private static boolean isInstant(TypeEncoding enc) {
+        return CoreTypeEncoding.INSTANT.equals(enc);
     }
 
     /**
@@ -368,7 +377,7 @@ public interface SqlDialect {
     /**
      * Render a TIME-encoded column as integer seconds-of-day, for TIME ± duration arithmetic
      * (computed in the seconds domain, then floor-mod-decoded to a LocalTime at the read boundary,
-     * which is how midnight wraps). Only the {@link ai.koryki.iql.types.TimeEncodings#secondsConvertible
+     * which is how midnight wraps). Only the {@link TimeEncodings#secondsConvertible
      * convertible} encodings reach here.
      *
      * <p>The default handles {@code TIME_FROM_INTEGER} (HHMMSS packed integer) and
@@ -378,14 +387,14 @@ public interface SqlDialect {
      */
     default String timeColumnAsSeconds(String columnSql, TypeDescriptor timeType) {
         var enc = timeType != null ? timeType.getTypeEncoding() : null;
-        if (ai.koryki.catalog.schema.types.CoreTypeEncoding.TIME_FROM_INTEGER.equals(enc)) {
+        if (CoreTypeEncoding.TIME_FROM_INTEGER.equals(enc)) {
             // HHMMSS -> seconds: hh*3600 + mm*60 + ss. FLOOR before CAST: a bare CAST(<fraction> AS
             // INTEGER) rounds (not truncates) in some dialects (e.g. DuckDB: 23.5959 -> 24).
             return "CAST(FLOOR(" + columnSql + " / 10000.0) AS INTEGER) * 3600"
                  + " + MOD(CAST(FLOOR(" + columnSql + " / 100.0) AS INTEGER), 100) * 60"
                  + " + MOD(" + columnSql + ", 100)";
         }
-        if (ai.koryki.catalog.schema.types.CoreTypeEncoding.TIME_FROM_STRING.equals(enc)) {
+        if (CoreTypeEncoding.TIME_FROM_STRING.equals(enc)) {
             // 'HH:MM:SS' text -> seconds-of-day
             return "CAST(EXTRACT(EPOCH FROM CAST(" + columnSql + " AS TIME)) AS INTEGER)";
         }
@@ -472,7 +481,7 @@ public interface SqlDialect {
     /**
      * One operand of a comparison, given the types of <em>both</em> sides. The
      * ANSI default just renders the expression; dialects whose schemas may carry
-     * encoded columns opt in via {@link ai.koryki.iql.types.TimeEncodings} —
+     * encoded columns opt in via {@link TimeEncodings} —
      * having {@code rightType} lets them reconcile two operands stored under
      * different encodings (e.g. TIME_FROM_INTEGER vs TIME_FROM_STRING), not just
      * encode a literal to match the left.
@@ -482,14 +491,14 @@ public interface SqlDialect {
         // INTERVAL column vs duration literal: render the duration in the column's encoding
         // (numeric count / ISO string), so both operands share one physical representation.
         java.util.Optional<String> interval =
-                ai.koryki.iql.types.IntervalEncodings.durationOperand(leftType, expression);
+                IntervalEncodings.durationOperand(leftType, expression);
         if (interval.isPresent()) {
             return interval.get();
         }
         // EPOCH / epoch-day column vs a date/timestamp literal: render the literal as the matching
         // integer count, so the bare (index-friendly) column compares against an integer, not a literal.
         java.util.Optional<String> epoch =
-                ai.koryki.iql.types.EpochEncodings.literalOperand(leftType, expression, renderer.getModelZone());
+                EpochEncodings.literalOperand(leftType, expression, renderer.getModelZone());
         if (epoch.isPresent()) {
             return epoch.get();
         }
@@ -497,7 +506,7 @@ public interface SqlDialect {
         // absolute instant (taken in the model zone), so the comparison does not lean on the engine's
         // implicit coercion of a bare naive string (which fails on SQL Server / Trino).
         java.util.Optional<java.time.Instant> instant =
-                ai.koryki.iql.types.InstantEncodings.literalInstant(leftType, expression, renderer.getModelZone());
+                InstantEncodings.literalInstant(leftType, expression, renderer.getModelZone());
         if (instant.isPresent()) {
             return instantLiteral(instant.get(), renderer.getModelZone());
         }

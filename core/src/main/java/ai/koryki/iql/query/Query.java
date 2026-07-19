@@ -16,6 +16,8 @@
  */
 package ai.koryki.iql.query;
 
+import ai.koryki.iql.query.viz.Visualise;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,6 +26,7 @@ public class Query {
     private List<Block> block = new ArrayList<>();
     private Set set;
     private String description;
+    private Visualise visualise;
 
 
     public Set getSet() {
@@ -48,5 +51,13 @@ public class Query {
 
     public void setBlock(List<Block> block) {
         this.block = block;
+    }
+
+    public Visualise getVisualise() {
+        return visualise;
+    }
+
+    public void setVisualise(Visualise visualise) {
+        this.visualise = visualise;
     }
 }

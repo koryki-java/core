@@ -1,6 +1,9 @@
 package ai.koryki.catalog.schema.types;
 
 import ai.koryki.catalog.schema.Column;
+import ai.koryki.catalog.types.CoreTypeFamily;
+import ai.koryki.catalog.types.TypeDescriptor;
+import ai.koryki.catalog.types.TypeDescriptorParser;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

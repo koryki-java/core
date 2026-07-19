@@ -616,11 +616,54 @@
       "description" : null,
       "column" : "state_name"
     } ]
+  }, {
+    "name" : "laender",
+    "label" : "Land",
+    "comment" : "Länder, auf die Kunden-, Lieferanten-, Mitarbeiter- und Lieferadressen verweisen, mit geographischen Koordinaten und Umriss für Kartenvisualisierungen.",
+    "table" : "countries",
+    "description" : null,
+    "attributes" : [ {
+      "name" : "land_name",
+      "label" : "Name",
+      "comment" : "Der Ländername, wie er in den Adressspalten verwendet wird (z. B. 'Germany', 'UK', 'USA').",
+      "description" : null,
+      "column" : "country_name"
+    }, {
+      "name" : "iso_code",
+      "label" : "ISO-Code",
+      "comment" : "Der ISO-3166-1-alpha-2-Code des Landes.",
+      "description" : null,
+      "column" : "iso_code"
+    }, {
+      "name" : "kontinent",
+      "label" : "Kontinent",
+      "comment" : "Der Kontinent, zu dem das Land gehört.",
+      "description" : null,
+      "column" : "continent"
+    }, {
+      "name" : "breitengrad",
+      "label" : "Breitengrad",
+      "comment" : "Breitengrad des Beschriftungspunkts (Zentroid) des Landes, in Grad.",
+      "description" : null,
+      "column" : "latitude"
+    }, {
+      "name" : "laengengrad",
+      "label" : "Längengrad",
+      "comment" : "Längengrad des Beschriftungspunkts (Zentroid) des Landes, in Grad.",
+      "description" : null,
+      "column" : "longitude"
+    }, {
+      "name" : "geometrie",
+      "label" : "Geometrie",
+      "comment" : "Vereinfachter Landesumriss als GeoJSON-(Multi)Polygon für Choroplethenkarten.",
+      "description" : null,
+      "column" : "geometry"
+    } ]
   } ],
   "links" : [ {
     "name" : "gleiches_produkt",
     "label" : null,
-    "base" : "same_product",
+    "canonical" : "same_product",
     "comment" : "Beide Datensätze verweisen auf das gleiche Produkt",
     "description" : null,
     "nature" : null,
@@ -628,7 +671,7 @@
   }, {
     "name" : "gleiches_kundensegment",
     "label" : null,
-    "base" : "same_customer_demographic",
+    "canonical" : "same_customer_demographic",
     "comment" : "Beide Datensätze verweisen auf das gleiche Kundensegment",
     "description" : null,
     "nature" : null,
@@ -636,7 +679,7 @@
   }, {
     "name" : "gleicher_spediteur",
     "label" : null,
-    "base" : "same_shipper",
+    "canonical" : "same_shipper",
     "comment" : "both tables refer to the same shipper data record",
     "description" : null,
     "nature" : null,
@@ -644,7 +687,7 @@
   }, {
     "name" : "basiskategorie",
     "label" : null,
-    "base" : "root_category_of",
+    "canonical" : "root_category_of",
     "comment" : "Die erste Kategorie ist Basiskategorie der zweiten Kategorie.",
     "description" : "Die Verknüpfung ist gerichtet. Die erste Kategorie ist die Basiskategorie..",
     "nature" : null,
@@ -652,7 +695,7 @@
   }, {
     "name" : "gehoert_zu",
     "label" : null,
-    "base" : "belongs_to_root",
+    "canonical" : "belongs_to_root",
     "comment" : "Die erste Kategorie is direkt oder indirekt eine Unterkategorie der zweiten Kategorie (Basiskategorie)",
     "description" : "Die Verknüpfung ist gerichtet. Die zweite Kategorie ist die Basiskategorie.",
     "nature" : "inverse",
@@ -660,7 +703,7 @@
   }, {
     "name" : "gleicher_lieferant",
     "label" : null,
-    "base" : "same_supplier",
+    "canonical" : "same_supplier",
     "comment" : "Beide Datensätze verweisen auf den gleichen Lieferanten",
     "description" : null,
     "nature" : null,
@@ -668,7 +711,7 @@
   }, {
     "name" : "gleicher_mitarbeiter",
     "label" : null,
-    "base" : "same_employee",
+    "canonical" : "same_employee",
     "comment" : "Beide Datensätze verweisen auf den gleichen Mitarbeiter",
     "description" : null,
     "nature" : null,
@@ -676,7 +719,7 @@
   }, {
     "name" : "gleiches_gebiet",
     "label" : null,
-    "base" : "same_territory",
+    "canonical" : "same_territory",
     "comment" : "Beide Datensätze verweisen auf das gleiche Gebiet",
     "description" : null,
     "nature" : null,
@@ -684,7 +727,7 @@
   }, {
     "name" : "gleiches_kunden_kundensegment",
     "label" : null,
-    "base" : "same_customer_customer_demo",
+    "canonical" : "same_customer_customer_demo",
     "comment" : "Beide Datensätze verweisen auf das gleiche Kunden-Kundensegment",
     "description" : null,
     "nature" : null,
@@ -692,7 +735,7 @@
   }, {
     "name" : "gleicher_staat",
     "label" : null,
-    "base" : "same_us_state",
+    "canonical" : "same_us_state",
     "comment" : "Beide Datensätze verweisen auf den gleichen Staat",
     "description" : null,
     "nature" : null,
@@ -700,7 +743,7 @@
   }, {
     "name" : "gleiche_region",
     "label" : null,
-    "base" : "same_region",
+    "canonical" : "same_region",
     "comment" : "Beide Datensätze verweisen auf die gleiche Region",
     "description" : null,
     "nature" : null,
@@ -708,7 +751,7 @@
   }, {
     "name" : "gleiche_bestelldetails",
     "label" : null,
-    "base" : "same_order_detail",
+    "canonical" : "same_order_detail",
     "comment" : "Beide Datensätze verweisen auf die gleiche Bestellposition",
     "description" : null,
     "nature" : null,
@@ -716,7 +759,7 @@
   }, {
     "name" : "berichtet_an",
     "label" : null,
-    "base" : "reports_to",
+    "canonical" : "reports_to",
     "comment" : "Der erste Mitarbeiter berichtet an den zweiten Mirarbeiter.",
     "description" : "Die Verknüpfung ist gerichtet. Der erste Mitarbeiter ist Teammitglied, der zweite Mitarbeiter ist Teamleader.",
     "nature" : null,
@@ -724,7 +767,7 @@
   }, {
     "name" : "vorgesetzter_von",
     "label" : null,
-    "base" : "supervisor_of",
+    "canonical" : "supervisor_of",
     "comment" : "Der erste Mitarbeiter ist der Vorgesetzte des zweiten Mitarbeiters.",
     "description" : "Die Verknüpfung ist gerichtet. Der erste Mitarbeiter ist Teamleader, der zweite Mitarbeiter ist Teammitglied.",
     "nature" : "inverse",
@@ -732,7 +775,7 @@
   }, {
     "name" : "uebergeordnete_kategorie",
     "label" : null,
-    "base" : "parent_of",
+    "canonical" : "parent_of",
     "comment" : "Die erste Kategorie ist der zweiten Kategorie übergeordnet.",
     "description" : "Die Verknüpfung ist gerichtet. Basiskategorien haben keine Elternkategorie",
     "nature" : null,
@@ -740,7 +783,7 @@
   }, {
     "name" : "kind_von",
     "label" : null,
-    "base" : "child_of",
+    "canonical" : "child_of",
     "comment" : "Die erste Kategorie ist eine Unterkategorie der zweiten.",
     "description" : "Die Verknüpfung ist gerichtet. Basiskategorien haben keine Elternkategorie",
     "nature" : "inverse",
@@ -748,7 +791,7 @@
   }, {
     "name" : "gleiches_mitarbeitergebiet",
     "label" : null,
-    "base" : "same_employee_territory",
+    "canonical" : "same_employee_territory",
     "comment" : "Beide Datensätze verweisen auf das gleiche Mitarbeitergebiet",
     "description" : null,
     "nature" : null,
@@ -756,7 +799,7 @@
   }, {
     "name" : "gleiche_kategorie",
     "label" : null,
-    "base" : "same_category",
+    "canonical" : "same_category",
     "comment" : "Beide Datensätze verweisen auf die gleiche Kategorie",
     "description" : null,
     "nature" : null,
@@ -764,7 +807,7 @@
   }, {
     "name" : "gleiche_bestellung",
     "label" : null,
-    "base" : "same_order",
+    "canonical" : "same_order",
     "comment" : "Beide Datensätze verweisen auf die gleiche Bestellung",
     "description" : null,
     "nature" : null,
@@ -772,10 +815,18 @@
   }, {
     "name" : "gleicher_kunde",
     "label" : null,
-    "base" : "same_customer",
+    "canonical" : "same_customer",
     "comment" : "Beide Datensätze verweisen auf den gleichen Kundendatensatz",
     "description" : null,
     "nature" : null,
     "relations" : [ "fk_customer_customer_demo_customers", "fk_orders_customers", "pk_customers" ]
+  }, {
+    "name" : "gleiches_land",
+    "label" : null,
+    "canonical" : "same_country",
+    "comment" : "Beide Datensätze verweisen auf das gleiche Land; Adressland und Lieferland verweisen namentlich auf die Länder-Referenztabelle",
+    "description" : null,
+    "nature" : null,
+    "relations" : [ "fk_customers_countries", "fk_suppliers_countries", "fk_employees_countries", "fk_orders_countries", "pk_countries" ]
   } ]
 }

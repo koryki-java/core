@@ -16,12 +16,13 @@
  */
 package ai.koryki.iql;
 
-import ai.koryki.catalog.schema.types.CoreTypeEncoding;
-import ai.koryki.catalog.schema.types.CoreTypeFamily;
-import ai.koryki.catalog.schema.types.TypeDescriptor;
+import ai.koryki.catalog.types.CoreTypeFamily;
+import ai.koryki.catalog.types.TypeDescriptor;
+import ai.koryki.catalog.types.WallClockEncoding;
 import ai.koryki.iql.functions.*;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
+import ai.koryki.iql.typing.TimeEncodings;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -48,7 +49,7 @@ public class DuckdbBaseDialect implements SqlDialect {
      */
     @Override
     public String wallClockToModelZone(String columnSql,
-            ai.koryki.catalog.schema.types.WallClockEncoding enc, java.time.ZoneId modelZone) {
+                                       WallClockEncoding enc, java.time.ZoneId modelZone) {
         return SqlDialect.atTimeZoneToModelZone(columnSql, enc, modelZone);
     }
 
@@ -109,8 +110,14 @@ public class DuckdbBaseDialect implements SqlDialect {
         return "INTERVAL (" + value + ") || ' ' || " + unit;
     }
 
+    private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();
+
     @Override
     public FunctionRenderer getFunctionRenderer() {
+        return FUNCTION_RENDERER;
+    }
+
+    private static FunctionRenderer buildFunctionRenderer() {
         FunctionRegistry registry = StandardFunctions.registry();
 
         // list([x]) — DuckDB array literal
@@ -149,76 +156,72 @@ public class DuckdbBaseDialect implements SqlDialect {
         }
 
         // to_date(value) | to_date(value, format) | to_date(ts, tz) | to_date(year, month, day)
+        registry.register(new FunctionDefinition("to_date", ReturnTypes.DATE)
+                .args(FunctionArg.arg("value"))
+                .template("CAST({0} AS DATE)"));
         registry.register(new FunctionDefinition("to_date", ReturnTypes.DATE) {
             @Override
             public String render(SqlSelectRenderer renderer, Function function, int indent) {
-                return switch (function.getArguments().size()) {
-                    case 1 -> "CAST(" + renderer.toSql(function.getArguments().get(0), indent) + " AS DATE)";
-                    case 2 -> {
-                        String a0 = renderer.toSql(function.getArguments().get(0), indent);
-                        String a1 = renderer.toSql(function.getArguments().get(1), indent);
-                        TypeDescriptor t0 = renderer.resolveType(function.getArguments().get(0));
-                        if (t0 != null && CoreTypeFamily.TIMESTAMP.equals(t0.getTypeFamily()))
-                            yield "timezone(" + a1 + ", " + a0 + "::TIMESTAMPTZ)::DATE";
-                        yield "strptime(" + a0 + ", " + translateKQLFormat(a1) + ")::DATE";
-                    }
-                    case 3 -> "MAKE_DATE("
-                            + renderer.toSql(function.getArguments().get(0), indent) + ", "
-                            + renderer.toSql(function.getArguments().get(1), indent) + ", "
-                            + renderer.toSql(function.getArguments().get(2), indent) + ")";
-                    default -> throw new IllegalArgumentException("to_date requires 1, 2, or 3 arguments");
-                };
+                String a0 = renderer.toSql(function.getArguments().get(0), indent);
+                String a1 = renderer.toSql(function.getArguments().get(1), indent);
+                TypeDescriptor t0 = renderer.resolveType(function.getArguments().get(0));
+                if (t0 != null && CoreTypeFamily.TIMESTAMP.equals(t0.getTypeFamily()))
+                    return "timezone(" + a1 + ", " + a0 + "::TIMESTAMPTZ)::DATE";
+                return "strptime(" + a0 + ", " + translateKQLFormat(a1) + ")::DATE";
             }
-        });
+        }.args(FunctionArg.arg("value"), FunctionArg.arg("format")));
+        registry.register(new FunctionDefinition("to_date", ReturnTypes.DATE)
+                .args(FunctionArg.arg("year"), FunctionArg.arg("month"), FunctionArg.arg("day"))
+                .template("MAKE_DATE({0}, {1}, {2})"));
 
         // to_time(value) | to_time(value, format) | to_time(ts, tz) | to_time(hour, minute, second)
+        registry.register(new FunctionDefinition("to_time", ReturnTypes.TIME)
+                .args(FunctionArg.arg("value"))
+                .template("CAST({0} AS TIME)"));
         registry.register(new FunctionDefinition("to_time", ReturnTypes.TIME) {
             @Override
             public String render(SqlSelectRenderer renderer, Function function, int indent) {
-                return switch (function.getArguments().size()) {
-                    case 1 -> "CAST(" + renderer.toSql(function.getArguments().get(0), indent) + " AS TIME)";
-                    case 2 -> {
-                        String a0 = renderer.toSql(function.getArguments().get(0), indent);
-                        String a1 = renderer.toSql(function.getArguments().get(1), indent);
-                        TypeDescriptor t0 = renderer.resolveType(function.getArguments().get(0));
-                        if (t0 != null && CoreTypeFamily.TIMESTAMP.equals(t0.getTypeFamily()))
-                            yield "timezone(" + a1 + ", " + a0 + "::TIMESTAMPTZ)::TIME";
-                        yield "strptime(" + a0 + ", " + translateKQLFormat(a1) + ")::TIME";
-                    }
-                    case 3 -> "MAKE_TIME("
-                            + renderer.toSql(function.getArguments().get(0), indent) + ", "
-                            + renderer.toSql(function.getArguments().get(1), indent) + ", "
-                            + renderer.toSql(function.getArguments().get(2), indent) + "::DOUBLE)";
-                    default -> throw new IllegalArgumentException("to_time requires 1, 2, or 3 arguments");
-                };
+                String a0 = renderer.toSql(function.getArguments().get(0), indent);
+                String a1 = renderer.toSql(function.getArguments().get(1), indent);
+                TypeDescriptor t0 = renderer.resolveType(function.getArguments().get(0));
+                if (t0 != null && CoreTypeFamily.TIMESTAMP.equals(t0.getTypeFamily()))
+                    return "timezone(" + a1 + ", " + a0 + "::TIMESTAMPTZ)::TIME";
+                return "strptime(" + a0 + ", " + translateKQLFormat(a1) + ")::TIME";
             }
-        });
+        }.args(FunctionArg.arg("value"), FunctionArg.arg("format")));
+        registry.register(new FunctionDefinition("to_time", ReturnTypes.TIME)
+                .args(FunctionArg.arg("hour"), FunctionArg.arg("minute"), FunctionArg.arg("second"))
+                .template("MAKE_TIME({0}, {1}, {2}::DOUBLE)"));
 
         // to_timestamp(value) | to_timestamp(value, format) | to_timestamp(value, format, tz)
         // | to_timestamp(year, month, day, hour, minute, second) | to_timestamp(year, month, day, hour, minute, second, tz)
+        registry.register(new FunctionDefinition("to_timestamp", ReturnTypes.TIMESTAMP)
+                .args(FunctionArg.arg("value"))
+                .template("CAST({0} AS TIMESTAMP)"));
         registry.register(new FunctionDefinition("to_timestamp", ReturnTypes.TIMESTAMP) {
             @Override
             public String render(SqlSelectRenderer renderer, Function function, int indent) {
-                return switch (function.getArguments().size()) {
-                    case 1 -> "CAST(" + renderer.toSql(function.getArguments().get(0), indent) + " AS TIMESTAMP)";
-                    case 2 -> "strptime(" + renderer.toSql(function.getArguments().get(0), indent)
-                            + ", " + translateKQLFormat(renderer.toSql(function.getArguments().get(1), indent)) + ")";
-                    case 3 -> "timezone(" + renderer.toSql(function.getArguments().get(2), indent)
-                            + ", strptime(" + renderer.toSql(function.getArguments().get(0), indent)
-                            + ", " + translateKQLFormat(renderer.toSql(function.getArguments().get(1), indent)) + ")::TIMESTAMPTZ)";
-                    case 6 -> "MAKE_TIMESTAMP("
-                            + function.getArguments().stream()
-                            .map(a -> renderer.toSql(a, indent))
-                            .collect(java.util.stream.Collectors.joining(", ")) + ")";
-                    case 7 -> "timezone(" + renderer.toSql(function.getArguments().get(6), indent)
-                            + ", MAKE_TIMESTAMP("
-                            + function.getArguments().subList(0, 6).stream()
-                            .map(a -> renderer.toSql(a, indent))
-                            .collect(java.util.stream.Collectors.joining(", ")) + ")::TIMESTAMPTZ)";
-                    default -> throw new IllegalArgumentException("to_timestamp requires 1, 2, 3, 6, or 7 arguments");
-                };
+                return "strptime(" + renderer.toSql(function.getArguments().get(0), indent)
+                        + ", " + translateKQLFormat(renderer.toSql(function.getArguments().get(1), indent)) + ")";
             }
-        });
+        }.args(FunctionArg.arg("value"), FunctionArg.arg("format")));
+        registry.register(new FunctionDefinition("to_timestamp", ReturnTypes.TIMESTAMP) {
+            @Override
+            public String render(SqlSelectRenderer renderer, Function function, int indent) {
+                return "timezone(" + renderer.toSql(function.getArguments().get(2), indent)
+                        + ", strptime(" + renderer.toSql(function.getArguments().get(0), indent)
+                        + ", " + translateKQLFormat(renderer.toSql(function.getArguments().get(1), indent)) + ")::TIMESTAMPTZ)";
+            }
+        }.args(FunctionArg.arg("value"), FunctionArg.arg("format"), FunctionArg.arg("tz")));
+        registry.register(new FunctionDefinition("to_timestamp", ReturnTypes.TIMESTAMP)
+                .args(FunctionArg.arg("year"), FunctionArg.arg("month"), FunctionArg.arg("day"),
+                      FunctionArg.arg("hour"), FunctionArg.arg("minute"), FunctionArg.arg("second"))
+                .template("MAKE_TIMESTAMP({0}, {1}, {2}, {3}, {4}, {5})"));
+        registry.register(new FunctionDefinition("to_timestamp", ReturnTypes.TIMESTAMP)
+                .args(FunctionArg.arg("year"), FunctionArg.arg("month"), FunctionArg.arg("day"),
+                      FunctionArg.arg("hour"), FunctionArg.arg("minute"), FunctionArg.arg("second"),
+                      FunctionArg.arg("tz"))
+                .template("timezone({6}, MAKE_TIMESTAMP({0}, {1}, {2}, {3}, {4}, {5})::TIMESTAMPTZ)"));
 
         // parse_date/time/timestamp(value, format) → strptime(value, format)::<TYPE>
         registry.register(new FunctionDefinition("parse_date", ReturnTypes.DATE) {
@@ -254,25 +257,15 @@ public class DuckdbBaseDialect implements SqlDialect {
         registry.register(new FunctionDefinition("to_interval", ReturnTypes.INTERVAL) {
             @Override
             public String render(SqlSelectRenderer renderer, Function function, int indent) {
-                return switch (function.getArguments().size()) {
-                    case 2 -> {
-                        String value = renderer.toSql(function.getArguments().get(0), indent);
-                        String unit  = renderer.toSql(function.getArguments().get(1), indent);
-                        yield toIntervalUnit(value, unit);
-                    }
-                    case 6 -> {
-                        var a = function.getArguments();
-                        yield "to_years("   + renderer.toSql(a.get(0), indent) + ")"
-                                + " + to_months("  + renderer.toSql(a.get(1), indent) + ")"
-                                + " + to_days("    + renderer.toSql(a.get(2), indent) + ")"
-                                + " + to_hours("   + renderer.toSql(a.get(3), indent) + ")"
-                                + " + to_minutes(" + renderer.toSql(a.get(4), indent) + ")"
-                                + " + to_seconds(" + renderer.toSql(a.get(5), indent) + ")";
-                    }
-                    default -> throw new IllegalArgumentException("to_interval requires 2 or 6 arguments");
-                };
+                String value = renderer.toSql(function.getArguments().get(0), indent);
+                String unit  = renderer.toSql(function.getArguments().get(1), indent);
+                return toIntervalUnit(value, unit);
             }
-        });
+        }.args(FunctionArg.arg("value"), FunctionArg.arg("unit")));
+        registry.register(new FunctionDefinition("to_interval", ReturnTypes.INTERVAL)
+                .args(FunctionArg.arg("years"), FunctionArg.arg("months"), FunctionArg.arg("days"),
+                      FunctionArg.arg("hours"), FunctionArg.arg("minutes"), FunctionArg.arg("seconds"))
+                .template("to_years({0}) + to_months({1}) + to_days({2}) + to_hours({3}) + to_minutes({4}) + to_seconds({5})"));
 
         return registry;
     }
@@ -303,11 +296,11 @@ public class DuckdbBaseDialect implements SqlDialect {
     @Override
     public String renderComparisonOperand(SqlSelectRenderer renderer, Expression expression,
             TypeDescriptor leftType, TypeDescriptor rightType, int indent) {
-        java.util.Optional<String> seconds = ai.koryki.iql.types.TimeEncodings.secondsFromMidnightLiteral(leftType, expression);
+        java.util.Optional<String> seconds = TimeEncodings.secondsFromMidnightLiteral(leftType, expression);
         if (seconds.isPresent()) {
             return seconds.get();
         }
-        java.util.Optional<String> reconciled = ai.koryki.iql.types.TimeEncodings.reconcile(renderer, expression, leftType, rightType, indent);
+        java.util.Optional<String> reconciled = TimeEncodings.reconcile(renderer, expression, leftType, rightType, indent);
         if (reconciled.isPresent()) {
             return reconciled.get();
         }

@@ -28,8 +28,8 @@ import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Relation;
 import ai.koryki.catalog.schema.Schema;
-import ai.koryki.catalog.schema.types.TypeDescriptor;
-import ai.koryki.catalog.schema.types.TypeDescriptorParser;
+import ai.koryki.catalog.types.TypeDescriptor;
+import ai.koryki.catalog.types.TypeDescriptorParser;
 
 import java.util.*;
 import java.util.function.Function;
@@ -121,7 +121,11 @@ public class LinkResolver {
 
     private String relation(String link) {
         Link l = model.getLink(link).orElseThrow(() -> new KorykiaiException("unknown link: " + link));
-        return l.getRelation() != null ? l.getRelation() : l.getName();
+        return getLink(l);
+    }
+
+    private static String getLink(Link l) {
+        return /*l.getAliasOf() != null ? l.getAliasOf() :*/ l.getName();
     }
 
     private static boolean isInverse(Link link) {
@@ -138,7 +142,7 @@ public class LinkResolver {
         if (link1 == null) {
             throw new RangeException(range, "cant resolve link " + link + " " + startTable + " " + endTable);
         }
-        String ll = link1.getRelation() != null ? link1.getRelation() : link1.getName();
+        String ll = getLink(link1);
         Link v = linkMap.get(ll);
         if (v == null) {
             throw new RangeException(range, "cant resolve link " + link + " " + startTable + " " + endTable);
@@ -304,11 +308,11 @@ public class LinkResolver {
             return dictionary;
         }));
         Map<String, String> toLink = from.getLinks().stream().collect(Collectors.toMap(Link::getName, (l) -> {
-            String base = l.getBase() != null ? l.getBase() : l.getName();
+            String canonical = l.getCanonical() != null ? l.getCanonical() : l.getName();
             return to.getLinks().stream()
-                    .filter(tl -> (tl.getBase() != null ? tl.getBase() : tl.getName()).equals(base))
+                    .filter(tl -> (tl.getCanonical() != null ? tl.getCanonical() : tl.getName()).equals(canonical))
                     .findFirst()
-                    .orElseThrow(() -> new RuntimeException("No value present " + base))
+                    .orElseThrow(() -> new RuntimeException("No value present " + canonical))
                     .getName();
 
         }));
@@ -328,8 +332,7 @@ public class LinkResolver {
      * <p>
      * A link is included when at least one of its canonical FK relations has the entity's
      * dialect table as {@code startTable} (forward link) or {@code endTable} (inverse link).
-     * Symmetric relations count in both directions. Link aliases ({@link Link#getRelation()})
-     * are resolved one level deep to find the canonical relations list.
+     * Symmetric relations count in both directions.
      *
      * @param entity model-level entity name (as used in KQL FIND clauses)
      * @return sorted list of link names valid for the given entity
@@ -439,7 +442,7 @@ public class LinkResolver {
      * matches it contribute; with {@code null}, every relation of the link does.
      */
     private void collectLinkTargets(Link link, String fromTable, Set<String> result) {
-        String canonical = link.getRelation() != null ? link.getRelation() : link.getName();
+        String canonical = getLink(link);
         Link canonicalLink = linkMap.get(canonical);
         if (canonicalLink == null || canonicalLink.getRelations() == null) return;
         Map<String, String> tableToEntity = model.getEntities().stream()
@@ -462,7 +465,7 @@ public class LinkResolver {
     }
 
     private boolean isLinkEndpoint(String dialectTable, Link link, boolean asSource) {
-        String canonical = link.getRelation() != null ? link.getRelation() : link.getName();
+        String canonical = getLink(link);
         Link canonicalLink = linkMap.get(canonical);
         if (canonicalLink == null) return false;
         List<String> rels = canonicalLink.getRelations();

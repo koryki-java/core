@@ -16,15 +16,13 @@
  */
 package ai.koryki.iql.functions.catalog;
 
-import ai.koryki.catalog.schema.types.CoreTypeFamily;
-import ai.koryki.catalog.schema.types.Families;
+import ai.koryki.catalog.types.CoreTypeFamily;
+import ai.koryki.catalog.types.Families;
 import ai.koryki.iql.functions.FunctionCategory;
 import ai.koryki.iql.functions.FunctionDefinition;
 import ai.koryki.iql.functions.FunctionRegistry;
 import ai.koryki.iql.functions.ReturnTypeInference;
 import ai.koryki.iql.functions.ReturnTypes;
-
-import java.util.List;
 
 import static ai.koryki.iql.functions.FunctionArg.arg;
 import static ai.koryki.iql.functions.FunctionArg.optionalArg;

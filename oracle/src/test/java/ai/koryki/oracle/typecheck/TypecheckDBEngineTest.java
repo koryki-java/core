@@ -10,7 +10,7 @@ import ai.koryki.kql.Engine;
 import ai.koryki.oracle.OracleUnavailable;
 import ai.koryki.oracle.iql.SqlQueryRenderer;
 import ai.koryki.oracle.northwind.NorthwindOracle;
-import ai.koryki.catalog.Util;
+import ai.koryki.catalog.CatalogLoader;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Schema;
 import org.junit.jupiter.api.BeforeAll;
@@ -38,8 +38,8 @@ public class TypecheckDBEngineTest extends BaseEngineTest<HeaderInfo> {
     @BeforeAll
     public void readNorthwindDB() throws IOException, SQLException {
         Locale locale = Locale.ENGLISH;
-        Schema db = Util.db(DB);
-        Model schema = Util.model(MODEL, locale);
+        Schema db = CatalogLoader.db(DB);
+        Model schema = CatalogLoader.model(MODEL, locale);
         LinkResolver resolver = new LinkResolver(locale, db, schema, true);
         engine = Engine.builder(new NorthwindOracle<ListWithSqlResult<HeaderInfo>>(), resolver,
                 new SqlQueryRenderer(java.time.ZoneId.of("UTC"))).format(new StableFormat(Locale.ROOT)).build();

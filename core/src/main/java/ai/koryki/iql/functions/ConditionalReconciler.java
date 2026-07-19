@@ -16,13 +16,13 @@
  */
 package ai.koryki.iql.functions;
 
-import ai.koryki.catalog.schema.types.CoreTypeFamily;
-import ai.koryki.catalog.schema.types.EncodingLattice;
-import ai.koryki.catalog.schema.types.Families;
-import ai.koryki.catalog.schema.types.NativeEncoding;
-import ai.koryki.catalog.schema.types.TypeDescriptor;
-import ai.koryki.catalog.schema.types.TypeEncoding;
-import ai.koryki.catalog.schema.types.TypeFamily;
+import ai.koryki.catalog.types.CoreTypeFamily;
+import ai.koryki.catalog.types.EncodingLattice;
+import ai.koryki.catalog.types.Families;
+import ai.koryki.catalog.types.NativeEncoding;
+import ai.koryki.catalog.types.TypeDescriptor;
+import ai.koryki.catalog.types.TypeEncoding;
+import ai.koryki.catalog.types.TypeFamily;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;

@@ -1,7 +1,7 @@
 package ai.koryki.iql.functions;
 
 import ai.koryki.antlr.KorykiaiException;
-import ai.koryki.catalog.schema.types.CoreTypeFamily;
+import ai.koryki.catalog.types.CoreTypeFamily;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -188,5 +188,37 @@ class FunctionRegistryTest {
         assertTrue(oneOrTwo.overlapsArity(two));
         assertFalse(oneOrTwo.overlapsArity(three));
         assertFalse(two.overlapsArity(three));
+    }
+
+    @Test
+    void overrideCarriesFixityAndParagraph() {
+        // Regression: copyForOverlay dropped fixity + paragraph, so overriding an operator
+        // reset it to PREFIX (fixity's default) and it fell out of comparison dispatch, and
+        // the extended doc paragraph was lost.
+        FunctionRegistry r = new FunctionRegistry();
+        r.register(new FunctionDefinition("LIKE", ReturnTypes.TEXT)
+                .args(arg("value"), arg("pattern"))
+                .fixity(Fixity.INFIX)
+                .paragraph("Case-sensitive pattern match."));
+
+        r.override("LIKE", "{0} ILIKE {1}");
+
+        FunctionDefinition overlay = r.lookup("LIKE");
+        assertEquals(Fixity.INFIX, overlay.getFixity(), "override must preserve operator fixity");
+        assertEquals("Case-sensitive pattern match.", overlay.getParagraph());
+        assertEquals("{0} ILIKE {1}", overlay.getTemplate().toString());
+    }
+
+    @Test
+    void unsupportedOverlayCarriesFixity() {
+        FunctionRegistry r = new FunctionRegistry();
+        r.register(new FunctionDefinition("BETWEEN", ReturnTypes.TEXT)
+                .args(arg("value"), arg("low"), arg("high"))
+                .fixity(Fixity.RANGE));
+
+        r.unsupported("BETWEEN");
+
+        assertEquals(Fixity.RANGE, r.lookup("BETWEEN").getFixity());
+        assertTrue(r.lookup("BETWEEN").isUnsupported());
     }
 }

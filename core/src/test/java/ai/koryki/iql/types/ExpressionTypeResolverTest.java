@@ -1,8 +1,9 @@
 package ai.koryki.iql.types;
 
-import ai.koryki.catalog.schema.types.CoreTypeFamily;
-import ai.koryki.catalog.schema.types.TypeDescriptor;
+import ai.koryki.catalog.types.CoreTypeFamily;
+import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.iql.query.Expression;
+import ai.koryki.iql.typing.ExpressionTypeResolver;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;

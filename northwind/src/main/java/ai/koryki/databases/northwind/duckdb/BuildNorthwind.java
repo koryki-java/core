@@ -17,6 +17,7 @@ public class BuildNorthwind {
 
             Script.executeScript(connection, "/ai/koryki/databases/duckdb/northwind/db/tables.sql");
             Script.executeScript(connection, "/ai/koryki/databases/duckdb/northwind/db/data_categories.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/duckdb/northwind/db/data_countries.sql");
             Script.executeScript(connection, "/ai/koryki/databases/duckdb/northwind/db/data_customers.sql");
             Script.executeScript(connection, "/ai/koryki/databases/duckdb/northwind/db/data_employees.sql");
             Script.executeScript(connection, "/ai/koryki/databases/duckdb/northwind/db/data_employees_territories.sql");

@@ -20,18 +20,19 @@ import ai.koryki.antlr.Range;
 
 public class Violation {
 
-    private String type;
+    private final String category;
     private String message;
     private Object iql;
     private Range range;
     private Range related;
 
-    public Violation(String type, Object iql, Range range, String message) {
-        this(type, iql, range, message, null);
+    public Violation(String category, Object iql, Range range, String message) {
+        this(category, iql, range, message, null);
     }
 
 
-    public Violation(String type, Object iql, Range range, String message, Range related) {
+    public Violation(String category, Object iql, Range range, String message, Range related) {
+        this.category = category;
         this.iql = iql;
         this.range = range;
         this.related = related;
@@ -72,10 +73,10 @@ public class Violation {
 
     @Override
     public String toString() {
-        return type + ": " + iql.getClass().getSimpleName() + " [" + range + "]: " + getMessage() + (related != null ? " related [" + related + "]" : "");
+        return category + ": " + iql.getClass().getSimpleName() + " [" + range + "]: " + getMessage() + (related != null ? " related [" + related + "]" : "");
     }
 
-    public String getType() {
-        return type;
+    public String getCategory() {
+        return category;
     }
 }

@@ -1,0 +1,5 @@
+// monthly revenue over 2023
+
+FIND orders o, o order_details od
+FILTER o.order_date BETWEEN "2023-01-01" AND "2023-12-31"
+FETCH month_begin(o.order_date) month ASC 1, sum(od.unit_price * od.quantity * (1 - od.discount)) revenue

@@ -1,10 +1,10 @@
 package ai.koryki.iql.functions;
 
-import ai.koryki.catalog.schema.types.CoreTypeFamily;
-import ai.koryki.catalog.schema.types.EncodingLattice;
-import ai.koryki.catalog.schema.types.EpochTypeEncoding;
-import ai.koryki.catalog.schema.types.NativeEncoding;
-import ai.koryki.catalog.schema.types.TypeDescriptor;
+import ai.koryki.catalog.types.CoreTypeFamily;
+import ai.koryki.catalog.types.EncodingLattice;
+import ai.koryki.catalog.types.EpochTypeEncoding;
+import ai.koryki.catalog.types.NativeEncoding;
+import ai.koryki.catalog.types.TypeDescriptor;
 import org.junit.jupiter.api.Test;
 
 import java.time.temporal.ChronoUnit;

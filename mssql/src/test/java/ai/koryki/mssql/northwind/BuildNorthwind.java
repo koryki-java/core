@@ -12,28 +12,30 @@ public class BuildNorthwind {
 
         try (Connection connection = NorthwindMssql.connection()) {
             connection.setAutoCommit(false);
-            Script.executeScript(connection, "/ai/koryki/mssql/databases/northwind/drop.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/mssql/drop.sql");
 
-            Script.executeScript(connection, "/ai/koryki/mssql/databases/northwind/tables.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/mssql/tables.sql");
 
-            Script.executeScript(connection, "/ai/koryki/mssql/databases/northwind/data_categories.sql");
-            Script.executeScript(connection, "/ai/koryki/mssql/databases/northwind/data_customers.sql");
-            Script.executeScript(connection, "/ai/koryki/mssql/databases/northwind/data_employees.sql");
-            Script.executeScript(connection, "/ai/koryki/mssql/databases/northwind/data_employees_territories.sql");
-            Script.executeScript(connection, "/ai/koryki/mssql/databases/northwind/data_order_details.sql");
-            Script.executeScript(connection, "/ai/koryki/mssql/databases/northwind/data_orders.sql");
-            Script.executeScript(connection, "/ai/koryki/mssql/databases/northwind/data_products.sql");
-            Script.executeScript(connection, "/ai/koryki/mssql/databases/northwind/data_region.sql");
-            Script.executeScript(connection, "/ai/koryki/mssql/databases/northwind/data_shippers.sql");
-            Script.executeScript(connection, "/ai/koryki/mssql/databases/northwind/data_suppliers.sql");
-            Script.executeScript(connection, "/ai/koryki/mssql/databases/northwind/data_territories.sql");
-            Script.executeScript(connection, "/ai/koryki/mssql/databases/northwind/data_us_states.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/mssql/data_categories.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/mssql/data_customers.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/mssql/data_employees.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/mssql/data_employees_territories.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/mssql/data_order_details.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/mssql/data_orders.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/mssql/data_products.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/mssql/data_region.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/mssql/data_shippers.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/mssql/data_suppliers.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/mssql/data_territories.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/mssql/data_us_states.sql");
+            // self-contained (CREATE TABLE + data)
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/mssql/data_countries.sql");
 
-           Script.executeScript(connection, "/ai/koryki/mssql/databases/northwind/data_check_temporal.sql");
-           Script.executeScript(connection, "/ai/koryki/mssql/databases/northwind/data_check_type.sql");
+           Script.executeScript(connection, "/ai/koryki/databases/northwind/mssql/data_check_temporal.sql");
+           Script.executeScript(connection, "/ai/koryki/databases/northwind/mssql/data_check_type.sql");
 
             connection.commit();
-            Script.executeScript(connection, "/ai/koryki/mssql/databases/northwind/constraints.sql");
+            Script.executeScript(connection, "/ai/koryki/databases/northwind/mssql/constraints.sql");
             connection.commit();
         }
     }

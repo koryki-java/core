@@ -1,0 +1,12 @@
+WITH monthly_revenue AS (
+    FIND order_details od, od orders o, od products p, p categories c
+    FILTER o.order_date BETWEEN "2023-01-01" AND "2023-12-31"
+    FETCH c.category_name, month(o.order_date) mon, sum(od.unit_price * od.quantity * (1 - od.discount)) revenue
+)
+FIND monthly_revenue mr
+FETCH
+mr.category_name ASC 2
+, mr.mon ASC 1
+, mr.revenue
+, lag(mr.revenue) OVER (PARTITION mr.category_name ORDER mr.mon) prev_revenue
+, mr.revenue - lag(mr.revenue) OVER (PARTITION mr.category_name ORDER mr.mon) revenue_change

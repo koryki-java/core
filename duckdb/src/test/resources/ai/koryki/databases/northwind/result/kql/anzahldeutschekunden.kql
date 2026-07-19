@@ -1,0 +1,9 @@
+// count customers from Germanywith their company names and contact information
+
+WITH deutschekunden AS (
+FIND kunden c
+FILTER c.land = 'Germany'
+FETCH c.firma name
+)
+FIND deutschekunden g
+FETCH count(g)

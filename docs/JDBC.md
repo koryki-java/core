@@ -52,7 +52,6 @@ Database.execute(sql, Supplier<C>)       ←     primary entry point
 | `ListResult<C>` | class | Accumulates all rows in memory; renders to CSV string on demand. |
 | `CSVFileResult<C>` | class | Streams each row immediately to a CSV file as it arrives. |
 | `XMLFileResult<C>` | class | Streams each row immediately to an XML file (`<Result><Row><Cell>`). |
-| `SQLType` | enum | Maps `java.sql.Types` integer codes to named constants; package-private. |
 
 
 

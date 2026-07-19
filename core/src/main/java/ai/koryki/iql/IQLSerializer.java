@@ -19,8 +19,6 @@ package ai.koryki.iql;
 import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.iql.query.*;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDateTime;
@@ -131,9 +129,6 @@ public class IQLSerializer {
         if (join.isOptional()) {
             b.append("OPTIONAL ");
         }
-//        if (join.isInvers()) {
-//            b.append("INVERS ");
-//        }
         b.append(join.getCrit());
 
         if (join.getSource() != null) {
@@ -309,11 +304,11 @@ public class IQLSerializer {
             if (!expression.getRight().isEmpty()) {
                 b.append(" ");
             }
-            if (SqlQueryRenderer.isSet(expression.getOp())) {
+            if (SqlSelectRenderer.isSet(expression.getOp())) {
                 b.append("(");
                 b.append(toString(expression.getRight(), indent));
                 b.append(")");
-            } else if (SqlQueryRenderer.isInterval(expression.getOp())) {
+            } else if (SqlSelectRenderer.isInterval(expression.getOp())) {
                 b.append(toString(expression.getRight().get(0), expression.getRight().get(1), indent));
             } else {
                 b.append(toString(expression.getRight(), indent));
@@ -338,13 +333,7 @@ public class IQLSerializer {
         } else if (expression.getText() != null) {
             return expression.getText();
         } else if (expression.getNumber() != null) {
-            if (expression.getNumber() instanceof BigInteger bigInteger) {
-                return bigInteger.toString();
-            } else if (expression.getNumber() instanceof BigDecimal bigDecimal) {
-                return bigDecimal.stripTrailingZeros().toPlainString();
-            } else {
-                throw new KorykiaiException("unsupported number type: " + expression.getNumber().getClass());
-            }
+            return Literals.number(expression.getNumber());
         } else if (expression.getLocalDateTime() != null) {
             LocalDateTime dt = expression.getLocalDateTime();
             DateTimeFormatter fmt = dt.getNano() != 0 ? TIMESTAMP_FMT_MS : TIMESTAMP_FMT;
@@ -447,10 +436,6 @@ public class IQLSerializer {
         StringBuilder b = new StringBuilder();
 
         b.append("EXISTS (");
-
-//        if (exists.isInvers()) {
-//            b.append("INVERS ");
-//        }
 
         b.append(exists.getParent() + " " + exists.getCrit() + toString(exists.getStart(), indent, true));
         b.append(toJoin(exists.getStart(), exists.getJoin(), indent + 1));

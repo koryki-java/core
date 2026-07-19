@@ -17,18 +17,13 @@
 package ai.koryki.jdbc;
 
 import ai.koryki.antlr.KorykiaiException;
-import ai.koryki.catalog.schema.types.CoreTypeEncoding;
-import ai.koryki.catalog.schema.types.IntervalTypeEncoding;
-import ai.koryki.catalog.schema.types.EpochTypeEncoding;
-import ai.koryki.catalog.schema.types.TypeDescriptor;
-import ai.koryki.catalog.schema.types.TypeEncoding;
+import ai.koryki.catalog.types.CoreTypeEncoding;
+import ai.koryki.catalog.types.TypeDescriptor;
 
 import java.sql.*;
 import java.time.*;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Consumer;
 
 public class JdbcDatabase<C extends ResultProcessor<?>> implements Database<C> {

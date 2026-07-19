@@ -21,6 +21,8 @@ import ai.koryki.iql.query.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Rewrites {@code BETWEEN} with a DATE or TIMESTAMP upper literal to a half-open interval.
@@ -62,8 +64,8 @@ public class DateBetweenRewriter {
 
     private static void rewriteSelect(Select select, List<Runnable> restores) {
         if (select == null) return;
-        setFilter(select, rewriteLogical(select.getFilter(), restores), restores);
-        setHaving(select, rewriteLogical(select.getHaving(), restores), restores);
+        rewriteSlot(select::getFilter, select::setFilter, restores);
+        rewriteSlot(select::getHaving, select::setHaving, restores);
         rewriteSource(select.getStart(), restores);
         select.getJoin().forEach(j -> rewriteJoin(j, restores));
     }
@@ -76,48 +78,29 @@ public class DateBetweenRewriter {
 
     private static void rewriteSource(Source source, List<Runnable> restores) {
         if (source == null) return;
-        setFilter(source, rewriteLogical(source.getFilter(), restores), restores);
-        setHaving(source, rewriteLogical(source.getHaving(), restores), restores);
+        rewriteSlot(source::getFilter, source::setFilter, restores);
+        rewriteSlot(source::getHaving, source::setHaving, restores);
     }
 
     private static void rewriteExists(Exists exists, List<Runnable> restores) {
         if (exists == null) return;
-        setFilter(exists, rewriteLogical(exists.getFilter(), restores), restores);
-        setHaving(exists, rewriteLogical(exists.getHaving(), restores), restores);
+        rewriteSlot(exists::getFilter, exists::setFilter, restores);
+        rewriteSlot(exists::getHaving, exists::setHaving, restores);
         rewriteSource(exists.getStart(), restores);
         exists.getJoin().forEach(j -> rewriteJoin(j, restores));
     }
 
-    // --- filter/having setters with restore tracking ---
-
-    private static void setFilter(Select s, LogicalExpression newVal, List<Runnable> restores) {
-        LogicalExpression old = s.getFilter();
-        if (newVal != old) { s.setFilter(newVal); restores.add(() -> s.setFilter(old)); }
-    }
-
-    private static void setHaving(Select s, LogicalExpression newVal, List<Runnable> restores) {
-        LogicalExpression old = s.getHaving();
-        if (newVal != old) { s.setHaving(newVal); restores.add(() -> s.setHaving(old)); }
-    }
-
-    private static void setFilter(Source s, LogicalExpression newVal, List<Runnable> restores) {
-        LogicalExpression old = s.getFilter();
-        if (newVal != old) { s.setFilter(newVal); restores.add(() -> s.setFilter(old)); }
-    }
-
-    private static void setHaving(Source s, LogicalExpression newVal, List<Runnable> restores) {
-        LogicalExpression old = s.getHaving();
-        if (newVal != old) { s.setHaving(newVal); restores.add(() -> s.setHaving(old)); }
-    }
-
-    private static void setFilter(Exists e, LogicalExpression newVal, List<Runnable> restores) {
-        LogicalExpression old = e.getFilter();
-        if (newVal != old) { e.setFilter(newVal); restores.add(() -> e.setFilter(old)); }
-    }
-
-    private static void setHaving(Exists e, LogicalExpression newVal, List<Runnable> restores) {
-        LogicalExpression old = e.getHaving();
-        if (newVal != old) { e.setHaving(newVal); restores.add(() -> e.setHaving(old)); }
+    /**
+     * Rewrites one filter/having slot in place, recording an undo. The slot is addressed
+     * functionally — {@code get}/{@code set} method references — so Select, Source and Exists
+     * share this without a common type (the {@code query} package stays pure data).
+     */
+    private static void rewriteSlot(Supplier<LogicalExpression> get,
+                                    Consumer<LogicalExpression> set,
+                                    List<Runnable> restores) {
+        LogicalExpression old = get.get();
+        LogicalExpression rewritten = rewriteLogical(old, restores);
+        if (rewritten != old) { set.accept(rewritten); restores.add(() -> set.accept(old)); }
     }
 
     // Returns a (possibly new) LogicalExpression with BETWEEN rewrites applied.

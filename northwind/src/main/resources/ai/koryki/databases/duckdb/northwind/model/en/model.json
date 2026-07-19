@@ -516,6 +516,42 @@
       "label" : "Name",
       "description" : null
     } ]
+  }, {
+    "name" : "countries",
+    "label" : "Country",
+    "comment" : "Countries referenced by customer, supplier, employee and order shipping addresses, with geographic coordinates and outline for map visualisations.",
+    "description" : null,
+    "attributes" : [ {
+      "name" : "country_name",
+      "label" : "Name",
+      "comment" : "The country name as used in the address columns (e.g. 'Germany', 'UK', 'USA').",
+      "description" : null
+    }, {
+      "name" : "iso_code",
+      "label" : "ISO Code",
+      "comment" : "The ISO 3166-1 alpha-2 code of the country.",
+      "description" : null
+    }, {
+      "name" : "continent",
+      "label" : "Continent",
+      "comment" : "The continent the country belongs to.",
+      "description" : null
+    }, {
+      "name" : "latitude",
+      "label" : "Latitude",
+      "comment" : "Latitude of the country label point (centroid), in degrees.",
+      "description" : null
+    }, {
+      "name" : "longitude",
+      "label" : "Longitude",
+      "comment" : "Longitude of the country label point (centroid), in degrees.",
+      "description" : null
+    }, {
+      "name" : "geometry",
+      "label" : "Geometry",
+      "comment" : "Simplified country outline as a GeoJSON (Multi)Polygon, for choropleth maps.",
+      "description" : null
+    } ]
   } ],
   "links" : [ {
     "name" : "same_product",
@@ -620,5 +656,10 @@
     "comment" : "both tables refer to the same customer data record",
     "description" : null,
     "relations" : [ "fk_customer_customer_demo_customers", "fk_orders_customers", "pk_customers" ]
+  }, {
+    "name" : "same_country",
+    "comment" : "both tables refer to the same country data record; address country and order ship-to country reference the countries lookup by name",
+    "description" : null,
+    "relations" : [ "fk_customers_countries", "fk_suppliers_countries", "fk_employees_countries", "fk_orders_countries", "pk_countries" ]
   } ]
 }

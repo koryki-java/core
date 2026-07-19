@@ -1,8 +1,8 @@
 package ai.koryki.iql.functions;
 
-import ai.koryki.catalog.schema.types.CoreTypeFamily;
-import ai.koryki.catalog.schema.types.TypeDescriptor;
-import ai.koryki.catalog.schema.types.TypeNames;
+import ai.koryki.catalog.types.CoreTypeFamily;
+import ai.koryki.catalog.types.TypeDescriptor;
+import ai.koryki.catalog.types.TypeNames;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
 import org.junit.jupiter.api.Test;

@@ -109,6 +109,107 @@ Each FETCH-expression can have an optional header and optional ASC/DESC for orde
 
     FIND employees e FETCH e.last_name ASC 1
 
+## Charts (VISUALISE)
+
+The **FETCH**-Clause may be followed by an optional **VISUALISE**-Clause that renders the result as a
+chart. Not every query needs a chart — add one only when a visualisation is meaningful (comparisons,
+distributions, time series, shares). The **VISUALISE**-Clause does not change the returned data.
+
+**VISUALISE** refers to the column headers (aliases) from the **FETCH**-Clause, not to the raw columns.
+
+    FIND customers c
+    FETCH c.country country, count(c) amount
+    VISUALISE country AS x, amount AS y
+    DRAW bar
+
+### Mapping and channels
+
+**VISUALISE** is followed by a comma-separated list of mappings of the form `column AS channel`.
+Available channels:
+
+- `x`, `y` — position (horizontal / vertical axis)
+- `color`, `fill` — colour (to group)
+- `size` — size
+- `shape` — point shape
+- `opacity` — transparency
+- `text` — in-chart label
+- `tooltip` — hover info
+- `theta`, `radius` — angle and radius (pie / radial chart)
+
+Every mapped column must be a result column from the **FETCH**-Clause.
+
+### DRAW — chart type
+
+**DRAW** sets the chart type. Multiple **DRAW** stack as layers.
+
+Basic types:
+
+- `point` — scatter
+- `line` — line chart (time series)
+- `area` — area chart
+- `bar` — bar chart
+- `text` — text marks
+- `tile` — raster / heatmap cells
+
+Statistical types — computed in the database:
+
+- `histogram` — value distribution (map `x` only)
+- `boxplot` — box-and-whisker (quartiles) per group
+- `smooth` — trend line (linear regression), usually together with `point`
+- `density` — density curve
+- `violin` — violin plot
+
+Two layers (points plus a trend line):
+
+    FIND order_details d
+    FETCH d.unit_price price, d.quantity amount
+    VISUALISE price AS x, amount AS y
+    DRAW point
+    DRAW smooth
+
+### Aggregate in the chart
+
+A chart can aggregate in the database even when the query itself does not group:
+
+    FIND customers c FETCH c.country country
+    VISUALISE country AS x
+    DRAW bar SETTING aggregate => 'count'
+
+Values for `aggregate`: `'count'`, `'sum'`, `'avg'`, `'min'`, `'max'` (all but `'count'` aggregate the `y` column).
+
+### Labels (LABEL)
+
+Set the title and axis labels with **LABEL** (`title` for the chart title, otherwise the channel name):
+
+    VISUALISE month AS x, revenue AS y
+    DRAW line
+    LABEL title => 'Revenue per month', x => 'Month', y => 'Revenue'
+
+### Small multiples (FACET)
+
+Use **FACET** to draw one sub-chart per value of a column:
+
+    VISUALISE month AS x, revenue AS y
+    DRAW line
+    FACET category_name
+
+### Scales (SCALE)
+
+Use **SCALE** to adjust an axis, e.g. logarithmic:
+
+    VISUALISE product AS x, revenue AS y
+    DRAW bar
+    SCALE y VIA log
+
+### Full example
+
+    FIND orders o, o order_details od, od products p, p categories c
+    FETCH c.category_name category, month(o.order_date) month,
+        sum(od.unit_price * od.quantity) revenue
+    VISUALISE month AS x, revenue AS y, category AS color
+    DRAW line
+    LABEL title => 'Revenue per category and month'
+
 ## Nested Queries
 
 Nested queries are valid in expression:

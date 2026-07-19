@@ -242,6 +242,14 @@ ALTER TABLE ONLY employees
 
 
 --
+-- Name: pk_countries; Type: Constraint; Schema: -; Owner: -
+--
+
+ALTER TABLE ONLY countries
+    ADD CONSTRAINT pk_countries PRIMARY KEY (country_name);
+
+
+--
 -- PostgreSQL database dump complete
 --
 

@@ -17,13 +17,13 @@
 package ai.koryki.iql.validate;
 
 import ai.koryki.antlr.Range;
-import ai.koryki.catalog.schema.types.CoreTypeEncoding;
-import ai.koryki.catalog.schema.types.CoreTypeFamily;
-import ai.koryki.catalog.schema.types.IntervalStringEncoding;
-import ai.koryki.catalog.schema.types.IntervalTypeEncoding;
-import ai.koryki.catalog.schema.types.TypeDescriptor;
-import ai.koryki.catalog.schema.types.TypeEncoding;
-import ai.koryki.catalog.schema.types.TypeFamily;
+import ai.koryki.catalog.types.CoreTypeEncoding;
+import ai.koryki.catalog.types.CoreTypeFamily;
+import ai.koryki.catalog.types.IntervalStringEncoding;
+import ai.koryki.catalog.types.IntervalTypeEncoding;
+import ai.koryki.catalog.types.TypeDescriptor;
+import ai.koryki.catalog.types.TypeEncoding;
+import ai.koryki.catalog.types.TypeFamily;
 import ai.koryki.iql.IQLVisibilityContext;
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.SqlQueryRenderer;
@@ -39,7 +39,7 @@ import ai.koryki.iql.functions.FunctionSignature;
 import ai.koryki.iql.functions.MathOp;
 import ai.koryki.iql.functions.StandardFunctions;
 import ai.koryki.iql.query.*;
-import ai.koryki.iql.types.ExpressionTypeResolver;
+import ai.koryki.iql.typing.ExpressionTypeResolver;
 import org.antlr.v4.runtime.RuleContext;
 
 import java.util.ArrayDeque;

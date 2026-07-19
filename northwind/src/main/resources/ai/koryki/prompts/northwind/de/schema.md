@@ -169,6 +169,20 @@ Speichert die Hersteller für Produkte
 Speichert die Gebiete.
 - gebiet_beschreibung: Description of the territory.
 
+## laender
+Referenztabelle der Länder, auf die Kunden-, Lieferanten-, Mitarbeiter- und Lieferadressen verweisen, mit geographischen Koordinaten und Umriss für Kartenvisualisierungen.
+- land_name: Der Ländername, wie er in den Adressspalten verwendet wird (z. B. 'Germany', 'UK', 'USA').
+
+- iso_code: Der ISO-3166-1-alpha-2-Code des Landes.
+
+- kontinent: Der Kontinent, zu dem das Land gehört.
+
+- breitengrad: Breitengrad des Beschriftungspunkts (Zentroid) des Landes, in Grad.
+
+- laengengrad: Längengrad des Beschriftungspunkts (Zentroid) des Landes, in Grad.
+
+- geometrie: Vereinfachter Landesumriss als GeoJSON-(Multi)Polygon für Choroplethenkarten (DRAW spatial).
+
 ## Verknüpfungen / Links
 ## gleiches_produkt
 
@@ -345,5 +359,17 @@ Beide Tabellen verweisen auf den gleichen Datensatz für den Kunden
 - kunde_segment - kunden
 - bestellungen - kunden
 - kunden - kunden
+
+
+## gleiches_land
+
+Beide Datensätze verweisen auf das gleiche Land; Adressland und Lieferland verweisen namentlich auf die Länder-Referenztabelle
+
+### Verknüpfungen / Links:
+- kunden - laender
+- hersteller - laender
+- mitarbeiter - laender
+- bestellungen - laender
+- laender - laender
 
 

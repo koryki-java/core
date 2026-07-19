@@ -1,10 +1,9 @@
 package ai.koryki.jdbc;
 
-import ai.koryki.catalog.schema.types.*;
+import ai.koryki.catalog.types.*;
 
 import java.time.*;
 import java.time.temporal.ChronoUnit;
-import java.util.Objects;
 
 public class CoreDecoder implements TypeDecoder {
 

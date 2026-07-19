@@ -23,7 +23,7 @@ import ai.koryki.jdbc.Database;
 import ai.koryki.jdbc.ResultProcessor;
 import ai.koryki.kql.Engine;
 import ai.koryki.kql.HeaderInfo;
-import ai.koryki.catalog.Util;
+import ai.koryki.catalog.CatalogLoader;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Schema;
 
@@ -66,8 +66,8 @@ public class TypecheckService<I extends ColumnInfo, P extends ResultProcessor<I>
 
     public static LinkResolver resolver(java.util.Locale locale) {
 
-        Schema db = Util.db(DB);
-        Model schema = Util.model(ROOT, locale);
+        Schema db = CatalogLoader.db(DB);
+        Model schema = CatalogLoader.model(ROOT, locale);
         LinkResolver resolver = new LinkResolver(locale, db, schema, true);
         return resolver;
     }

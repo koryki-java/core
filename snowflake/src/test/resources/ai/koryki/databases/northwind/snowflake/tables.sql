@@ -72,6 +72,8 @@ CREATE TABLE employees (
     title_of_courtesy character varying(25),
     birth_date date,
     hire_date date,
+    working_hour_from time,
+    working_hour_to time,
     address character varying(60),
     city character varying(15),
     region character varying(15),
@@ -122,6 +124,7 @@ CREATE TABLE orders (
     order_date date,
     required_date date,
     shipped_date date,
+    delivered_date timestamp_ntz,
     ship_via smallint,
     freight DECIMAL(10,3),
     ship_name character varying(40),
@@ -213,4 +216,18 @@ CREATE TABLE us_states (
     state_name character varying(100),
     state_abbr character varying(2),
     state_region character varying(50)
+);
+
+
+--
+-- Name: countries; Type: TABLE; Schema: public; Owner: -; Tablespace:
+--
+
+CREATE TABLE countries (
+    country_name character varying(15) NOT NULL,
+    iso_code character varying(2) NOT NULL,
+    continent character varying(15) NOT NULL,
+    latitude numeric(8,4) NOT NULL,
+    longitude numeric(9,4) NOT NULL,
+    geometry VARCHAR(4000)
 );

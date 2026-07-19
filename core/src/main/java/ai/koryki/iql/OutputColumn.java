@@ -16,7 +16,7 @@
  */
 package ai.koryki.iql;
 
-import ai.koryki.catalog.schema.types.TypeDescriptor;
+import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.iql.query.Out;
 
 /**

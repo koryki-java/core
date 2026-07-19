@@ -1,0 +1,4 @@
+// count customers from Germanywith their company names and contact information
+
+FIND customers c
+FETCH count(c)

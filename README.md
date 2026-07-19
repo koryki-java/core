@@ -10,6 +10,9 @@
 ![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat&logo=sqlite&logoColor=white)
 ![Trino](https://img.shields.io/badge/Trino-DD00A1?style=flat&logo=trino&logoColor=white)
 
+VISUALISE-clause is [**inspired by ggsql**](https://github.com/posit-dev/ggsql "(https://github.com/posit-dev/ggsql)")
+
+
 # Verifiable AI-Assisted Semantic Querying for Relational Databases
 
 The [**koryki.ai**](https://koryki.ai "(koryki.ai platform)") platform enables human-readable and supervised interaction with relational databases.
@@ -71,3 +74,9 @@ A demo application is available at: [demo.koryki.ai](https://demo.koryki.ai "(de
 
 Any kind of feedback is welcome: info@koryki.ai
 
+## Acknowledgements
+
+The VISUALISE language in Koryki is inspired by the excellent [`ggsql`](.https://github.com/posit-dev/ggsql "ggsql") project from Posit. 
+ggsql demonstrates how the principles of Leland Wilkinson's Grammar of Graphics can be expressed in a SQL-oriented syntax. 
+Koryki integrates a compatible visualization grammar into its semantic query language while combining it with schema-aware 
+querying.

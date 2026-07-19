@@ -30,6 +30,11 @@ public class Column {
     private Boolean nullable;
     private int pkPos;
 
+    // optional physical-quantity semantics carried from db.json (used by the
+    // result-analysis layer); null unless the schema declares them.
+    private String unit;
+    private String quantity;
+
     public Column() {
 
     }
@@ -50,6 +55,22 @@ public class Column {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getUnit() {
+        return unit;
+    }
+
+    public void setUnit(String unit) {
+        this.unit = unit;
+    }
+
+    public String getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(String quantity) {
+        this.quantity = quantity;
     }
 
     public String getComment() {

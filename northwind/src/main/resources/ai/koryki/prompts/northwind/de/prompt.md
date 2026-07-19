@@ -113,6 +113,108 @@ Jeder FETCH-Ausdruck kann einen optionalen Spaltennamen und ASC/DESC für die So
 
     FIND mitarbeiter m FETCH m.nachname ASC 1
 
+## Diagramme (VISUALISE)
+
+Auf den **FETCH**-Abschnitt kann optional ein **VISUALISE**-Abschnitt folgen, der das Ergebnis als
+Diagramm darstellt. Nicht jede Abfrage braucht ein Diagramm — nur ergänzen, wenn eine grafische
+Darstellung sinnvoll ist (Vergleiche, Verteilungen, Zeitreihen, Anteile). Der **VISUALISE**-Abschnitt
+verändert die zurückgegebenen Daten nicht.
+
+**VISUALISE** verweist auf die Spaltennamen (Aliase) aus dem **FETCH**-Abschnitt, nicht auf die Rohspalten.
+
+    FIND kunden k
+    FETCH k.land land, count(k) anzahl
+    VISUALISE land AS x, anzahl AS y
+    DRAW bar
+
+### Zuordnung und Kanäle
+
+Auf **VISUALISE** folgt eine kommagetrennte Liste von Zuordnungen der Form `spalte AS kanal`.
+Verfügbare Kanäle:
+
+- `x`, `y` — Position (waagerechte / senkrechte Achse)
+- `color`, `fill` — Farbe (zum Gruppieren)
+- `size` — Größe
+- `shape` — Form der Punkte
+- `opacity` — Transparenz
+- `text` — Beschriftung im Diagramm
+- `tooltip` — Kurzinfo beim Überfahren
+- `theta`, `radius` — Winkel und Radius (Torten-/Kreisdiagramm)
+
+Jede zugeordnete Spalte muss eine Ergebnisspalte aus dem **FETCH**-Abschnitt sein.
+
+### DRAW — Diagrammtyp
+
+**DRAW** legt den Diagrammtyp fest. Mehrere **DRAW** werden zu Schichten übereinandergelegt.
+
+Einfache Typen:
+
+- `point` — Streudiagramm
+- `line` — Liniendiagramm (Zeitreihen)
+- `area` — Flächendiagramm
+- `bar` — Balkendiagramm
+- `text` — Textmarken
+- `tile` — Rasterfläche (Heatmap)
+
+Statistische Typen — die Berechnung erfolgt in der Datenbank:
+
+- `histogram` — Häufigkeitsverteilung eines Werts (nur `x` zuordnen)
+- `boxplot` — Box-Plot (Quartile) je Gruppe
+- `smooth` — Trendlinie (lineare Regression), meist zusammen mit `point`
+- `density` — Dichtekurve
+- `violin` — Violinendiagramm
+
+Zwei Schichten (Punkte plus Trendlinie):
+
+    FIND bestellposition bp
+    FETCH bp.preis_je_einheit preis, bp.menge menge
+    VISUALISE preis AS x, menge AS y
+    DRAW point
+    DRAW smooth
+
+### Aggregation im Diagramm
+
+Ein Diagramm kann in der Datenbank aggregieren, auch wenn die Abfrage selbst nicht gruppiert:
+
+    FIND kunden k FETCH k.land land
+    VISUALISE land AS x
+    DRAW bar SETTING aggregate => 'count'
+
+Werte für `aggregate`: `'count'`, `'sum'`, `'avg'`, `'min'`, `'max'` (außer `'count'` wird die `y`-Spalte aggregiert).
+
+### Beschriftungen (LABEL)
+
+Titel und Achsenbeschriftungen mit **LABEL** setzen (`title` für den Diagrammtitel, sonst der Kanalname):
+
+    VISUALISE monat AS x, umsatz AS y
+    DRAW line
+    LABEL title => 'Umsatz je Monat', x => 'Monat', y => 'Umsatz'
+
+### Kleine Vielfache (FACET)
+
+Mit **FACET** je Ausprägung einer Spalte ein eigenes Teildiagramm erzeugen:
+
+    VISUALISE monat AS x, umsatz AS y
+    DRAW line
+    FACET kategorie_name
+
+### Achsen anpassen (SCALE)
+
+Mit **SCALE** eine Achse anpassen, z. B. logarithmisch:
+
+    VISUALISE produkt AS x, umsatz AS y
+    DRAW bar
+    SCALE y VIA log
+
+### Vollständiges Beispiel
+
+    FIND bestellungen b, b bestellposition bp, bp produkte p, p kategorien k
+    FETCH k.kategorie_name kategorie, month(b.bestelldatum) monat,
+        sum(bp.preis_je_einheit * bp.menge) umsatz
+    VISUALISE monat AS x, umsatz AS y, kategorie AS color
+    DRAW line
+    LABEL title => 'Umsatz je Kategorie und Monat'
+
 ## Verschachtelte Abfragen
 
 Verschachtelte Abfragen sind in Ausdrücken gültig:

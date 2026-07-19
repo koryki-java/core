@@ -16,8 +16,8 @@
  */
 package ai.koryki.iql.functions.catalog;
 
-import ai.koryki.catalog.schema.types.CoreTypeFamily;
-import ai.koryki.catalog.schema.types.Families;
+import ai.koryki.catalog.types.CoreTypeFamily;
+import ai.koryki.catalog.types.Families;
 import ai.koryki.iql.functions.Fixity;
 import ai.koryki.iql.functions.FunctionCategory;
 import ai.koryki.iql.functions.FunctionDefinition;
