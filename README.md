@@ -83,4 +83,4 @@ querying.
 
 [<img src="docs/ggsql-logo.png" alt="ggsql" height="40">](https://github.com/posit-dev/ggsql)
 
-[**ggsql**](https://github.com/posit-dev/ggsql) — a SQL extension for declarative data visualization based on the Grammar of Graphics, from Posit. Koryki's VISUALISE clause is inspired by it.
+[**ggsql**](https://github.com/posit-dev/ggsql) — a SQL extension for declarative data visualization based on the Grammar of Graphics, from Posit.
