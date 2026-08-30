@@ -1,0 +1,7 @@
+// Distances and Rolling (TEMPORAL.md): whole-unit distances, computed adds,
+// roll down to the unit start, roll up to the last day of the unit.
+
+FIND orders o
+FILTER days_between(o.order_date, o.shipped_date) > 7
+FETCH o.order_id, month_begin(o.order_date), month_end(o.order_date),
+      month_add(o.order_date, 1), months_between(o.order_date, o.shipped_date)

@@ -1,0 +1,2 @@
+FIND bestellposition od
+FETCH od.bestell_id, to_decimal(od.rabatt, 5, 2) discount_decimal

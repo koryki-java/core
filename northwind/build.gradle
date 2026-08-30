@@ -1,0 +1,45 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+}
+
+java {
+    withSourcesJar() // Optional: Creates the sources JAR
+    withJavadocJar() // Optional: Creates the Javadoc JAR
+}
+
+dependencies {
+    implementation libs.jackson.databind
+
+
+    implementation project(':core')
+
+    // The catalog files are read from the classpath at runtime; 'implementation' is enough,
+    // because such dependencies sit transitively on the consumers' runtime path.
+    implementation libs.koryki.catalog
+    implementation project(':duckdb')
+
+    // JUnit
+    implementation platform(libs.junit.bom)
+    implementation libs.junit.jupiter
+    testRuntimeOnly libs.junit.platform.launcher
+
+
+}
+
+test {
+    useJUnitPlatform()
+}
+
+publishing {
+    publications {
+        // Define the publication for this subproject
+        mavenJava(MavenPublication) {
+            // The 'java' component includes the main JAR artifact and its transitive dependencies
+            from components.java
+
+            // Optionally, override the artifact ID (defaults to project name: 'api')
+            artifactId = 'koryki-northwind'
+        }
+    }
+}

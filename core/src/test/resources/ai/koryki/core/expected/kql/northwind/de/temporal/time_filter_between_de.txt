@@ -1,0 +1,5 @@
+// Time literal: BETWEEN range on employee working hours.
+
+FIND mitarbeiter e
+FILTER e.arbeitsbeginn >= "08:00:00" AND e.arbeitsende <= "17:00:00"
+FETCH e.nachname, e.arbeitsbeginn, e.arbeitsende

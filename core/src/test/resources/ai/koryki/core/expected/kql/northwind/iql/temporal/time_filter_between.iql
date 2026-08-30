@@ -1,0 +1,11 @@
+// Time literal: BETWEEN range on employee working hours.
+
+SELECT
+ employees e
+  OUT e.last_name 1
+  OUT e.working_hour_from 2
+  OUT e.working_hour_to 3
+  FILTER
+    e.working_hour_to <= "17:00:00"
+   AND
+    e.working_hour_from >= "08:00:00"

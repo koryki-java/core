@@ -1,0 +1,20 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title operator
+
+operator = "EQUALS"
+  | "NOTEQ"
+  | "GREATER"
+  | "GREATEREQ"
+  | "IN"
+  | "DISTINCT"
+  | "ISNULL"
+  | "LESS"
+  | "LESSEQ"
+  | "LIKE"
+  | "custom=ID"
+;
+@endebnf

@@ -1,0 +1,5 @@
+// Date literal: BETWEEN range on order date.
+
+FIND bestellungen o
+FILTER o.bestelldatum BETWEEN "1996-01-01" AND "1996-12-31"
+FETCH o.bestell_id, o.bestelldatum

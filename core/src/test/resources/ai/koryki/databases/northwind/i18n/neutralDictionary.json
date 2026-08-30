@@ -1,0 +1,165 @@
+{
+    "suppliers" : {
+      "name" : "suppliers",
+      "columns" : {
+        "country" : "country",
+        "contact_name" : "contact_name",
+        "address" : "address",
+        "phone" : "phone",
+        "city" : "city",
+        "company_name" : "company_name",
+        "region" : "region",
+        "fax" : "fax",
+        "postal_code" : "postal_code",
+        "contact_title" : "contact_title",
+        "supplier_id" : "supplier_id",
+        "homepage" : "homepage"
+      }
+    },
+    "customer_demographics" : {
+      "name" : "customer_demographics",
+      "columns" : {
+        "customer_id" : "customer_id",
+        "customer_type_id" : "customer_type_id"
+      }
+    },
+    "employee_territories" : {
+      "name" : "employee_territories",
+      "columns" : {
+        "employee_id" : "employee_id",
+        "territory_id" : "territory_id"
+      }
+    },
+    "shippers" : {
+      "name" : "shippers",
+      "columns" : {
+        "phone" : "phone",
+        "company_name" : "company_name",
+        "shipper_id" : "shipper_id"
+      }
+    },
+    "us_states" : {
+      "name" : "us_states",
+      "columns" : {
+        "state_region" : "state_region",
+        "state_name" : "state_name",
+        "state_abbr" : "state_abbr",
+        "state_id" : "state_id"
+      }
+    },
+    "order_details" : {
+      "name" : "order_details",
+      "columns" : {
+        "quantity" : "quantity",
+        "product_id" : "product_id",
+        "discount" : "discount",
+        "unit_price" : "unit_price",
+        "order_id" : "order_id"
+      }
+    },
+    "products" : {
+      "name" : "products",
+      "columns" : {
+        "reorder_level" : "reorder_level",
+        "category_id" : "category_id",
+        "units_on_order" : "units_on_order",
+        "units_in_stock" : "units_in_stock",
+        "product_id" : "product_id",
+        "quantity_per_unit" : "quantity_per_unit",
+        "discontinued" : "discontinued",
+        "unit_price" : "unit_price",
+        "product_name" : "product_name",
+        "supplier_id" : "supplier_id"
+      }
+    },
+    "territories" : {
+      "name" : "territories",
+      "columns" : {
+        "region_id" : "region_id",
+        "territory_description" : "territory_description",
+        "territory_id" : "territory_id"
+      }
+    },
+    "orders" : {
+      "name" : "orders",
+      "columns" : {
+        "ship_postal_code" : "ship_postal_code",
+        "required_date" : "required_date",
+        "freight" : "freight",
+        "ship_region" : "ship_region",
+        "order_date" : "order_date",
+        "employee_id" : "employee_id",
+        "shipped_date" : "shipped_date",
+        "ship_via" : "ship_via",
+        "customer_id" : "customer_id",
+        "ship_address" : "ship_address",
+        "ship_name" : "ship_name",
+        "order_id" : "order_id",
+        "ship_country" : "ship_country"
+      }
+    },
+    "customers" : {
+      "name" : "customers",
+      "columns" : {
+        "country" : "country",
+        "contact_name" : "contact_name",
+        "address" : "address",
+        "phone" : "phone",
+        "city" : "city",
+        "company_name" : "company_name",
+        "customer_id" : "customer_id",
+        "region" : "region",
+        "fax" : "fax",
+        "postal_code" : "postal_code",
+        "contact_title" : "contact_title"
+      }
+    },
+    "categories" : {
+      "name" : "categories",
+      "columns" : {
+        "category_name" : "category_name",
+        "category_id" : "category_id",
+        "root_category_id" : "root_category_id",
+        "description" : "description",
+        "picture" : "picture",
+        "super_category_id" : "super_category_id"
+      }
+    },
+    "employees" : {
+      "name" : "employees",
+      "columns" : {
+        "home_phone" : "home_phone",
+        "country" : "country",
+        "extension" : "extension",
+        "notes" : "notes",
+        "address" : "address",
+        "title_of_courtesy" : "title_of_courtesy",
+        "city" : "city",
+        "birth_date" : "birth_date",
+        "photo" : "photo",
+        "last_name" : "last_name",
+        "hire_date" : "hire_date",
+        "title" : "title",
+        "photo_path" : "photo_path",
+        "employee_id" : "employee_id",
+        "reports_to" : "reports_to",
+        "region" : "region",
+        "postal_code" : "postal_code",
+        "first_name" : "first_name"
+      }
+    },
+    "region" : {
+      "name" : "region",
+      "columns" : {
+        "region_description" : "region_description",
+        "region_id" : "region_id"
+      }
+    },
+    "customer_customer_demo" : {
+      "name" : "customer_customer_demo",
+      "columns" : {
+        "customer_id" : "customer_id",
+        "customer_type_id" : "customer_type_id"
+      }
+    }
+  }

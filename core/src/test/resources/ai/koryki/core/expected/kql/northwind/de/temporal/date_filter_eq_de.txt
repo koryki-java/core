@@ -1,0 +1,5 @@
+// Date literal: equality comparison on order date.
+
+FIND bestellungen o
+FILTER o.bestelldatum = "1996-07-04"
+FETCH o.bestell_id, o.bestelldatum

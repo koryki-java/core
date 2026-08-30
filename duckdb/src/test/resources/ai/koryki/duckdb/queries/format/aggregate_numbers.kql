@@ -1,0 +1,3 @@
+// count -> BIGINT, sum(freight) -> DECIMAL: both type-driven, no forced ".0" on the count
+FIND orders o
+FETCH count(o), sum(o.freight)

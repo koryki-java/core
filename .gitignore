@@ -1,0 +1,62 @@
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+.claud*
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### Mac OS ###
+.DS_Store
+/.idea/
+
+/.idea_bak/
+/snowflake/src/data/
+/oracle/src/data/
+# DuckDB legt das Write-Ahead-Log neben der Datenbank an, wo immer die gerade liegt.
+*.duckdb.wal
+
+# local untracked working copy — not part of the repo
+/import/
+
+# --- ANTLR-Generate ---
+# Musterbasiert statt als Pfadliste: die frueheren ~65 Einzeleintraege zeigten auf das laengst
+# entfernte Modul /antlr und konnten neue Namen oder Orte nicht abdecken -- deshalb landeten
+# zuletzt 15 generierte Dateien doch im Repository. Diese Muster greifen ueberall im Baum.
+*.tokens
+*.interp
+**/gen/
+**/generated-src/
+**/generated-resources/
+/docs/intern/

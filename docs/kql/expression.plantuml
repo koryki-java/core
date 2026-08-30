@@ -1,0 +1,24 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title expression
+
+expression =
+ "(", expression, ")"
+| "-", expression
+| "+", expression
+| expression, ("*" | "/"), expression
+| expression, ("+" | "-"), expression
+| temporal_literal
+| field
+| function
+| "INT"
+| "NUMBER"
+| "SQ_STRING"
+| "NULL"
+| "(", select, ")"
+;
+
+@endebnf

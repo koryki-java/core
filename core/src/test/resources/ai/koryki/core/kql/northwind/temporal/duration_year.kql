@@ -1,0 +1,5 @@
+// Duration literal: filter employees hired within the last year.
+
+FIND employees e
+FILTER e.hire_date >= now() - 1y
+FETCH e.last_name, e.hire_date

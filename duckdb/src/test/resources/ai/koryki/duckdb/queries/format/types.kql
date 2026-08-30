@@ -1,0 +1,4 @@
+// canonical formatter: INTEGER without forced ".0", DATE as ISO, DECIMAL at real scale
+FIND orders o
+FILTER o.order_id = 10248
+FETCH o.order_id, o.order_date, o.freight

@@ -1,0 +1,744 @@
+/*
+ * Copyright 2025-2026 Johannes Zemlin
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package ai.koryki.kql;
+
+import ai.koryki.iql.SqlRenderer;
+import ai.koryki.antlr.Range;
+import ai.koryki.antlr.RangeException;
+import ai.koryki.iql.BlockLeadingSourceCollector;
+import ai.koryki.iql.Identifier;
+import ai.koryki.iql.LinkResolver;
+import ai.koryki.iql.Walker;
+import ai.koryki.iql.functions.MathOp;
+import ai.koryki.antlr.KorykiaiException;
+import ai.koryki.iql.query.*;
+import org.antlr.v4.runtime.tree.ParseTreeWalker;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * Pretty-prints a parsed KQL query; with a {@link Translator}, rewrites it
+ * from one business vocabulary into another (see TranslateToGermanTest).
+ *
+ * <p>Translation invariants:
+ * <ul>
+ *   <li>Block IDs are user-invented names, never vocabulary — they are
+ *       structurally exempt from translation (the constructor wraps the
+ *       translator so a block named like an entity cannot be torn apart
+ *       between its definition and its references).</li>
+ *   <li>An output field without a header is a model attribute and is
+ *       translated via {@code toColumn}; the header itself is user text and
+ *       is emitted verbatim.</li>
+ * </ul>
+ */
+public class KQLFormatter {
+
+    private KQLParser.QueryContext script;
+    private String description;
+    private Translator translator;
+    private Query query;
+    private KQLVisibilityContext visibilityContext;
+    private int maxLineLength = 0;
+
+    public KQLFormatter(KQLParser.QueryContext script, String description) {
+        this(script, description, null, new Translator() {});
+    }
+
+    public KQLFormatter withMaxLineLength(int maxLineLength) {
+        this.maxLineLength = maxLineLength;
+        return this;
+    }
+
+    public KQLFormatter(KQLParser.QueryContext script, String description, LinkResolver resolver, Translator translator) {
+        this.script = script;
+        this.description = description;
+        this.translator = blockIdSafe(script, translator);
+
+        Map<String, Source> blockIdToLeadingSourceMap = Collections.emptyMap();
+        if (resolver != null) {
+            query = new KQLQueryMapper(resolver, script, description).toBean();
+            blockIdToLeadingSourceMap = Walker.apply(query, new BlockLeadingSourceCollector());
+        }
+
+        visibilityContext = new KQLVisibilityContext(blockIdToLeadingSourceMap, select2Alias());
+    }
+
+    /**
+     * Block IDs are user-invented names, never vocabulary: a source reference
+     * to a WITH block must come out exactly as written, or it no longer points
+     * at its (untranslated) definition.
+     */
+    private static Translator blockIdSafe(KQLParser.QueryContext script, Translator translator) {
+        java.util.Set<String> blockIds = script.block().stream()
+                .map(b -> b.ID().getText())
+                .collect(Collectors.toSet());
+        if (blockIds.isEmpty()) {
+            return translator;
+        }
+        return new Translator() {
+            @Override
+            public String source(String source) {
+                return blockIds.contains(source) ? source : translator.source(source);
+            }
+
+            @Override
+            public String field(String source, String field) {
+                return translator.field(source, field);
+            }
+
+            @Override
+            public String crit(String crit) {
+                return translator.crit(crit);
+            }
+        };
+    }
+
+    private Map<Object, Map<String, KQLParser.SourceContext>> select2Alias() {
+        ParseTreeWalker ptw = new ParseTreeWalker();
+        SelectAliasListener v = new SelectAliasListener();
+        ptw.walk(v, script);
+        return v.collect();
+    }
+
+    public String format() {
+
+
+        StringBuilder b = new StringBuilder();
+        if (description != null) {
+                b.append("//" + description.replace(SqlRenderer.NL, SqlRenderer.NL + "//"));
+                b.append(SqlRenderer.NL);
+                b.append(SqlRenderer.NL);
+        }
+        if (!script.block().isEmpty()) {
+            b.append(indent(0) + "WITH ");
+            b.append(toMap(script.block(), 0));
+        }
+        b.append(toSet(script.set(), 0));
+        b.append(formatExtensions(script));
+        return b.toString();
+    }
+
+    /**
+     * Appendix for clauses an extended grammar knows and this one does not.
+     *
+     * <p>Empty in core: the grammar from {@code kqlcore} has no VISUALISE rule, so there is nothing
+     * to append here. The {@code visualise} project overrides the method and prints the clause
+     * <em>verbatim</em> from the parse tree — channel, mark and column names in it are user text,
+     * not model vocabulary, and may stay unchanged even under translation.
+     */
+    protected String formatExtensions(KQLParser.QueryContext script) {
+        return "";
+    }
+
+    protected static String verbatim(org.antlr.v4.runtime.ParserRuleContext ctx) {
+        return ctx.getStart().getInputStream().getText(
+                org.antlr.v4.runtime.misc.Interval.of(
+                        ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex()));
+    }
+
+    private String toMap(List<KQLParser.BlockContext> cte, int indent) {
+        StringBuilder b = new StringBuilder();
+
+        b.append( cte.stream().map(block -> toBlock(indent, block)).collect(Collectors.joining("," + SqlRenderer.NL)));
+        if (b.length() > 0) {
+            b.append(SqlRenderer.NL);
+        }
+        return b.toString();
+    }
+
+    private String toBlock(int indent, KQLParser.BlockContext block) {
+
+        if (block.PLACEHOLDER() != null) {
+            return block.ID().getText() + " " + block.PLACEHOLDER().getText();
+        } else {
+
+            return block.ID().getText() + " AS ("
+                    + SqlRenderer.NL +
+                    toSet(block.set(), indent + 1) + indent(indent) + ")";
+        }
+    }
+
+    private String toSet(KQLParser.SetContext set, int indent) {
+        StringBuilder b = new StringBuilder();
+        String op = set.SET_INTERSECT() != null ? set.SET_INTERSECT().getText() :
+                set.SET_MINUS() != null ? set.SET_MINUS().getText() :
+                set.SET_UNION() != null ? set.SET_UNION().getText() :
+                set.SET_UNIONALL() != null ? set.SET_UNIONALL().getText() : null;
+
+
+        if (set.LEFT_PAREN() != null) {
+            return "(" + toSet(set.set(0), indent) + ")";
+        } else if (op != null) {
+            b.append(toSet(set.set(0), indent));
+            b.append(indent(indent) + op + SqlRenderer.NL);
+            b.append(toSet(set.set(1), indent));
+        } else if (set.select() != null) {
+            b.append(toSelect(set.select(), indent));
+        } else {
+            throw new KorykiaiException();
+        }
+
+        return b.toString();
+    }
+
+    private String toSelect(KQLParser.SelectContext select, int indent) {
+        StringBuilder b = new StringBuilder();
+
+        SelectFormatter x = new SelectFormatter(translator, visibilityContext.child(select));
+        b.append(x.toSubSelect(select, indent));
+        return b.toString();
+    }
+
+    private class SelectFormatter {
+
+        private Translator translator;
+        private KQLVisibilityContext visibilityContext;
+
+        public SelectFormatter(Translator translator, KQLVisibilityContext visibilityContext) {
+            this.translator = translator;
+            this.visibilityContext = visibilityContext;
+        }
+
+        protected SelectFormatter subSelect(Object child) {
+
+            SelectFormatter s2s = new SelectFormatter(translator, visibilityContext.child(child));
+            return s2s;
+        }
+
+
+        private String toSubSelect(KQLParser.SelectContext select, int indent) {
+
+            //visibilityContext.child(select);
+
+            StringBuilder b = new StringBuilder();
+
+
+            List<String> findItems = new ArrayList<>();
+            findItems.add(toSource(select.source(), indent));
+            String leading = select.source().name.getText();
+            select.link().stream().map(l -> toLink(l, leading)).forEach(findItems::add);
+            b.append(renderClause(indent, "FIND ", findItems));
+            b.append(SqlRenderer.NL);
+
+            if (select.filterClause() != null) {
+                String where = toLogicalNode(select.filterClause().logical_expression(), indent);
+                if (!where.isEmpty()) {
+                    if (maxLineLength > 0
+                            && !where.contains(SqlRenderer.NL)
+                            && (indent(indent) + "FILTER " + where).length() > maxLineLength) {
+                        b.append(indent(indent)).append("FILTER").append(SqlRenderer.NL)
+                         .append(indent(indent + 1)).append(where);
+                    } else {
+                        b.append(indent(indent)).append("FILTER ").append(where);
+                    }
+                    b.append(SqlRenderer.NL);
+                }
+            }
+            if (select.fetchClause() != null) {
+                List<String> fetchItems = select.fetchClause().fetchItem().stream()
+                        .map(r -> toOut(r, indent)).collect(Collectors.toList());
+                if (!fetchItems.isEmpty()) {
+                    String keyword = select.fetchClause().DISTINCT() != null ? "FETCH DISTINCT " : "FETCH ";
+                    String fetchStr = renderClause(indent, keyword, fetchItems);
+                    if (select.fetchClause().ROLLUP() != null) {
+                        fetchStr += " ROLLUP";
+                    }
+                    b.append(fetchStr);
+                    b.append(SqlRenderer.NL);
+                }
+            }
+
+            if (select.limitClause() != null && select.limitClause().INT() != null) {
+                int limit = Integer.parseInt(select.limitClause().INT().getText());
+                if (limit > 0) {
+                    b.append(indent(indent)).append("LIMIT ").append(limit);
+                    b.append(SqlRenderer.NL);
+                }
+            }
+            return b.toString();
+        }
+
+//        private Boolean asc(ParseTree t) {
+//            if (t instanceof TerminalNode) {
+//                TerminalNode n = (TerminalNode) t;
+//                if (n.getSymbol().getType() == KQLParser.ASC || n.getSymbol().getType() == KQLParser.DESC) {
+//                    return n.getSymbol().getType() == KQLParser.ASC;
+//                }
+//            }
+//            return null;
+//        }
+
+        private String toLogicalNode(KQLParser.Logical_expressionContext logicalExpression, int indent) {
+
+            if (logicalExpression.unary_logical_expression() != null) {
+                return toUnaryLogicalExpression(logicalExpression.unary_logical_expression(), indent);
+            } else if (logicalExpression.NOT() != null) {
+                return "NOT " + toLogicalNode(logicalExpression.negate, indent);
+            } else {
+                String op = logicalExpression.AND() != null ? "AND" : "OR";
+                List<String> terms = collectSameOp(logicalExpression, op, indent);
+                String single = String.join(" " + op + " ", terms);
+                if (maxLineLength > 0
+                        && terms.stream().noneMatch(t -> t.contains(SqlRenderer.NL))
+                        && (indent(indent) + "FILTER " + single).length() > maxLineLength) {
+                    String cont = SqlRenderer.NL + indent(indent + 1) + op + " ";
+                    StringBuilder sb = new StringBuilder(terms.get(0));
+                    for (int i = 1; i < terms.size(); i++) {
+                        sb.append(cont).append(terms.get(i));
+                    }
+                    return sb.toString();
+                }
+                return single;
+            }
+        }
+
+        private List<String> collectSameOp(KQLParser.Logical_expressionContext node, String op, int indent) {
+            if (node.left != null && node.right != null) {
+                String nodeOp = node.AND() != null ? "AND" : "OR";
+                if (nodeOp.equals(op)) {
+                    List<String> result = new ArrayList<>(collectSameOp(node.left, op, indent));
+                    result.addAll(collectSameOp(node.right, op, indent));
+                    return result;
+                }
+            }
+            List<String> result = new ArrayList<>();
+            result.add(toLogicalNode(node, indent));
+            return result;
+        }
+
+        private String toUnaryLogicalExpression(KQLParser.Unary_logical_expressionContext unaryLogicalExpressionContext, int indent) {
+
+            // BETWEEN has its own production and no longer arrives through `operator`. Taking the
+            // keyword from its token keeps everything below working unchanged — including the
+            // isInterval branch that renders the two bounds. Without this the formatter would drop
+            // BETWEEN and its bounds from the query it rewrites.
+            String op = null;
+            if (unaryLogicalExpressionContext.operator() != null) {
+                op = unaryLogicalExpressionContext.operator().getText();
+            } else if (unaryLogicalExpressionContext.BETWEEN() != null) {
+                op = unaryLogicalExpressionContext.BETWEEN().getText();
+            }
+
+            if (unaryLogicalExpressionContext.PLACEHOLDER() != null) {
+                return toExpression(unaryLogicalExpressionContext.expression(0), indent) + (op != null ? " " + op : "") + " " + unaryLogicalExpressionContext.PLACEHOLDER().getText();
+            } else if (unaryLogicalExpressionContext.logical_expression() != null) {
+                return "(" + toLogicalNode(unaryLogicalExpressionContext.logical_expression(), indent) + ")";
+            } else if (op != null) {
+                String left = toExpression(unaryLogicalExpressionContext.expression().get(0), indent);
+
+                StringBuilder right = new StringBuilder();
+
+                if (unaryLogicalExpressionContext.expression().size() > 1) {
+                    List<KQLParser.ExpressionContext> rl = unaryLogicalExpressionContext.expression().subList(1, unaryLogicalExpressionContext.expression().size());
+                    if (isInterval(op)) {
+                        right.append(toInterval(rl.get(0), rl.get(1), indent));
+                    } else if (isSet(op)) {
+
+
+                        boolean subselect = !rl.isEmpty() && rl.get(0).select() != null;
+                        String intro = subselect ? SqlRenderer.NL : "";
+                        String extro = subselect ? indent(indent) : "";
+
+                        right.append("(" + intro + rl.stream().map(e -> toExpression(e, indent + 1))
+                                .collect(Collectors.joining(", ")) + extro + ")");
+                    } else if (!unaryLogicalExpressionContext.expression().isEmpty()) {
+                        right.append(rl.stream().map(e -> toExpression(e, indent))
+                                .collect(Collectors.joining(", ")));
+                    }
+                }
+
+                if (op == null) {
+                    return left;
+                } else if (right.length() == 0) {
+                    return left + " " + op;
+                } else {
+                    return left + " " + op + " " + right;
+                }
+            } else if (unaryLogicalExpressionContext.exists() != null) {
+                return toExists(unaryLogicalExpressionContext.exists(), indent);
+            } else if (!unaryLogicalExpressionContext.expression().isEmpty()) {
+                // A boolean expression standing alone as a predicate — nothing to add around it.
+                return toExpression(unaryLogicalExpressionContext.expression(0), indent);
+            } else {
+                throw new KorykiaiException();
+            }
+        }
+
+        public String toExists(KQLParser.ExistsContext exists, int indent) {
+
+            StringBuilder b = new StringBuilder();
+            b.append(SqlRenderer.NL);
+            b.append(indent(indent + 1));
+            b.append("EXISTS (");
+
+            SelectFormatter f = new SelectFormatter(translator, visibilityContext.child(exists));
+            b.append(f.existsSelect(exists, indent + 1));
+            b.append(SqlRenderer.NL);
+            b.append(indent(indent + 1));
+            b.append(")");
+            return b.toString();
+        }
+
+        private String existsSelect(KQLParser.ExistsContext exists, int indent) {
+            StringBuilder b = new StringBuilder();
+
+            b.append(toLink(exists.existslink()));
+
+            List<KQLParser.LinkContext> links = exists.link();
+            String existsLeading = exists.existslink().source().name.getText();
+            String ll = links.stream().map(l -> toLink(l, existsLeading)).collect(Collectors.joining(", "));
+            if (!ll.isEmpty()) {
+                b.append(", ").append(ll);
+            }
+
+            if (exists.filterClause() != null) {
+                String where = toLogicalNode(exists.filterClause().logical_expression(), indent);
+                if (!where.isEmpty()) {
+                    b.append(SqlRenderer.NL);
+                    b.append(indent(indent)).append("FILTER ").append(where);
+                }
+            }
+            return b.toString();
+        }
+
+        protected String toInterval(KQLParser.ExpressionContext left, KQLParser.ExpressionContext right, int indent) {
+            return toExpression(left, indent) + " AND " + toExpression(right, indent);
+        }
+
+
+        private String toOut(KQLParser.FetchItemContext ret, int indent) {
+            StringBuilder b = new StringBuilder();
+
+            b.append(toExpression(ret.expression(), indent));
+            if (ret.h != null) {
+                b.append(" " + ret.h.getText());
+            }
+            // The label only exists when a header does (the grammar nests it), so it is written
+            // inside neither branch by accident: it was simply missing, and nothing noticed because
+            // the round-trip compares the generated SQL, which a display string never reaches.
+            // IQLSerializer kept it all along -- the two serialisers disagreed about the same query.
+            if (ret.label != null) {
+                b.append(" " + ret.label.getText());   // the token carries its own quotes
+            }
+
+            if (ret.ASC() != null) {
+                b.append(" " + ret.ASC().getText());
+            } else if (ret.DESC() != null) {
+                b.append(" " + ret.DESC().getText());
+            }
+            if (ret.idx != null) {
+                b.append(" " + ret.idx.getText());
+            }
+
+            return b.toString();
+        }
+
+
+        private String toExpression(List<KQLParser.ExpressionContext> expression, int indent) {
+
+            return expression.stream().map(e -> toExpression(e, 0)).collect(Collectors.joining(", "));
+        }
+
+
+        private String toExpression(KQLParser.ExpressionContext expression, int indent) {
+
+            if (expression.select() != null) {
+                return toSelect(expression.select(), indent);
+            } else if (expression.LEFT_PAREN() != null) {
+                return "(" + toExpression(expression.expression(0), indent) + ")";
+            } else if (expression.MULT() != null) {
+                return mathFunction(expression, MathOp.multiply, indent);
+            } else if (expression.DIV() != null) {
+                return mathFunction(expression, MathOp.divide, indent);
+            } else if (expression.PLUS() != null) {
+                if (expression.left == null) {
+                    return "+" + toExpression(expression.expression(0), indent);
+                }
+                return mathFunction(expression, MathOp.add, indent);
+            } else if (expression.BAR() != null) {
+                if (expression.left == null) {
+                    return "-" + toExpression(expression.expression(0), indent);
+                }
+                return mathFunction(expression, MathOp.minus, indent);
+            } else if (expression.temporal_literal() != null) {
+                return toExpression(expression.temporal_literal());
+            } else if (expression.field() != null) {
+                return toColumn(expression.field(), indent);
+            } else if (expression.function() != null) {
+                return toFunction(expression.function(), indent);
+            } else if (expression.INT() != null) {
+                return expression.INT().getText();
+            } else if (expression.NUMBER() != null) {
+                return expression.NUMBER().getText();
+            } else if (expression.SQ_STRING() != null) {
+                return expression.SQ_STRING().getText();
+            } else if (expression.NULL() != null) {
+                return "NULL";
+            } else {
+                throw new KorykiaiException();
+            }
+        }
+
+        private String mathFunction(KQLParser.ExpressionContext expression, ai.koryki.iql.functions.MathOp name, int indent) {
+
+            String op = name.getOperator();
+            String left = toExpression(expression.left, indent);
+            String right = toExpression(expression.right, indent);
+            return left + " " + op + " " + right;
+        }
+
+        private String toExpression(KQLParser.Temporal_literalContext date) {
+            if (date.TIME_STRING() != null) {
+                return date.TIME_STRING().getText();
+            } else if (date.TIMESTAMP_STRING() != null) {
+                return date.TIMESTAMP_STRING().getText();
+            } else if (date.DATE_STRING() != null) {
+                return date.DATE_STRING().getText();
+            } else if (date.DURATION() != null) {
+                return date.DURATION().getText();
+            } else {
+                throw new KorykiaiException();
+            }
+        }
+
+        private String toColumn(KQLParser.FieldContext column, int indent) {
+
+            StringBuilder b = new StringBuilder();
+            String alias = column.alias.getText();
+            b.append(alias).append(".");
+            KQLParser.SourceContext source = visibilityContext.getSource(alias);
+
+            if (source == null) {
+                throw new RangeException(Range.range(column), "missing source: " + alias);
+            }
+
+            Source block = visibilityContext.getLeadingSource(source.name.getText());
+            String sourcename = block != null ? block.getName() : source.name.getText();
+            String c = translator.field(sourcename, column.name.getText());
+            b.append(c);
+
+            return b.toString();
+        }
+
+        private String toFunction(KQLParser.FunctionContext function, int indent) {
+            StringBuilder b = new StringBuilder();
+
+            b.append(function.ID().getText());
+            b.append("(");
+            b.append(function.argument().stream().map(a -> toArgument(a, indent))
+                    .collect(Collectors.joining(", ")));
+            b.append(")");
+
+            if (function.window() != null) {
+                b.append(toWindow(function.window(), indent));
+            }
+            return b.toString();
+        }
+
+
+        protected String toWindow(KQLParser.WindowContext window, int indent) {
+            if (window == null) {
+                return "";
+            }
+            StringBuilder b = new StringBuilder();
+
+            b.append(" OVER (");
+
+            if (!window.partitionex.isEmpty()) {
+                b.append("PARTITION " + toExpression(window.partitionex, indent));
+            }
+
+            if (!window.orderex.isEmpty()) {
+                b.append(" ORDER ");
+                b.append(toExpression(window.orderex, indent));
+                if (window.DESC() != null) {
+                    b.append(" DESC");
+                } else if (window.ASC() != null) {
+                    b.append(" ASC");
+                }
+            }
+
+            if (window.frame() != null) {
+                b.append(" ROWS BETWEEN ");
+                b.append(toFrameBound(window.frame().lower));
+                b.append(" AND ");
+                b.append(toFrameBound(window.frame().upper));
+            }
+
+            b.append(")");
+            return b.toString();
+        }
+
+        protected String toFrameBound(KQLParser.Frame_boundContext limit) {
+            StringBuilder b = new StringBuilder();
+            if (limit.INT() != null) {
+                b.append(" " + limit.INT().getText());
+                if (limit.PRECEDING() != null) {
+                    b.append(" " + limit.PRECEDING().getText());
+                } else if (limit.FOLLOWING() != null) {
+                    b.append(" " + limit.FOLLOWING().getText());
+                }
+            } else if (limit.UNBOUNDED() != null) {
+                b.append(" " + limit.UNBOUNDED().getText());
+                if (limit.PRECEDING() != null) {
+                    b.append(" " + limit.PRECEDING().getText());
+                } else if (limit.FOLLOWING() != null) {
+                    b.append(" " + limit.FOLLOWING().getText());
+                }
+            } else if (limit.CURRENT() != null) {
+                b.append(" " + limit.CURRENT().getText());
+                b.append(" " + limit.ROW().getText());
+            }
+            return b.toString();
+        }
+
+        private String toArgument(KQLParser.ArgumentContext argument, int indent) {
+
+            if (argument.logical_expression() != null) {
+                return toLogicalNode(argument.logical_expression(), indent);
+            } else if (argument.expression() != null) {
+                return toExpression(argument.expression(), indent);
+            } else if (argument.identity != null) {
+                return argument.identity.getText();
+            } else {
+                throw new KorykiaiException();
+            }
+        }
+
+        /**
+         * Renders a {@code join} clause back: {@code VIA name}, {@code [a, b]} or {@code [a=x, b=y]},
+         * with the trailing space the callers expect, or nothing when no join was written.
+         *
+         * <p>The column names are printed verbatim, not through {@link Translator#field}. That hook
+         * needs the source a column belongs to, and only the right-hand source stands in the parse
+         * tree — the left one is an alias bound elsewhere in the query, which resolving belongs to
+         * the model rather than to a formatter walking the tree. Translating one side and leaving
+         * the other would read worse than translating neither, so a translated explicit join is
+         * deliberately still open.
+         *
+         * <p>The placement is normalised in front of the source, as it always was for {@code VIA}:
+         * the grammar accepts the clause on either side, the formatter writes one of them.
+         */
+        private String toJoin(KQLParser.JoinContext join, String leftEntity, String rightEntity) {
+            if (join == null) {
+                return "";
+            }
+            if (join.crit != null) {
+                return "VIA " + translator.crit(join.crit.getText()) + " ";
+            }
+            if (!join.col.isEmpty()) {
+                // The shorthand needs the same name on both sides. A translation that gives the two
+                // entities different names for it cannot be written this way, so it falls back to
+                // the pair form rather than producing a query that no longer means the same.
+                List<String> l = join.col.stream()
+                        .map(t -> translator.field(leftEntity, t.getText())).toList();
+                List<String> r = join.col.stream()
+                        .map(t -> translator.field(rightEntity, t.getText())).toList();
+                if (l.equals(r)) {
+                    return String.join(", ", l).transform(x -> "[" + x + "] ");
+                }
+                return pairs(l, r);
+            }
+            return pairs(join.left.stream().map(t -> translator.field(leftEntity, t.getText())).toList(),
+                    join.right.stream().map(t -> translator.field(rightEntity, t.getText())).toList());
+        }
+
+        private static String pairs(List<String> left, List<String> right) {
+            StringBuilder b = new StringBuilder("[");
+            for (int i = 0; i < left.size(); i++) {
+                b.append(i > 0 ? ", " : "").append(left.get(i)).append("=").append(right.get(i));
+            }
+            return b.append("] ").toString();
+        }
+
+        /** The entity an alias stands for, or the alias itself when it is a block id. */
+        private String entityOf(String alias) {
+            KQLParser.SourceContext src = visibilityContext.getSource(alias);
+            return src != null ? src.name.getText() : alias;
+        }
+
+        private String toLink(KQLParser.ExistslinkContext link) {
+
+            StringBuilder b = new StringBuilder();
+
+            if (link.from != null) {
+                b.append(link.from.getText()).append(" ");
+            }
+            b.append(toJoin(link.join(), entityOf(link.from.getText()), link.source().name.getText()));
+            b.append(translator.source(link.source().name.getText()));
+            b.append(" ");
+            b.append(link.source().alias.getText());
+
+            return b.toString();
+        }
+
+
+        private String toLink(KQLParser.LinkContext link, String leading) {
+
+            StringBuilder b = new StringBuilder();
+
+            if (link.from != null) {
+                b.append(link.from.getText() + " ");
+            }
+            b.append(toJoin(link.join(),
+                    link.from != null ? entityOf(link.from.getText()) : leading,
+                    link.source().name.getText()));
+            b.append(link.PLUS() != null ? "+ " : "");
+            b.append(translator.source(link.source().name.getText()));
+            b.append(" ");
+            b.append(link.source().alias.getText());
+
+            return b.toString();
+        }
+
+        private String toSource(KQLParser.SourceContext source, int indent) {
+
+            StringBuilder b = new StringBuilder();
+            b.append(translator.source(source.name.getText()));
+            b.append(" ");
+            b.append(source.alias.getText());
+            return b.toString();
+        }
+    }
+
+    private String renderClause(int indent, String keyword, List<String> items) {
+        String single = indent(indent) + keyword + String.join(", ", items);
+        if (maxLineLength == 0 || items.size() <= 1 || single.length() <= maxLineLength) {
+            return single;
+        }
+        String cont = "," + SqlRenderer.NL + indent(indent + 1);
+        return indent(indent) + keyword + String.join(cont, items);
+    }
+
+    private String indent(int l) {
+        return Identifier.indent(l);
+    }
+
+    public static boolean isSet(String op) {
+        return "IN".equalsIgnoreCase(op);
+    }
+
+    public static boolean isInterval(String op) {
+        return "BETWEEN".equalsIgnoreCase(op);
+    }
+
+
+}

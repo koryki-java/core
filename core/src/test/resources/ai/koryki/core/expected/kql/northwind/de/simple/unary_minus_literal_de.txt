@@ -1,0 +1,6 @@
+// Unary minus: negative number literal in filter comparison.
+// All order details with unit price above -1 (unary minus on numeric literal).
+
+FIND bestellposition od
+FILTER od.preis_je_einheit > -1.0
+FETCH od.bestell_id, od.preis_je_einheit

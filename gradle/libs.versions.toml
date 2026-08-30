@@ -1,0 +1,69 @@
+[versions]
+
+antlr = "4.13.2"
+jackson = "3.2.1"
+# Jackson 3 keeps annotations at the 2.x group id and package (see jackson-databind pom).
+# Per JSTEP-1 there is no 3.x annotations module; jackson-bom 3.2.1 pins the 2.x line to 2.22.
+jackson-annotations = "2.22"
+junit = "6.1.2"
+
+duckdb = "1.5.5.0"
+h2database = "2.4.240"
+postgresql = "42.7.13"
+snowflake = "4.3.2"
+oracle = "23.26.2.0.0"
+trino = "483"
+mariadb = "3.5.9"
+# 13.4.0 is the newest stable; 13.5.0 exists only as -preview
+mssql = "13.4.0.jre11"
+sqlite = "3.53.2.1"
+
+spring-boot = "4.1.0"
+spring-dependency-management = "1.1.7"
+arrow = "19.0.0"
+
+[plugins]
+jacoco = { id = "jacoco" }
+
+antlr = { id = "org.gradle.antlr"}
+
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
+spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "spring-dependency-management" }
+
+[libraries]
+
+# Die Katalogdateien (db.json, model.json) liegen im Projekt koryki-java/test, weil sie mehrere
+# Implementierungen bedienen -- Java ueber den Classpath, Rust ueber das Dateisystem.
+koryki-catalog = { module = "ai.koryki.northwind:koryki-catalog", version = "0.1.0" }
+
+
+org-apache-arrow-vector = { module = "org.apache.arrow:arrow-vector", version.ref = "arrow" }
+org-apache-arrow-memory-netty = { module = "org.apache.arrow:arrow-memory-netty", version.ref = "arrow" }
+org-apache-arrow-memory-core = { module = "org.apache.arrow:arrow-memory-core", version.ref = "arrow" }
+org-apache-arrow-arrow-c-data = { module = "org.apache.arrow:arrow-c-data", version.ref = "arrow" }
+
+duckdb = { module = "org.duckdb:duckdb_jdbc", version.ref = "duckdb" }
+h2database = { module = "com.h2database:h2", version.ref = "h2database" }
+postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
+snowflake = { module = "net.snowflake:snowflake-jdbc", version.ref = "snowflake" }
+oracle = { module = "com.oracle.database.jdbc:ojdbc11", version.ref = "oracle" }
+trino = { module = "io.trino:trino-jdbc", version.ref = "trino" }
+mariadb = { module = "org.mariadb.jdbc:mariadb-java-client", version.ref = "mariadb" }
+mssql = { module = "com.microsoft.sqlserver:mssql-jdbc", version.ref = "mssql" }
+sqlite = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite" }
+
+
+antlr4 = { module = "org.antlr:antlr4", version.ref = "antlr" }
+antlr4-runtime = { module = "org.antlr:antlr4-runtime", version.ref = "antlr" }
+
+jackson-databind = { module = "tools.jackson.core:jackson-databind", version.ref = "jackson" }
+jackson-core = { module = "tools.jackson.core:jackson-core", version.ref = "jackson" }
+jackson-annotations = { module = "com.fasterxml.jackson.core:jackson-annotations", version.ref = "jackson-annotations" }
+
+
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" } # version comes from BOM
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" } # version comes from BOM
+
+[bundles]
+

@@ -1,0 +1,5 @@
+// parse_date: filter orders where order_date matches a European-format date string.
+
+FIND orders o
+FILTER o.order_date = parse_date('04.07.1996', 'DD.MM.YYYY')
+FETCH o.order_id, o.order_date

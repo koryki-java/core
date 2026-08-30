@@ -1,0 +1,8 @@
+// Timestamp literal: BETWEEN range on delivered_date.
+
+SELECT
+ orders o
+  OUT o.order_id 1
+  OUT o.delivered_date 2
+  FILTER
+    o.delivered_date BETWEEN "1996-07-01 00:00:00" AND "1996-12-31 23:59:59"

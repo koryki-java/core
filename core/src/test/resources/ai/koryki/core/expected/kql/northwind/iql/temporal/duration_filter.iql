@@ -1,0 +1,8 @@
+// Duration literal: filter orders placed within the last 30 days.
+
+SELECT
+ orders o
+  OUT o.order_id 1
+  OUT o.order_date 2
+  FILTER
+    o.order_date >= minus(now(), 30d)

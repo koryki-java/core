@@ -1,0 +1,2 @@
+"clock_only", "year_month", "year_month_day", "day_and_clock", "full"
+"01:02:03", "1 year 2 months", "1 year 2 months 3 days", "1 day 01:02:03", "1 year 2 months 1 day 01:02:03"

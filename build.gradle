@@ -1,0 +1,88 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+}
+
+rootProject.version = '0.1.0'
+
+
+
+rootProject.allprojects {
+
+    version = rootProject.version
+
+    group = 'ai.koryki.core'
+
+    tasks.withType(Javadoc).configureEach {
+        options.addStringOption('Xdoclint:-missing', '-quiet')
+    }
+
+    // From JDK 24 on, the JVM reports every JNI call made from the classpath (JEP 472). Affected
+    // are the drivers that pull in a native library via System.load -- measured: DuckDB and SQLite.
+    // In future this will not merely be reported but blocked, so granting access is not cosmetic.
+    // In one place for all test tasks, because several modules are affected.
+    //
+    // What counts is the version of the TEST launcher, not that of the Gradle daemon: since the
+    // toolchain the tests run on 21, while the daemon may run on a newer JDK. The flag is only
+    // known from JDK 22 on -- handed to a 21 JVM, it refuses to start at all. This way it stays
+    // correct should the toolchain be raised later.
+    tasks.withType(Test).configureEach { testTask ->
+        def launcherVersion = testTask.javaLauncher.map { it.metadata.languageVersion.asInt() }
+        testTask.jvmArgumentProviders.add({
+            launcherVersion.get() >= 24 ? ['--enable-native-access=ALL-UNNAMED'] : []
+        } as CommandLineArgumentProvider)
+
+        // A missing golden file is written only on explicit request:
+        //   ./gradlew test -Dfixtures.write=true
+        // The test JVM is forked and does not inherit the command line's properties, so the switch
+        // has to be passed through here.
+        testTask.systemProperty 'fixtures.write', System.getProperty('fixtures.write', 'false')
+
+        // Where the shared test fixtures live. Mandatory -- without it the fixture suites abort
+        // with a named message (see Fixtures.root()); a guessed path would be worse, because a run
+        // over zero fixtures looks just like a passing one.
+        //
+        // Settable on the command line (-Dtest.root=...) or permanently as a Gradle property in
+        // gradle.properties. The test JVM is forked and inherits nothing, hence the pass-through.
+        def testRoot = System.getProperty('test.root') ?: providers.gradleProperty('test.root').orNull
+        if (testRoot) {
+            testTask.systemProperty 'test.root', testRoot
+
+            // Without this line Gradle would no longer see changes to the corpus: the fixtures
+            // used to sit under src/test/resources through a symlink and were task inputs that way.
+            // Now they live outside -- without inputs.dir the test would pass as UP-TO-DATE even
+            // though a fixture has changed.
+            // The path is stated here and nowhere else: Fixtures reads it as test.corpus instead of
+            // keeping a second copy. Groovy cannot read a Java constant, so this line used to repeat
+            // it -- and renaming the fixture project moved the path three times in one day, leaving
+            // this copy behind every time.
+            def corpus = 'fixture/src/main/resources/ai/koryki/fixture'
+            testTask.systemProperty 'test.corpus', corpus
+
+            testTask.inputs.dir("$testRoot/$corpus")
+                    .withPathSensitivity(PathSensitivity.RELATIVE)
+                    .withPropertyName('testFixtures')
+        }
+    }
+
+    // A fixed toolchain instead of "whatever Gradle happens to run on": without it the generated
+    // class-file version depended on who builds -- IDE (21) and command line (25) produced
+    // different artifacts, and a consumer on 21 failed with UnsupportedClassVersionError. 21 is the
+    // level everything published sits on.
+    //
+    // Via pluginManager.withPlugin, not directly in the allprojects block: that block is evaluated
+    // before the subprojects have applied their plugins, and, measured, reached only the root
+    // project -- the subprojects were left without a toolchain.
+    pluginManager.withPlugin('java-base') {
+        java {
+            toolchain {
+                languageVersion = JavaLanguageVersion.of(21)
+            }
+        }
+    }
+
+    java {
+        withSourcesJar() // Optional: Creates the sources JAR
+        withJavadocJar() // Optional: Creates the Javadoc JAR
+    }
+}

@@ -1,0 +1,11 @@
+FIND kunden c1
+FILTER c1.kontakt_name like 'a%'
+FETCH c1.kontakt_name cn
+UNION
+FIND kunden c2
+FILTER c2.kontakt_name like 'b%'
+FETCH c2.kontakt_name cn
+MINUS
+FIND kunden c3
+FILTER c3.kontakt_name like 'ab%'
+FETCH c3.kontakt_name cn

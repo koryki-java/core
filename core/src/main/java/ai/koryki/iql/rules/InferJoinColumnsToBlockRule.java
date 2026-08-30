@@ -1,0 +1,209 @@
+/*
+ * Copyright 2025-2026 Johannes Zemlin
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package ai.koryki.iql.rules;
+
+import ai.koryki.antlr.KorykiaiException;
+import ai.koryki.antlr.Range;
+import ai.koryki.iql.Identifier;
+import ai.koryki.iql.LinkResolver;
+import ai.koryki.iql.query.*;
+import ai.koryki.catalog.schema.Relation;
+import org.antlr.v4.runtime.RuleContext;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+/**
+ * Add OUT-Expressions for Join-Columns, references by other queries.
+ */
+public class InferJoinColumnsToBlockRule {
+
+    private final LinkResolver resolver;
+    private final Query query;
+    private final Map<String, Source> blockIdToLeadingTableMap;
+    private final Map<Object, RuleContext> iqlToContext;
+
+    public InferJoinColumnsToBlockRule(Query query, LinkResolver resolver, Map<String, Source> blockIdToLeadingTableMap,
+                                       Map<Object, RuleContext> iqlToContext) {
+        this.query = query;
+        this.resolver = resolver;
+        this.blockIdToLeadingTableMap = blockIdToLeadingTableMap;
+        this.iqlToContext = iqlToContext;
+    }
+
+    public void apply() {
+        apply(query);
+    }
+
+    private void apply(Query query) {
+
+        query.getBlock().forEach(b -> apply(b));
+        apply(null, query.getSet());
+    }
+
+    private void apply(Block block) {
+        apply(block, block.getSet());
+    }
+
+    private void apply(Block block, Set set) {
+        if (set.getOperator() != null) {
+            apply(block, set.getLeft());
+            apply(block, set.getRight());
+        } else {
+            apply(block, set.getSelect());
+        }
+    }
+
+    private void apply(Block block, Select select) {
+
+        apply(block, select.getStart(), select.getJoin());
+    }
+
+    protected void apply(Block block, Source left, List<Join> join) {
+
+        for (Join j : join) {
+            joinColumns(block, left, j);
+            apply(block, j.getSource(), j.getJoin());
+        }
+    }
+
+    private void joinColumns(Block block, Source left, Join join) {
+
+        String msg = left.getName() + (left.getAlias() != null ? " " + left.getAlias() : "");
+        String crit = join.getCrit();
+        Source right = join.getSource();
+        if (right != null) {
+            //boolean invers = join.isInvers();
+            // An explicit join carries no criterion, and its direction is fixed by what the
+            // author wrote -- there is nothing to invert.
+            boolean invers = join.getColumns() == null && resolver.isInverse(join.getCrit());
+
+            Source start = invers ? right : left;
+            Source end = invers ? left : right;
+
+            joinColumns(block, start, end, crit, msg, right, join.getColumns());
+        }
+    }
+
+    private void joinColumns(Block block, Source start, Source end, String crit, String msg, Source right, ai.koryki.iql.query.JoinColumns explicit) {
+        String startTable = start.getName();
+        String endTable = end.getName();
+
+        boolean b1 = resolver.isEntity(startTable);
+        Source s = b1 ? start : blockIdToLeadingTableMap.get(startTable);
+        startTable = s.getName();
+        startTable = Identifier.normal(Identifier.lowercase, startTable);
+
+        boolean b2 = resolver.isEntity(endTable);
+        Source e = b2 ? end : blockIdToLeadingTableMap.get(end.getName());
+
+        endTable = Identifier.normal(Identifier.lowercase, e.getName());
+
+
+        Relation r;
+        if (explicit != null) {
+            // Written-out columns are the criterion; nothing to look up.
+            r = resolver.relationFor(Range.of(iqlToContext, start), startTable, endTable, explicit);
+        } else {
+            Optional<Relation> o = resolver.findRelation(Range.of(iqlToContext, start), startTable, endTable, crit);
+            if (o.isEmpty()) {
+                throw new KorykiaiException(msg +  " " + crit + " " + right.getName());
+            }
+            // no need to extend out from previous set.
+            r = o.get();
+        }
+
+        if (!b1) {
+            List<String> cols = r.getStartColumns();
+            if (block != null) {
+                enhanceOut(block.getSet(), cols);
+            } else {
+                enhanceOut(s, cols);
+            }
+        }
+        if (!b2) {
+            List<String> cols = r.getEndColumns();
+            if (block != null) {
+                enhanceOut(block.getSet(), cols);
+            } else {
+                enhanceOut(e, cols);
+            }
+        }
+    }
+
+    private void enhanceOut(Set set, List<String> cols) {
+        if (set.getSelect() != null) {
+            enhanceOut(set.getSelect().getStart(), cols);
+        } else {
+            enhanceOut(set.getLeft(), cols);
+            enhanceOut(set.getRight(), cols);
+        }
+    }
+
+    private void enhanceOut(Source table, List<String> cols) {
+        for (String c : cols) {
+            String name = attributeName(table, c);
+            if (!hasOut(table, name)) {
+                Out out = createOut(table, name);
+                // The join column exists because of this source -- it inherits its position, so a
+                // validator can point at the written text instead of at nothing.
+                Rules.inherit(iqlToContext, table, out, out.getExpression(),
+                        out.getExpression().getField());
+                table.getOut().add(out);
+            }
+        }
+    }
+
+    private static Out createOut(Source table, String c) {
+        Out out = new Out();
+        Field col = new Field();
+        col.setAlias(table.getAlias());
+        col.setName(c);
+        Expression e = new Expression();
+        e.setField(col);
+        out.setExpression(e);
+        return out;
+    }
+
+    /**
+     * The name the model gives a physical column of this source's entity.
+     *
+     * <p>A {@link Relation} names physical columns, a query names model attributes, and the two
+     * part company wherever an attribute declares a {@code column} override -- which is every
+     * attribute of the German northwind model. Comparing the two directly made {@link #hasOut}
+     * miss a column the block already projects, so the block projected it a second time: the
+     * German rendering of {@code block_join} grew a bare {@code o.customer_id} beside the
+     * {@code o.customer_id AS i} that was already there. It also made {@link #createOut}
+     * synthesize a field under a name the model does not carry, which the schema validator is
+     * right to reject once only model names count.
+     *
+     * <p>Falls back to the column itself when the source is not an entity (a block) or no
+     * attribute maps to it -- there the column name is the best name available, and it is what
+     * this rule used throughout before.
+     */
+    private String attributeName(Source table, String column) {
+        return resolver.getModelAttribute(table.getName(), column).orElse(column);
+    }
+
+    private boolean hasOut(Source t, String column) {
+
+        return t.getOut().stream().filter(c -> c.getExpression().getField() != null)
+                .map(o -> o.getExpression().getField())
+                .anyMatch(c -> c.getName().equals(column));
+    }
+}

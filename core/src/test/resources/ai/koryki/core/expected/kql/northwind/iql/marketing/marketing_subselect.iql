@@ -1,0 +1,36 @@
+SELECT
+ customers c
+  OUT c.company_name 1
+  OUT c.contact_name 2
+  OUT c.mail 3
+  FILTER
+    NOT c.customer_id IN ((
+    SELECT
+     customers c2
+      OUT c2.customer_id 1
+      JOIN same_customer orders o2
+         JOIN same_order order_details od2
+            JOIN same_product products p2
+               JOIN same_category categories cat2
+                 FILTER
+                   cat2.category_name = 'Condiments'
+               OWNER
+            OWNER
+         OWNER
+      OWNER
+   ))
+  GROUP c.company_name 1
+  GROUP c.contact_name 2
+  GROUP c.mail 3
+  JOIN same_customer orders o
+     JOIN same_order order_details od
+       HAVING 
+        count(od.order_id) > 3
+        JOIN same_product products p
+           JOIN same_category categories cat
+             FILTER
+               cat.category_name = 'Seafood'
+           OWNER
+        OWNER
+     OWNER
+  OWNER

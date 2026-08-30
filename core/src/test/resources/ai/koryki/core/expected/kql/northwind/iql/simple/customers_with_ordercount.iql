@@ -1,0 +1,12 @@
+SELECT
+ customers c
+  OUT c.company_name 1
+  FILTER
+    c.country = 'Germany'
+  GROUP c.company_name 1
+  ORDER c.company_name DESC 1
+  JOIN OPTIONAL same_customer orders o
+    OUT count(o.order_id) 2
+    FILTER
+      o.order_date BETWEEN "2023-01-01" AND "2023-12-31"
+  OWNER

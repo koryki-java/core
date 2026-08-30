@@ -1,0 +1,5 @@
+// Duration literal: filter employees hired within the last year.
+
+FIND mitarbeiter e
+FILTER e.einstellungsdatum >= now() - 1y
+FETCH e.nachname, e.einstellungsdatum

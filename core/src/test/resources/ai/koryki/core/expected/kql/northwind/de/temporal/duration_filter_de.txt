@@ -1,0 +1,5 @@
+// Duration literal: filter orders placed within the last 30 days.
+
+FIND bestellungen o
+FILTER o.bestelldatum >= now() - 30d
+FETCH o.bestell_id, o.bestelldatum

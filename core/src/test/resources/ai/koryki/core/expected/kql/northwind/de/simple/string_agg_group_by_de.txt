@@ -1,0 +1,5 @@
+// string_agg is an aggregate: it must trigger GROUP BY inference for the
+// scalar columns and must not itself be added to GROUP BY.
+
+FIND kunden c, c bestellungen o
+FETCH c.firma, string_agg(o.versand_stadt, ',')

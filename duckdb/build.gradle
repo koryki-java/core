@@ -1,0 +1,51 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+}
+
+description = 'koryki duckdb databases and services'
+
+java {
+    withSourcesJar() // Optional: Creates the sources JAR
+    withJavadocJar() // Optional: Creates the Javadoc JAR
+}
+
+dependencies {
+
+    implementation libs.duckdb
+    implementation libs.jackson.databind
+
+
+    implementation project(':core')
+    testImplementation project(':northwind')
+
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly libs.junit.platform.launcher
+}
+
+test {
+    useJUnitPlatform()
+}
+
+tasks.register('DuckdbNorthwindScript', JavaExec) {
+    group = "application"
+    description = "Build the Northwind DuckDB database file at build/northwind.duckdb"
+
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'ai.koryki.databases.northwind.duckdb.BuildNorthwind'
+}
+
+publishing {
+    publications {
+        // Define the publication for this subproject
+        mavenJava(MavenPublication) {
+            // The 'java' component includes the main JAR artifact and its transitive dependencies
+            from components.java
+
+            // Optionally, override the artifact ID (defaults to project name: 'api')
+            artifactId = 'koryki-duckdb'
+        }
+    }
+}
+

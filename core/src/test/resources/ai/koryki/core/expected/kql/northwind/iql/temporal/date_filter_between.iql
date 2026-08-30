@@ -1,0 +1,8 @@
+// Date literal: BETWEEN range on order date.
+
+SELECT
+ orders o
+  OUT o.order_id 1
+  OUT o.order_date 2
+  FILTER
+    o.order_date BETWEEN "1996-01-01" AND "1996-12-31"

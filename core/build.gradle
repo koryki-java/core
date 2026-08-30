@@ -1,0 +1,132 @@
+plugins {
+    id 'java'
+    alias(libs.plugins.jacoco)
+    alias(libs.plugins.antlr)
+    id 'maven-publish'
+}
+
+java {
+    withSourcesJar() // Optional: Creates the sources JAR
+    withJavadocJar() // Optional: Creates the Javadoc JAR
+}
+
+
+dependencies {
+
+    antlr libs.antlr4
+
+    implementation(libs.antlr4.runtime)
+
+    // The KQL grammar lives in kqlcore. 'api', because generated types (KQLParser.QueryContext)
+    // appear in core's public signatures -- KQLTranspiler.getCtx(), for instance.
+    api project(':kqlcore')
+
+    implementation libs.jackson.databind
+    // @JsonValue in catalog.types.* — Jackson 3 keeps annotations on the 2.x line,
+    // so declare it rather than relying on the jackson-databind transitive
+    implementation libs.jackson.annotations
+
+    testImplementation project(':northwind')
+    //testImplementation project(':duckdb')
+
+
+    // JUnit
+    testImplementation libs.koryki.catalog
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly libs.junit.platform.launcher
+}
+
+// Gradle's AntlrPlugin attaches the antlr configuration to api -- it predates java-library and
+// does not know the difference between a tool and a runtime. The consequence showed up in the
+// published metadata: org.antlr:antlr4, the parser GENERATOR, in apiElements AND runtimeElements.
+// It drags in com.ibm.icu:icu4j (13.7 MB) plus ST4, antlr-runtime 3.5.3 and treelayout -- some
+// 15.4 MB that every consumer ships and nobody touches.
+//
+// To run a generated parser, antlr4-runtime is enough: javap on the generated KQLParser.class
+// names org/antlr/v4/runtime/ as its only ANTLR reference.
+//
+// The antlr configuration itself is left untouched, AntlrTask takes its classpath from there --
+// so generation still happens with the full tool.
+configurations.named('api') {
+    setExtendsFrom(extendsFrom.findAll { it.name != 'antlr' })
+}
+
+sourceSets.main.java.srcDirs += ['build/generated-src/antlr/main/']
+
+tasks.named('sourcesJar').configure {
+    // Declares that 'sourcesJar' cannot run until 'generateGrammarSource' has finished.
+    dependsOn ':core:generateGrammarSourceIql'
+    dependsOn ':core:copyFromProducer'
+}
+
+test {
+
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+}
+
+tasks.named("compileJava") {
+    dependsOn tasks.named("generateGrammarSourceIql")
+}
+
+tasks.named("javadoc") {
+    dependsOn tasks.named("generateGrammarSourceIql")
+}
+
+tasks.register("generateGrammarSourceIql", AntlrTask) {
+    source = fileTree("src/main/antlr/iql") {
+        include '*.g4'
+    }
+    // packageName instead of the "-package" argument: the latter is deprecated and becomes an
+    // error in Gradle 10. The property appends the package path to the output directory itself.
+    outputDirectory = layout.buildDirectory.dir("generated-src/antlr/main").get().asFile
+    packageName = "ai.koryki.iql"
+    maxHeapSize = "128m"
+    arguments += ["-visitor", "-long-messages"]
+}
+
+jar {
+    // Set the strategy to EXCLUDE (keeps the first file encountered, ignores duplicates)
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+sourcesJar {
+    // Set the strategy to EXCLUDE (keeps the first file encountered, ignores duplicates)
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+publishing {
+    publications {
+        // Define the publication for this subproject
+        mavenJava(MavenPublication) {
+            // The 'java' component includes the main JAR artifact and its transitive dependencies
+            from components.java
+
+            // Optionally, override the artifact ID (defaults to project name: 'api')
+            artifactId = 'koryki-core'
+        }
+    }
+}
+
+// The IQL grammar goes into the artifact as a resource. The target is a build directory, not the
+// source tree: a Copy task never deletes, so build products used to pile up there -- that is how
+// the generated gen/ directory got into the resources and from there into version control.
+def generatedResources = layout.buildDirectory.dir("generated-resources")
+
+tasks.register("copyFromProducer", Copy) {
+    from(layout.projectDirectory.dir("src/main/antlr")) {
+        include '**/*.g4'
+    }
+    into(generatedResources.map { it.dir("ai/koryki") })
+}
+
+sourceSets.main.resources.srcDir(generatedResources)
+
+tasks.named("processResources") {
+    dependsOn("copyFromProducer")
+}

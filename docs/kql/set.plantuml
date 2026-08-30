@@ -1,0 +1,13 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title set
+
+set = select
+  |set, "INTERSECT", set
+  | set, ("UNION" | "UNIONALL" | "MINUS" ), set
+  | "(", set, ")"
+;
+@endebnf

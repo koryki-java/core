@@ -1,0 +1,13 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title fetch
+
+fetch =
+    "FETCH", ["DISTINCT"], fetch_item, {",", fetch_item}, ["ROLLUP"]
+;
+
+
+@endebnf

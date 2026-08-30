@@ -1,0 +1,13 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title order
+
+order =
+"ORDER", expression, {",", expression}, [(ASC|DESC)]
+;
+
+
+@endebnf

@@ -1,0 +1,4 @@
+FIND customers c, c+orders o
+FILTER c.country = 'Germany'
+  AND o.order_date BETWEEN "2023-01-01" AND "2023-12-31"
+FETCH c.company_name DESC, count(o)

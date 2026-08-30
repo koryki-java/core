@@ -1,0 +1,41 @@
+package ai.koryki.snowflake.casts;
+
+import ai.koryki.databases.cases.BaseEngineTest;
+import ai.koryki.databases.cases.ListWithSqlResult;
+import ai.koryki.databases.cases.StableFormat;
+import ai.koryki.databases.northwind.duckdb.NorthwindService;
+import ai.koryki.kql.EngineBuilder;
+import ai.koryki.kql.HeaderInfo;
+import ai.koryki.snowflake.iql.SqlQueryRenderer;
+import ai.koryki.snowflake.northwind.NorthwindSnowflake;
+import ai.koryki.snowflake.SnowflakeUnavailable;
+import org.junit.jupiter.api.BeforeAll;
+
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.Locale;
+
+/**
+ * The casts corpus on Snowflake. It ran on DuckDB alone, which is how {@code to_integer(4.5)} could
+ * answer 4 for so long although the catalog promises a half-way value rounds away from zero: the
+ * single dialect checking the rounding was the one getting it wrong. The fixtures query northwind
+ * tables, so this is the northwind engine pointed at the casts fixture directory.
+ */
+@SnowflakeUnavailable
+public class CastsSnowflakeEngineTest extends BaseEngineTest<HeaderInfo> {
+
+    @Override
+    protected String schema() {
+        return "casts";
+    }
+
+    public CastsSnowflakeEngineTest() {
+        super("snowflake", true);
+    }
+
+    @BeforeAll
+    public void setup() throws Exception {
+        engine = EngineBuilder.headers(new NorthwindSnowflake<ListWithSqlResult<HeaderInfo>>(), NorthwindService.resolver(),
+                new SqlQueryRenderer(java.time.ZoneId.of("UTC"))).valueFormat(new StableFormat(Locale.ROOT)).build();
+    }
+}

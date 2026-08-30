@@ -1,0 +1,11 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title source
+
+source =
+    "ID", "ID"
+;
+@endebnf

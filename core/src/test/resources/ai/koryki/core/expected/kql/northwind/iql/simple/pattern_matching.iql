@@ -1,0 +1,11 @@
+// Pattern-matching chapter: regexp_like maps to DuckDB regexp_matches,
+// regexp_count to len(regexp_extract_all) (DuckDB has no regexp_count);
+// the optional 3rd start argument becomes a substr on the input.
+
+SELECT
+ customers c
+  OUT c.company_name 1
+  OUT regexp_like(c.company_name, '^A') 2
+  OUT regexp_count(c.company_name, 'a', 3) tail_count 3
+  FILTER
+    regexp_count(c.company_name, 'a') > 1

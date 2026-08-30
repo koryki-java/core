@@ -1,0 +1,2 @@
+FIND products p1
+FETCH p1.product_name, count(upper(p1.product_name))

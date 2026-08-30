@@ -1,0 +1,13 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title function
+
+
+function =
+    "ID", "(", [argument, {",", argument}], ")", [window]
+;
+
+@endebnf

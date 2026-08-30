@@ -1,0 +1,93 @@
+plugins {
+    alias(libs.plugins.antlr)
+    id 'java-library'
+    id 'maven-publish'
+}
+
+description = 'KQL grammar without VISUALISE'
+
+dependencies {
+    antlr libs.antlr4
+    api(libs.antlr4.runtime)
+}
+
+// Gradle's AntlrPlugin attaches the antlr configuration to api -- it predates java-library and
+// does not know the difference between a tool and a runtime. The consequence showed up in the
+// published metadata: org.antlr:antlr4, the parser GENERATOR, in apiElements AND runtimeElements.
+// It drags in com.ibm.icu:icu4j (13.7 MB) plus ST4, antlr-runtime 3.5.3 and treelayout -- some
+// 15.4 MB that every consumer ships and nobody touches.
+//
+// To run a generated parser, antlr4-runtime is enough: javap on the generated KQLParser.class
+// names org/antlr/v4/runtime/ as its only ANTLR reference.
+//
+// The antlr configuration itself is left untouched, AntlrTask takes its classpath from there --
+// so generation still happens with the full tool.
+configurations.named('api') {
+    setExtendsFrom(extendsFrom.findAll { it.name != 'antlr' })
+}
+
+def antlrDir = file("src/main/antlr/ai/koryki/kql")
+def outDir   = layout.buildDirectory.dir("generated-src/antlr/main")
+
+
+tasks.named('generateGrammarSource') { enabled = false }
+
+// Two runs: the lexer first, then the parser. tokenVocab resolves KQLLexer.tokens through the
+// OUTPUT directory the lexer run writes it to -- it does not have to be copied to -lib. -lib points
+// only at the fragments, which sit flat next to the base grammars here. That they are not also
+// compiled on their own is ensured by naming them explicitly in `source` (no '*.g4' glob).
+//
+// The imported fragments must additionally be DECLARED as inputs: `source` names only the base
+// grammar, KQLRules.g4 and KQLTokens.g4 come in via -lib. Without that declaration the task counts
+// as UP-TO-DATE after a change to a fragment, the old parser stays in place -- and the grammar
+// change simply has no effect. Measured: a rule change in KQLRules.g4 triggered no regeneration and
+// only surfaced as a compiler error in core.
+def declareGrammarImports = { AntlrTask t ->
+    t.inputs.dir(antlrDir)
+            .withPathSensitivity(PathSensitivity.RELATIVE)
+            .withPropertyName('grammarImports')
+}
+// -Werror: ANTLR reports an unknown token as a warning and carries on, defining it implicitly --
+// and an implicitly defined token never matches, so the rule using it is simply dead. A misspelt
+// EQUAL for EQUALS built cleanly and parsed nothing; the warning was there and went by. The build
+// has no warnings otherwise, so refusing them costs nothing and catches exactly that class.
+tasks.register("genLexer", AntlrTask) {
+    source = fileTree(antlrDir) { include 'KQLLexer.g4' }
+    outputDirectory = outDir.get().asFile
+    packageName = "ai.koryki.kql"
+    arguments += ["-long-messages", "-Werror", "-lib", antlrDir.absolutePath]
+    declareGrammarImports(it)
+}
+tasks.register("genParser", AntlrTask) {
+    dependsOn "genLexer"
+    source = fileTree(antlrDir) { include 'KQLParser.g4' }
+    outputDirectory = outDir.get().asFile
+    packageName = "ai.koryki.kql"
+    arguments += ["-visitor", "-long-messages", "-Werror", "-lib", antlrDir.absolutePath]
+    declareGrammarImports(it)
+}
+sourceSets.main.java.srcDirs += [outDir]
+tasks.named('compileJava') { dependsOn "genParser" }
+
+// Both grammar artifacts provide the same capability: if they end up on the classpath together,
+// Gradle aborts with a named conflict message instead of silently picking one by order. The
+// implicit capability has to be declared alongside -- otherwise an ordinary consumer no longer
+// finds a matching variant.
+['apiElements', 'runtimeElements'].each { cfg ->
+    configurations.named(cfg).configure {
+        // The implicit capability must cover BOTH coordinate forms: on the project path
+        // group:projectName applies, in the published module group:artifactId. If the second is
+        // missing, a Maven consumer fails with "Unable to find a variant with the requested
+        // capabilities: []" -- on the project path this goes unnoticed.
+        outgoing.capability("${project.group}:${project.name}:${project.version}")
+        outgoing.capability("${project.group}:koryki-kqlcore:${project.version}")
+        outgoing.capability("ai.koryki:kql-grammar:${project.version}")
+    }
+}
+
+publishing { publications { mavenJava(MavenPublication) { from components.java; artifactId = 'koryki-kqlcore' } } }
+
+// The grammar sits under its package path (the ANTLR plugin's convention) and is shipped straight
+// from there as a resource -- without a copy. So the file exists exactly once: no second version
+// that could go stale, and nothing left behind after a deletion.
+sourceSets.main.resources.srcDir("src/main/antlr")

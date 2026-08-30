@@ -1,0 +1,2 @@
+FIND produkte p
+FETCH p.produkt_name, to_bigint(p.anzahl_im_lager) stock_bigint

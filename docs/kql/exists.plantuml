@@ -1,0 +1,12 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title exists
+
+
+exists =
+    "EXISTS", "(", existslink, {",", link}, [filter_clause], ")"
+;
+@endebnf

@@ -1,0 +1,12 @@
+// Distances and Rolling (TEMPORAL.md): whole-unit distances, computed adds,
+// roll down to the unit start, roll up to the last day of the unit.
+
+SELECT
+ orders o
+  OUT o.order_id 1
+  OUT month_begin(o.order_date) 2
+  OUT month_end(o.order_date) 3
+  OUT month_add(o.order_date, 1) 4
+  OUT months_between(o.order_date, o.shipped_date) 5
+  FILTER
+    days_between(o.order_date, o.shipped_date) > 7
