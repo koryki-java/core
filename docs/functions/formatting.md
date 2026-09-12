@@ -85,7 +85,8 @@ Sample query:
 ```kql
 // to_char: format the order date as YYYY-MM.
 FIND orders o
-FETCH to_char(o.order_date, 'YYYY-MM') ym
+FETCH o.order_id ASC, to_char(o.order_date, 'YYYY-MM') ym
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -95,20 +96,50 @@ FETCH to_char(o.order_date, 'YYYY-MM') ym
 ```sql
 -- to_char: format the order date as YYYY-MM.
 SELECT
-  to_char(o.order_date, 'YYYY-MM') AS ym
+  o.order_id
+, to_char(o.order_date, 'YYYY-MM') AS ym
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| duckdb | `strftime(o.order_date, '%Y-%m') AS ym` |
-| mariadb | `DATE_FORMAT(o.order_date, '%Y-%m') AS ym` |
-| mssql | `CONCAT(CAST(YEAR(o.order_date) AS VARCHAR(4)), '-', RIGHT('0' + CAST(MONTH(o.order_date) AS VARCHAR(2)), 2)) AS ym` |
-| sqlite | `strftime('%Y-%m', o.order_date) AS ym` |
-| trino | `date_format(o.order_date, '%Y-%m') AS ym` |
+| duckdb | `, strftime(o.order_date, '%Y-%m') AS ym` |
+| mariadb | `, DATE_FORMAT(o.order_date, '%Y-%m') AS ym` |
+| trino | `, date_format(o.order_date, '%Y-%m') AS ym` |
+
+**mssql**
+
+```sql
+-- to_char: format the order date as YYYY-MM.
+SELECT
+  o.order_id
+, CONCAT(CAST(YEAR(o.order_date) AS VARCHAR(4)), '-', RIGHT('0' + CAST(MONTH(o.order_date) AS VARCHAR(2)), 2)) AS ym
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
+
+**sqlite**
+
+```sql
+-- to_char: format the order date as YYYY-MM.
+SELECT
+  o.order_id
+, strftime('%Y-%m', o.order_date) AS ym
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## to_number

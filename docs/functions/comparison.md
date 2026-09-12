@@ -151,12 +151,13 @@ Sample query:
 // <> : orders shipped anywhere but one city.
 FIND orders o
 FILTER o.ship_city <> 'London'
-FETCH o.order_id, o.ship_city
+FETCH o.order_id ASC, o.ship_city
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**all dialects**
+**duckdb · oracle · snowflake · postgresql · mariadb · trino**
 
 ```sql
 -- <> : orders shipped anywhere but one city.
@@ -167,7 +168,17 @@ FROM
  orders o
 WHERE
   o.ship_city <> 'London'
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
+
+The remaining dialects differ only in this expression:
+
+| Dialect | Expression |
+|---|---|
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+| sqlite | `LIMIT 20` |
 
 
 ## <
@@ -187,23 +198,36 @@ Sample query:
 // < : order lines priced below a threshold.
 FIND order_details od
 FILTER od.unit_price < 10
-FETCH od.order_id, od.unit_price
+FETCH od.order_id ASC, od.product_id ASC, od.unit_price
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**all dialects**
+**duckdb · oracle · snowflake · postgresql · mariadb · trino**
 
 ```sql
 -- < : order lines priced below a threshold.
 SELECT
   od.order_id
+, od.product_id
 , od.unit_price
 FROM
  order_details od
 WHERE
   od.unit_price < 10
+ORDER BY
+  od.order_id ASC
+, od.product_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
+
+The remaining dialects differ only in this expression:
+
+| Dialect | Expression |
+|---|---|
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+| sqlite | `LIMIT 20` |
 
 
 ## <=
@@ -223,23 +247,36 @@ Sample query:
 // <= : order lines at or below a discount ceiling.
 FIND order_details od
 FILTER od.discount <= 0.1
-FETCH od.order_id, od.discount
+FETCH od.order_id ASC, od.product_id ASC, od.discount
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**all dialects**
+**duckdb · oracle · snowflake · postgresql · mariadb · trino**
 
 ```sql
 -- <= : order lines at or below a discount ceiling.
 SELECT
   od.order_id
+, od.product_id
 , od.discount
 FROM
  order_details od
 WHERE
   od.discount <= 0.1
+ORDER BY
+  od.order_id ASC
+, od.product_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
+
+The remaining dialects differ only in this expression:
+
+| Dialect | Expression |
+|---|---|
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+| sqlite | `LIMIT 20` |
 
 
 ## >
@@ -259,12 +296,13 @@ Sample query:
 // > : orders with freight above a threshold.
 FIND orders o
 FILTER o.freight > 100
-FETCH o.order_id, o.freight
+FETCH o.order_id ASC, o.freight
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**all dialects**
+**duckdb · oracle · snowflake · postgresql · mariadb · trino**
 
 ```sql
 -- > : orders with freight above a threshold.
@@ -275,7 +313,17 @@ FROM
  orders o
 WHERE
   o.freight > 100
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
+
+The remaining dialects differ only in this expression:
+
+| Dialect | Expression |
+|---|---|
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+| sqlite | `LIMIT 20` |
 
 
 ## >=
@@ -295,23 +343,36 @@ Sample query:
 // >= : order lines at or above a quantity threshold.
 FIND order_details od
 FILTER od.quantity >= 10
-FETCH od.order_id, od.quantity
+FETCH od.order_id ASC, od.product_id ASC, od.quantity
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**all dialects**
+**duckdb · oracle · snowflake · postgresql · mariadb · trino**
 
 ```sql
 -- >= : order lines at or above a quantity threshold.
 SELECT
   od.order_id
+, od.product_id
 , od.quantity
 FROM
  order_details od
 WHERE
   od.quantity >= 10
+ORDER BY
+  od.order_id ASC
+, od.product_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
+
+The remaining dialects differ only in this expression:
+
+| Dialect | Expression |
+|---|---|
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+| sqlite | `LIMIT 20` |
 
 
 ## LIKE
@@ -367,8 +428,9 @@ Sample query:
 ```kql
 // BETWEEN : orders in a date range — a temporal upper bound renders as a half-open interval.
 FIND orders o
-FILTER o.order_date BETWEEN "1996-07-01" AND "1996-12-31"
-FETCH o.order_id, o.order_date
+FILTER o.order_date BETWEEN "2022-07-01" AND "2022-12-31"
+FETCH o.order_id ASC, o.order_date
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -383,9 +445,12 @@ SELECT
 FROM
  orders o
 WHERE
-  o.order_date >= DATE '1996-07-01'
+  o.order_date >= DATE '2022-07-01'
  AND
-  o.order_date < DATE '1997-01-01'
+  o.order_date < DATE '2023-01-01'
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 **mssql**
@@ -398,9 +463,12 @@ SELECT
 FROM
  orders o
 WHERE
-  o.order_date >= CAST('1996-07-01' AS DATE)
+  o.order_date >= CAST('2022-07-01' AS DATE)
  AND
-  o.order_date < CAST('1997-01-01' AS DATE)
+  o.order_date < CAST('2023-01-01' AS DATE)
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
 ```
 
 **sqlite**
@@ -413,9 +481,12 @@ SELECT
 FROM
  orders o
 WHERE
-  o.order_date >= '1996-07-01'
+  o.order_date >= '2022-07-01'
  AND
-  o.order_date < '1997-01-01'
+  o.order_date < '2023-01-01'
+ORDER BY
+  o.order_id ASC
+LIMIT 20
 ```
 
 

@@ -42,9 +42,17 @@ rootProject.allprojects {
         // with a named message (see Fixtures.root()); a guessed path would be worse, because a run
         // over zero fixtures looks just like a passing one.
         //
-        // Settable on the command line (-Dtest.root=...) or permanently as a Gradle property in
-        // gradle.properties. The test JVM is forked and inherits nothing, hence the pass-through.
-        def testRoot = System.getProperty('test.root') ?: providers.gradleProperty('test.root').orNull
+        // Resolution order: an explicit -Dtest.root=..., then a permanent 'test.root' Gradle
+        // property (e.g. in gradle.properties, to point at a different local checkout), then the
+        // 'northwind-fixtures' git submodule at the root of this repo -- the pinned, versioned copy
+        // every fresh clone gets via 'git submodule update --init'. The override stays available
+        // for developing against fixture changes that are not released yet.
+        //
+        // The test JVM is forked and inherits nothing, hence the pass-through.
+        def submoduleFixturesRoot = rootProject.layout.projectDirectory.dir('northwind-fixtures').asFile
+        def testRoot = System.getProperty('test.root')
+                ?: providers.gradleProperty('test.root').orNull
+                ?: (submoduleFixturesRoot.isDirectory() ? submoduleFixturesRoot.path : null)
         if (testRoot) {
             testTask.systemProperty 'test.root', testRoot
 
@@ -84,5 +92,61 @@ rootProject.allprojects {
     java {
         withSourcesJar() // Optional: Creates the sources JAR
         withJavadocJar() // Optional: Creates the Javadoc JAR
+    }
+
+    // Without this, a consumer on the module path gets an "automatic module" named from the jar
+    // FILE NAME (koryki.core, hyphens and version stripped) -- unstable across any artifact rename
+    // and not something we chose. group+name is unique across every module in this build already,
+    // so it costs nothing to state explicitly here rather than leave it to that guess.
+    pluginManager.withPlugin('java-base') {
+        tasks.withType(Jar).configureEach {
+            manifest {
+                attributes('Automatic-Module-Name': "${project.group}.${project.name}".toString())
+            }
+        }
+    }
+
+    // Maven Central rejects an upload whose POM lacks name/description/url/licenses/developers/scm.
+    // Applied once here rather than repeated in each subproject's own publishing{} block -- which
+    // still exists per subproject, but only to set artifactId and 'from components.java'. Gradle
+    // merges both configurations of the same publication name.
+    //
+    // Via pluginManager.withPlugin, matching the toolchain block above: subprojects apply
+    // maven-publish themselves, after this block would otherwise have run.
+    pluginManager.withPlugin('maven-publish') {
+        publishing {
+            publications {
+                mavenJava(MavenPublication) {
+                    pom {
+                        name = project.name
+                        // Lazy on purpose: 'maven-publish' is applied at the top of each
+                        // subproject's build.gradle, so this withPlugin callback fires before that
+                        // file's own 'description = ...' line (further down the same file) has run.
+                        // A plain assignment here would see it as still null; a Provider defers the
+                        // read to POM-generation time, after the whole project is configured.
+                        description.set(project.provider { project.description ?: 'Part of the koryki KQL transpiler.' })
+                        url = 'https://github.com/koryki-java/core'
+                        licenses {
+                            license {
+                                name = 'The Apache License, Version 2.0'
+                                url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                            }
+                        }
+                        developers {
+                            developer {
+                                id = 'johanneszemlin'
+                                name = 'Johannes Zemlin'
+                                email = 'johannes.zemlin@mailbox.org'
+                            }
+                        }
+                        scm {
+                            connection = 'scm:git:https://github.com/koryki-java/core.git'
+                            developerConnection = 'scm:git:git@github.com:koryki-java/core.git'
+                            url = 'https://github.com/koryki-java/core'
+                        }
+                    }
+                }
+            }
+        }
     }
 }

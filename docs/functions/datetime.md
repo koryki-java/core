@@ -203,27 +203,46 @@ Sample query:
 ```kql
 // year: the year component of the order date.
 FIND orders o
-FETCH year(o.order_date) order_year
+FETCH o.order_id ASC, year(o.order_date) order_year
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**duckdb · snowflake · mssql · mariadb · trino**
+**duckdb · snowflake · mariadb · trino**
 
 ```sql
 -- year: the year component of the order date.
 SELECT
-  year(o.order_date) AS order_year
+  o.order_id
+, year(o.order_date) AS order_year
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| oracle · postgresql | `EXTRACT(YEAR FROM o.order_date) AS order_year` |
-| sqlite | `CAST(strftime('%Y', o.order_date) AS INTEGER) AS order_year` |
+| oracle · postgresql | `, EXTRACT(YEAR FROM o.order_date) AS order_year` |
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+
+**sqlite**
+
+```sql
+-- year: the year component of the order date.
+SELECT
+  o.order_id
+, CAST(strftime('%Y', o.order_date) AS INTEGER) AS order_year
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## month
@@ -241,27 +260,46 @@ Sample query:
 ```kql
 // month: the month component of the order date.
 FIND orders o
-FETCH month(o.order_date) order_month
+FETCH o.order_id ASC, month(o.order_date) order_month
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**duckdb · snowflake · mssql · mariadb · trino**
+**duckdb · snowflake · mariadb · trino**
 
 ```sql
 -- month: the month component of the order date.
 SELECT
-  month(o.order_date) AS order_month
+  o.order_id
+, month(o.order_date) AS order_month
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| oracle · postgresql | `EXTRACT(MONTH FROM o.order_date) AS order_month` |
-| sqlite | `CAST(strftime('%m', o.order_date) AS INTEGER) AS order_month` |
+| oracle · postgresql | `, EXTRACT(MONTH FROM o.order_date) AS order_month` |
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+
+**sqlite**
+
+```sql
+-- month: the month component of the order date.
+SELECT
+  o.order_id
+, CAST(strftime('%m', o.order_date) AS INTEGER) AS order_month
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## day
@@ -279,27 +317,46 @@ Sample query:
 ```kql
 // day: the day-of-month of the order date.
 FIND orders o
-FETCH day(o.order_date) order_day
+FETCH o.order_id ASC, day(o.order_date) order_day
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**duckdb · snowflake · mssql · mariadb · trino**
+**duckdb · snowflake · mariadb · trino**
 
 ```sql
 -- day: the day-of-month of the order date.
 SELECT
-  day(o.order_date) AS order_day
+  o.order_id
+, day(o.order_date) AS order_day
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| oracle · postgresql | `EXTRACT(DAY FROM o.order_date) AS order_day` |
-| sqlite | `CAST(strftime('%d', o.order_date) AS INTEGER) AS order_day` |
+| oracle · postgresql | `, EXTRACT(DAY FROM o.order_date) AS order_day` |
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+
+**sqlite**
+
+```sql
+-- day: the day-of-month of the order date.
+SELECT
+  o.order_id
+, CAST(strftime('%d', o.order_date) AS INTEGER) AS order_day
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## hour
@@ -435,7 +492,8 @@ Sample query:
 ```kql
 // quarter: which quarter of the year the order falls in.
 FIND orders o
-FETCH quarter(o.order_date) order_quarter
+FETCH o.order_id ASC, quarter(o.order_date) order_quarter
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -445,19 +503,49 @@ FETCH quarter(o.order_date) order_quarter
 ```sql
 -- quarter: which quarter of the year the order falls in.
 SELECT
-  quarter(o.order_date) AS order_quarter
+  o.order_id
+, quarter(o.order_date) AS order_quarter
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mssql | `DATEPART(quarter, o.order_date) AS order_quarter` |
-| oracle | `TO_NUMBER(TO_CHAR(o.order_date, 'Q')) AS order_quarter` |
-| postgresql | `EXTRACT(QUARTER FROM o.order_date) AS order_quarter` |
-| sqlite | `((CAST(strftime('%m', o.order_date) AS INTEGER) + 2) / 3) AS order_quarter` |
+| oracle | `, TO_NUMBER(TO_CHAR(o.order_date, 'Q')) AS order_quarter` |
+| postgresql | `, EXTRACT(QUARTER FROM o.order_date) AS order_quarter` |
+
+**mssql**
+
+```sql
+-- quarter: which quarter of the year the order falls in.
+SELECT
+  o.order_id
+, DATEPART(quarter, o.order_date) AS order_quarter
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
+
+**sqlite**
+
+```sql
+-- quarter: which quarter of the year the order falls in.
+SELECT
+  o.order_id
+, ((CAST(strftime('%m', o.order_date) AS INTEGER) + 2) / 3) AS order_quarter
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## week
@@ -475,7 +563,8 @@ Sample query:
 ```kql
 // week: the ISO-8601 week number of the order date.
 FIND orders o
-FETCH week(o.order_date) order_week
+FETCH o.order_id ASC, week(o.order_date) order_week
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -485,21 +574,51 @@ FETCH week(o.order_date) order_week
 ```sql
 -- week: the ISO-8601 week number of the order date.
 SELECT
-  week(o.order_date) AS order_week
+  o.order_id
+, week(o.order_date) AS order_week
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mariadb | `WEEKOFYEAR(o.order_date) AS order_week` |
-| mssql | `DATEPART(iso_week, o.order_date) AS order_week` |
-| oracle | `TO_NUMBER(TO_CHAR(o.order_date, 'IW')) AS order_week` |
-| postgresql | `EXTRACT(WEEK FROM o.order_date) AS order_week` |
-| snowflake | `WEEKISO(o.order_date) AS order_week` |
-| sqlite | `((CAST(strftime('%j', date(o.order_date, '-3 days', 'weekday 4')) AS INTEGER) - 1) / 7 + 1) AS order_week` |
+| mariadb | `, WEEKOFYEAR(o.order_date) AS order_week` |
+| oracle | `, TO_NUMBER(TO_CHAR(o.order_date, 'IW')) AS order_week` |
+| postgresql | `, EXTRACT(WEEK FROM o.order_date) AS order_week` |
+| snowflake | `, WEEKISO(o.order_date) AS order_week` |
+
+**mssql**
+
+```sql
+-- week: the ISO-8601 week number of the order date.
+SELECT
+  o.order_id
+, DATEPART(iso_week, o.order_date) AS order_week
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
+
+**sqlite**
+
+```sql
+-- week: the ISO-8601 week number of the order date.
+SELECT
+  o.order_id
+, ((CAST(strftime('%j', date(o.order_date, '-3 days', 'weekday 4')) AS INTEGER) - 1) / 7 + 1) AS order_week
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## dayofweek
@@ -517,7 +636,8 @@ Sample query:
 ```kql
 // dayofweek: which weekday the order was placed on, Monday = 1.
 FIND orders o
-FETCH dayofweek(o.order_date) order_weekday
+FETCH o.order_id ASC, dayofweek(o.order_date) order_weekday
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -527,22 +647,52 @@ FETCH dayofweek(o.order_date) order_weekday
 ```sql
 -- dayofweek: which weekday the order was placed on, Monday = 1.
 SELECT
-  isodow(o.order_date) AS order_weekday
+  o.order_id
+, isodow(o.order_date) AS order_weekday
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mariadb | `(WEEKDAY(o.order_date) + 1) AS order_weekday` |
-| mssql | `((DATEDIFF(day, '19000101', o.order_date) % 7) + 1) AS order_weekday` |
-| oracle | `(TRUNC(o.order_date) - TRUNC(o.order_date, 'IW') + 1) AS order_weekday` |
-| postgresql | `EXTRACT(ISODOW FROM o.order_date) AS order_weekday` |
-| snowflake | `DAYOFWEEKISO(o.order_date) AS order_weekday` |
-| sqlite | `(((CAST(strftime('%w', o.order_date) AS INTEGER) + 6) % 7) + 1) AS order_weekday` |
-| trino | `day_of_week(o.order_date) AS order_weekday` |
+| mariadb | `, (WEEKDAY(o.order_date) + 1) AS order_weekday` |
+| oracle | `, (TRUNC(o.order_date) - TRUNC(o.order_date, 'IW') + 1) AS order_weekday` |
+| postgresql | `, EXTRACT(ISODOW FROM o.order_date) AS order_weekday` |
+| snowflake | `, DAYOFWEEKISO(o.order_date) AS order_weekday` |
+| trino | `, day_of_week(o.order_date) AS order_weekday` |
+
+**mssql**
+
+```sql
+-- dayofweek: which weekday the order was placed on, Monday = 1.
+SELECT
+  o.order_id
+, ((DATEDIFF(day, '19000101', o.order_date) % 7) + 1) AS order_weekday
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
+
+**sqlite**
+
+```sql
+-- dayofweek: which weekday the order was placed on, Monday = 1.
+SELECT
+  o.order_id
+, (((CAST(strftime('%w', o.order_date) AS INTEGER) + 6) % 7) + 1) AS order_weekday
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## dayofyear
@@ -560,7 +710,8 @@ Sample query:
 ```kql
 // dayofyear: how far into the year the order date is.
 FIND orders o
-FETCH dayofyear(o.order_date) order_dayofyear
+FETCH o.order_id ASC, dayofyear(o.order_date) order_dayofyear
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -570,20 +721,50 @@ FETCH dayofyear(o.order_date) order_dayofyear
 ```sql
 -- dayofyear: how far into the year the order date is.
 SELECT
-  dayofyear(o.order_date) AS order_dayofyear
+  o.order_id
+, dayofyear(o.order_date) AS order_dayofyear
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mssql | `DATEPART(dayofyear, o.order_date) AS order_dayofyear` |
-| oracle | `TO_NUMBER(TO_CHAR(o.order_date, 'DDD')) AS order_dayofyear` |
-| postgresql | `EXTRACT(DOY FROM o.order_date) AS order_dayofyear` |
-| sqlite | `CAST(strftime('%j', o.order_date) AS INTEGER) AS order_dayofyear` |
-| trino | `day_of_year(o.order_date) AS order_dayofyear` |
+| oracle | `, TO_NUMBER(TO_CHAR(o.order_date, 'DDD')) AS order_dayofyear` |
+| postgresql | `, EXTRACT(DOY FROM o.order_date) AS order_dayofyear` |
+| trino | `, day_of_year(o.order_date) AS order_dayofyear` |
+
+**mssql**
+
+```sql
+-- dayofyear: how far into the year the order date is.
+SELECT
+  o.order_id
+, DATEPART(dayofyear, o.order_date) AS order_dayofyear
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
+
+**sqlite**
+
+```sql
+-- dayofyear: how far into the year the order date is.
+SELECT
+  o.order_id
+, CAST(strftime('%j', o.order_date) AS INTEGER) AS order_dayofyear
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## year_month
@@ -603,28 +784,47 @@ Sample query:
 ```kql
 // year_month: the order's month as a sortable YYYYMM key.
 FIND orders o
-FETCH year_month(o.order_date) order_year_month
+FETCH o.order_id ASC, year_month(o.order_date) order_year_month
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**duckdb · snowflake · mssql · mariadb · trino**
+**duckdb · snowflake · mariadb · trino**
 
 ```sql
 -- year_month: the order's month as a sortable YYYYMM key.
 SELECT
-  (year(o.order_date) * 100 + month(o.order_date)) AS order_year_month
+  o.order_id
+, (year(o.order_date) * 100 + month(o.order_date)) AS order_year_month
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| oracle | `TO_NUMBER(TO_CHAR(o.order_date, 'YYYYMM')) AS order_year_month` |
-| postgresql | `CAST(EXTRACT(YEAR FROM o.order_date) * 100 + EXTRACT(MONTH FROM o.order_date) AS INTEGER) AS order_year_month` |
-| sqlite | `CAST(strftime('%Y%m', o.order_date) AS INTEGER) AS order_year_month` |
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+| oracle | `, TO_NUMBER(TO_CHAR(o.order_date, 'YYYYMM')) AS order_year_month` |
+| postgresql | `, CAST(EXTRACT(YEAR FROM o.order_date) * 100 + EXTRACT(MONTH FROM o.order_date) AS INTEGER) AS order_year_month` |
+
+**sqlite**
+
+```sql
+-- year_month: the order's month as a sortable YYYYMM key.
+SELECT
+  o.order_id
+, CAST(strftime('%Y%m', o.order_date) AS INTEGER) AS order_year_month
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## parse_date
@@ -697,7 +897,8 @@ Sample query:
 ```kql
 // date_trunc: truncate the order date to the month.
 FIND orders o
-FETCH date_trunc('month', o.order_date) month_start
+FETCH o.order_id ASC, date_trunc('month', o.order_date) month_start
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -707,19 +908,49 @@ FETCH date_trunc('month', o.order_date) month_start
 ```sql
 -- date_trunc: truncate the order date to the month.
 SELECT
-  date_trunc('month', o.order_date) AS month_start
+  o.order_id
+, date_trunc('month', o.order_date) AS month_start
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mariadb | `(MAKEDATE(YEAR(o.order_date), 1) + INTERVAL (MONTH(o.order_date) - 1) MONTH) AS month_start` |
-| mssql | `DATEADD(MONTH, DATEDIFF(MONTH, 0, o.order_date), 0) AS month_start` |
-| oracle | `TRUNC(o.order_date, 'MM') AS month_start` |
-| sqlite | `date(o.order_date, 'start of month') AS month_start` |
+| mariadb | `, (MAKEDATE(YEAR(o.order_date), 1) + INTERVAL (MONTH(o.order_date) - 1) MONTH) AS month_start` |
+| oracle | `, TRUNC(o.order_date, 'MM') AS month_start` |
+
+**mssql**
+
+```sql
+-- date_trunc: truncate the order date to the month.
+SELECT
+  o.order_id
+, DATEADD(MONTH, DATEDIFF(MONTH, 0, o.order_date), 0) AS month_start
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
+
+**sqlite**
+
+```sql
+-- date_trunc: truncate the order date to the month.
+SELECT
+  o.order_id
+, date(o.order_date, 'start of month') AS month_start
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## make_date
@@ -739,7 +970,8 @@ Sample query:
 ```kql
 // make_date: build a DATE from year, month and day.
 FIND orders o
-FETCH make_date(2024, 1, 31) built
+FETCH o.order_id ASC, make_date(2024, 1, 31) built
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -749,21 +981,51 @@ FETCH make_date(2024, 1, 31) built
 ```sql
 -- make_date: build a DATE from year, month and day.
 SELECT
-  make_date(2024, 1, 31) AS built
+  o.order_id
+, make_date(2024, 1, 31) AS built
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mariadb | `STR_TO_DATE(CONCAT(2024, '-', 1, '-', 31), '%Y-%m-%d') AS built` |
-| mssql | `DATEFROMPARTS(2024, 1, 31) AS built` |
-| oracle | `TO_DATE(2024 \|\| '-' \|\| 1 \|\| '-' \|\| 31, 'YYYY-MM-DD') AS built` |
-| snowflake | `DATE_FROM_PARTS(2024, 1, 31) AS built` |
-| sqlite | `date(printf('%04d-%02d-%02d', 2024, 1, 31)) AS built` |
-| trino | `date(format('%04d-%02d-%02d', 2024, 1, 31)) AS built` |
+| mariadb | `, STR_TO_DATE(CONCAT(2024, '-', 1, '-', 31), '%Y-%m-%d') AS built` |
+| oracle | `, TO_DATE(2024 \|\| '-' \|\| 1 \|\| '-' \|\| 31, 'YYYY-MM-DD') AS built` |
+| snowflake | `, DATE_FROM_PARTS(2024, 1, 31) AS built` |
+| trino | `, date(format('%04d-%02d-%02d', 2024, 1, 31)) AS built` |
+
+**mssql**
+
+```sql
+-- make_date: build a DATE from year, month and day.
+SELECT
+  o.order_id
+, DATEFROMPARTS(2024, 1, 31) AS built
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
+
+**sqlite**
+
+```sql
+-- make_date: build a DATE from year, month and day.
+SELECT
+  o.order_id
+, date(printf('%04d-%02d-%02d', 2024, 1, 31)) AS built
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## make_time
@@ -783,7 +1045,8 @@ Sample query:
 ```kql
 // make_time: build a TIME from hour, minute and second.
 FIND orders o
-FETCH make_time(14, 30, 0) built
+FETCH o.order_id ASC, make_time(14, 30, 0) built
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -793,19 +1056,36 @@ FETCH make_time(14, 30, 0) built
 ```sql
 -- make_time: build a TIME from hour, minute and second.
 SELECT
-  make_time(14, 30, 0) AS built
+  o.order_id
+, make_time(14, 30, 0) AS built
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mariadb | `MAKETIME(14, 30, 0) AS built` |
-| mssql | `TIMEFROMPARTS(14, 30, 0, 0, 0) AS built` |
-| oracle | `LPAD(14, 2, '0') \|\| ':' \|\| LPAD(30, 2, '0') \|\| ':' \|\| LPAD(0, 2, '0') AS built` |
-| snowflake | `TIME_FROM_PARTS(14, 30, 0) AS built` |
+| mariadb | `, MAKETIME(14, 30, 0) AS built` |
+| oracle | `, LPAD(14, 2, '0') \|\| ':' \|\| LPAD(30, 2, '0') \|\| ':' \|\| LPAD(0, 2, '0') AS built` |
+| snowflake | `, TIME_FROM_PARTS(14, 30, 0) AS built` |
+
+**mssql**
+
+```sql
+-- make_time: build a TIME from hour, minute and second.
+SELECT
+  o.order_id
+, TIMEFROMPARTS(14, 30, 0, 0, 0) AS built
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
 
 Unsupported: **sqlite**, **trino**
 
@@ -830,7 +1110,8 @@ Sample query:
 ```kql
 // make_timestamp: build a TIMESTAMP from its parts.
 FIND orders o
-FETCH make_timestamp(2024, 1, 31, 14, 30, 0) built
+FETCH o.order_id ASC, make_timestamp(2024, 1, 31, 14, 30, 0) built
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -840,19 +1121,36 @@ FETCH make_timestamp(2024, 1, 31, 14, 30, 0) built
 ```sql
 -- make_timestamp: build a TIMESTAMP from its parts.
 SELECT
-  make_timestamp(2024, 1, 31, 14, 30, 0) AS built
+  o.order_id
+, make_timestamp(2024, 1, 31, 14, 30, 0) AS built
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mariadb | `STR_TO_DATE(CONCAT(2024, '-', 1, '-', 31, ' ', 14, ':', 30, ':', 0), '%Y-%m-%d %H:%i:%s') AS built` |
-| mssql | `DATETIME2FROMPARTS(2024, 1, 31, 14, 30, 0, 0, 0) AS built` |
-| oracle | `TO_TIMESTAMP(2024 \|\| '-' \|\| 1 \|\| '-' \|\| 31 \|\| ' ' \|\| 14 \|\| ':' \|\| 30 \|\| ':' \|\| 0, 'YYYY-MM-DD HH24:MI:SS') AS built` |
-| snowflake | `TIMESTAMP_NTZ_FROM_PARTS(2024, 1, 31, 14, 30, 0) AS built` |
+| mariadb | `, STR_TO_DATE(CONCAT(2024, '-', 1, '-', 31, ' ', 14, ':', 30, ':', 0), '%Y-%m-%d %H:%i:%s') AS built` |
+| oracle | `, TO_TIMESTAMP(2024 \|\| '-' \|\| 1 \|\| '-' \|\| 31 \|\| ' ' \|\| 14 \|\| ':' \|\| 30 \|\| ':' \|\| 0, 'YYYY-MM-DD HH24:MI:SS') AS built` |
+| snowflake | `, TIMESTAMP_NTZ_FROM_PARTS(2024, 1, 31, 14, 30, 0) AS built` |
+
+**mssql**
+
+```sql
+-- make_timestamp: build a TIMESTAMP from its parts.
+SELECT
+  o.order_id
+, DATETIME2FROMPARTS(2024, 1, 31, 14, 30, 0, 0, 0) AS built
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
 
 Unsupported: **sqlite**, **trino**
 
@@ -964,7 +1262,8 @@ Sample query:
 ```kql
 // years_between: whole years from order to shipment.
 FIND orders o
-FETCH years_between(o.order_date, o.shipped_date) years
+FETCH o.order_id ASC, years_between(o.order_date, o.shipped_date) years
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -974,21 +1273,51 @@ FETCH years_between(o.order_date, o.shipped_date) years
 ```sql
 -- years_between: whole years from order to shipment.
 SELECT
-  CAST(EXTRACT(YEAR FROM age(o.shipped_date, o.order_date)) AS INTEGER) AS years
+  o.order_id
+, CAST(EXTRACT(YEAR FROM age(o.shipped_date, o.order_date)) AS INTEGER) AS years
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mariadb | `TIMESTAMPDIFF(YEAR, o.order_date, o.shipped_date) AS years` |
-| mssql | `(DATEDIFF(YEAR, o.order_date, o.shipped_date) - CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, o.order_date, o.shipped_date), o.order_date) > o.shipped_date THEN 1 ELSE 0 END) AS years` |
-| oracle | `TRUNC(MONTHS_BETWEEN(o.shipped_date, o.order_date) / 12) AS years` |
-| snowflake | `FLOOR(MONTHS_BETWEEN(o.shipped_date, o.order_date) / 12) AS years` |
-| sqlite | `(CASE WHEN (CAST(strftime('%Y', o.shipped_date) AS INTEGER) - CAST(strftime('%Y', o.order_date) AS INTEGER)) > 0 AND strftime('%m-%d', o.shipped_date) < strftime('%m-%d', o.order_date) THEN (CAST(strftime('%Y', o.shipped_date) AS INTEGER) - CAST(strftime('%Y', o.order_date) AS INTEGER)) - 1 WHEN (CAST(strftime('%Y', o.shipped_date) AS INTEGER) - CAST(strftime('%Y', o.order_date) AS INTEGER)) < 0 AND strftime('%m-%d', o.shipped_date) > strftime('%m-%d', o.order_date) THEN (CAST(strftime('%Y', o.shipped_date) AS INTEGER) - CAST(strftime('%Y', o.order_date) AS INTEGER)) + 1 ELSE (CAST(strftime('%Y', o.shipped_date) AS INTEGER) - CAST(strftime('%Y', o.order_date) AS INTEGER)) END) AS years` |
-| trino | `date_diff('year', o.order_date, o.shipped_date) AS years` |
+| mariadb | `, TIMESTAMPDIFF(YEAR, o.order_date, o.shipped_date) AS years` |
+| oracle | `, TRUNC(MONTHS_BETWEEN(o.shipped_date, o.order_date) / 12) AS years` |
+| snowflake | `, FLOOR(MONTHS_BETWEEN(o.shipped_date, o.order_date) / 12) AS years` |
+| trino | `, date_diff('year', o.order_date, o.shipped_date) AS years` |
+
+**mssql**
+
+```sql
+-- years_between: whole years from order to shipment.
+SELECT
+  o.order_id
+, (DATEDIFF(YEAR, o.order_date, o.shipped_date) - CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, o.order_date, o.shipped_date), o.order_date) > o.shipped_date THEN 1 ELSE 0 END) AS years
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
+
+**sqlite**
+
+```sql
+-- years_between: whole years from order to shipment.
+SELECT
+  o.order_id
+, (CASE WHEN (CAST(strftime('%Y', o.shipped_date) AS INTEGER) - CAST(strftime('%Y', o.order_date) AS INTEGER)) > 0 AND strftime('%m-%d', o.shipped_date) < strftime('%m-%d', o.order_date) THEN (CAST(strftime('%Y', o.shipped_date) AS INTEGER) - CAST(strftime('%Y', o.order_date) AS INTEGER)) - 1 WHEN (CAST(strftime('%Y', o.shipped_date) AS INTEGER) - CAST(strftime('%Y', o.order_date) AS INTEGER)) < 0 AND strftime('%m-%d', o.shipped_date) > strftime('%m-%d', o.order_date) THEN (CAST(strftime('%Y', o.shipped_date) AS INTEGER) - CAST(strftime('%Y', o.order_date) AS INTEGER)) + 1 ELSE (CAST(strftime('%Y', o.shipped_date) AS INTEGER) - CAST(strftime('%Y', o.order_date) AS INTEGER)) END) AS years
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## calendar_distance
@@ -1007,7 +1336,8 @@ Sample query:
 ```kql
 // calendar_distance: calendar span from order to shipment (NULL when not yet shipped).
 FIND orders o
-FETCH calendar_distance(o.order_date, o.shipped_date) span
+FETCH o.order_id ASC, calendar_distance(o.order_date, o.shipped_date) span
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -1017,21 +1347,51 @@ FETCH calendar_distance(o.order_date, o.shipped_date) span
 ```sql
 -- calendar_distance: calendar span from order to shipment (NULL when not yet shipped).
 SELECT
-  (CAST(CAST(EXTRACT(EPOCH FROM (o.order_date)) AS BIGINT) AS VARCHAR) || ';' || CAST(CAST(EXTRACT(EPOCH FROM (o.shipped_date)) AS BIGINT) AS VARCHAR)) AS span
+  o.order_id
+, (CAST(CAST(EXTRACT(EPOCH FROM (o.order_date)) AS BIGINT) AS VARCHAR) || ';' || CAST(CAST(EXTRACT(EPOCH FROM (o.shipped_date)) AS BIGINT) AS VARCHAR)) AS span
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mariadb | `CONCAT(UNIX_TIMESTAMP(o.order_date), ';', UNIX_TIMESTAMP(o.shipped_date)) AS span` |
-| mssql | `CONCAT(DATEDIFF_BIG(SECOND, '1970-01-01', o.order_date), ';', DATEDIFF_BIG(SECOND, '1970-01-01', o.shipped_date)) AS span` |
-| oracle | `(TO_CHAR(ROUND((CAST(o.order_date AS DATE) - DATE '1970-01-01') * 86400)) \|\| ';' \|\| TO_CHAR(ROUND((CAST(o.shipped_date AS DATE) - DATE '1970-01-01') * 86400))) AS span` |
-| snowflake | `(CAST(DATE_PART(EPOCH_SECOND, o.order_date) AS VARCHAR) \|\| ';' \|\| CAST(DATE_PART(EPOCH_SECOND, o.shipped_date) AS VARCHAR)) AS span` |
-| sqlite | `(CAST(CAST(strftime('%s', o.order_date) AS INTEGER) AS VARCHAR) \|\| ';' \|\| CAST(CAST(strftime('%s', o.shipped_date) AS INTEGER) AS VARCHAR)) AS span` |
-| trino | `(CAST(CAST(to_unixtime(o.order_date) AS BIGINT) AS VARCHAR) \|\| ';' \|\| CAST(CAST(to_unixtime(o.shipped_date) AS BIGINT) AS VARCHAR)) AS span` |
+| mariadb | `, CONCAT(UNIX_TIMESTAMP(o.order_date), ';', UNIX_TIMESTAMP(o.shipped_date)) AS span` |
+| oracle | `, (TO_CHAR(ROUND((CAST(o.order_date AS DATE) - DATE '1970-01-01') * 86400)) \|\| ';' \|\| TO_CHAR(ROUND((CAST(o.shipped_date AS DATE) - DATE '1970-01-01') * 86400))) AS span` |
+| snowflake | `, (CAST(DATE_PART(EPOCH_SECOND, o.order_date) AS VARCHAR) \|\| ';' \|\| CAST(DATE_PART(EPOCH_SECOND, o.shipped_date) AS VARCHAR)) AS span` |
+| trino | `, (CAST(CAST(to_unixtime(o.order_date) AS BIGINT) AS VARCHAR) \|\| ';' \|\| CAST(CAST(to_unixtime(o.shipped_date) AS BIGINT) AS VARCHAR)) AS span` |
+
+**mssql**
+
+```sql
+-- calendar_distance: calendar span from order to shipment (NULL when not yet shipped).
+SELECT
+  o.order_id
+, CONCAT(DATEDIFF_BIG(SECOND, '1970-01-01', o.order_date), ';', DATEDIFF_BIG(SECOND, '1970-01-01', o.shipped_date)) AS span
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
+
+**sqlite**
+
+```sql
+-- calendar_distance: calendar span from order to shipment (NULL when not yet shipped).
+SELECT
+  o.order_id
+, (CAST(CAST(strftime('%s', o.order_date) AS INTEGER) AS VARCHAR) || ';' || CAST(CAST(strftime('%s', o.shipped_date) AS INTEGER) AS VARCHAR)) AS span
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## day_add
@@ -1050,7 +1410,8 @@ Sample query:
 ```kql
 // day_add: seven days after the order date.
 FIND orders o
-FETCH day_add(o.order_date, 7) plus_week
+FETCH o.order_id ASC, day_add(o.order_date, 7) plus_week
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -1060,21 +1421,51 @@ FETCH day_add(o.order_date, 7) plus_week
 ```sql
 -- day_add: seven days after the order date.
 SELECT
-  (o.order_date + INTERVAL (7) DAY) AS plus_week
+  o.order_id
+, (o.order_date + INTERVAL (7) DAY) AS plus_week
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mssql | `DATEADD(DAY, 7, o.order_date) AS plus_week` |
-| oracle | `(o.order_date + NUMTODSINTERVAL(7, 'DAY')) AS plus_week` |
-| postgresql | `(o.order_date + 7 * INTERVAL '1 day') AS plus_week` |
-| snowflake | `DATEADD('day', 7, o.order_date) AS plus_week` |
-| sqlite | `date(o.order_date, printf('%+d days', 7)) AS plus_week` |
-| trino | `date_add('day', 7, o.order_date) AS plus_week` |
+| oracle | `, (o.order_date + NUMTODSINTERVAL(7, 'DAY')) AS plus_week` |
+| postgresql | `, (o.order_date + 7 * INTERVAL '1 day') AS plus_week` |
+| snowflake | `, DATEADD('day', 7, o.order_date) AS plus_week` |
+| trino | `, date_add('day', 7, o.order_date) AS plus_week` |
+
+**mssql**
+
+```sql
+-- day_add: seven days after the order date.
+SELECT
+  o.order_id
+, DATEADD(DAY, 7, o.order_date) AS plus_week
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
+
+**sqlite**
+
+```sql
+-- day_add: seven days after the order date.
+SELECT
+  o.order_id
+, date(o.order_date, printf('%+d days', 7)) AS plus_week
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## month_add
@@ -1093,7 +1484,8 @@ Sample query:
 ```kql
 // month_add: one month after the order date.
 FIND orders o
-FETCH month_add(o.order_date, 1) next_month
+FETCH o.order_id ASC, month_add(o.order_date, 1) next_month
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -1103,21 +1495,51 @@ FETCH month_add(o.order_date, 1) next_month
 ```sql
 -- month_add: one month after the order date.
 SELECT
-  (o.order_date + INTERVAL (1) MONTH) AS next_month
+  o.order_id
+, (o.order_date + INTERVAL (1) MONTH) AS next_month
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mssql | `DATEADD(MONTH, 1, o.order_date) AS next_month` |
-| oracle | `(ADD_MONTHS(o.order_date, 1) - GREATEST(EXTRACT(DAY FROM ADD_MONTHS(o.order_date, 1)) - EXTRACT(DAY FROM o.order_date), 0)) AS next_month` |
-| postgresql | `(o.order_date + 1 * INTERVAL '1 month') AS next_month` |
-| snowflake | `DATEADD('month', 1, o.order_date) AS next_month` |
-| sqlite | `min(date(o.order_date, printf('%+d months', 1)), date(o.order_date, 'start of month', printf('%+d months', 1 + 1), '-1 day')) AS next_month` |
-| trino | `date_add('month', 1, o.order_date) AS next_month` |
+| oracle | `, (ADD_MONTHS(o.order_date, 1) - GREATEST(EXTRACT(DAY FROM ADD_MONTHS(o.order_date, 1)) - EXTRACT(DAY FROM o.order_date), 0)) AS next_month` |
+| postgresql | `, (o.order_date + 1 * INTERVAL '1 month') AS next_month` |
+| snowflake | `, DATEADD('month', 1, o.order_date) AS next_month` |
+| trino | `, date_add('month', 1, o.order_date) AS next_month` |
+
+**mssql**
+
+```sql
+-- month_add: one month after the order date.
+SELECT
+  o.order_id
+, DATEADD(MONTH, 1, o.order_date) AS next_month
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
+
+**sqlite**
+
+```sql
+-- month_add: one month after the order date.
+SELECT
+  o.order_id
+, min(date(o.order_date, printf('%+d months', 1)), date(o.order_date, 'start of month', printf('%+d months', 1 + 1), '-1 day')) AS next_month
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## year_add
@@ -1136,7 +1558,8 @@ Sample query:
 ```kql
 // year_add: one year after the order date.
 FIND orders o
-FETCH year_add(o.order_date, 1) next_year
+FETCH o.order_id ASC, year_add(o.order_date, 1) next_year
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -1146,21 +1569,51 @@ FETCH year_add(o.order_date, 1) next_year
 ```sql
 -- year_add: one year after the order date.
 SELECT
-  (o.order_date + INTERVAL (1) YEAR) AS next_year
+  o.order_id
+, (o.order_date + INTERVAL (1) YEAR) AS next_year
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mssql | `DATEADD(YEAR, 1, o.order_date) AS next_year` |
-| oracle | `(ADD_MONTHS(o.order_date, 1 * 12) - GREATEST(EXTRACT(DAY FROM ADD_MONTHS(o.order_date, 1 * 12)) - EXTRACT(DAY FROM o.order_date), 0)) AS next_year` |
-| postgresql | `(o.order_date + 1 * INTERVAL '1 year') AS next_year` |
-| snowflake | `DATEADD('year', 1, o.order_date) AS next_year` |
-| sqlite | `min(date(o.order_date, printf('%+d years', 1)), date(o.order_date, 'start of month', printf('%+d months', 1 * 12 + 1), '-1 day')) AS next_year` |
-| trino | `date_add('year', 1, o.order_date) AS next_year` |
+| oracle | `, (ADD_MONTHS(o.order_date, 1 * 12) - GREATEST(EXTRACT(DAY FROM ADD_MONTHS(o.order_date, 1 * 12)) - EXTRACT(DAY FROM o.order_date), 0)) AS next_year` |
+| postgresql | `, (o.order_date + 1 * INTERVAL '1 year') AS next_year` |
+| snowflake | `, DATEADD('year', 1, o.order_date) AS next_year` |
+| trino | `, date_add('year', 1, o.order_date) AS next_year` |
+
+**mssql**
+
+```sql
+-- year_add: one year after the order date.
+SELECT
+  o.order_id
+, DATEADD(YEAR, 1, o.order_date) AS next_year
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
+
+**sqlite**
+
+```sql
+-- year_add: one year after the order date.
+SELECT
+  o.order_id
+, min(date(o.order_date, printf('%+d years', 1)), date(o.order_date, 'start of month', printf('%+d months', 1 * 12 + 1), '-1 day')) AS next_year
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## minute_begin
@@ -1300,7 +1753,8 @@ Sample query:
 ```kql
 // week_begin: Monday of the order's week — the sortable weekly grouping key.
 FIND orders o
-FETCH week_begin(o.order_date) week_start
+FETCH o.order_id ASC, week_begin(o.order_date) week_start
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -1310,20 +1764,50 @@ FETCH week_begin(o.order_date) week_start
 ```sql
 -- week_begin: Monday of the order's week — the sortable weekly grouping key.
 SELECT
-  date_trunc('week', o.order_date) AS week_start
+  o.order_id
+, date_trunc('week', o.order_date) AS week_start
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mariadb | `(DATE(o.order_date) - INTERVAL WEEKDAY(o.order_date) DAY) AS week_start` |
-| mssql | `DATEADD(day, -(DATEDIFF(day, 0, o.order_date) % 7), CAST(o.order_date AS DATE)) AS week_start` |
-| oracle | `TRUNC(o.order_date, 'IW') AS week_start` |
-| snowflake | `DATEADD(day, -(DAYOFWEEKISO(o.order_date) - 1), o.order_date) AS week_start` |
-| sqlite | `date(o.order_date, '-6 days', 'weekday 1') AS week_start` |
+| mariadb | `, (DATE(o.order_date) - INTERVAL WEEKDAY(o.order_date) DAY) AS week_start` |
+| oracle | `, TRUNC(o.order_date, 'IW') AS week_start` |
+| snowflake | `, DATEADD(day, -(DAYOFWEEKISO(o.order_date) - 1), o.order_date) AS week_start` |
+
+**mssql**
+
+```sql
+-- week_begin: Monday of the order's week — the sortable weekly grouping key.
+SELECT
+  o.order_id
+, DATEADD(day, -(DATEDIFF(day, 0, o.order_date) % 7), CAST(o.order_date AS DATE)) AS week_start
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
+
+**sqlite**
+
+```sql
+-- week_begin: Monday of the order's week — the sortable weekly grouping key.
+SELECT
+  o.order_id
+, date(o.order_date, '-6 days', 'weekday 1') AS week_start
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## month_begin
@@ -1341,7 +1825,8 @@ Sample query:
 ```kql
 // month_begin: first day of the order's month.
 FIND orders o
-FETCH month_begin(o.order_date) m_begin
+FETCH o.order_id ASC, month_begin(o.order_date) m_begin
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -1351,19 +1836,49 @@ FETCH month_begin(o.order_date) m_begin
 ```sql
 -- month_begin: first day of the order's month.
 SELECT
-  date_trunc('month', o.order_date) AS m_begin
+  o.order_id
+, date_trunc('month', o.order_date) AS m_begin
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mariadb | `(MAKEDATE(YEAR(o.order_date), 1) + INTERVAL (MONTH(o.order_date) - 1) MONTH) AS m_begin` |
-| mssql | `DATEADD(MONTH, DATEDIFF(MONTH, 0, o.order_date), 0) AS m_begin` |
-| oracle | `TRUNC(o.order_date, 'MM') AS m_begin` |
-| sqlite | `date(o.order_date, 'start of month') AS m_begin` |
+| mariadb | `, (MAKEDATE(YEAR(o.order_date), 1) + INTERVAL (MONTH(o.order_date) - 1) MONTH) AS m_begin` |
+| oracle | `, TRUNC(o.order_date, 'MM') AS m_begin` |
+
+**mssql**
+
+```sql
+-- month_begin: first day of the order's month.
+SELECT
+  o.order_id
+, DATEADD(MONTH, DATEDIFF(MONTH, 0, o.order_date), 0) AS m_begin
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
+
+**sqlite**
+
+```sql
+-- month_begin: first day of the order's month.
+SELECT
+  o.order_id
+, date(o.order_date, 'start of month') AS m_begin
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## quarter_begin
@@ -1381,7 +1896,8 @@ Sample query:
 ```kql
 // quarter_begin: first day of the order's quarter.
 FIND orders o
-FETCH quarter_begin(o.order_date) q_begin
+FETCH o.order_id ASC, quarter_begin(o.order_date) q_begin
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -1391,19 +1907,49 @@ FETCH quarter_begin(o.order_date) q_begin
 ```sql
 -- quarter_begin: first day of the order's quarter.
 SELECT
-  date_trunc('quarter', o.order_date) AS q_begin
+  o.order_id
+, date_trunc('quarter', o.order_date) AS q_begin
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mariadb | `(MAKEDATE(YEAR(o.order_date), 1) + INTERVAL (QUARTER(o.order_date) - 1) * 3 MONTH) AS q_begin` |
-| mssql | `DATEADD(QUARTER, DATEDIFF(QUARTER, 0, o.order_date), 0) AS q_begin` |
-| oracle | `TRUNC(o.order_date, 'Q') AS q_begin` |
-| sqlite | `date(o.order_date, 'start of month', printf('%+d months', -((CAST(strftime('%m', o.order_date) AS INTEGER) - 1) % 3))) AS q_begin` |
+| mariadb | `, (MAKEDATE(YEAR(o.order_date), 1) + INTERVAL (QUARTER(o.order_date) - 1) * 3 MONTH) AS q_begin` |
+| oracle | `, TRUNC(o.order_date, 'Q') AS q_begin` |
+
+**mssql**
+
+```sql
+-- quarter_begin: first day of the order's quarter.
+SELECT
+  o.order_id
+, DATEADD(QUARTER, DATEDIFF(QUARTER, 0, o.order_date), 0) AS q_begin
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
+
+**sqlite**
+
+```sql
+-- quarter_begin: first day of the order's quarter.
+SELECT
+  o.order_id
+, date(o.order_date, 'start of month', printf('%+d months', -((CAST(strftime('%m', o.order_date) AS INTEGER) - 1) % 3))) AS q_begin
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## year_begin
@@ -1421,7 +1967,8 @@ Sample query:
 ```kql
 // year_begin: first day of the order's year.
 FIND orders o
-FETCH year_begin(o.order_date) y_begin
+FETCH o.order_id ASC, year_begin(o.order_date) y_begin
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -1431,19 +1978,49 @@ FETCH year_begin(o.order_date) y_begin
 ```sql
 -- year_begin: first day of the order's year.
 SELECT
-  date_trunc('year', o.order_date) AS y_begin
+  o.order_id
+, date_trunc('year', o.order_date) AS y_begin
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mariadb | `MAKEDATE(YEAR(o.order_date), 1) AS y_begin` |
-| mssql | `DATEADD(YEAR, DATEDIFF(YEAR, 0, o.order_date), 0) AS y_begin` |
-| oracle | `TRUNC(o.order_date, 'YYYY') AS y_begin` |
-| sqlite | `date(o.order_date, 'start of year') AS y_begin` |
+| mariadb | `, MAKEDATE(YEAR(o.order_date), 1) AS y_begin` |
+| oracle | `, TRUNC(o.order_date, 'YYYY') AS y_begin` |
+
+**mssql**
+
+```sql
+-- year_begin: first day of the order's year.
+SELECT
+  o.order_id
+, DATEADD(YEAR, DATEDIFF(YEAR, 0, o.order_date), 0) AS y_begin
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
+
+**sqlite**
+
+```sql
+-- year_begin: first day of the order's year.
+SELECT
+  o.order_id
+, date(o.order_date, 'start of year') AS y_begin
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## week_end
@@ -1461,7 +2038,8 @@ Sample query:
 ```kql
 // week_end: Sunday of the order's week.
 FIND orders o
-FETCH week_end(o.order_date) week_close
+FETCH o.order_id ASC, week_end(o.order_date) week_close
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -1471,22 +2049,52 @@ FETCH week_end(o.order_date) week_close
 ```sql
 -- week_end: Sunday of the order's week.
 SELECT
-  CAST(date_trunc('week', o.order_date) + INTERVAL 6 DAY AS DATE) AS week_close
+  o.order_id
+, CAST(date_trunc('week', o.order_date) + INTERVAL 6 DAY AS DATE) AS week_close
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mariadb | `(DATE(o.order_date) - INTERVAL WEEKDAY(o.order_date) DAY + INTERVAL 6 DAY) AS week_close` |
-| mssql | `DATEADD(day, 6 - (DATEDIFF(day, 0, o.order_date) % 7), CAST(o.order_date AS DATE)) AS week_close` |
-| oracle | `(TRUNC(o.order_date, 'IW') + 6) AS week_close` |
-| postgresql | `CAST(date_trunc('week', o.order_date) + INTERVAL '6 days' AS DATE) AS week_close` |
-| snowflake | `DATEADD(day, 7 - DAYOFWEEKISO(o.order_date), o.order_date) AS week_close` |
-| sqlite | `date(o.order_date, 'weekday 0') AS week_close` |
-| trino | `CAST(date_trunc('week', o.order_date) + INTERVAL '6' DAY AS DATE) AS week_close` |
+| mariadb | `, (DATE(o.order_date) - INTERVAL WEEKDAY(o.order_date) DAY + INTERVAL 6 DAY) AS week_close` |
+| oracle | `, (TRUNC(o.order_date, 'IW') + 6) AS week_close` |
+| postgresql | `, CAST(date_trunc('week', o.order_date) + INTERVAL '6 days' AS DATE) AS week_close` |
+| snowflake | `, DATEADD(day, 7 - DAYOFWEEKISO(o.order_date), o.order_date) AS week_close` |
+| trino | `, CAST(date_trunc('week', o.order_date) + INTERVAL '6' DAY AS DATE) AS week_close` |
+
+**mssql**
+
+```sql
+-- week_end: Sunday of the order's week.
+SELECT
+  o.order_id
+, DATEADD(day, 6 - (DATEDIFF(day, 0, o.order_date) % 7), CAST(o.order_date AS DATE)) AS week_close
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
+
+**sqlite**
+
+```sql
+-- week_end: Sunday of the order's week.
+SELECT
+  o.order_id
+, date(o.order_date, 'weekday 0') AS week_close
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## month_end
@@ -1504,7 +2112,8 @@ Sample query:
 ```kql
 // month_end: last day of the order's month.
 FIND orders o
-FETCH month_end(o.order_date) m_end
+FETCH o.order_id ASC, month_end(o.order_date) m_end
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -1514,21 +2123,51 @@ FETCH month_end(o.order_date) m_end
 ```sql
 -- month_end: last day of the order's month.
 SELECT
-  last_day(o.order_date) AS m_end
+  o.order_id
+, last_day(o.order_date) AS m_end
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mariadb | `LAST_DAY(o.order_date) AS m_end` |
-| mssql | `EOMONTH(o.order_date) AS m_end` |
-| oracle | `TRUNC(LAST_DAY(o.order_date)) AS m_end` |
-| postgresql | `CAST(date_trunc('month', o.order_date) + INTERVAL '1 month - 1 day' AS DATE) AS m_end` |
-| sqlite | `date(o.order_date, 'start of month', '+1 month', '-1 day') AS m_end` |
-| trino | `last_day_of_month(o.order_date) AS m_end` |
+| mariadb | `, LAST_DAY(o.order_date) AS m_end` |
+| oracle | `, TRUNC(LAST_DAY(o.order_date)) AS m_end` |
+| postgresql | `, CAST(date_trunc('month', o.order_date) + INTERVAL '1 month - 1 day' AS DATE) AS m_end` |
+| trino | `, last_day_of_month(o.order_date) AS m_end` |
+
+**mssql**
+
+```sql
+-- month_end: last day of the order's month.
+SELECT
+  o.order_id
+, EOMONTH(o.order_date) AS m_end
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
+
+**sqlite**
+
+```sql
+-- month_end: last day of the order's month.
+SELECT
+  o.order_id
+, date(o.order_date, 'start of month', '+1 month', '-1 day') AS m_end
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## quarter_end
@@ -1546,7 +2185,8 @@ Sample query:
 ```kql
 // quarter_end: last day of the order's quarter.
 FIND orders o
-FETCH quarter_end(o.order_date) q_end
+FETCH o.order_id ASC, quarter_end(o.order_date) q_end
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -1556,22 +2196,52 @@ FETCH quarter_end(o.order_date) q_end
 ```sql
 -- quarter_end: last day of the order's quarter.
 SELECT
-  last_day(date_trunc('quarter', o.order_date) + INTERVAL 2 MONTH) AS q_end
+  o.order_id
+, last_day(date_trunc('quarter', o.order_date) + INTERVAL 2 MONTH) AS q_end
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mariadb | `LAST_DAY(MAKEDATE(YEAR(o.order_date), 1) + INTERVAL (QUARTER(o.order_date) * 3 - 1) MONTH) AS q_end` |
-| mssql | `EOMONTH(DATEADD(QUARTER, DATEDIFF(QUARTER, 0, o.order_date), 0), 2) AS q_end` |
-| oracle | `LAST_DAY(ADD_MONTHS(TRUNC(o.order_date, 'Q'), 2)) AS q_end` |
-| postgresql | `CAST(date_trunc('quarter', o.order_date) + INTERVAL '3 months - 1 day' AS DATE) AS q_end` |
-| snowflake | `LAST_DAY(o.order_date, 'quarter') AS q_end` |
-| sqlite | `date(o.order_date, 'start of month', printf('%+d months', 3 - ((CAST(strftime('%m', o.order_date) AS INTEGER) - 1) % 3)), '-1 day') AS q_end` |
-| trino | `last_day_of_month(date_trunc('quarter', o.order_date) + INTERVAL '2' MONTH) AS q_end` |
+| mariadb | `, LAST_DAY(MAKEDATE(YEAR(o.order_date), 1) + INTERVAL (QUARTER(o.order_date) * 3 - 1) MONTH) AS q_end` |
+| oracle | `, LAST_DAY(ADD_MONTHS(TRUNC(o.order_date, 'Q'), 2)) AS q_end` |
+| postgresql | `, CAST(date_trunc('quarter', o.order_date) + INTERVAL '3 months - 1 day' AS DATE) AS q_end` |
+| snowflake | `, LAST_DAY(o.order_date, 'quarter') AS q_end` |
+| trino | `, last_day_of_month(date_trunc('quarter', o.order_date) + INTERVAL '2' MONTH) AS q_end` |
+
+**mssql**
+
+```sql
+-- quarter_end: last day of the order's quarter.
+SELECT
+  o.order_id
+, EOMONTH(DATEADD(QUARTER, DATEDIFF(QUARTER, 0, o.order_date), 0), 2) AS q_end
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
+
+**sqlite**
+
+```sql
+-- quarter_end: last day of the order's quarter.
+SELECT
+  o.order_id
+, date(o.order_date, 'start of month', printf('%+d months', 3 - ((CAST(strftime('%m', o.order_date) AS INTEGER) - 1) % 3)), '-1 day') AS q_end
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## year_end
@@ -1589,7 +2259,8 @@ Sample query:
 ```kql
 // year_end: last day of the order's year.
 FIND orders o
-FETCH year_end(o.order_date) y_end
+FETCH o.order_id ASC, year_end(o.order_date) y_end
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -1599,22 +2270,52 @@ FETCH year_end(o.order_date) y_end
 ```sql
 -- year_end: last day of the order's year.
 SELECT
-  last_day(date_trunc('year', o.order_date) + INTERVAL 11 MONTH) AS y_end
+  o.order_id
+, last_day(date_trunc('year', o.order_date) + INTERVAL 11 MONTH) AS y_end
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mariadb | `LAST_DAY(MAKEDATE(YEAR(o.order_date), 1) + INTERVAL 11 MONTH) AS y_end` |
-| mssql | `DATEFROMPARTS(YEAR(o.order_date), 12, 31) AS y_end` |
-| oracle | `LAST_DAY(ADD_MONTHS(TRUNC(o.order_date, 'YYYY'), 11)) AS y_end` |
-| postgresql | `CAST(date_trunc('year', o.order_date) + INTERVAL '1 year - 1 day' AS DATE) AS y_end` |
-| snowflake | `LAST_DAY(o.order_date, 'year') AS y_end` |
-| sqlite | `date(o.order_date, 'start of year', '+1 year', '-1 day') AS y_end` |
-| trino | `last_day_of_month(date_trunc('year', o.order_date) + INTERVAL '11' MONTH) AS y_end` |
+| mariadb | `, LAST_DAY(MAKEDATE(YEAR(o.order_date), 1) + INTERVAL 11 MONTH) AS y_end` |
+| oracle | `, LAST_DAY(ADD_MONTHS(TRUNC(o.order_date, 'YYYY'), 11)) AS y_end` |
+| postgresql | `, CAST(date_trunc('year', o.order_date) + INTERVAL '1 year - 1 day' AS DATE) AS y_end` |
+| snowflake | `, LAST_DAY(o.order_date, 'year') AS y_end` |
+| trino | `, last_day_of_month(date_trunc('year', o.order_date) + INTERVAL '11' MONTH) AS y_end` |
+
+**mssql**
+
+```sql
+-- year_end: last day of the order's year.
+SELECT
+  o.order_id
+, DATEFROMPARTS(YEAR(o.order_date), 12, 31) AS y_end
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
+
+**sqlite**
+
+```sql
+-- year_end: last day of the order's year.
+SELECT
+  o.order_id
+, date(o.order_date, 'start of year', '+1 year', '-1 day') AS y_end
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## at_zone

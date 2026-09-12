@@ -93,20 +93,32 @@ Sample query:
 ```kql
 // negate (-): arithmetic negation of freight.
 FIND orders o
-FETCH -o.freight neg_freight
+FETCH o.order_id ASC, -o.freight neg_freight
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**all dialects**
+**duckdb · oracle · snowflake · postgresql · mariadb · trino**
 
 ```sql
 -- negate (-): arithmetic negation of freight.
 SELECT
-  -o.freight AS neg_freight
+  o.order_id
+, -o.freight AS neg_freight
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
+
+The remaining dialects differ only in this expression:
+
+| Dialect | Expression |
+|---|---|
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+| sqlite | `LIMIT 20` |
 
 
 ## add
@@ -125,7 +137,8 @@ Sample query:
 ```kql
 // add (+): 30 days after the order date.
 FIND orders o
-FETCH o.order_date + 30d due_date
+FETCH o.order_id ASC, o.order_date + 30d due_date
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -135,19 +148,49 @@ FETCH o.order_date + 30d due_date
 ```sql
 -- add (+): 30 days after the order date.
 SELECT
-  o.order_date + INTERVAL '30 day' AS due_date
+  o.order_id
+, o.order_date + INTERVAL '30 day' AS due_date
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mariadb · trino | `o.order_date + INTERVAL '30' DAY AS due_date` |
-| mssql | `DATEADD(DAY, 30, o.order_date) AS due_date` |
-| oracle | `o.order_date + NUMTODSINTERVAL(30, 'DAY') AS due_date` |
-| sqlite | `date(o.order_date, '+30 days') AS due_date` |
+| mariadb · trino | `, o.order_date + INTERVAL '30' DAY AS due_date` |
+| oracle | `, o.order_date + NUMTODSINTERVAL(30, 'DAY') AS due_date` |
+
+**mssql**
+
+```sql
+-- add (+): 30 days after the order date.
+SELECT
+  o.order_id
+, DATEADD(DAY, 30, o.order_date) AS due_date
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
+
+**sqlite**
+
+```sql
+-- add (+): 30 days after the order date.
+SELECT
+  o.order_id
+, date(o.order_date, '+30 days') AS due_date
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## minus
@@ -166,7 +209,8 @@ Sample query:
 ```kql
 // minus (-): shipping delay in whole days.
 FIND orders o
-FETCH o.shipped_date - o.order_date ship_delay
+FETCH o.order_id ASC, o.shipped_date - o.order_date ship_delay
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -176,20 +220,50 @@ FETCH o.shipped_date - o.order_date ship_delay
 ```sql
 -- minus (-): shipping delay in whole days.
 SELECT
-  o.shipped_date - o.order_date AS ship_delay
+  o.order_id
+, o.shipped_date - o.order_date AS ship_delay
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mariadb | `TIMESTAMPDIFF(DAY, o.order_date, o.shipped_date) AS ship_delay` |
-| mssql | `DATEDIFF(DAY, o.order_date, o.shipped_date) AS ship_delay` |
-| oracle | `TRUNC(o.shipped_date - o.order_date) AS ship_delay` |
-| sqlite | `CAST(julianday(o.shipped_date) - julianday(o.order_date) AS INTEGER) AS ship_delay` |
-| trino | `date_diff('day', o.order_date, o.shipped_date) AS ship_delay` |
+| mariadb | `, TIMESTAMPDIFF(DAY, o.order_date, o.shipped_date) AS ship_delay` |
+| oracle | `, TRUNC(o.shipped_date - o.order_date) AS ship_delay` |
+| trino | `, date_diff('day', o.order_date, o.shipped_date) AS ship_delay` |
+
+**mssql**
+
+```sql
+-- minus (-): shipping delay in whole days.
+SELECT
+  o.order_id
+, DATEDIFF(DAY, o.order_date, o.shipped_date) AS ship_delay
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
+
+**sqlite**
+
+```sql
+-- minus (-): shipping delay in whole days.
+SELECT
+  o.order_id
+, CAST(julianday(o.shipped_date) - julianday(o.order_date) AS INTEGER) AS ship_delay
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+LIMIT 20
+```
 
 
 ## multiply
@@ -208,26 +282,35 @@ Sample query:
 ```kql
 // multiply (*): gross amount of a line item.
 FIND order_details od
-FETCH round(od.unit_price * od.quantity, 2) gross
+FETCH od.order_id ASC, od.product_id ASC, round(od.unit_price * od.quantity, 2) gross
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**duckdb · oracle · snowflake · mssql · mariadb · sqlite · trino**
+**duckdb · oracle · snowflake · mariadb · trino**
 
 ```sql
 -- multiply (*): gross amount of a line item.
 SELECT
-  round(od.unit_price * od.quantity, 2) AS gross
+  od.order_id
+, od.product_id
+, round(od.unit_price * od.quantity, 2) AS gross
 FROM
  order_details od
+ORDER BY
+  od.order_id ASC
+, od.product_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| postgresql | `round(CAST(od.unit_price * od.quantity AS numeric), 2) AS gross` |
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+| postgresql | `, round(CAST(od.unit_price * od.quantity AS numeric), 2) AS gross` |
+| sqlite | `LIMIT 20` |
 
 
 ## divide

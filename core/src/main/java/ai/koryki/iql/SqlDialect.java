@@ -36,11 +36,7 @@ import ai.koryki.iql.typing.TimeEncodings;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public interface SqlDialect {
@@ -116,8 +112,32 @@ public interface SqlDialect {
      * eight engines here". Oracle reserves it.
      */
     default boolean isReserved(String name) {
-        return Identifier.isStandardReserved(name);
+        return isStandardReserved(name);
     }
+
+    /**
+     * The SQL-standard reserved words - the baseline every dialect starts from.
+     *
+     * <p>Deliberately the standard's list and no more. An engine that reserves further words says
+     * so itself by overriding {@link SqlDialect#isReserved(String)}: putting Oracle's {@code date}
+     * or MariaDB's {@code key} here would quote them on the seven engines that accept them bare,
+     * for nothing.
+     */
+    public static boolean isStandardReserved(String name) {
+        return name != null && RESERVED.contains(name.toLowerCase(Locale.ROOT));
+    }
+
+    static final Set<String> RESERVED = Set.of(
+            "all", "and", "any", "as", "asc", "between", "both", "by", "case", "cast", "check",
+            "collate", "column", "constraint", "create", "cross", "current_date", "current_time",
+            "current_timestamp", "current_user", "default", "deferrable", "desc", "distinct", "do",
+            "else", "end", "except", "exists", "false", "fetch", "filter", "for", "foreign", "from",
+            "full", "grant", "group", "having", "in", "initially", "inner", "intersect", "into",
+            "is", "join", "lateral", "leading", "left", "like", "limit", "natural", "not", "null",
+            "offset", "on", "only", "or", "order", "outer", "over", "overlaps", "partition",
+            "placing", "primary", "qualify", "references", "returning", "right", "select",
+            "similar", "some", "symmetric", "table", "then", "to", "trailing", "true", "union",
+            "unique", "user", "using", "values", "when", "where", "window", "with");
 
     /**
      * Wraps an identifier in this dialect's quotes.

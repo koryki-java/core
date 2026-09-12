@@ -72,10 +72,10 @@ class IdentifierTest {
     @Test
     void keywordsAreNotJudgedBySyntax() {
         assertFalse(Identifier.needsQuoting("order"), "a keyword is still syntactically plain");
-        assertTrue(Identifier.isStandardReserved("order"));
-        assertTrue(Identifier.isStandardReserved("ORDER"), "asked case-insensitively");
-        assertFalse(Identifier.isStandardReserved("betrag"));
-        assertFalse(Identifier.isStandardReserved("date"), "Oracle's, not the standard's");
+        assertTrue(SqlDialect.isStandardReserved("order"));
+        assertTrue(SqlDialect.isStandardReserved("ORDER"), "asked case-insensitively");
+        assertFalse(SqlDialect.isStandardReserved("betrag"));
+        assertFalse(SqlDialect.isStandardReserved("date"), "Oracle's, not the standard's");
     }
 
     /**
@@ -115,7 +115,7 @@ class IdentifierTest {
             assertEquals("city", Identifier.normal(Identifier.lowercase, "CITY"));
             assertEquals("city", Identifier.bare(Identifier.lowercase, "CITY"));
             assertEquals("CITY", Identifier.normal(Identifier.normal, "city"));
-            assertTrue(Identifier.isStandardReserved("IN"));
+            assertTrue(SqlDialect.isStandardReserved("IN"));
         } finally {
             Locale.setDefault(original);
         }

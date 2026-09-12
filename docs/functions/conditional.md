@@ -133,18 +133,30 @@ Sample query:
 ```kql
 // case: classify orders by freight.
 FIND orders o
-FETCH case(o.freight > 100, 'high', 'low') freight_tier
+FETCH o.order_id ASC, case(o.freight > 100, 'high', 'low') freight_tier
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**all dialects**
+**duckdb · oracle · snowflake · postgresql · mariadb · trino**
 
 ```sql
 -- case: classify orders by freight.
 SELECT
-  CASE WHEN o.freight > 100 THEN 'high' ELSE 'low' END AS freight_tier
+  o.order_id
+, CASE WHEN o.freight > 100 THEN 'high' ELSE 'low' END AS freight_tier
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
+
+The remaining dialects differ only in this expression:
+
+| Dialect | Expression |
+|---|---|
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+| sqlite | `LIMIT 20` |
 
