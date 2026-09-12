@@ -97,7 +97,7 @@ unary_logical_expression :
     // Here the separate production suffices, because our `expression` cannot contain a logical AND
     // at all — one can only enter through the parentheses of a function call. So we need neither
     // the narrower class nor its parentheses: `BETWEEN 1 + 2 AND 5` parses as written.
-    BETWEEN expression AND expression
+    BETWEEN (expression AND expression | PLACEHOLDER)
     | operator
       (
         expression? // nothing or single expression

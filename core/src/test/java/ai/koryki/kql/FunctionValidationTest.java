@@ -500,6 +500,25 @@ public class FunctionValidationTest {
     }
 
     /**
+     * BETWEEN gained a placeholder alternative of its own with this change ({@code BETWEEN #name},
+     * standing for the whole range). Unlike the other four positions there is no "before" to
+     * compare against — the grammar rejected the text outright, so there was never a query here to
+     * mismeasure. Once it parses, it reaches the same rule as the others.
+     */
+    @Test
+    void betweenPlaceholderIsReportedAsAnUnboundPlaceholder() {
+        List<Violation> v = transpiler("FIND orders o FILTER o.freight BETWEEN #x FETCH o.order_id").violations();
+        assertEquals(1, v.size(), v.toString());
+        assertEquals(PlaceholderValidator.PLACEHOLDER, v.getFirst().getCategory());
+        assertTrue(v.getFirst().getMessage().contains("#x"), v.getFirst().getMessage());
+
+        // the ordinary two-expression form sits right next to it in the grammar and must be unaffected
+        assertTrue(transpiler("FIND orders o FILTER o.freight BETWEEN 10 AND 20 FETCH o.order_id")
+                .violations().stream()
+                .noneMatch(x -> PlaceholderValidator.PLACEHOLDER.equals(x.getCategory())));
+    }
+
+    /**
      * The placeholder check runs before the scope check, and this is what that buys: a block bound
      * to a placeholder leaves its id unresolvable, so the scope collector would report
      * "unknown block 'ord'" — the symptom, at the wrong place in the query.
