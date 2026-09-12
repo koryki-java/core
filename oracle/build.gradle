@@ -12,12 +12,22 @@ java {
 
 dependencies {
 
-    implementation(libs.oracle)
+    // compileOnly, not implementation: this module must not redistribute Oracle's driver.
+    // Oracle's Free Use Terms permit redistributing it unmodified only if end users aren't
+    // charged an additional fee for it -- a condition that doesn't survive shipping inside a
+    // paid artifact. Compiling against it is fine (development/internal use is unconditionally
+    // covered); a consumer of koryki-oracle supplies ojdbc11 themselves.
+    compileOnly(libs.oracle)
     implementation libs.jackson.databind
 
     implementation project(':northwind')
     implementation project(':core')
     testImplementation libs.koryki.catalog
+
+    // Test-only, and deliberately so: the driver is needed to run the live integration tests
+    // (OracleAvailabilityCondition, BuildNorthwind, the *OracleEngineTest suite) against a real
+    // Oracle instance, not to compile the module -- the consumer brings their own at runtime.
+    testImplementation(libs.oracle)
 
     testImplementation platform(libs.junit.bom)
     testImplementation libs.junit.jupiter

@@ -68,7 +68,7 @@ public enum Identifier {
      *
      * <p>Keywords are <em>not</em> judged here. Which words an engine refuses is the engine's
      * property and no two of the eight agree, so it belongs on the dialect - see
-     * {@link SqlDialect#isReserved(String)}, whose baseline is {@link #isStandardReserved}.
+     * {@link SqlDialect#isReserved(String)}.
      */
     public static boolean needsQuoting(String name) {
         if (name == null || name.isEmpty()) {
@@ -78,31 +78,8 @@ public enum Identifier {
                 || !name.equals(name.toLowerCase(Locale.ROOT));
     }
 
-    /**
-     * The SQL-standard reserved words - the baseline every dialect starts from.
-     *
-     * <p>Deliberately the standard's list and no more. An engine that reserves further words says
-     * so itself by overriding {@link SqlDialect#isReserved(String)}: putting Oracle's {@code date}
-     * or MariaDB's {@code key} here would quote them on the seven engines that accept them bare,
-     * for nothing.
-     */
-    public static boolean isStandardReserved(String name) {
-        return name != null && RESERVED.contains(name.toLowerCase(Locale.ROOT));
-    }
-
     private static final Pattern PLAIN = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
 
-    private static final Set<String> RESERVED = Set.of(
-            "all", "and", "any", "as", "asc", "between", "both", "by", "case", "cast", "check",
-            "collate", "column", "constraint", "create", "cross", "current_date", "current_time",
-            "current_timestamp", "current_user", "default", "deferrable", "desc", "distinct", "do",
-            "else", "end", "except", "exists", "false", "fetch", "filter", "for", "foreign", "from",
-            "full", "grant", "group", "having", "in", "initially", "inner", "intersect", "into",
-            "is", "join", "lateral", "leading", "left", "like", "limit", "natural", "not", "null",
-            "offset", "on", "only", "or", "order", "outer", "over", "overlaps", "partition",
-            "placing", "primary", "qualify", "references", "returning", "right", "select",
-            "similar", "some", "symmetric", "table", "then", "to", "trailing", "true", "union",
-            "unique", "user", "using", "values", "when", "where", "window", "with");
 
     /**
      * The bare name this form asks for: surrounding double quotes removed, case folded.

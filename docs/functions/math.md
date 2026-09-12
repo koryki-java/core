@@ -99,20 +99,32 @@ Sample query:
 ```kql
 // abs: absolute value of a number.
 FIND orders o
-FETCH abs(-17.4) magnitude
+FETCH o.order_id ASC, abs(-17.4) magnitude
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**all dialects**
+**duckdb · oracle · snowflake · postgresql · mariadb · trino**
 
 ```sql
 -- abs: absolute value of a number.
 SELECT
-  abs(-17.4) AS magnitude
+  o.order_id
+, abs(-17.4) AS magnitude
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
+
+The remaining dialects differ only in this expression:
+
+| Dialect | Expression |
+|---|---|
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+| sqlite | `LIMIT 20` |
 
 
 ## ceil
@@ -130,26 +142,45 @@ Sample query:
 ```kql
 // ceil: round freight up to a whole number.
 FIND orders o
-FETCH ceil(o.freight) rounded_up
+FETCH o.order_id ASC, ceil(o.freight) rounded_up
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**duckdb · oracle · snowflake · postgresql · mariadb · sqlite · trino**
+**duckdb · oracle · snowflake · postgresql · mariadb · trino**
 
 ```sql
 -- ceil: round freight up to a whole number.
 SELECT
-  ceil(o.freight) AS rounded_up
+  o.order_id
+, ceil(o.freight) AS rounded_up
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mssql | `CEILING(o.freight) AS rounded_up` |
+| sqlite | `LIMIT 20` |
+
+**mssql**
+
+```sql
+-- ceil: round freight up to a whole number.
+SELECT
+  o.order_id
+, CEILING(o.freight) AS rounded_up
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
 
 
 ## floor
@@ -167,20 +198,32 @@ Sample query:
 ```kql
 // floor: round freight down to a whole number.
 FIND orders o
-FETCH floor(o.freight) rounded_down
+FETCH o.order_id ASC, floor(o.freight) rounded_down
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**all dialects**
+**duckdb · oracle · snowflake · postgresql · mariadb · trino**
 
 ```sql
 -- floor: round freight down to a whole number.
 SELECT
-  floor(o.freight) AS rounded_down
+  o.order_id
+, floor(o.freight) AS rounded_down
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
+
+The remaining dialects differ only in this expression:
+
+| Dialect | Expression |
+|---|---|
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+| sqlite | `LIMIT 20` |
 
 
 ## round
@@ -261,7 +304,8 @@ Sample query:
 ```kql
 // trunc: truncate toward zero, never rounding up.
 FIND order_details od
-FETCH trunc(od.unit_price) whole_price, trunc(19.99, 1) one_decimal
+FETCH od.order_id ASC, od.product_id ASC, trunc(od.unit_price) whole_price, trunc(19.99, 1) one_decimal
+LIMIT 20
 ```
 
 ### Generated SQL
@@ -271,10 +315,16 @@ FETCH trunc(od.unit_price) whole_price, trunc(19.99, 1) one_decimal
 ```sql
 -- trunc: truncate toward zero, never rounding up.
 SELECT
-  trunc(od.unit_price) AS whole_price
+  od.order_id
+, od.product_id
+, trunc(od.unit_price) AS whole_price
 , trunc(19.99, 1) AS one_decimal
 FROM
  order_details od
+ORDER BY
+  od.order_id ASC
+, od.product_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
@@ -282,17 +332,22 @@ The remaining dialects differ only in this expression:
 | Dialect | Expression |
 |---|---|
 | postgresql | `, trunc(CAST(19.99 AS numeric), 1) AS one_decimal` |
-| sqlite | `, (CAST(19.99 * pow(10, 1) AS INTEGER) / pow(10, 1)) AS one_decimal` |
 
 **mariadb**
 
 ```sql
 -- trunc: truncate toward zero, never rounding up.
 SELECT
-  TRUNCATE(od.unit_price, 0) AS whole_price
+  od.order_id
+, od.product_id
+, TRUNCATE(od.unit_price, 0) AS whole_price
 , TRUNCATE(19.99, 1) AS one_decimal
 FROM
  order_details od
+ORDER BY
+  od.order_id ASC
+, od.product_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 **mssql**
@@ -300,10 +355,33 @@ FROM
 ```sql
 -- trunc: truncate toward zero, never rounding up.
 SELECT
-  ROUND(od.unit_price, 0, 1) AS whole_price
+  od.order_id
+, od.product_id
+, ROUND(od.unit_price, 0, 1) AS whole_price
 , ROUND(19.99, 1, 1) AS one_decimal
 FROM
  order_details od
+ORDER BY
+  od.order_id ASC
+, od.product_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
+
+**sqlite**
+
+```sql
+-- trunc: truncate toward zero, never rounding up.
+SELECT
+  od.order_id
+, od.product_id
+, trunc(od.unit_price) AS whole_price
+, (CAST(19.99 * pow(10, 1) AS INTEGER) / pow(10, 1)) AS one_decimal
+FROM
+ order_details od
+ORDER BY
+  od.order_id ASC
+, od.product_id ASC
+LIMIT 20
 ```
 
 **trino**
@@ -311,10 +389,16 @@ FROM
 ```sql
 -- trunc: truncate toward zero, never rounding up.
 SELECT
-  truncate(od.unit_price) AS whole_price
+  od.order_id
+, od.product_id
+, truncate(od.unit_price) AS whole_price
 , truncate(CAST(19.99 AS DECIMAL(38,10)), 1) AS one_decimal
 FROM
  order_details od
+ORDER BY
+  od.order_id ASC
+, od.product_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 
@@ -334,26 +418,45 @@ Sample query:
 ```kql
 // mod: order id modulo 7.
 FIND orders o
-FETCH mod(o.order_id, 7) bucket
+FETCH o.order_id ASC, mod(o.order_id, 7) bucket
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**duckdb · oracle · snowflake · postgresql · mariadb · sqlite · trino**
+**duckdb · oracle · snowflake · postgresql · mariadb · trino**
 
 ```sql
 -- mod: order id modulo 7.
 SELECT
-  mod(o.order_id, NULLIF(7, 0)) AS bucket
+  o.order_id
+, mod(o.order_id, NULLIF(7, 0)) AS bucket
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mssql | `((o.order_id) % NULLIF((7), 0)) AS bucket` |
+| sqlite | `LIMIT 20` |
+
+**mssql**
+
+```sql
+-- mod: order id modulo 7.
+SELECT
+  o.order_id
+, ((o.order_id) % NULLIF((7), 0)) AS bucket
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
 
 
 ## sign
@@ -396,27 +499,50 @@ Sample query:
 ```kql
 // greatest: the larger of two values in the same row.
 FIND order_details od
-FETCH round(greatest(od.unit_price, 20.0), 2) at_least_twenty
+FETCH od.order_id ASC, od.product_id ASC, round(greatest(od.unit_price, 20.0), 2) at_least_twenty
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**duckdb · oracle · snowflake · mssql · mariadb · trino**
+**duckdb · oracle · snowflake · mariadb · trino**
 
 ```sql
 -- greatest: the larger of two values in the same row.
 SELECT
-  round(greatest(od.unit_price, 20), 2) AS at_least_twenty
+  od.order_id
+, od.product_id
+, round(greatest(od.unit_price, 20), 2) AS at_least_twenty
 FROM
  order_details od
+ORDER BY
+  od.order_id ASC
+, od.product_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| postgresql | `round(CAST(greatest(od.unit_price, 20) AS numeric), 2) AS at_least_twenty` |
-| sqlite | `round(max(od.unit_price, 20), 2) AS at_least_twenty` |
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+| postgresql | `, round(CAST(greatest(od.unit_price, 20) AS numeric), 2) AS at_least_twenty` |
+
+**sqlite**
+
+```sql
+-- greatest: the larger of two values in the same row.
+SELECT
+  od.order_id
+, od.product_id
+, round(max(od.unit_price, 20), 2) AS at_least_twenty
+FROM
+ order_details od
+ORDER BY
+  od.order_id ASC
+, od.product_id ASC
+LIMIT 20
+```
 
 
 ## least
@@ -448,26 +574,49 @@ Sample query:
 ```kql
 // least: the smaller of two values in the same row.
 FIND order_details od
-FETCH least(od.quantity, 10) capped_quantity
+FETCH od.order_id ASC, od.product_id ASC, least(od.quantity, 10) capped_quantity
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**duckdb · oracle · snowflake · mssql · postgresql · mariadb · trino**
+**duckdb · oracle · snowflake · postgresql · mariadb · trino**
 
 ```sql
 -- least: the smaller of two values in the same row.
 SELECT
-  least(od.quantity, 10) AS capped_quantity
+  od.order_id
+, od.product_id
+, least(od.quantity, 10) AS capped_quantity
 FROM
  order_details od
+ORDER BY
+  od.order_id ASC
+, od.product_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| sqlite | `min(od.quantity, 10) AS capped_quantity` |
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+
+**sqlite**
+
+```sql
+-- least: the smaller of two values in the same row.
+SELECT
+  od.order_id
+, od.product_id
+, min(od.quantity, 10) AS capped_quantity
+FROM
+ order_details od
+ORDER BY
+  od.order_id ASC
+, od.product_id ASC
+LIMIT 20
+```
 
 
 ## power
@@ -525,20 +674,32 @@ Sample query:
 ```kql
 // sqrt: square root of freight.
 FIND orders o
-FETCH sqrt(o.freight) root
+FETCH o.order_id ASC, sqrt(o.freight) root
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**all dialects**
+**duckdb · oracle · snowflake · postgresql · mariadb · trino**
 
 ```sql
 -- sqrt: square root of freight.
 SELECT
-  sqrt(o.freight) AS root
+  o.order_id
+, sqrt(o.freight) AS root
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
+
+The remaining dialects differ only in this expression:
+
+| Dialect | Expression |
+|---|---|
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+| sqlite | `LIMIT 20` |
 
 
 ## exp
@@ -567,27 +728,46 @@ Sample query:
 ```kql
 // ln: natural logarithm.
 FIND orders o
-FETCH round(ln(100), 6) natural_log
+FETCH o.order_id ASC, round(ln(100), 6) natural_log
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**duckdb · oracle · snowflake · mariadb · sqlite · trino**
+**duckdb · oracle · snowflake · mariadb · trino**
 
 ```sql
 -- ln: natural logarithm.
 SELECT
-  round(ln(100), 6) AS natural_log
+  o.order_id
+, round(ln(100), 6) AS natural_log
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mssql | `round(LOG(100), 6) AS natural_log` |
-| postgresql | `round(CAST(ln(100) AS numeric), 6) AS natural_log` |
+| postgresql | `, round(CAST(ln(100) AS numeric), 6) AS natural_log` |
+| sqlite | `LIMIT 20` |
+
+**mssql**
+
+```sql
+-- ln: natural logarithm.
+SELECT
+  o.order_id
+, round(LOG(100), 6) AS natural_log
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
 
 
 ## log10
@@ -605,26 +785,33 @@ Sample query:
 ```kql
 // log10: base-10 logarithm.
 FIND orders o
-FETCH log10(1000) base_ten_log
+FETCH o.order_id ASC, log10(1000) base_ten_log
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**duckdb · mssql · postgresql · mariadb · sqlite · trino**
+**duckdb · postgresql · mariadb · trino**
 
 ```sql
 -- log10: base-10 logarithm.
 SELECT
-  log10(1000) AS base_ten_log
+  o.order_id
+, log10(1000) AS base_ten_log
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| oracle · snowflake | `LOG(10, 1000) AS base_ten_log` |
+| oracle · snowflake | `, LOG(10, 1000) AS base_ten_log` |
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+| sqlite | `LIMIT 20` |
 
 
 ## log
@@ -645,28 +832,49 @@ Sample query:
 // T-SQL takes LOG(value, base), the other way round from every other engine, so this
 // pins the value rather than just the rendering: log(2, 8) must be 3 everywhere.
 FIND orders o
-FETCH log(2, 8) log_base_two
+FETCH o.order_id ASC, log(2, 8) log_base_two
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**duckdb · oracle · snowflake · postgresql · mariadb · sqlite · trino**
+**duckdb · oracle · snowflake · postgresql · mariadb · trino**
 
 ```sql
 -- log: logarithm to an explicit base — the base comes first.
 -- T-SQL takes LOG(value, base), the other way round from every other engine, so this
 -- pins the value rather than just the rendering: log(2, 8) must be 3 everywhere.
 SELECT
-  log(2, 8) AS log_base_two
+  o.order_id
+, log(2, 8) AS log_base_two
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| mssql | `LOG(8, 2) AS log_base_two` |
+| sqlite | `LIMIT 20` |
+
+**mssql**
+
+```sql
+-- log: logarithm to an explicit base — the base comes first.
+-- T-SQL takes LOG(value, base), the other way round from every other engine, so this
+-- pins the value rather than just the rendering: log(2, 8) must be 3 everywhere.
+SELECT
+  o.order_id
+, LOG(8, 2) AS log_base_two
+FROM
+ orders o
+ORDER BY
+  o.order_id ASC
+OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+```
 
 
 ## sin
@@ -684,26 +892,33 @@ Sample query:
 ```kql
 // sin: trigonometric sine, argument in radians.
 FIND orders o
-FETCH round(sin(0), 6) sine_of_zero
+FETCH o.order_id ASC, round(sin(0), 6) sine_of_zero
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**duckdb · oracle · snowflake · mssql · mariadb · sqlite · trino**
+**duckdb · oracle · snowflake · mariadb · trino**
 
 ```sql
 -- sin: trigonometric sine, argument in radians.
 SELECT
-  round(sin(0), 6) AS sine_of_zero
+  o.order_id
+, round(sin(0), 6) AS sine_of_zero
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| postgresql | `round(CAST(sin(0) AS numeric), 6) AS sine_of_zero` |
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+| postgresql | `, round(CAST(sin(0) AS numeric), 6) AS sine_of_zero` |
+| sqlite | `LIMIT 20` |
 
 
 ## cos
@@ -721,26 +936,33 @@ Sample query:
 ```kql
 // cos: trigonometric cosine, argument in radians.
 FIND orders o
-FETCH round(cos(0), 6) cosine_of_zero
+FETCH o.order_id ASC, round(cos(0), 6) cosine_of_zero
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**duckdb · oracle · snowflake · mssql · mariadb · sqlite · trino**
+**duckdb · oracle · snowflake · mariadb · trino**
 
 ```sql
 -- cos: trigonometric cosine, argument in radians.
 SELECT
-  round(cos(0), 6) AS cosine_of_zero
+  o.order_id
+, round(cos(0), 6) AS cosine_of_zero
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| postgresql | `round(CAST(cos(0) AS numeric), 6) AS cosine_of_zero` |
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+| postgresql | `, round(CAST(cos(0) AS numeric), 6) AS cosine_of_zero` |
+| sqlite | `LIMIT 20` |
 
 
 ## tan
@@ -758,26 +980,33 @@ Sample query:
 ```kql
 // tan: trigonometric tangent, argument in radians.
 FIND orders o
-FETCH round(tan(0), 6) tangent_of_zero
+FETCH o.order_id ASC, round(tan(0), 6) tangent_of_zero
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**duckdb · oracle · snowflake · mssql · mariadb · sqlite · trino**
+**duckdb · oracle · snowflake · mariadb · trino**
 
 ```sql
 -- tan: trigonometric tangent, argument in radians.
 SELECT
-  round(tan(0), 6) AS tangent_of_zero
+  o.order_id
+, round(tan(0), 6) AS tangent_of_zero
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| postgresql | `round(CAST(tan(0) AS numeric), 6) AS tangent_of_zero` |
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+| postgresql | `, round(CAST(tan(0) AS numeric), 6) AS tangent_of_zero` |
+| sqlite | `LIMIT 20` |
 
 
 ## asin
@@ -795,26 +1024,33 @@ Sample query:
 ```kql
 // asin: inverse sine, result in radians.
 FIND orders o
-FETCH round(asin(1), 6) arcsine_of_one
+FETCH o.order_id ASC, round(asin(1), 6) arcsine_of_one
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**duckdb · oracle · snowflake · mssql · mariadb · sqlite · trino**
+**duckdb · oracle · snowflake · mariadb · trino**
 
 ```sql
 -- asin: inverse sine, result in radians.
 SELECT
-  round(asin(1), 6) AS arcsine_of_one
+  o.order_id
+, round(asin(1), 6) AS arcsine_of_one
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| postgresql | `round(CAST(asin(1) AS numeric), 6) AS arcsine_of_one` |
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+| postgresql | `, round(CAST(asin(1) AS numeric), 6) AS arcsine_of_one` |
+| sqlite | `LIMIT 20` |
 
 
 ## acos
@@ -832,26 +1068,33 @@ Sample query:
 ```kql
 // acos: inverse cosine, result in radians.
 FIND orders o
-FETCH round(acos(1), 6) arccosine_of_one
+FETCH o.order_id ASC, round(acos(1), 6) arccosine_of_one
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**duckdb · oracle · snowflake · mssql · mariadb · sqlite · trino**
+**duckdb · oracle · snowflake · mariadb · trino**
 
 ```sql
 -- acos: inverse cosine, result in radians.
 SELECT
-  round(acos(1), 6) AS arccosine_of_one
+  o.order_id
+, round(acos(1), 6) AS arccosine_of_one
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| postgresql | `round(CAST(acos(1) AS numeric), 6) AS arccosine_of_one` |
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+| postgresql | `, round(CAST(acos(1) AS numeric), 6) AS arccosine_of_one` |
+| sqlite | `LIMIT 20` |
 
 
 ## atan
@@ -869,26 +1112,33 @@ Sample query:
 ```kql
 // atan: inverse tangent, result in radians.
 FIND orders o
-FETCH round(atan(0), 6) arctangent_of_zero
+FETCH o.order_id ASC, round(atan(0), 6) arctangent_of_zero
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**duckdb · oracle · snowflake · mssql · mariadb · sqlite · trino**
+**duckdb · oracle · snowflake · mariadb · trino**
 
 ```sql
 -- atan: inverse tangent, result in radians.
 SELECT
-  round(atan(0), 6) AS arctangent_of_zero
+  o.order_id
+, round(atan(0), 6) AS arctangent_of_zero
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| postgresql | `round(CAST(atan(0) AS numeric), 6) AS arctangent_of_zero` |
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+| postgresql | `, round(CAST(atan(0) AS numeric), 6) AS arctangent_of_zero` |
+| sqlite | `LIMIT 20` |
 
 
 ## pi
@@ -902,26 +1152,33 @@ Sample query:
 ```kql
 // pi: the mathematical constant pi.
 FIND orders o
-FETCH pi() pi_value
+FETCH o.order_id ASC, pi() pi_value
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**duckdb · snowflake · mssql · postgresql · mariadb · sqlite · trino**
+**duckdb · snowflake · postgresql · mariadb · trino**
 
 ```sql
 -- pi: the mathematical constant pi.
 SELECT
-  pi() AS pi_value
+  o.order_id
+, pi() AS pi_value
 FROM
  orders o
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
 
 The remaining dialects differ only in this expression:
 
 | Dialect | Expression |
 |---|---|
-| oracle | `ACOS(-1) AS pi_value` |
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+| oracle | `, ACOS(-1) AS pi_value` |
+| sqlite | `LIMIT 20` |
 
 
 ## random

@@ -132,12 +132,13 @@ Sample query:
 // AND : orders with freight within bounds (two comparisons).
 FIND orders o
 FILTER o.freight > 10 AND o.freight < 100
-FETCH o.order_id, o.freight
+FETCH o.order_id ASC, o.freight
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**all dialects**
+**duckdb · oracle · snowflake · postgresql · mariadb · trino**
 
 ```sql
 -- AND : orders with freight within bounds (two comparisons).
@@ -150,7 +151,17 @@ WHERE
   o.freight < 100
  AND
   o.freight > 10
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
+
+The remaining dialects differ only in this expression:
+
+| Dialect | Expression |
+|---|---|
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+| sqlite | `LIMIT 20` |
 
 
 ## OR
@@ -207,12 +218,13 @@ Sample query:
 // NOT : orders whose freight is not above a threshold.
 FIND orders o
 FILTER NOT o.freight > 100
-FETCH o.order_id, o.freight
+FETCH o.order_id ASC, o.freight
+LIMIT 20
 ```
 
 ### Generated SQL
 
-**all dialects**
+**duckdb · oracle · snowflake · postgresql · mariadb · trino**
 
 ```sql
 -- NOT : orders whose freight is not above a threshold.
@@ -223,5 +235,15 @@ FROM
  orders o
 WHERE
   NOT (o.freight > 100)
+ORDER BY
+  o.order_id ASC
+FETCH FIRST 20 ROWS ONLY
 ```
+
+The remaining dialects differ only in this expression:
+
+| Dialect | Expression |
+|---|---|
+| mssql | `OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY` |
+| sqlite | `LIMIT 20` |
 

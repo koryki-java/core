@@ -38,6 +38,36 @@ A demo application is available at: [demo.koryki.ai](https://demo.koryki.ai "(de
 
 [KQL-Grammar Reference](./docs/KQL_EBNF.md "purpose of the koryki.ai platform")
 
+## Installation
+
+> Not yet published to Maven Central — coordinates below are what a release will use once it is.
+
+Add the core transpiler plus whichever database dialect(s) you need:
+
+**Gradle (Kotlin DSL)**
+
+```kotlin
+dependencies {
+    implementation("ai.koryki.core:koryki-core:0.1.0")
+    implementation("ai.koryki.core:koryki-duckdb:0.1.0") // or postgresql, oracle, snowflake, sqlite, mariadb, mssql, trino
+}
+```
+
+**Maven**
+
+```xml
+<dependency>
+    <groupId>ai.koryki.core</groupId>
+    <artifactId>koryki-core</artifactId>
+    <version>0.1.0</version>
+</dependency>
+<dependency>
+    <groupId>ai.koryki.core</groupId>
+    <artifactId>koryki-duckdb</artifactId>
+    <version>0.1.0</version>
+</dependency>
+```
+
 ## Demo Chat Application
 
 ![chat](docs/chat.png)
@@ -67,6 +97,23 @@ A demo application is available at: [demo.koryki.ai](https://demo.koryki.ai "(de
 
 - [`KQL-Grammar definition`](./kqlcore/src/main/antlr/ai/koryki/kql/KQLParser.g4 "KQL grammar")
 
+
+## Building & Testing
+
+The shared KQL/IQL test-fixture corpus lives in the sibling
+[`northwind`](https://github.com/koryki-java/northwind) repository and is vendored here as a git
+submodule, so it's checked out automatically — pinned to a specific version — instead of requiring
+a manual clone-and-configure step:
+
+```
+git submodule update --init
+./gradlew test
+```
+
+`test.root` can still be pointed at a different local checkout (e.g. in
+`~/.gradle/gradle.properties`) when developing against unreleased fixture changes; it defaults to
+the submodule when unset. See [`northwind`'s `SPEC.md`](https://github.com/koryki-java/northwind/blob/main/SPEC.md)
+for the corpus's format contract.
 
 ## Contribution
 
