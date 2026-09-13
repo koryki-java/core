@@ -28,11 +28,6 @@ import java.util.stream.Stream;
  * The single list of documented dialects and documentation samples, shared by every docs
  * generator so the function pages, the per-dialect support matrices and the test-module SQL
  * goldens can never end up covering different sets.
- *
- * <p>Public, and in this module's main sourceset rather than its tests: {@code incubator::tools}
- * needs it too (its {@code FunctionDocsTest}, moved there because core must not depend back on
- * incubator), and reusing this copy via the published {@code koryki-tools} jar beats a second,
- * driftable one living over there.
  */
 public final class DocDialects {
 
