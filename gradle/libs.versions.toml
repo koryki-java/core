@@ -36,10 +36,6 @@ spring-dependency-management = { id = "io.spring.dependency-management", version
 # Implementierungen bedienen -- Java ueber den Classpath, Rust ueber das Dateisystem.
 koryki-catalog = { module = "ai.koryki.northwind:koryki-catalog", version = "0.1.0" }
 
-# FunctionDocGenerator/FunctionDocCoverage, for FunctionDocsTest only (test scope in :tools) -- moved
-# to incubator since that module also needs to publish generated docs to a private site.
-koryki-incubator-tools = { module = "ai.koryki.incubator:koryki-tools", version = "0.1.0" }
-
 
 org-apache-arrow-vector = { module = "org.apache.arrow:arrow-vector", version.ref = "arrow" }
 org-apache-arrow-memory-netty = { module = "org.apache.arrow:arrow-memory-netty", version.ref = "arrow" }
