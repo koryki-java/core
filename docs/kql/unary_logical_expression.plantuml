@@ -7,7 +7,7 @@ skinparam legendBackgroundColor white
 
 unary_logical_expression = expression,
 (
-    "BETWEEN", expression, "AND", expression
+    "BETWEEN", ( expression, "AND", expression | "#PLACEHOLDER" )
     | operator,
     (
         [expression]

@@ -229,6 +229,9 @@ bound, see
 logical `AND` in the first place; a compound bound like `BETWEEN 1 + 2 AND 5`
 therefore needs no parentheses.
 
+A single placeholder may stand for the whole range — `expression BETWEEN #name` — for the same
+reason a placeholder may follow any other operator: see [Placeholders](#placeholders).
+
 Three further alternatives exist:
 - a `logical_expression` wrapped in parentheses for explicit grouping
 - `exists`, which tests whether a linked sub-graph contains at least one matching row.
@@ -237,8 +240,9 @@ Three further alternatives exist:
 ### Placeholders
 
 A placeholder — `#x`, `#laender`, `#p` — marks a position the caller fills before the query runs.
-There are two of them in the grammar: a value inside a comparison (`FILTER o.freight > #x`) and a
-whole sub-query bound to a block (`WITH ord #p`).
+There are three of them in the grammar: a value inside a comparison (`FILTER o.freight > #x`), the
+whole of a `BETWEEN` range (`FILTER o.freight BETWEEN #x`), and a whole sub-query bound to a block
+(`WITH ord #p`).
 
 A query that still carries one **is rejected**, with a violation positioned on the `#name`. A
 template is not a query, and there is nothing to render: filling the hole is the caller's job, and
@@ -247,6 +251,10 @@ anyway had four different outcomes, two of them silent — `FILTER o.freight #x`
 `WHERE o.freight null`, and `FILTER c.country IN #laender` produced `WHERE c.country IN ()`, which
 some engines accept and answer with zero rows. The fixtures recording each form are
 `queries/kql/northwind/validation/invalid_placeholder_*.kql`.
+
+`BETWEEN`'s placeholder form has no such history: the grammar had no place for it until now, so
+`FILTER o.freight BETWEEN #x` used to fail to parse rather than render — there was never a wrong
+SQL to measure. Once it parses, it reaches the same rule as the other two.
 
 Finally, an `expression` may stand alone as a predicate — `FILTER p.discontinued`,
 `FILTER starts_with(c.company_name, 'A')`. It is the last alternative, so it only
