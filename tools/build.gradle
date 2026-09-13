@@ -25,6 +25,21 @@ dependencies {
     testImplementation project(':sqlite')
     testImplementation project(':trino')
 
+    // FunctionDocGenerator moved to incubator's koryki-tools -- that module also needs to publish
+    // generated pages to a private docs site, which this (now public) repo shouldn't need to know
+    // about. FunctionDocsTest still lives here and still calls it: this test verifies core's own
+    // checked-in docs/functions/*.md and docs/dialects/*.md against the live catalog, and that
+    // verification is still core's job even though the generator that does the comparing now lives
+    // elsewhere.
+    //
+    // Excludes ai.koryki.core: koryki-incubator-tools was built against the PUBLISHED koryki-core
+    // (from mavenLocal), and this build already supplies :core/:kqlcore/:northwind etc. as local
+    // projects -- without the exclude, Gradle sees two different providers of the same capability
+    // (the local project and the published jar pulled in transitively) and refuses to resolve.
+    testImplementation(libs.koryki.incubator.tools) {
+        exclude group: 'ai.koryki.core'
+    }
+
     testImplementation platform(libs.junit.bom)
     testImplementation libs.junit.jupiter
     testRuntimeOnly libs.junit.platform.launcher
@@ -47,13 +62,8 @@ test {
             .withPropertyName('kqlEbnfDoc')
 }
 
-// Function doc-coverage worklist: ./gradlew :tools:coverageReport -q
-tasks.register('coverageReport', JavaExec) {
-    group = 'documentation'
-    description = 'Prints the function doc-coverage worklist for docs/functions/*.'
-    classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'ai.koryki.tools.docs.FunctionDocCoverage'
-}
+// Function doc-coverage worklist moved to incubator's koryki-tools (FunctionDocCoverage lives
+// there now): ./gradlew :tools:coverageReport -q, run from the incubator repo.
 
 // Argument-type coverage audit (all overloads): ./gradlew :tools:argTypeAudit -q
 tasks.register('argTypeAudit', JavaExec) {
@@ -63,58 +73,11 @@ tasks.register('argTypeAudit', JavaExec) {
     mainClass = 'ai.koryki.tools.docs.FunctionArgTypeAudit'
 }
 
-// Publish generated function docs to the web project: ./gradlew :tools:publishFunctionDocs
-//   -PwebDocsDir=/path/to/pages/docs       override the destination
-//   -PfunctionPagePrefix= / -PdialectPagePrefix=   override the published filename/link prefixes
-//
-// The web app uses flat, prefixed filenames (e.g. FUNCTION_STRING.md, DIALECT_DUCKDB.md) and links
-// without a path or .md suffix (FUNCTION_STRING). The renaming and link rewriting happen ONLY here,
-// while publishing — the source docs/ tree (filenames and subdirs) is never modified.
-// Per-machine only — set `webDocsDir=/path/to/pages/docs` in ~/.gradle/gradle.properties
-// (or pass -PwebDocsDir=...). Defaults to this module's build dir so the repo carries no
-// local path and a plain build/test never needs it configured.
-def webDocsDir = (project.findProperty('webDocsDir') ?: layout.buildDirectory.dir('web-docs').get().asFile).toString()
-def functionPagePrefix = (project.findProperty('functionPagePrefix') ?: 'FUNCTIONS_').toString()
-def dialectPagePrefix  = (project.findProperty('dialectPagePrefix')  ?: 'DIALECT_').toString()
-
-// page basename -> prefixed, UPPERCASED filename, e.g. ("string.md", "FUNCTION_") -> "FUNCTION_STRING.md"
-def prefixedName = { String fileName, String prefix ->
-    prefix + fileName.substring(0, fileName.lastIndexOf('.')).toUpperCase() + '.md'
-}
-
-// Copy only — never Sync. These tasks add or overwrite the generated pages and never delete anything
-// in the destination, so existing sibling docs in the web project are always preserved. (A page removed
-// from a category/dialect therefore leaves a stale copy in the destination; delete it there by hand.)
-// The golden 'test' runs first, so docs that have drifted from the catalog abort the publish.
-tasks.register('copyFunctionPages', Copy) {
-    dependsOn 'test'
-    from "$rootDir/docs/functions"
-    into webDocsDir
-    rename { String n -> prefixedName(n, functionPagePrefix) }
-}
-tasks.register('copyDialectPages', Copy) {
-    dependsOn 'test'
-    from "$rootDir/docs/dialects"
-    into webDocsDir
-    rename { String n -> prefixedName(n, dialectPagePrefix) }
-}
-tasks.register('copyFunctionIndex', Copy) {
-    dependsOn 'test'
-    from "$rootDir/docs/FUNCTIONS.md"
-    into webDocsDir
-    // Rewrite the index's links to the published route names:
-    //   [String](functions/string.md) -> [String](FUNCTION_STRING)
-    //   [DuckDB](dialects/duckdb.md)   -> [DuckDB](DIALECT_DUCKDB)
-    filter { String line ->
-        line.replaceAll(/\]\(functions\/([A-Za-z0-9_]+)\.md\)/) { m, name -> '](' + functionPagePrefix + name.toUpperCase() + ')' }
-            .replaceAll(/\]\(dialects\/([A-Za-z0-9_]+)\.md\)/)  { m, name -> '](' + dialectPagePrefix  + name.toUpperCase() + ')' }
-    }
-}
-tasks.register('publishFunctionDocs') {
-    group = 'documentation'
-    description = 'Publishes the generated function/dialect pages (flat, prefixed) and the rewritten FUNCTIONS.md index to the webui project (never deletes).'
-    dependsOn 'copyFunctionPages', 'copyDialectPages', 'copyFunctionIndex'
-}
+// Publishing the generated docs to the web project moved to incubator's koryki-tools too
+// (copyFunctionPages/copyDialectPages/copyFunctionIndex/publishFunctionDocs), since it is the
+// module now handling anything that needs to know about that private site's layout. Run
+// `./gradlew :tools:test` here first so what gets published is current, then
+// `./gradlew :tools:publishFunctionDocs` from the incubator repo.
 
 publishing {
     publications {

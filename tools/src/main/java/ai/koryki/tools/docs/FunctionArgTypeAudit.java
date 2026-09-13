@@ -30,9 +30,10 @@ import java.util.Map;
 
 /**
  * Argument-type coverage audit: do all function definitions declare a type family for every
- * argument? Unlike {@link FunctionDocCoverage}, this checks <strong>every overload</strong> in each
- * name's overload set (not just the representative), so a set with one typed and one untyped
- * overload is reported in full.
+ * argument? Unlike {@code FunctionDocCoverage} (now published from incubator's {@code koryki-tools},
+ * not on this module's classpath), this checks <strong>every overload</strong> in each name's
+ * overload set (not just the representative), so a set with one typed and one untyped overload is
+ * reported in full.
  *
  * <p>An argument is "untyped" when {@link FunctionArg#family()} is {@code null} — the any-type
  * wildcard ({@code arg("name")} rather than {@code arg("name", FAMILY)}). A definition with no
