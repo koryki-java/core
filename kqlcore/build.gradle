@@ -6,6 +6,11 @@ plugins {
 
 description = 'KQL grammar without VISUALISE'
 
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
 dependencies {
     antlr libs.antlr4
     api(libs.antlr4.runtime)
