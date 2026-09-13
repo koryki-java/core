@@ -28,22 +28,30 @@ import java.util.stream.Stream;
  * The single list of documented dialects and documentation samples, shared by every docs
  * generator so the function pages, the per-dialect support matrices and the test-module SQL
  * goldens can never end up covering different sets.
+ *
+ * <p>Public, and in this module's main sourceset rather than its tests: {@code incubator::tools}
+ * needs it too (its {@code FunctionDocsTest}, moved there because core must not depend back on
+ * incubator), and reusing this copy via the published {@code koryki-tools} jar beats a second,
+ * driftable one living over there.
  */
-final class DocDialects {
+public final class DocDialects {
 
     /** A dialect as the docs see it: catalog key, menu title, nav order, and the dialect itself. */
-    record Doc(String name, String title, int order, SqlDialect dialect) {
+    public record Doc(String name, String title, int order, SqlDialect dialect) {
         @Override
         public String toString() {
             return name;
         }
     }
 
-    /** One documentation sample: its {@link FunctionDocGenerator#slug slug}, demo database and KQL. */
-    record Sample(String slug, String db, String kql) {
+    /**
+     * One documentation sample: its slug (as incubator's {@code FunctionDocGenerator} keys pages
+     * by), demo database and KQL.
+     */
+    public record Sample(String slug, String db, String kql) {
     }
 
-    
+
 
     /**
      * Sample roots in resolution order. Must match {@code FunctionDocGenerator.SAMPLE_ROOTS}:
@@ -62,15 +70,15 @@ final class DocDialects {
             new Doc("sqlite", "SQLite", 27, SqliteDialect.INSTANCE),
             new Doc("trino", "Trino", 28, TrinoDialect.INSTANCE));
 
-    static List<Doc> all() {
+    public static List<Doc> all() {
         return ALL;
     }
 
-    static List<String> names() {
+    public static List<String> names() {
         return ALL.stream().map(Doc::name).toList();
     }
 
-    static Map<String, SqlDialect> byName() {
+    public static Map<String, SqlDialect> byName() {
         Map<String, SqlDialect> byName = new LinkedHashMap<>();
         for (Doc doc : ALL) {
             byName.put(doc.name(), doc.dialect());
@@ -79,7 +87,7 @@ final class DocDialects {
     }
 
     /** db name (the sample-path prefix: typecheck/temporal/northwind) -> its model resolver. */
-    static Map<String, LinkResolver> resolvers() throws IOException {
+    public static Map<String, LinkResolver> resolvers() throws IOException {
         return Map.of(
                 "typecheck", TypecheckService.resolver(),
                 "temporal", TemporalService.resolver(),
@@ -87,7 +95,7 @@ final class DocDialects {
     }
 
     /** Every documentation sample, keyed by slug. Empty when run outside the tools module. */
-    static Map<String, Sample> samples() throws IOException {
+    public static Map<String, Sample> samples() throws IOException {
         Map<String, Sample> samples = new LinkedHashMap<>();
         for (String db : ROOTS) {
             Path root = Fixtures.queries(db).resolve("docs");
