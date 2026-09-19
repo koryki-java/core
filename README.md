@@ -116,6 +116,17 @@ git submodule update --init
 the submodule when unset. See [`northwind`'s `SPEC.md`](https://github.com/koryki-java/northwind/blob/main/SPEC.md)
 for the corpus's format contract.
 
+Enable the pre-push hook once per clone, so a key or password is caught before it reaches GitHub:
+
+```
+git config core.hooksPath githooks
+```
+
+It scans the commits being pushed and rejects the push if it finds a credential — with
+[gitleaks](https://github.com/gitleaks/gitleaks) when installed, otherwise with a few built-in
+patterns. `git push --no-verify` overrides it for a false positive. The `Secret scan` workflow
+checks the full history on every push as well.
+
 ## Contribution
 
 **koryki** is in early stage and open source under
