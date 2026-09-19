@@ -16,11 +16,11 @@ public interface TypeDescriptorParser {
     public static final Pattern INTERVAL_PATTERN =
             Pattern.compile(
                     "^INTERVAL\\s+" +
-                            "([A-Z]+)" +                  // Starttyp
-                            "(?:\\((\\d+)\\))?" +         // optionale Präzision Start
+                            "([A-Z]+)" +                  // start field
+                            "(?:\\((\\d+)\\))?" +         // optional precision of the start field
                             "\\s+TO\\s+" +
-                            "([A-Z]+)" +                  // Endtyp
-                            "(?:\\((\\d+)\\))?" +         // optionale Präzision Ende
+                            "([A-Z]+)" +                  // end field
+                            "(?:\\((\\d+)\\))?" +         // optional precision of the end field
                             "$",
                     Pattern.CASE_INSENSITIVE
             );
