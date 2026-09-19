@@ -1,6 +1,6 @@
 package ai.koryki.snowflake.northwind;
 
-import ai.koryki.databases.Script;
+import ai.koryki.databases.northwind.Script;
 import ai.koryki.databases.northwind.duckdb.ExportJson;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.JsonNode;

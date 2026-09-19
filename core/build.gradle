@@ -27,6 +27,7 @@ dependencies {
     implementation libs.jackson.annotations
 
     testImplementation project(':northwind')
+    testImplementation project(':testkit')
     //testImplementation project(':duckdb')
 
 

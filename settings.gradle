@@ -13,6 +13,7 @@ dependencyResolutionManagement {
 
 include 'core'
 include 'northwind'
+include 'testkit'
 include 'duckdb'
 include 'postgresql'
 include 'oracle'

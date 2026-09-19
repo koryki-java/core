@@ -15,7 +15,8 @@ dependencies {
     implementation libs.jackson.databind
 
     implementation project(':core')
-    implementation project(':northwind')
+    testImplementation project(':northwind')
+    testImplementation project(':testkit')
     testImplementation libs.koryki.catalog
 
     testImplementation platform(libs.junit.bom)

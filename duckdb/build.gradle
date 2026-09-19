@@ -18,6 +18,7 @@ dependencies {
 
     implementation project(':core')
     testImplementation project(':northwind')
+    testImplementation project(':testkit')
 
     testImplementation platform(libs.junit.bom)
     testImplementation libs.junit.jupiter
@@ -26,14 +27,6 @@ dependencies {
 
 test {
     useJUnitPlatform()
-}
-
-tasks.register('DuckdbNorthwindScript', JavaExec) {
-    group = "application"
-    description = "Build the Northwind DuckDB database file at build/northwind.duckdb"
-
-    classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'ai.koryki.databases.northwind.duckdb.BuildNorthwind'
 }
 
 publishing {

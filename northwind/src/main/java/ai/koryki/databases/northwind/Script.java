@@ -1,6 +1,4 @@
-package ai.koryki.databases;
-
-import ai.koryki.databases.northwind.duckdb.BuildNorthwind;
+package ai.koryki.databases.northwind;
 
 import java.io.IOException;
 import java.io.InputStream;
