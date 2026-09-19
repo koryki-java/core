@@ -71,8 +71,9 @@ tasks.register("genParser", AntlrTask) {
     arguments += ["-visitor", "-long-messages", "-Werror", "-lib", antlrDir.absolutePath]
     declareGrammarImports(it)
 }
-sourceSets.main.java.srcDirs += [outDir]
-tasks.named('compileJava') { dependsOn "genParser" }
+// builtBy, so every task reading the main sources -- compileJava, but also sourcesJar and javadoc,
+// which publishing runs -- knows the generated parser comes from genParser.
+sourceSets.main.java.srcDir(files(outDir).builtBy('genParser'))
 
 // Both grammar artifacts provide the same capability: if they end up on the classpath together,
 // Gradle aborts with a named conflict message instead of silently picking one by order. The
@@ -96,3 +97,7 @@ publishing { publications { mavenJava(MavenPublication) { from components.java; 
 // from there as a resource -- without a copy. So the file exists exactly once: no second version
 // that could go stale, and nothing left behind after a deletion.
 sourceSets.main.resources.srcDir("src/main/antlr")
+
+// The sources jar reads src/main/antlr twice -- as the antlr source set and as the resource
+// directory above -- so every grammar arrives twice, identical. Keep one.
+tasks.named('sourcesJar') { duplicatesStrategy = DuplicatesStrategy.EXCLUDE }
