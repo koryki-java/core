@@ -135,7 +135,7 @@ rootProject.allprojects {
                         }
                         developers {
                             developer {
-                                id = 'johanneszemlin'
+                                id = 'j0hannesz'
                                 name = 'Johannes Zemlin'
                                 email = 'johannes.zemlin@mailbox.org'
                             }
