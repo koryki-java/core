@@ -16,6 +16,10 @@ jobs:
         with:
           submodules: true
 
+      # gradle-wrapper.jar is the first thing the build runs: check it against Gradle's published
+      # checksums, so a jar swapped in a pull request is caught before it runs.
+      - uses: gradle/actions/wrapper-validation@v6
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

@@ -30,14 +30,22 @@ jobs:
           # The tests read the fixture corpus from the northwind-fixtures submodule.
           submodules: true
 
-      - name: Check tag matches version
-        if: github.event_name == 'push'
+      # A release runs from its tag only, however it is started. A manual run on a branch would
+      # publish the version in gradle.properties without a tag, and pushing the tag afterwards would
+      # fail: Central does not take a version twice. Started manually on the tag, it repeats a
+      # release that failed before the upload.
+      - name: Check release tag
+        if: github.event_name == 'push' || inputs.target == 'release'
         run: |
           version=$(sed -n 's/^version=//p' gradle.properties)
-          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME does not match version=$version in gradle.properties"
+          if [ "$GITHUB_REF_TYPE" != tag ] || [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::A release runs from the tag v$version only, not from $GITHUB_REF_TYPE $GITHUB_REF_NAME"
             exit 1
           fi
+
+      # gradle-wrapper.jar is the first thing the build runs: check it against Gradle's published
+      # checksums, so a jar swapped in a commit cannot run with the signing key in reach.
+      - uses: gradle/actions/wrapper-validation@v6
 
       - uses: actions/setup-java@v4
         with:
