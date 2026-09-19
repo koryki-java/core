@@ -16,7 +16,6 @@
  */
 package ai.koryki.snowflake;
 
-import ai.koryki.snowflake.covid19.Covid19Database;
 import ai.koryki.snowflake.northwind.NorthwindSnowflake;
 import org.junit.jupiter.api.extension.ConditionEvaluationResult;
 import org.junit.jupiter.api.extension.ExecutionCondition;

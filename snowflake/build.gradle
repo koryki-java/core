@@ -25,10 +25,6 @@ test {
     systemProperty "snowflake.privatekey", project.findProperty("snowflake.privatekey")
     systemProperty "snowflake.northwind.url", project.findProperty("snowflake.northwind.url")
     systemProperty "snowflake.northwind.user", project.findProperty("snowflake.northwind.user")
-    systemProperty "snowflake.covid19.url", project.findProperty("snowflake.covid19.url")
-    systemProperty "snowflake.covid19.user", project.findProperty("snowflake.covid19.user")
-    systemProperty "snowflake.covid19.information.url", project.findProperty("snowflake.covid19.information.url")
-    systemProperty "snowflake.covid19.information.user", project.findProperty("snowflake.covid19.information.user")
 }
 
 publishing {
