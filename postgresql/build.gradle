@@ -5,11 +5,6 @@ plugins {
 
 description = 'koryki postgresql databases and services'
 
-java {
-    withSourcesJar() // Optional: Creates the sources JAR
-    withJavadocJar() // Optional: Creates the Javadoc JAR
-}
-
 dependencies {
 
     implementation(libs.postgresql)
@@ -45,7 +40,6 @@ publishing {
         }
     }
 }
-
 
 tasks.register('PostgreSQLNorthwindScript', JavaExec) {
 

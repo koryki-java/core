@@ -3,11 +3,6 @@ plugins {
     id 'maven-publish'
 }
 
-java {
-    withSourcesJar() // Optional: Creates the sources JAR
-    withJavadocJar() // Optional: Creates the Javadoc JAR
-}
-
 dependencies {
     implementation libs.jackson.databind
 

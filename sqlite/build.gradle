@@ -5,11 +5,6 @@ plugins {
 
 description = 'koryki sqlite databases and services'
 
-java {
-    withSourcesJar() // Optional: Creates the sources JAR
-    withJavadocJar() // Optional: Creates the Javadoc JAR
-}
-
 dependencies {
 
     implementation(libs.sqlite)

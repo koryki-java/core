@@ -5,16 +5,10 @@ plugins {
 
 description = 'koryki duckdb databases and services'
 
-java {
-    withSourcesJar() // Optional: Creates the sources JAR
-    withJavadocJar() // Optional: Creates the Javadoc JAR
-}
-
 dependencies {
 
     implementation libs.duckdb
     implementation libs.jackson.databind
-
 
     implementation project(':core')
     testImplementation project(':northwind')

@@ -5,11 +5,6 @@ plugins {
 
 description = 'koryki snowflake databases and services'
 
-java {
-    withSourcesJar() // Optional: Creates the sources JAR
-    withJavadocJar() // Optional: Creates the Javadoc JAR
-}
-
 dependencies {
     testImplementation(libs.snowflake)
     implementation libs.jackson.databind
@@ -52,8 +47,6 @@ publishing {
 test {
     jvmArgs "--add-opens=java.base/java.nio=ALL-UNNAMED"
 }
-
-
 
 tasks.register('SnowflakeNorthwindScript', JavaExec) {
 

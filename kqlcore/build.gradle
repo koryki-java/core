@@ -6,11 +6,6 @@ plugins {
 
 description = 'KQL grammar without VISUALISE'
 
-java {
-    withSourcesJar()
-    withJavadocJar()
-}
-
 dependencies {
     antlr libs.antlr4
     api(libs.antlr4.runtime)
@@ -33,7 +28,6 @@ configurations.named('api') {
 
 def antlrDir = file("src/main/antlr/ai/koryki/kql")
 def outDir   = layout.buildDirectory.dir("generated-src/antlr/main")
-
 
 tasks.named('generateGrammarSource') { enabled = false }
 
