@@ -84,11 +84,16 @@ rootProject.allprojects {
     // FILE NAME (koryki.core, hyphens and version stripped) -- unstable across any artifact rename
     // and not something we chose. group+name is unique across every module in this build already,
     // so it costs nothing to state explicitly here rather than leave it to that guess.
+    //
+    // LICENSE and NOTICE go into every jar, sources and javadoc included: Apache 2.0 section 4 asks
+    // that whoever redistributes a work passes both on, and a jar on Central is such a copy.
     pluginManager.withPlugin('java-base') {
         tasks.withType(Jar).configureEach {
             manifest {
                 attributes('Automatic-Module-Name': "${project.group}.${project.name}".toString())
             }
+            from(rootProject.file('LICENSE')) { into 'META-INF' }
+            from(rootProject.file('NOTICE')) { into 'META-INF' }
         }
     }
 
