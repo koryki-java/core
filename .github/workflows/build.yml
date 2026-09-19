@@ -1,0 +1,36 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Test
+        run: ./gradlew test --no-daemon
+
+      # MariaDB, MSSQL, Oracle, PostgreSQL, Snowflake, and Trino each gate their engine tests behind
+      # an availability check for a live server (see e.g. MariadbAvailabilityCondition) -- none of
+      # which exist in this runner. Those test classes are skipped, not failed; DuckDB and SQLite
+      # (embedded, no server needed) run for real and give actual regression coverage.
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: '**/build/reports/tests/'

@@ -1,3 +1,15 @@
+plugins {
+    id("com.gradleup.nmcp.settings") version "1.6.2"
+}
+nmcpSettings {
+    centralPortal {
+        username = providers.gradleProperty("centralPortalUsername").orNull
+        password = providers.gradleProperty("centralPortalPassword").orNull
+        publishingType = "USER_MANAGED"
+        publicationName = "$rootProject.name:$version"
+    }
+}
+
 rootProject.name = 'ai.koryki.core'
 
 
@@ -6,13 +18,18 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
 
     repositories {
-        mavenLocal()
+        // Only koryki's own artifacts may come from the local repository, for building against an
+        // unreleased northwind; everything else comes from Central, never from a stale local copy.
+        mavenLocal {
+            content { includeGroupByRegex 'ai\\.koryki(\\..+)?' }
+        }
         mavenCentral()
     }
 }
 
 include 'core'
 include 'northwind'
+include 'testkit'
 include 'duckdb'
 include 'postgresql'
 include 'oracle'

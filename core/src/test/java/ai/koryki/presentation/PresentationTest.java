@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * What a presentation is and how it renders — the half of the question that needs no query.
  *
- * <p>Who <em>concludes</em> which presentation a column gets is the job of {@code ai.koryki.result},
+ * <p>Who <em>concludes</em> which presentation a column gets is the job of {@code ai.koryki.derivation},
  * and its tests live in that project. What stays here is what this package owns on its own: that a
  * presentation survives the trip through its own name, and that each one renders what it promises.
  *

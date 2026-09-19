@@ -1,0 +1,23 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+}
+
+description = 'Test harness for the shared koryki fixture corpus: golden files, engine test base and stable value formats'
+
+dependencies {
+    // Part of the API: BaseEngineTest exposes Engine and ColumnInfo to its subclasses, and they
+    // compile against the JUnit annotations it uses.
+    api project(':core')
+    api platform(libs.junit.bom)
+    api libs.junit.jupiter
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifactId = 'koryki-testkit'
+        }
+    }
+}

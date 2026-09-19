@@ -79,11 +79,12 @@ dependencies {
 - **duckdb**: DuckDB dialect
 - **mariadb**: MariaDB dialect
 - **mssql**: Microsoft SQL Server dialect
-- **northwind**: [`Northwind sample database`](./NOTICE "Northwind sample database") for testing purpose
+- **northwind**: services for the [`Northwind sample database`](./NOTICE "Northwind sample database"); its DuckDB data and catalog come from the [`northwind`](https://github.com/koryki-java/northwind) repository
 - **oracle**: Oracle dialect
 - **postgresql**: PostgreSQL dialect
 - **snowflake**: Snowflake dialect
 - **sqlite**: SQLite dialect
+- **testkit**: JUnit harness for the shared fixture corpus (`Fixtures`, `TestUtil`, `BaseEngineTest`) — a test dependency, kept out of `northwind` so applications using the sample database do not get JUnit
 - **trino**: Trino dialect
 - **tools**: documentation generators and maintenance tasks
 

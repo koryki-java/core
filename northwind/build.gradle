@@ -3,28 +3,22 @@ plugins {
     id 'maven-publish'
 }
 
-java {
-    withSourcesJar() // Optional: Creates the sources JAR
-    withJavadocJar() // Optional: Creates the Javadoc JAR
-}
-
 dependencies {
     implementation libs.jackson.databind
 
-
     implementation project(':core')
-
-    // The catalog files are read from the classpath at runtime; 'implementation' is enough,
-    // because such dependencies sit transitively on the consumers' runtime path.
-    implementation libs.koryki.catalog
     implementation project(':duckdb')
 
-    // JUnit
-    implementation platform(libs.junit.bom)
-    implementation libs.junit.jupiter
+    // Files only, read from the classpath at runtime: the catalog (db.json, model.json) and the
+    // Northwind database for DuckDB, both from the northwind repository.
+    runtimeOnly libs.koryki.catalog
+    runtimeOnly libs.koryki.northwind.duckdb
+
+    // JUnit for this module's own tests only. The harness other modules test with is koryki-testkit,
+    // so that applications using the Northwind database do not get JUnit on their runtime path.
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit.jupiter
     testRuntimeOnly libs.junit.platform.launcher
-
-
 }
 
 test {

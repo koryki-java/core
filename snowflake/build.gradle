@@ -5,17 +5,13 @@ plugins {
 
 description = 'koryki snowflake databases and services'
 
-java {
-    withSourcesJar() // Optional: Creates the sources JAR
-    withJavadocJar() // Optional: Creates the Javadoc JAR
-}
-
 dependencies {
     testImplementation(libs.snowflake)
     implementation libs.jackson.databind
 
     implementation project(':core')
-    implementation project(':northwind')
+    testImplementation project(':northwind')
+    testImplementation project(':testkit')
     testImplementation libs.koryki.catalog
 
     testImplementation platform(libs.junit.bom)
@@ -51,8 +47,6 @@ publishing {
 test {
     jvmArgs "--add-opens=java.base/java.nio=ALL-UNNAMED"
 }
-
-
 
 tasks.register('SnowflakeNorthwindScript', JavaExec) {
 

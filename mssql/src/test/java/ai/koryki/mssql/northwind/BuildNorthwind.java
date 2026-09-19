@@ -1,6 +1,6 @@
 package ai.koryki.mssql.northwind;
 
-import ai.koryki.databases.Script;
+import ai.koryki.databases.northwind.Script;
 
 import java.io.IOException;
 import java.sql.Connection;

@@ -5,16 +5,13 @@ plugins {
 
 description = 'koryki tools'
 
-java {
-    withSourcesJar() // Optional: Creates the sources JAR
-    withJavadocJar() // Optional: Creates the Javadoc JAR
-}
-
 dependencies {
 
     implementation libs.jackson.databind
 
     implementation project(':northwind')
+    // DocDialects reads the fixture corpus through Fixtures.
+    implementation project(':testkit')
     implementation project(':core')
 
     // Main scope, not test: DocDialects (below) lives in this sourceset now, so incubator::tools

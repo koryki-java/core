@@ -1,17 +1,8 @@
-plugins {
-    id 'java'
-    id 'maven-publish'
-}
-
-rootProject.version = '0.1.0'
-
-
-
 rootProject.allprojects {
 
     version = rootProject.version
 
-    group = 'ai.koryki.core'
+    group = rootProject.group
 
     tasks.withType(Javadoc).configureEach {
         options.addStringOption('Xdoclint:-missing', '-quiet')
@@ -89,11 +80,6 @@ rootProject.allprojects {
         }
     }
 
-    java {
-        withSourcesJar() // Optional: Creates the sources JAR
-        withJavadocJar() // Optional: Creates the Javadoc JAR
-    }
-
     // Without this, a consumer on the module path gets an "automatic module" named from the jar
     // FILE NAME (koryki.core, hyphens and version stripped) -- unstable across any artifact rename
     // and not something we chose. group+name is unique across every module in this build already,
@@ -114,11 +100,21 @@ rootProject.allprojects {
     // Via pluginManager.withPlugin, matching the toolchain block above: subprojects apply
     // maven-publish themselves, after this block would otherwise have run.
     pluginManager.withPlugin('maven-publish') {
+        // Every published module ships sources and javadoc, which Central requires. Here rather than
+        // in an allprojects-level java{} block: that ran before the modules applied 'java' and so
+        // only ever configured the root project.
+        pluginManager.withPlugin('java') {
+            java {
+                withSourcesJar()
+                withJavadocJar()
+            }
+        }
+
         publishing {
             publications {
                 mavenJava(MavenPublication) {
                     pom {
-                        name = project.name
+                        name = "koryki-${project.name}"
                         // Lazy on purpose: 'maven-publish' is applied at the top of each
                         // subproject's build.gradle, so this withPlugin callback fires before that
                         // file's own 'description = ...' line (further down the same file) has run.
@@ -146,6 +142,20 @@ rootProject.allprojects {
                         }
                     }
                 }
+            }
+        }
+
+        // Signed only where the keys are set (the release workflow, which checks for them), so
+        // publishToMavenLocal works without keys however it is launched.
+        apply plugin: 'signing'
+        def signingKey = providers.environmentVariable('SIGNING_KEY').orNull
+        if (signingKey) {
+            signing {
+                useInMemoryPgpKeys(
+                        providers.environmentVariable('SIGNING_KEY_ID').orNull,
+                        signingKey,
+                        providers.environmentVariable('SIGNING_PASSWORD').orNull)
+                sign publishing.publications.mavenJava
             }
         }
     }

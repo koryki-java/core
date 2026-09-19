@@ -5,12 +5,6 @@ plugins {
     id 'maven-publish'
 }
 
-java {
-    withSourcesJar() // Optional: Creates the sources JAR
-    withJavadocJar() // Optional: Creates the Javadoc JAR
-}
-
-
 dependencies {
 
     antlr libs.antlr4
@@ -27,8 +21,8 @@ dependencies {
     implementation libs.jackson.annotations
 
     testImplementation project(':northwind')
+    testImplementation project(':testkit')
     //testImplementation project(':duckdb')
-
 
     // JUnit
     testImplementation libs.koryki.catalog

@@ -5,19 +5,14 @@ plugins {
 
 description = 'koryki duckdb databases and services'
 
-java {
-    withSourcesJar() // Optional: Creates the sources JAR
-    withJavadocJar() // Optional: Creates the Javadoc JAR
-}
-
 dependencies {
 
     implementation libs.duckdb
     implementation libs.jackson.databind
 
-
     implementation project(':core')
     testImplementation project(':northwind')
+    testImplementation project(':testkit')
 
     testImplementation platform(libs.junit.bom)
     testImplementation libs.junit.jupiter
@@ -26,14 +21,6 @@ dependencies {
 
 test {
     useJUnitPlatform()
-}
-
-tasks.register('DuckdbNorthwindScript', JavaExec) {
-    group = "application"
-    description = "Build the Northwind DuckDB database file at build/northwind.duckdb"
-
-    classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'ai.koryki.databases.northwind.duckdb.BuildNorthwind'
 }
 
 publishing {

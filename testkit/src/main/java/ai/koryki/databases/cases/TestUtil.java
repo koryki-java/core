@@ -6,7 +6,6 @@ import ai.koryki.databases.FileAsserter;
 import ai.koryki.jdbc.ColumnInfo;
 import ai.koryki.kql.Engine;
 import ai.koryki.iql.validate.ValidateException;
-import tools.jackson.databind.ObjectMapper;
 
 import java.io.File;
 import java.io.IOException;

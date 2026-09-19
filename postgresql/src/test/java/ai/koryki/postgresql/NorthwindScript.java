@@ -1,6 +1,6 @@
 package ai.koryki.postgresql;
 
-import ai.koryki.databases.Script;
+import ai.koryki.databases.northwind.Script;
 import ai.koryki.postgresql.northwind.NorthwindPostgresql;
 
 import java.io.File;

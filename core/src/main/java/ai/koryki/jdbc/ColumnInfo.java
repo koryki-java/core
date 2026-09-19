@@ -9,7 +9,7 @@ import ai.koryki.presentation.Presentation;
  *
  * <p>This is the reader family's own vocabulary — {@code ResultConsumer}, {@code ResultProcessor},
  * {@code ListResult}, {@code CSVFileResult} and {@code XMLFileResult} are all bounded by it — which
- * is why it belongs here. It once moved to {@code ai.koryki.result} on the theory that a column
+ * is why it belongs here. It once moved to {@code ai.koryki.derivation} on the theory that a column
  * description is a result description; the measurement disagreed. It depends on nothing in that
  * package, and of its three implementations only {@code Finding} lives there — the other two are
  * {@code kql.HeaderInfo} and the test harness's {@code StableFormatInfo}.

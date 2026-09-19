@@ -5,11 +5,6 @@ plugins {
 
 description = 'koryki oracle databases and services'
 
-java {
-    withSourcesJar() // Optional: Creates the sources JAR
-    withJavadocJar() // Optional: Creates the Javadoc JAR
-}
-
 dependencies {
 
     // compileOnly, not implementation: this module must not redistribute Oracle's driver.
@@ -20,8 +15,9 @@ dependencies {
     compileOnly(libs.oracle)
     implementation libs.jackson.databind
 
-    implementation project(':northwind')
     implementation project(':core')
+    testImplementation project(':northwind')
+    testImplementation project(':testkit')
     testImplementation libs.koryki.catalog
 
     // Test-only, and deliberately so: the driver is needed to run the live integration tests
