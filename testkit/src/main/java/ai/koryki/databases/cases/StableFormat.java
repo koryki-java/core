@@ -19,7 +19,6 @@ package ai.koryki.databases.cases;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.jdbc.LocaleFormat;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -47,8 +46,8 @@ public class StableFormat extends LocaleFormat {
         // Values are already decoded to canonical java.time at the read boundary; render the
         // test-stable, whole-second form (space-separated datetime, HH:mm:ss time).
         if (o instanceof LocalDateTime dt) return dt.format(CANON_DATETIME);
-        if (o instanceof LocalDate d)      return d.format(CANON_DATE);
-        if (o instanceof LocalTime t)      return t.format(CANON_TIME);
+        if (o instanceof LocalDate d) return d.format(CANON_DATE);
+        if (o instanceof LocalTime t) return t.format(CANON_TIME);
 
         if (o instanceof String s) {
             // Golden tolerance for to_text(...) output, whose text differs across dialects:
@@ -78,13 +77,13 @@ public class StableFormat extends LocaleFormat {
      * Six decimals, then trailing zeros dropped — so an integral value comes out exact.
      *
      * <p>The scale is golden tolerance, not presentation: the engines return the same value in
-     * different shapes ({@code 1.50} vs {@code 1.5000}) and a double carries noise around its eighth
-     * digit. Dropping trailing zeros settles the first, six decimals absorb the second.
+     * different shapes ({@code 1.50} vs {@code 1.5000}) and a double carries noise around its
+     * eighth digit. Dropping trailing zeros settles the first, six decimals absorb the second.
      *
-     * <p>It used to be <strong>one</strong> decimal, which normalised far more than the engines ever
-     * disagreed by: an integer read as {@code "830.0"}, {@code pi()} as {@code "3.1"}, and 0.14 and
-     * 0.15 were the same golden — so every cross-dialect difference below 0.1 was invisible, which
-     * is most of what a price, a discount, an average or a division can differ by.
+     * <p>It used to be <strong>one</strong> decimal, which normalised far more than the engines
+     * ever disagreed by: an integer read as {@code "830.0"}, {@code pi()} as {@code "3.1"}, and
+     * 0.14 and 0.15 were the same golden — so every cross-dialect difference below 0.1 was
+     * invisible, which is most of what a price, a discount, an average or a division can differ by.
      *
      * <p>Measured, 17 fixtures of ~394 actually differ beyond 1e-6, and they split cleanly: real
      * semantic differences (to_decimal on SQLite, to_float's 32- vs 64-bit width) and sums whose
@@ -93,7 +92,9 @@ public class StableFormat extends LocaleFormat {
      * expectation the query states is worth more than one the formatter hides. Never let any of
      * this reach {@link LocaleFormat}, whose output is a real query result.
      */
-    /** Whether the declared type is a floating-point one — the only family rounded to significance. */
+    /**
+     * Whether the declared type is a floating-point one — the only family rounded to significance.
+     */
     private static boolean isFloat(TypeDescriptor type) {
         return type != null && CoreTypeFamily.FLOAT.equals(type.getTypeFamily());
     }
@@ -117,23 +118,27 @@ public class StableFormat extends LocaleFormat {
      * type — and an integer is untouched.
      */
     public static String formatFloat(Number number) {
-        BigDecimal bd = (number instanceof BigDecimal)
-                ? (BigDecimal) number
-                : new BigDecimal(number.toString());
+        BigDecimal bd =
+                (number instanceof BigDecimal)
+                        ? (BigDecimal) number
+                        : new BigDecimal(number.toString());
         bd = bd.round(new java.math.MathContext(6, RoundingMode.HALF_UP)).stripTrailingZeros();
         return (bd.scale() < 0 ? bd.setScale(0) : bd).toPlainString();
     }
 
     public static String formatNumber(Number number) {
 
-        BigDecimal bd = (number instanceof BigDecimal)
-                ? (BigDecimal) number
-                : new BigDecimal(number.toString());
+        BigDecimal bd =
+                (number instanceof BigDecimal)
+                        ? (BigDecimal) number
+                        : new BigDecimal(number.toString());
         bd = bd.setScale(6, RoundingMode.HALF_UP).stripTrailingZeros();
         return (bd.scale() < 0 ? bd.setScale(0) : bd).toPlainString();
     }
 
-    /** A string that is a plain decimal, or {@code null} if it isn't one (dates, versions, text). */
+    /**
+     * A string that is a plain decimal, or {@code null} if it isn't one (dates, versions, text).
+     */
     private static BigDecimal tryDecimal(String s) {
         try {
             return new BigDecimal(s.trim());
@@ -142,15 +147,16 @@ public class StableFormat extends LocaleFormat {
         }
     }
 
-    private static final DateTimeFormatter CANON_DATE     = DateTimeFormatter.ISO_LOCAL_DATE;
-    private static final DateTimeFormatter CANON_TIME     = DateTimeFormatter.ofPattern("HH:mm:ss");
-    private static final DateTimeFormatter CANON_DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final DateTimeFormatter CANON_DATE = DateTimeFormatter.ISO_LOCAL_DATE;
+    private static final DateTimeFormatter CANON_TIME = DateTimeFormatter.ofPattern("HH:mm:ss");
+    private static final DateTimeFormatter CANON_DATETIME =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     /**
-     * Canonical whole-second ISO rendering of an ISO-ish temporal string (drops fractional
-     * seconds, normalizes the date/time separator to a space), or {@code null} if the string
-     * isn't a date/time/timestamp. Only strict ISO forms parse, so non-temporal text is left
-     * untouched. Zoned timestamps are out of scope (offsets won't parse here).
+     * Canonical whole-second ISO rendering of an ISO-ish temporal string (drops fractional seconds,
+     * normalizes the date/time separator to a space), or {@code null} if the string isn't a
+     * date/time/timestamp. Only strict ISO forms parse, so non-temporal text is left untouched.
+     * Zoned timestamps are out of scope (offsets won't parse here).
      */
     private static String tryTemporal(String s) {
         s = s.trim();
@@ -170,5 +176,4 @@ public class StableFormat extends LocaleFormat {
             return null;
         }
     }
-
 }

@@ -16,14 +16,12 @@
  */
 package ai.koryki.databases.cases;
 
-import ai.koryki.kql.Engine;
-import ai.koryki.databases.FileAsserter;
 import ai.koryki.catalog.Util;
+import ai.koryki.databases.FileAsserter;
 import ai.koryki.jdbc.ColumnInfo;
-
+import ai.koryki.kql.Engine;
 import java.io.File;
 import java.util.function.Supplier;
-
 
 public class CSVAssert<I extends ColumnInfo> implements TestCase {
 
@@ -34,7 +32,8 @@ public class CSVAssert<I extends ColumnInfo> implements TestCase {
     private String name;
     private ListWithSqlResult<I> result;
 
-    public CSVAssert(Engine<I, ListWithSqlResult<I>> engine, String kql, String expected, String name) {
+    public CSVAssert(
+            Engine<I, ListWithSqlResult<I>> engine, String kql, String expected, String name) {
         this.engine = engine;
         this.kql = kql;
         this.expected = expected;
@@ -48,9 +47,8 @@ public class CSVAssert<I extends ColumnInfo> implements TestCase {
         this.name = name;
     }
 
-
     @Override
-    public void run()  {
+    public void run() {
 
         String csv = getCsv();
         check(csv, expected, "");
@@ -77,8 +75,8 @@ public class CSVAssert<I extends ColumnInfo> implements TestCase {
      * digits of a floating-point result. A sum over thousands of rows depends on the order the
      * engine added them in, because addition is not associative; a REAL column read back gives
      * {@code 9.649999} on one engine and {@code 9.65} on another. Measured across the corpus, that
-     * noise stays below 1e-5 relative, while the differences worth catching — SQLite's
-     * {@code to_decimal} losing four digits, a moving average off in the fourth — are well above it.
+     * noise stays below 1e-5 relative, while the differences worth catching — SQLite's {@code
+     * to_decimal} losing four digits, a moving average off in the fourth — are well above it.
      *
      * <p>This replaces normalising the <em>text</em>, which could not do both jobs: the formatter
      * rounded every number to one decimal to stay stable, and thereby wrote {@code pi()} into the
@@ -117,11 +115,13 @@ public class CSVAssert<I extends ColumnInfo> implements TestCase {
         }
         java.math.BigDecimal scale = x.abs().max(y.abs());
         if (scale.signum() == 0) {
-            return true;                                   // both zero, differing only in spelling
+            return true; // both zero, differing only in spelling
         }
-        return x.subtract(y).abs()
-                .divide(scale, java.math.MathContext.DECIMAL64)
-                .compareTo(TOLERANCE) < 0;
+        return x.subtract(y)
+                        .abs()
+                        .divide(scale, java.math.MathContext.DECIMAL64)
+                        .compareTo(TOLERANCE)
+                < 0;
     }
 
     /** The number inside a CSV cell ({@code "12.5"}), or null when the cell is not one. */
@@ -140,12 +140,12 @@ public class CSVAssert<I extends ColumnInfo> implements TestCase {
     public String getCsv() {
         Supplier<ListWithSqlResult<I>> processor = ListWithSqlResult::new;
 
-        sql =  engine.toSql(kql);
+        sql = engine.toSql(kql);
         // formatting comes from the engine's configured Format (engine.setFormat),
         // not from the processor — don't force one here.
         result = engine.executeKQL(kql, processor);
 
-        //sql = result.getSql();
+        // sql = result.getSql();
 
         // Rows are compared text-sorted, so a fixture whose ORDER matters opts out by ending its
         // name in "stable". That never worked: `name` is the file name, so it ends in ".kql" and

@@ -18,7 +18,6 @@ package ai.koryki.databases.cases;
 
 import ai.koryki.antlr.Text;
 import ai.koryki.catalog.Util;
-
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -53,9 +52,9 @@ public final class Fixtures {
      *
      * <p>It is a property rather than a constant because {@code build.gradle} needs the same path,
      * to register the corpus as a task input — without that, a changed fixture leaves the test
-     * {@code UP-TO-DATE}. Groovy cannot read a Java constant, so the path used to be written in both
-     * places. Renaming the fixture project moved it three times in one day, and the Gradle copy was
-     * left behind every time; it now supplies the value instead of repeating it.
+     * {@code UP-TO-DATE}. Groovy cannot read a Java constant, so the path used to be written in
+     * both places. Renaming the fixture project moved it three times in one day, and the Gradle
+     * copy was left behind every time; it now supplies the value instead of repeating it.
      */
     public static final String CORPUS_PROPERTY = "test.corpus";
 
@@ -66,8 +65,12 @@ public final class Fixtures {
         String value = System.getProperty(CORPUS_PROPERTY);
         if (value == null || value.isBlank()) {
             throw new IllegalStateException(
-                    "The property " + CORPUS_PROPERTY + " is not set — it says where below "
-                            + ROOT_PROPERTY + " the fixture module keeps the corpus." + Text.NL
+                    "The property "
+                            + CORPUS_PROPERTY
+                            + " is not set — it says where below "
+                            + ROOT_PROPERTY
+                            + " the fixture module keeps the corpus."
+                            + Text.NL
                             + "It is passed by the test task; a run outside Gradle has to set it.");
         }
         return value;
@@ -103,18 +106,31 @@ public final class Fixtures {
 
         if (value == null || value.isBlank()) {
             throw new IllegalStateException(
-                    "The property " + ROOT_PROPERTY + " is not set — it says where the shared"
-                            + " test fixtures live." + Text.NL
-                            + "Set it with: ./gradlew test -D" + ROOT_PROPERTY + "=/path/to/koryki-java/northwind"
+                    "The property "
+                            + ROOT_PROPERTY
+                            + " is not set — it says where the shared"
+                            + " test fixtures live."
                             + Text.NL
-                            + "Permanently: put " + ROOT_PROPERTY + "=... into gradle.properties.");
+                            + "Set it with: ./gradlew test -D"
+                            + ROOT_PROPERTY
+                            + "=/path/to/koryki-java/northwind"
+                            + Text.NL
+                            + "Permanently: put "
+                            + ROOT_PROPERTY
+                            + "=... into gradle.properties.");
         }
 
         Path candidate = Path.of(value);
         if (!Files.isDirectory(candidate.resolve(base()))) {
             throw new IllegalStateException(
-                    ROOT_PROPERTY + "=" + value + " does not point at the fixture project:" + Text.NL
-                            + candidate.resolve(base()) + " is not a directory." + Text.NL
+                    ROOT_PROPERTY
+                            + "="
+                            + value
+                            + " does not point at the fixture project:"
+                            + Text.NL
+                            + candidate.resolve(base())
+                            + " is not a directory."
+                            + Text.NL
                             + "Expected the root directory of koryki-java/northwind.");
         }
 
@@ -124,10 +140,11 @@ public final class Fixtures {
     /**
      * The corpus directory: the root plus the path the fixture module keeps it under.
      *
-     * <p>Exists so the corpus path is stated once. {@code BASE} used to be a private constant, so callers needing the
-     * directory itself — rather than one of the {@code queries}/{@code expected} sub-paths — spelled
-     * the literal out again. Renaming the fixture module then broke them one at a time, each in a
-     * later phase than the last: the Gradle input first, then a test, then another.
+     * <p>Exists so the corpus path is stated once. {@code BASE} used to be a private constant, so
+     * callers needing the directory itself — rather than one of the {@code queries}/{@code
+     * expected} sub-paths — spelled the literal out again. Renaming the fixture module then broke
+     * them one at a time, each in a later phase than the last: the Gradle input first, then a test,
+     * then another.
      *
      * <p>One copy is unavoidable: {@code build.gradle} registers the same directory as a task input
      * so a changed fixture is not treated as up to date, and Groovy cannot read this constant.
@@ -169,12 +186,11 @@ public final class Fixtures {
         return root().resolve(base()).resolve("iql").resolve(schema);
     }
 
-    private Fixtures() {
-    }
+    private Fixtures() {}
 
     /**
-     * Whether missing golden files may be written. Besides the system property,
-     * {@code FIXTURES_WRITE} from the environment is accepted — handy for CI runs that pass no JVM
+     * Whether missing golden files may be written. Besides the system property, {@code
+     * FIXTURES_WRITE} from the environment is accepted — handy for CI runs that pass no JVM
      * arguments through.
      */
     public static boolean writeEnabled() {
@@ -186,17 +202,20 @@ public final class Fixtures {
      * Writes the golden when writing is enabled, and fails otherwise.
      *
      * @param content what would go into the file — that is, the current behaviour
-     * @param target  the expected but absent file
+     * @param target the expected but absent file
      */
     public static void writeOrFail(Object content, File target) {
         if (!writeEnabled()) {
             throw new AssertionError(
-                    "Golden missing: " + target
+                    "Golden missing: "
+                            + target
                             + Text.NL
                             + "It is no longer written automatically, or the test would only confirm"
                             + " the current behaviour."
                             + Text.NL
-                            + "Create it with: ./gradlew test -D" + PROPERTY + "=true");
+                            + "Create it with: ./gradlew test -D"
+                            + PROPERTY
+                            + "=true");
         }
         Util.text(content, target);
     }

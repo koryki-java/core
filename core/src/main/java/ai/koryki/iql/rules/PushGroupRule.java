@@ -22,19 +22,13 @@ import ai.koryki.iql.query.Group;
 import ai.koryki.iql.query.Query;
 import ai.koryki.iql.query.Select;
 import ai.koryki.iql.query.Source;
-
 import java.util.Deque;
 import java.util.List;
 
-/**
- * Push out expressions from select.group, to table.group.
- */
+/** Push out expressions from select.group, to table.group. */
 public class PushGroupRule {
 
-
-    public PushGroupRule() {
-
-    }
+    public PushGroupRule() {}
 
     public void apply(Query query) {
 
@@ -44,24 +38,23 @@ public class PushGroupRule {
 
     private static class PushExpressionVisitor implements Visitor {
 
-
-        public PushExpressionVisitor() {
-        }
+        public PushExpressionVisitor() {}
 
         @Override
         public boolean visit(Deque<Object> deque, Select select) {
 
             List<Group> group = select.getGroup();
 
-            group.removeIf(g -> {
-                String a = PushLogicalExpressionRule.homogenAlias(g.getExpression());
-                if (a != null) {
-                    Source table = Visitor.findSourceInSelect(select, a);
-                    table.getGroup().add(g);
-                    return true;
-                }
-                return false;
-            });
+            group.removeIf(
+                    g -> {
+                        String a = PushLogicalExpressionRule.homogenAlias(g.getExpression());
+                        if (a != null) {
+                            Source table = Visitor.findSourceInSelect(select, a);
+                            table.getGroup().add(g);
+                            return true;
+                        }
+                        return false;
+                    });
             return true;
         }
     }

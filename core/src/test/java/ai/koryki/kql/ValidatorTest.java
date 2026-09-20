@@ -16,6 +16,8 @@
  */
 package ai.koryki.kql;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import ai.koryki.databases.northwind.duckdb.NorthwindService;
 import ai.koryki.iql.BlockLeadingSourceCollector;
 import ai.koryki.iql.BlockRegistryCollector;
@@ -29,18 +31,15 @@ import ai.koryki.iql.query.Query;
 import ai.koryki.iql.query.Source;
 import ai.koryki.iql.validate.FunctionValidator;
 import ai.koryki.iql.validate.Violation;
-import org.antlr.v4.runtime.RuleContext;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.antlr.v4.runtime.RuleContext;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 /**
  * {@link FunctionValidator} over the {@code validator/} fixtures.
@@ -63,12 +62,13 @@ public class ValidatorTest {
     }
 
     /**
-     * Parses a fixture and runs {@link FunctionValidator} against it with the same inputs
-     * {@code KQLTranspiler.analyze()} assembles: the dialect's catalog, the schema resolver, and a
+     * Parses a fixture and runs {@link FunctionValidator} against it with the same inputs {@code
+     * KQLTranspiler.analyze()} assembles: the dialect's catalog, the schema resolver, and a
      * visibility context derived from the pre-rules tree.
      */
     private static List<Violation> validate(String fixture) throws IOException {
-        return validate(ValidatorTest.class.getResourceAsStream("/ai/koryki/core/validator/" + fixture));
+        return validate(
+                ValidatorTest.class.getResourceAsStream("/ai/koryki/core/validator/" + fixture));
     }
 
     /** As {@link #validate(String)}, for KQL written inline rather than held as a fixture. */
@@ -85,18 +85,25 @@ public class ValidatorTest {
         Query query = l.toBean();
         Map<Object, RuleContext> iqlToContext = l.getIqlToContext();
 
-        Map<Object, Map<String, Source>> scopes = Walker.apply(query, new SelectScopeCollector(iqlToContext));
+        Map<Object, Map<String, Source>> scopes =
+                Walker.apply(query, new SelectScopeCollector(iqlToContext));
         Map<String, Source> leading = Walker.apply(query, new BlockLeadingSourceCollector());
         Map<String, Block> blocks = Walker.apply(query, new BlockRegistryCollector());
         IQLVisibilityContext visibility = new IQLVisibilityContext(blocks, leading, scopes);
 
-        FunctionValidator v = new FunctionValidator(iqlToContext,
-                DuckdbBaseDialect.INSTANCE.getFunctionRenderer(), resolver, visibility);
+        FunctionValidator v =
+                new FunctionValidator(
+                        iqlToContext,
+                        DuckdbBaseDialect.INSTANCE.getFunctionRenderer(),
+                        resolver,
+                        visibility);
         new Walker().walk(query, v);
         return v.collect();
     }
 
-    /** Errors only — a warning (an unknown function passed through to SQL) does not make it invalid. */
+    /**
+     * Errors only — a warning (an unknown function passed through to SQL) does not make it invalid.
+     */
     private static List<Violation> errors(String fixture) throws IOException {
         return validate(fixture).stream().filter(Violation::isError).toList();
     }
@@ -109,10 +116,12 @@ public class ValidatorTest {
      */
     @Test
     public void harnessHasTheCatalogAndScopesWired() throws IOException {
-        List<Violation> compared = validateSource(
-                "FIND orders o FILTER o.order_date = 'not a date' FETCH o.order_id");
-        assertTrue(compared.stream().anyMatch(Violation::isError),
-                "comparing a DATE against TEXT must be an error — needs resolver + visibility: " + compared);
+        List<Violation> compared =
+                validateSource("FIND orders o FILTER o.order_date = 'not a date' FETCH o.order_id");
+        assertTrue(
+                compared.stream().anyMatch(Violation::isError),
+                "comparing a DATE against TEXT must be an error — needs resolver + visibility: "
+                        + compared);
 
         List<Violation> unknown = validateSource("FIND orders o FETCH nosuchfunction(o.order_id)");
         assertFalse(unknown.isEmpty(), "an unknown function must be reported — needs the catalog");

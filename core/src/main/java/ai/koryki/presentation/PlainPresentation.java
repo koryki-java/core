@@ -37,8 +37,7 @@ public final class PlainPresentation implements Presentation {
 
     public static final PlainPresentation INSTANCE = new PlainPresentation();
 
-    private PlainPresentation() {
-    }
+    private PlainPresentation() {}
 
     @Override
     public String name() {

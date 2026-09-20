@@ -17,8 +17,6 @@
 package ai.koryki.catalog;
 
 import ai.koryki.antlr.KorykiaiException;
-import tools.jackson.databind.ObjectMapper;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -29,15 +27,17 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import tools.jackson.databind.ObjectMapper;
 
 /**
- * Writes text and JSON output to files (golden generation and exports). Catalog loading lives
- * in {@link CatalogLoader}.
+ * Writes text and JSON output to files (golden generation and exports). Catalog loading lives in
+ * {@link CatalogLoader}.
  */
 public class Util {
 
     /**
-     * The line break in everything koryki produces as text — a fixed {@code \n}, not the platform's.
+     * The line break in everything koryki produces as text — a fixed {@code \n}, not the
+     * platform's.
      *
      * <p>Generated SQL, IQL, KQL and CSV are data formats, not console text: they go to drivers and
      * into golden files. With {@code System.lineSeparator()} the same query would yield different

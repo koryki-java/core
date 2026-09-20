@@ -16,7 +16,6 @@
  */
 package ai.koryki.jdbc;
 
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -27,9 +26,7 @@ public class ListResult<C extends ColumnInfo> implements ResultProcessor<C> {
     private ValueFormat format;
     private final List<List<Object>> rows = new ArrayList<>();
 
-    public ListResult() {
-
-    }
+    public ListResult() {}
 
     @Override
     public boolean append(List<Object> row) {
@@ -37,9 +34,7 @@ public class ListResult<C extends ColumnInfo> implements ResultProcessor<C> {
     }
 
     @Override
-    public void close() {
-
-    }
+    public void close() {}
 
     public List<List<Object>> getRows() {
         return rows;
@@ -52,10 +47,10 @@ public class ListResult<C extends ColumnInfo> implements ResultProcessor<C> {
             b.append(CSVFileResult.toCSV(formatHeader(getInfos(), getInfos())));
         }
 
-        rows.forEach(l -> {
-
-            b.append(CSVFileResult.toCSV(formatRow(l, getInfos())));
-        });
+        rows.forEach(
+                l -> {
+                    b.append(CSVFileResult.toCSV(formatRow(l, getInfos())));
+                });
 
         return b.toString();
     }
@@ -67,7 +62,11 @@ public class ListResult<C extends ColumnInfo> implements ResultProcessor<C> {
             b.append(CSVFileResult.toCSV(formatHeader(getInfos(), getInfos())));
         }
 
-        List<String> rl = new ArrayList<>(rows.stream().map(r -> CSVFileResult.toCSV(formatRow(r, getInfos()))).toList());
+        List<String> rl =
+                new ArrayList<>(
+                        rows.stream()
+                                .map(r -> CSVFileResult.toCSV(formatRow(r, getInfos())))
+                                .toList());
         Collections.sort(rl);
 
         rl.forEach(b::append);

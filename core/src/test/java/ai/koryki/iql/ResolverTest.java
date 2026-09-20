@@ -16,17 +16,16 @@
  */
 package ai.koryki.iql;
 
+import static org.junit.jupiter.api.Assertions.fail;
+
 import ai.koryki.antlr.Position;
 import ai.koryki.antlr.Range;
 import ai.koryki.antlr.RangeException;
 import ai.koryki.databases.northwind.duckdb.NorthwindService;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
 import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.fail;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class ResolverTest {
 

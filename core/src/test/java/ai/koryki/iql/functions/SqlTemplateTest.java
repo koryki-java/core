@@ -16,16 +16,15 @@
  */
 package ai.koryki.iql.functions;
 
-import ai.koryki.antlr.KorykiaiException;
-import ai.koryki.iql.query.Expression;
-import ai.koryki.iql.query.Function;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
 import static ai.koryki.iql.functions.FunctionArg.arg;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import ai.koryki.antlr.KorykiaiException;
+import ai.koryki.iql.query.Expression;
+import ai.koryki.iql.query.Function;
+import java.util.List;
+import org.junit.jupiter.api.Test;
 
 class SqlTemplateTest {
 
@@ -55,9 +54,10 @@ class SqlTemplateTest {
 
     @Test
     void templatedDefinitionEnforcesArityBeforeRendering() {
-        FunctionDefinition def = new FunctionDefinition("position", ReturnTypes.INTEGER)
-                .args(arg("substr"), arg("str"))
-                .template("POSITION({0} IN {1})");
+        FunctionDefinition def =
+                new FunctionDefinition("position", ReturnTypes.INTEGER)
+                        .args(arg("substr"), arg("str"))
+                        .template("POSITION({0} IN {1})");
 
         Function call = function("position");
         IllegalArgumentException e =

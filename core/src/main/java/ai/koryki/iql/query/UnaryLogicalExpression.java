@@ -30,7 +30,6 @@ public class UnaryLogicalExpression {
     private LogicalExpression node;
     private String placeholder;
 
-
     public Expression getLeft() {
         return left;
     }
@@ -44,9 +43,9 @@ public class UnaryLogicalExpression {
     }
 
     /**
-     * The operator's surface text, canonicalized. The grammar accepts {@code !=} as an
-     * alias of {@code <>}; both reach the model as {@code <>} so the catalog (which keys
-     * operators by surface text) and the IQL serializer see exactly one spelling.
+     * The operator's surface text, canonicalized. The grammar accepts {@code !=} as an alias of
+     * {@code <>}; both reach the model as {@code <>} so the catalog (which keys operators by
+     * surface text) and the IQL serializer see exactly one spelling.
      */
     public void setOp(String op) {
         this.op = "!=".equals(op) ? "<>" : op;

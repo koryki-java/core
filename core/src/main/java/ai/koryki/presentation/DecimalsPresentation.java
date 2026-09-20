@@ -27,8 +27,8 @@ import java.util.Locale;
  * <p>For quantities whose precision is a convention rather than a measurement — money in EUR always
  * shows two places, a count none — regardless of how large the value is.
  *
- * <p>Rounding here is a display decision, the one {@code LocaleFormat} already permits ("no rounding
- * beyond display scale"). The stored value is untouched.
+ * <p>Rounding here is a display decision, the one {@code LocaleFormat} already permits ("no
+ * rounding beyond display scale"). The stored value is untouched.
  */
 public final class DecimalsPresentation implements Presentation {
 

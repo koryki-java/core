@@ -16,13 +16,10 @@
  */
 package ai.koryki.oracle;
 
-import org.junit.jupiter.api.extension.ExtendWith;
-
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 @Retention(RetentionPolicy.RUNTIME)
 @ExtendWith(OracleAvailabilityCondition.class)
-public @interface OracleUnavailable {
-
-}
+public @interface OracleUnavailable {}

@@ -17,12 +17,11 @@
 package ai.koryki.iql.functions;
 
 import ai.koryki.antlr.KorykiaiException;
+import ai.koryki.catalog.types.TypeDescriptor;
+import ai.koryki.catalog.types.TypeFamily;
 import ai.koryki.iql.SqlSelectRenderer;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
-import ai.koryki.catalog.types.TypeDescriptor;
-import ai.koryki.catalog.types.TypeFamily;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,23 +34,28 @@ import java.util.stream.Collectors;
 /**
  * Function catalog: maps a name to its overload set and renders calls.
  *
- * <p>Registration semantics: a new definition supersedes existing overloads it
- * collides with. Definitions without a signature claim the whole name (the
- * legacy replace-by-name behavior); definitions with signatures coexist as
- * overloads as long as their arity ranges don't overlap. All overloads of a
- * name must share the same {@link FunctionKind} — classification (GROUP BY /
- * HAVING inference) works on names before argument types are known.
+ * <p>Registration semantics: a new definition supersedes existing overloads it collides with.
+ * Definitions without a signature claim the whole name (the legacy replace-by-name behavior);
+ * definitions with signatures coexist as overloads as long as their arity ranges don't overlap. All
+ * overloads of a name must share the same {@link FunctionKind} — classification (GROUP BY / HAVING
+ * inference) works on names before argument types are known.
  */
 public class FunctionRegistry implements FunctionRenderer {
 
     private final Map<String, List<FunctionDefinition>> functions = new LinkedHashMap<>();
 
     public FunctionRegistry register(FunctionDefinition fn) {
-        List<FunctionDefinition> set = functions.computeIfAbsent(fn.getName(), k -> new ArrayList<>());
+        List<FunctionDefinition> set =
+                functions.computeIfAbsent(fn.getName(), k -> new ArrayList<>());
         set.removeIf(existing -> collides(existing, fn));
         if (!set.isEmpty() && set.get(0).getKind() != fn.getKind()) {
-            throw new KorykiaiException("all overloads of '" + fn.getName() + "' must share the same FunctionKind: "
-                    + set.get(0).getKind() + " vs " + fn.getKind());
+            throw new KorykiaiException(
+                    "all overloads of '"
+                            + fn.getName()
+                            + "' must share the same FunctionKind: "
+                            + set.get(0).getKind()
+                            + " vs "
+                            + fn.getKind());
         }
         set.add(fn);
         return this;
@@ -65,10 +69,9 @@ public class FunctionRegistry implements FunctionRenderer {
     }
 
     /**
-     * Dialect overlay: replaces only the rendering of an existing definition.
-     * Kind, signature, return type and documentation are inherited from the
-     * base definition, so a dialect can never disagree with the catalog about
-     * what a function <em>is</em> — only about how it renders.
+     * Dialect overlay: replaces only the rendering of an existing definition. Kind, signature,
+     * return type and documentation are inherited from the base definition, so a dialect can never
+     * disagree with the catalog about what a function <em>is</em> — only about how it renders.
      */
     public FunctionRegistry override(String name, String template) {
         List<FunctionDefinition> set = overloads(name);
@@ -82,9 +85,9 @@ public class FunctionRegistry implements FunctionRenderer {
     }
 
     /**
-     * Dialect overlay that re-renders <em>every</em> overload of a name with the same template.
-     * For uniformly-rendered overload sets (e.g. type-overloaded {@code to_text}, where each
-     * source family renders the same CAST) a dialect changes the physical type once for all.
+     * Dialect overlay that re-renders <em>every</em> overload of a name with the same template. For
+     * uniformly-rendered overload sets (e.g. type-overloaded {@code to_text}, where each source
+     * family renders the same CAST) a dialect changes the physical type once for all.
      */
     public FunctionRegistry overrideAll(String name, String template) {
         List<FunctionDefinition> set = overloads(name);
@@ -99,11 +102,20 @@ public class FunctionRegistry implements FunctionRenderer {
 
     /** Arity-specific overlay for one overload of an overloaded function. */
     public FunctionRegistry override(String name, int arity, String template) {
-        FunctionDefinition base = overloads(name).stream()
-                .filter(d -> d.getSignature() != null && d.getSignature().matchesArity(arity))
-                .findFirst()
-                .orElseThrow(() -> new KorykiaiException(
-                        "cannot override unknown overload: " + name + "/" + arity));
+        FunctionDefinition base =
+                overloads(name).stream()
+                        .filter(
+                                d ->
+                                        d.getSignature() != null
+                                                && d.getSignature().matchesArity(arity))
+                        .findFirst()
+                        .orElseThrow(
+                                () ->
+                                        new KorykiaiException(
+                                                "cannot override unknown overload: "
+                                                        + name
+                                                        + "/"
+                                                        + arity));
         return register(copyForOverlay(base).template(template));
     }
 
@@ -113,8 +125,8 @@ public class FunctionRegistry implements FunctionRenderer {
      * case: it has no set-based form, so {@code trim(s)} works and {@code trim(s, chars)} does not.
      * The only way to say that was to leave the one-argument template in place and let the call die
      * in {@code SqlTemplate}'s surplus-argument guard — a {@code KorykiaiException} with no
-     * position, no {@code UNSUPPORTED} category, and therefore a hand-written {@code ignore=} marker
-     * on the fixture whose own comment had to explain it was not a result divergence.
+     * position, no {@code UNSUPPORTED} category, and therefore a hand-written {@code ignore=}
+     * marker on the fixture whose own comment had to explain it was not a result divergence.
      *
      * <p>Splits the base overload: the arities below {@code arity} keep rendering, {@code arity}
      * itself becomes a declared-unsupported overload. Deliberately limited to dropping <em>trailing
@@ -122,23 +134,40 @@ public class FunctionRegistry implements FunctionRenderer {
      * need two surviving ranges and has no caller.
      */
     public FunctionRegistry unsupported(String name, int arity) {
-        FunctionDefinition base = overloads(name).stream()
-                .filter(d -> d.getSignature() != null && d.getSignature().matchesArity(arity))
-                .findFirst()
-                .orElseThrow(() -> new KorykiaiException(
-                        "cannot mark unknown overload as unsupported: " + name + "/" + arity));
+        FunctionDefinition base =
+                overloads(name).stream()
+                        .filter(
+                                d ->
+                                        d.getSignature() != null
+                                                && d.getSignature().matchesArity(arity))
+                        .findFirst()
+                        .orElseThrow(
+                                () ->
+                                        new KorykiaiException(
+                                                "cannot mark unknown overload as unsupported: "
+                                                        + name
+                                                        + "/"
+                                                        + arity));
         FunctionSignature sig = base.getSignature();
         if (sig.variadic() || arity != sig.maxArgs() || arity <= sig.minArgs()) {
-            throw new KorykiaiException("unsupported(" + name + ", " + arity
-                    + ") can only drop a trailing optional argument; this overload takes "
-                    + sig.minArgs() + ".." + sig.maxArgs() + (sig.variadic() ? "+" : ""));
+            throw new KorykiaiException(
+                    "unsupported("
+                            + name
+                            + ", "
+                            + arity
+                            + ") can only drop a trailing optional argument; this overload takes "
+                            + sig.minArgs()
+                            + ".."
+                            + sig.maxArgs()
+                            + (sig.variadic() ? "+" : ""));
         }
         FunctionArg[] kept = sig.args().subList(0, arity - 1).toArray(new FunctionArg[0]);
         // The dropped overload must be exactly this arity, so its trailing argument becomes
         // required — left optional it would still span minArgs..arity and swallow the kept range.
-        FunctionArg[] dropped = sig.args().subList(0, arity).stream()
-                .map(a -> new FunctionArg(a.name(), a.family(), false, a.description()))
-                .toArray(FunctionArg[]::new);
+        FunctionArg[] dropped =
+                sig.args().subList(0, arity).stream()
+                        .map(a -> new FunctionArg(a.name(), a.family(), false, a.description()))
+                        .toArray(FunctionArg[]::new);
         // Order matters: the narrowed definition overlaps the base and so replaces it, then the
         // dropped arity is registered as its own non-overlapping, unsupported overload.
         register(copyForOverlay(base).args(kept));
@@ -158,9 +187,10 @@ public class FunctionRegistry implements FunctionRenderer {
      * @param hint what the author can do instead; it reaches the violation message
      */
     public FunctionRegistry unsupportedVariadic(String name, String hint) {
-        List<FunctionDefinition> variadic = overloads(name).stream()
-                .filter(d -> d.getSignature() != null && d.getSignature().variadic())
-                .toList();
+        List<FunctionDefinition> variadic =
+                overloads(name).stream()
+                        .filter(d -> d.getSignature() != null && d.getSignature().variadic())
+                        .toList();
         if (variadic.isEmpty()) {
             throw new KorykiaiException("no variadic overload to mark unsupported: " + name);
         }
@@ -180,14 +210,15 @@ public class FunctionRegistry implements FunctionRenderer {
     }
 
     /**
-     * Dialect overlay: the function renders normally but rejects an OVER clause
-     * (e.g. MySQL GROUP_CONCAT cannot be used as a window function). Applied on
-     * top of the current definition, so call it after any {@code override}.
+     * Dialect overlay: the function renders normally but rejects an OVER clause (e.g. MySQL
+     * GROUP_CONCAT cannot be used as a window function). Applied on top of the current definition,
+     * so call it after any {@code override}.
      */
     public FunctionRegistry windowUnsupported(String name) {
         List<FunctionDefinition> set = overloads(name);
         if (set.isEmpty()) {
-            throw new KorykiaiException("cannot mark unknown function as window-unsupported: " + name);
+            throw new KorykiaiException(
+                    "cannot mark unknown function as window-unsupported: " + name);
         }
         // Every overload, not just the first: whether an engine can put a function behind OVER is a
         // property of the function, not of how many arguments it was given. Marking set.get(0) left
@@ -226,12 +257,13 @@ public class FunctionRegistry implements FunctionRenderer {
     }
 
     /**
-     * Overload resolution by arity, disambiguated by argument family when several overloads
-     * share the arity. {@code callFamilies} is a supplier so argument types are resolved only
-     * when there is a genuine choice (a single-overload name never triggers type resolution).
-     * Falls back to the arity match, then the representative, when nothing matches by family.
+     * Overload resolution by arity, disambiguated by argument family when several overloads share
+     * the arity. {@code callFamilies} is a supplier so argument types are resolved only when there
+     * is a genuine choice (a single-overload name never triggers type resolution). Falls back to
+     * the arity match, then the representative, when nothing matches by family.
      */
-    public FunctionDefinition lookup(String name, int argCount, Supplier<List<TypeFamily>> callFamilies) {
+    public FunctionDefinition lookup(
+            String name, int argCount, Supplier<List<TypeFamily>> callFamilies) {
         List<FunctionDefinition> set = functions.get(name);
         if (set == null || set.isEmpty()) {
             return null;
@@ -243,9 +275,15 @@ public class FunctionRegistry implements FunctionRenderer {
         return set.stream()
                 .filter(d -> d.getSignature() != null && d.getSignature().matches(families))
                 .findFirst()
-                .or(() -> set.stream()
-                        .filter(d -> d.getSignature() == null || d.getSignature().matchesArity(argCount))
-                        .findFirst())
+                .or(
+                        () ->
+                                set.stream()
+                                        .filter(
+                                                d ->
+                                                        d.getSignature() == null
+                                                                || d.getSignature()
+                                                                        .matchesArity(argCount))
+                                        .findFirst())
                 .orElse(set.get(0));
     }
 
@@ -256,7 +294,7 @@ public class FunctionRegistry implements FunctionRenderer {
                 TypeDescriptor t = binding.getOperandType(i);
                 families.add(t == null ? null : t.getTypeFamily());
             } catch (RuntimeException unresolved) {
-                families.add(null);   // can't type this argument → wildcard, fall back to arity
+                families.add(null); // can't type this argument → wildcard, fall back to arity
             }
         }
         return families;
@@ -287,8 +325,8 @@ public class FunctionRegistry implements FunctionRenderer {
     /**
      * The names a query may write as {@code name(...)}, sorted and without repeats.
      *
-     * <p>Overloads collapse to one name — a suggestion is about spelling, and offering {@code round}
-     * three times says nothing three times. Operators are left out (see {@link
+     * <p>Overloads collapse to one name — a suggestion is about spelling, and offering {@code
+     * round} three times says nothing three times. Operators are left out (see {@link
      * FunctionCatalog#names()}), and so is anything this dialect declares unsupported: naming a
      * function the engine has just refused would be a worse answer than none.
      */
@@ -306,8 +344,11 @@ public class FunctionRegistry implements FunctionRenderer {
 
     @Override
     public String predicate(SqlSelectRenderer renderer, Function function, int indent) {
-        FunctionDefinition fn = lookup(function.getFunc(), function.getArguments().size(),
-                () -> familiesOf(renderer, function));
+        FunctionDefinition fn =
+                lookup(
+                        function.getFunc(),
+                        function.getArguments().size(),
+                        () -> familiesOf(renderer, function));
         if (fn != null) {
             String sql = fn.renderPredicate(renderer, function, indent);
             if (sql != null) return sql;
@@ -317,15 +358,21 @@ public class FunctionRegistry implements FunctionRenderer {
 
     @Override
     public TypeDescriptor descriptor(FunctionBinding binding) {
-        FunctionDefinition fn = lookup(binding.getFunction().getFunc(), binding.getOperandCount(),
-                () -> familiesOf(binding));
+        FunctionDefinition fn =
+                lookup(
+                        binding.getFunction().getFunc(),
+                        binding.getOperandCount(),
+                        () -> familiesOf(binding));
         return fn != null ? fn.returnType(binding) : null;
     }
 
     @Override
     public String function(SqlSelectRenderer renderer, Function function, int indent) {
-        FunctionDefinition fn = lookup(function.getFunc(), function.getArguments().size(),
-                () -> familiesOf(renderer, function));
+        FunctionDefinition fn =
+                lookup(
+                        function.getFunc(),
+                        function.getArguments().size(),
+                        () -> familiesOf(renderer, function));
         if (fn != null) {
             String rendered = fn.render(renderer, function, indent);
             if (rendered != null) return rendered;
@@ -337,9 +384,10 @@ public class FunctionRegistry implements FunctionRenderer {
         StringBuilder b = new StringBuilder();
         b.append(function.getFunc());
         b.append("(");
-        b.append(function.getArguments().stream()
-                .map(a -> renderer.toSql(a, indent))
-                .collect(Collectors.joining(", ")));
+        b.append(
+                function.getArguments().stream()
+                        .map(a -> renderer.toSql(a, indent))
+                        .collect(Collectors.joining(", ")));
         b.append(")");
         b.append(renderer.toSql(function.getWindow(), indent));
         return b.toString();

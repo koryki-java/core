@@ -24,27 +24,32 @@ import ai.koryki.databases.northwind.duckdb.NorthwindDuckdb;
 import ai.koryki.databases.northwind.duckdb.NorthwindService;
 import ai.koryki.kql.EngineBuilder;
 import ai.koryki.kql.HeaderInfo;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Locale;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class CastsDuckDBEngineTest extends BaseEngineTest<HeaderInfo> {
 
-    @Override protected String schema() { return "casts"; }
-
+    @Override
+    protected String schema() {
+        return "casts";
+    }
 
     public CastsDuckDBEngineTest() {
         super("duckdb", true);
     }
 
-
     @BeforeAll
     public void setup() throws IOException {
-        engine = EngineBuilder.headers(NorthwindDuckdb.<ListWithSqlResult<HeaderInfo>>northwind(), NorthwindService.resolver(),
-                new SqlQueryRenderer(java.time.ZoneId.of("UTC"))).valueFormat(new StableFormat(Locale.ROOT)).build();
+        engine =
+                EngineBuilder.headers(
+                                NorthwindDuckdb.<ListWithSqlResult<HeaderInfo>>northwind(),
+                                NorthwindService.resolver(),
+                                new SqlQueryRenderer(java.time.ZoneId.of("UTC")))
+                        .valueFormat(new StableFormat(Locale.ROOT))
+                        .build();
     }
 
     @Test

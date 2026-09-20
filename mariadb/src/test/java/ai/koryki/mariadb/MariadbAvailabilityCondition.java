@@ -16,21 +16,20 @@
  */
 package ai.koryki.mariadb;
 
+import static org.junit.platform.commons.util.AnnotationUtils.findAnnotation;
+
 import ai.koryki.mariadb.northwind.NorthwindMariadb;
-import ai.koryki.mariadb.northwind.NorthwindMariadb;
+import java.util.Optional;
 import org.junit.jupiter.api.extension.ConditionEvaluationResult;
 import org.junit.jupiter.api.extension.ExecutionCondition;
 import org.junit.jupiter.api.extension.ExtensionContext;
-
-import java.util.Optional;
-
-import static org.junit.platform.commons.util.AnnotationUtils.findAnnotation;
 
 public class MariadbAvailabilityCondition implements ExecutionCondition {
 
     @Override
     public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext context) {
-        final Optional<MariadbUnavailable> optional = findAnnotation(context.getElement(), MariadbUnavailable.class);
+        final Optional<MariadbUnavailable> optional =
+                findAnnotation(context.getElement(), MariadbUnavailable.class);
         if (optional.isPresent()) {
             final MariadbUnavailable annotation = optional.get();
             try {
@@ -43,4 +42,3 @@ public class MariadbAvailabilityCondition implements ExecutionCondition {
         return ConditionEvaluationResult.enabled("No assumptions, moving on...");
     }
 }
-

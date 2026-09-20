@@ -16,32 +16,32 @@
  */
 package ai.koryki.antlr;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import ai.koryki.databases.northwind.duckdb.NorthwindService;
 import ai.koryki.iql.DuckdbBaseDialect;
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.validate.Violation;
 import ai.koryki.kql.KQLTranspiler;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 /**
  * Which character a position points at.
  *
  * <p>The convention was never written down and never checked: line came from ANTLR 1-based, column
  * 0-based, and the mixture travelled all the way to the user. It cost nothing to get wrong, because
- * every consumer compared positions only against other positions — and comparisons survive a uniform
- * shift. The first consumer to place a position <em>in text the user reads</em> is where it breaks,
- * and that is what this pins down.
+ * every consumer compared positions only against other positions — and comparisons survive a
+ * uniform shift. The first consumer to place a position <em>in text the user reads</em> is where it
+ * breaks, and that is what this pins down.
  *
- * <p>The multi-line case is the one worth having: it is the only place the column is computed rather
- * than taken from the token, so it is the only place the offset could be applied twice or not at all.
+ * <p>The multi-line case is the one worth having: it is the only place the column is computed
+ * rather than taken from the token, so it is the only place the offset could be applied twice or
+ * not at all.
  */
 public class PositionTest {
 
@@ -53,10 +53,13 @@ public class PositionTest {
     }
 
     private static Violation firstViolation(String kql) {
-        List<Violation> v = KQLTranspiler.builder(kql, resolver)
-                .functions(DuckdbBaseDialect.INSTANCE.getFunctionRenderer())
-                .build().violations();
-        assertTrue(!v.isEmpty(), "the fixture must produce a violation, or it tests nothing: " + kql);
+        List<Violation> v =
+                KQLTranspiler.builder(kql, resolver)
+                        .functions(DuckdbBaseDialect.INSTANCE.getFunctionRenderer())
+                        .build()
+                        .violations();
+        assertTrue(
+                !v.isEmpty(), "the fixture must produce a violation, or it tests nothing: " + kql);
         return v.get(0);
     }
 
@@ -77,9 +80,10 @@ public class PositionTest {
     /** A later line keeps its own column count, and the line itself was already 1-based. */
     @Test
     void aLaterLineCountsItsColumnsFromOneAgain() {
-        String kql = "FIND customers c\n"
-                //    1234567
-                + "FETCH nonsense(1) x";
+        String kql =
+                "FIND customers c\n"
+                        //    1234567
+                        + "FETCH nonsense(1) x";
         Range r = firstViolation(kql).getRange();
 
         assertEquals(2, r.getStart().getLine());
@@ -96,7 +100,9 @@ public class PositionTest {
         Range r = firstViolation(kql).getRange();
 
         int length = "nonsense(1)".length();
-        assertEquals(r.getStart().getPos() + length, r.getStop().getPos(),
+        assertEquals(
+                r.getStart().getPos() + length,
+                r.getStop().getPos(),
                 "stop is one past the last character");
     }
 

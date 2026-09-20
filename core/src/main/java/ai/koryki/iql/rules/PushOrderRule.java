@@ -22,18 +22,13 @@ import ai.koryki.iql.query.Order;
 import ai.koryki.iql.query.Query;
 import ai.koryki.iql.query.Select;
 import ai.koryki.iql.query.Source;
-
 import java.util.Deque;
 import java.util.List;
 
-/**
- * Push out expressions from select.order, to table.order.
- */
+/** Push out expressions from select.order, to table.order. */
 public class PushOrderRule {
 
-
-    public PushOrderRule() {
-    }
+    public PushOrderRule() {}
 
     public void apply(Query query) {
 
@@ -43,24 +38,23 @@ public class PushOrderRule {
 
     private static class PushExpressionVisitor implements Visitor {
 
-        public PushExpressionVisitor() {
-
-        }
+        public PushExpressionVisitor() {}
 
         @Override
         public boolean visit(Deque<Object> deque, Select select) {
 
             List<Order> order = select.getOrder();
 
-            order.removeIf(o -> {
-                String a = PushLogicalExpressionRule.homogenAlias(o.getExpression());
-                if (a != null) {
-                    Source table = Visitor.findSourceInSelect(select, a);
-                    table.getOrder().add(o);
-                    return true;
-                }
-                return false;
-            });
+            order.removeIf(
+                    o -> {
+                        String a = PushLogicalExpressionRule.homogenAlias(o.getExpression());
+                        if (a != null) {
+                            Source table = Visitor.findSourceInSelect(select, a);
+                            table.getOrder().add(o);
+                            return true;
+                        }
+                        return false;
+                    });
             return true;
         }
     }

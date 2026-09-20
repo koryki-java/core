@@ -18,7 +18,6 @@ package ai.koryki.sqlite;
 
 import ai.koryki.jdbc.JdbcDatabase;
 import ai.koryki.jdbc.ResultProcessor;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -42,9 +41,10 @@ public class SqliteDatabase<P extends ResultProcessor<?>> extends JdbcDatabase<P
     }
 
     /**
-     * SQLite stores dates as ISO-8601 TEXT ("yyyy-MM-dd"). The xerial JDBC driver's {@code getDate()}
-     * parses text values with the configured {@code dateStringFormat} (default "yyyy-MM-dd HH:mm:ss.SSS"),
-     * which fails for date-only strings. Read via {@code getString()} and parse directly instead.
+     * SQLite stores dates as ISO-8601 TEXT ("yyyy-MM-dd"). The xerial JDBC driver's {@code
+     * getDate()} parses text values with the configured {@code dateStringFormat} (default
+     * "yyyy-MM-dd HH:mm:ss.SSS"), which fails for date-only strings. Read via {@code getString()}
+     * and parse directly instead.
      */
     @Override
     protected LocalDate readDateColumn(ResultSet rs, int i) throws SQLException {
@@ -53,9 +53,9 @@ public class SqliteDatabase<P extends ResultProcessor<?>> extends JdbcDatabase<P
     }
 
     /**
-     * SQLite has no zone-aware type and its driver does not support
-     * {@code getObject(.., OffsetDateTime.class)}; the INSTANT column comes back as the text it was
-     * stored as. Parse that text (carrying its explicit offset) into the absolute instant.
+     * SQLite has no zone-aware type and its driver does not support {@code getObject(..,
+     * OffsetDateTime.class)}; the INSTANT column comes back as the text it was stored as. Parse
+     * that text (carrying its explicit offset) into the absolute instant.
      */
     @Override
     protected Instant readInstant(ResultSet rs, int i, int jdbcType) throws SQLException {
@@ -75,9 +75,10 @@ public class SqliteDatabase<P extends ResultProcessor<?>> extends JdbcDatabase<P
     /*
      * Copy resource to tempFile and crate connection
      */
-    public static Connection fromResource(String resource, Path tempFile, boolean case_sensitive_like) {
+    public static Connection fromResource(
+            String resource, Path tempFile, boolean case_sensitive_like) {
 
-        if (Files.exists(tempFile)){
+        if (Files.exists(tempFile)) {
             tempFile.toFile().delete();
         }
 
@@ -91,7 +92,7 @@ public class SqliteDatabase<P extends ResultProcessor<?>> extends JdbcDatabase<P
             throw new RuntimeException(e);
         }
 
-        return connection(tempFile.toString(),  case_sensitive_like);
+        return connection(tempFile.toString(), case_sensitive_like);
     }
 
     public static Connection connection(String file, boolean case_sensitive_like) {
@@ -100,7 +101,8 @@ public class SqliteDatabase<P extends ResultProcessor<?>> extends JdbcDatabase<P
         if (!f.canRead() || f.length() == 0) {
             throw new RuntimeException("missing db " + file + " " + f.length());
         }
-        String url =  "jdbc:sqlite:" + file + (case_sensitive_like ? "?case_sensitive_like=true" : "");
+        String url =
+                "jdbc:sqlite:" + file + (case_sensitive_like ? "?case_sensitive_like=true" : "");
         try {
             return DriverManager.getConnection(url);
         } catch (SQLException e) {

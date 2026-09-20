@@ -20,10 +20,8 @@ import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.iql.query.Out;
 
 /**
- * One resolved output column: the {@link Out} node and its logical
- * {@link TypeDescriptor}. Computed once at the dialect boundary (the renderer's
- * catalog) and handed to the read layer's {@code ColumnInfo}, which decodes the
- * value by this type. Dialect-specific; never stored on the AST.
+ * One resolved output column: the {@link Out} node and its logical {@link TypeDescriptor}. Computed
+ * once at the dialect boundary (the renderer's catalog) and handed to the read layer's {@code
+ * ColumnInfo}, which decodes the value by this type. Dialect-specific; never stored on the AST.
  */
-public record OutputColumn(Out out, TypeDescriptor type) {
-}
+public record OutputColumn(Out out, TypeDescriptor type) {}

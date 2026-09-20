@@ -16,19 +16,20 @@
  */
 package ai.koryki.catalog.schema.types;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeDescriptorParser;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 /**
  * Locks in the precision/scale contract of {@link TypeDescriptorParser}:
+ *
  * <ul>
- *   <li>Phase 0 — {@code DECIMAL(p,s)} stores precision=p, scale=s (not swapped).</li>
- *   <li>Phase 1 — char length and temporal fractional precision are captured into precision.</li>
+ *   <li>Phase 0 — {@code DECIMAL(p,s)} stores precision=p, scale=s (not swapped).
+ *   <li>Phase 1 — char length and temporal fractional precision are captured into precision.
  * </ul>
  */
 class TypeDescriptorParserTest {
@@ -46,7 +47,8 @@ class TypeDescriptorParserTest {
     void decimalKeepsPrecisionThenScale() {
         TypeDescriptor d = parse("DECIMAL", "decimal(18,6)");
         assertEquals(CoreTypeFamily.DECIMAL, d.getTypeFamily());
-        assertEquals(18, d.getPrecision(), "precision must be the first DECIMAL param (not swapped)");
+        assertEquals(
+                18, d.getPrecision(), "precision must be the first DECIMAL param (not swapped)");
         assertEquals(6, d.getScale(), "scale must be the second DECIMAL param");
     }
 

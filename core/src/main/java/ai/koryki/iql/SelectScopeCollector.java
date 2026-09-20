@@ -20,9 +20,8 @@ import ai.koryki.antlr.Range;
 import ai.koryki.iql.query.*;
 import ai.koryki.iql.query.Set;
 import ai.koryki.iql.validate.Violation;
-import org.antlr.v4.runtime.RuleContext;
-
 import java.util.*;
+import org.antlr.v4.runtime.RuleContext;
 
 public class SelectScopeCollector implements Visitor, Collector<Map<Object, Map<String, Source>>> {
 
@@ -74,7 +73,12 @@ public class SelectScopeCollector implements Visitor, Collector<Map<Object, Map<
         } else if (join.getRef() != null) {
             Source t = aliases.put(join.getRef(), aliases.get(join.getRef()));
             if (t == null) {
-                violations.add(new Violation("reference", join, Range.of(iqlToContext, join), "invalid reference " + join.getRef()));
+                violations.add(
+                        new Violation(
+                                "reference",
+                                join,
+                                Range.of(iqlToContext, join),
+                                "invalid reference " + join.getRef()));
             }
         }
         join.getJoin().forEach(j -> aliases(j, aliases));
@@ -98,10 +102,15 @@ public class SelectScopeCollector implements Visitor, Collector<Map<Object, Map<
         }
     }
 
-
     private void checkAmbiguousAlias(Source related, Source next) {
         if (related != null) {
-            violations.add(new Violation("ambiguous", next, Range.of(iqlToContext, next), "ambiguous alias: " + next.getAlias(),  Range.of(iqlToContext, related)));
+            violations.add(
+                    new Violation(
+                            "ambiguous",
+                            next,
+                            Range.of(iqlToContext, next),
+                            "ambiguous alias: " + next.getAlias(),
+                            Range.of(iqlToContext, related)));
         }
     }
 

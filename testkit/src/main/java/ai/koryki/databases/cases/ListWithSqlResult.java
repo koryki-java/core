@@ -21,7 +21,6 @@ import ai.koryki.jdbc.ListResult;
 
 public class ListWithSqlResult<C extends ColumnInfo> extends ListResult<C> {
 
-
     private String sql;
 
     public String getSql() {

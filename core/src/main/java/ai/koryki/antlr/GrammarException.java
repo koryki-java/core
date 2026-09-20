@@ -16,7 +16,6 @@
  */
 package ai.koryki.antlr;
 
-
 public class GrammarException extends PositionException {
 
     private static final long serialVersionUID = -4825677103798201408L;
@@ -34,5 +33,4 @@ public class GrammarException extends PositionException {
 
         super(line, pos, msg, cause);
     }
-
 }

@@ -23,9 +23,10 @@ import java.util.ResourceBundle;
 
 /**
  * Business-facing presentation: a {@link LocaleFormat} that renders an INTERVAL in human-readable
- * form for users without SQL/IT background (docs/TEMPORAL.md). Numbers/dates/times use the inherited
- * locale-aware rendering; a duration becomes its variable calendar fields (year/month/day) as words,
- * then the fixed clock remainder (hours/minutes/seconds) as {@code HH:MM:SS}:
+ * form for users without SQL/IT background (docs/TEMPORAL.md). Numbers/dates/times use the
+ * inherited locale-aware rendering; a duration becomes its variable calendar fields
+ * (year/month/day) as words, then the fixed clock remainder (hours/minutes/seconds) as {@code
+ * HH:MM:SS}:
  *
  * <pre>
  *   1h2min3s             → 01:02:03
@@ -34,17 +35,25 @@ import java.util.ResourceBundle;
  * </pre>
  *
  * <p>Two orthogonal axes (mirroring ICU's MeasureFormat): the {@link Locale} selects the unit words
- * (from a {@code duration[_lang].properties} {@link ResourceBundle}; English is the bundled default),
- * and {@link Width} selects how those words are abbreviated. {@code maxUnits > 0} caps the output to
- * that many most-significant parts (the clock counts as one part), truncating the rest.
+ * (from a {@code duration[_lang].properties} {@link ResourceBundle}; English is the bundled
+ * default), and {@link Width} selects how those words are abbreviated. {@code maxUnits > 0} caps
+ * the output to that many most-significant parts (the clock counts as one part), truncating the
+ * rest.
  *
- * <p>A day stays a calendar day (no 24h rollup), the clock shows whole seconds (sub-second rounded),
- * and negatives get a leading {@code -}. Base {@link LocaleFormat} keeps the canonical {@code toKql()}.
+ * <p>A day stays a calendar day (no 24h rollup), the clock shows whole seconds (sub-second
+ * rounded), and negatives get a leading {@code -}. Base {@link LocaleFormat} keeps the canonical
+ * {@code toKql()}.
  */
 public class WordedLocaleFormat extends LocaleFormat {
 
-    /** How much to abbreviate the calendar unit words (the clock part is always {@code HH:MM:SS}). */
-    public enum Width { WIDE, SHORT, NARROW }
+    /**
+     * How much to abbreviate the calendar unit words (the clock part is always {@code HH:MM:SS}).
+     */
+    public enum Width {
+        WIDE,
+        SHORT,
+        NARROW
+    }
 
     private static final String BUNDLE = "ai.koryki.jdbc.duration";
 
@@ -57,8 +66,9 @@ public class WordedLocaleFormat extends LocaleFormat {
     }
 
     /**
-     * @param width    calendar-word abbreviation level
-     * @param maxUnits cap to this many most-significant parts (e.g. 2 → "1 year 2 months"); {@code <= 0} = no cap
+     * @param width calendar-word abbreviation level
+     * @param maxUnits cap to this many most-significant parts (e.g. 2 → "1 year 2 months"); {@code
+     *     <= 0} = no cap
      */
     public WordedLocaleFormat(Locale locale, Width width, int maxUnits) {
         super(locale);
@@ -107,32 +117,47 @@ public class WordedLocaleFormat extends LocaleFormat {
         }
         boolean negative = iv.getMonths() < 0 || iv.getDays() < 0 || iv.getNanos() < 0;
         Interval a = negative ? iv.negated() : iv;
-        int years  = a.getMonths() / 12;
+        int years = a.getMonths() / 12;
         int months = a.getMonths() % 12;
-        int days   = a.getDays();
+        int days = a.getDays();
 
-        String sep = width == Width.NARROW ? "" : " ";   // narrow joins count+word (1y), wide/short space them
+        String sep =
+                width == Width.NARROW
+                        ? ""
+                        : " "; // narrow joins count+word (1y), wide/short space them
         List<String> parts = new ArrayList<>();
-        if (years  != 0) parts.add(years  + sep + word("year",  years));
+        if (years != 0) parts.add(years + sep + word("year", years));
         if (months != 0) parts.add(months + sep + word("month", months));
-        if (days   != 0) parts.add(days   + sep + word("day",   days));
+        if (days != 0) parts.add(days + sep + word("day", days));
 
         long totalSeconds = Math.round(a.getNanos() / 1_000_000_000.0);
         if (totalSeconds != 0) {
-            parts.add(String.format("%02d:%02d:%02d",
-                    totalSeconds / 3600, (totalSeconds % 3600) / 60, totalSeconds % 60));
+            parts.add(
+                    String.format(
+                            "%02d:%02d:%02d",
+                            totalSeconds / 3600, (totalSeconds % 3600) / 60, totalSeconds % 60));
         }
-        if (parts.isEmpty()) {   // calendar empty and the clock rounded to zero (sub-second only)
+        if (parts.isEmpty()) { // calendar empty and the clock rounded to zero (sub-second only)
             return (negative ? "-" : "") + "00:00:00";
         }
         if (maxUnits > 0 && parts.size() > maxUnits) {
-            parts = parts.subList(0, maxUnits);   // keep the most-significant parts; truncate the rest
+            parts =
+                    parts.subList(
+                            0, maxUnits); // keep the most-significant parts; truncate the rest
         }
         return (negative ? "-" : "") + String.join(" ", parts);
     }
 
-    /** Localized unit word for {@code count} of {@code unit}, keyed {@code <width>.<unit>.<one|other>}. */
+    /**
+     * Localized unit word for {@code count} of {@code unit}, keyed {@code
+     * <width>.<unit>.<one|other>}.
+     */
     private String word(String unit, int count) {
-        return words.getString(width.name().toLowerCase(Locale.ROOT) + "." + unit + "." + (count == 1 ? "one" : "other"));
+        return words.getString(
+                width.name().toLowerCase(Locale.ROOT)
+                        + "."
+                        + unit
+                        + "."
+                        + (count == 1 ? "one" : "other"));
     }
 }

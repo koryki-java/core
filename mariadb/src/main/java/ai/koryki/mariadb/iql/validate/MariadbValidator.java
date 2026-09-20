@@ -22,12 +22,11 @@ import ai.koryki.iql.query.Join;
 import ai.koryki.iql.query.Select;
 import ai.koryki.iql.query.Source;
 import ai.koryki.iql.validate.Violation;
-import org.antlr.v4.runtime.RuleContext;
-
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
+import org.antlr.v4.runtime.RuleContext;
 
 /**
  * MariaDB-specific validation — the dialect analogue of the core validators, a {@link Collector}
@@ -38,9 +37,9 @@ import java.util.Map;
  * ROLLUP itself is supported — {@code MariadbDialect} renders it as a trailing {@code WITH ROLLUP}
  * — so this is narrower than the SQLite rule, which rejects rollup outright.
  *
- * <p>The category is {@link Violation#UNSUPPORTED}: that is what marks the failure as "this
- * dialect cannot express this query" rather than "this query is wrong", and it is what lets a
- * shared fixture be skipped here instead of failing the suite.
+ * <p>The category is {@link Violation#UNSUPPORTED}: that is what marks the failure as "this dialect
+ * cannot express this query" rather than "this query is wrong", and it is what lets a shared
+ * fixture be skipped here instead of failing the suite.
  *
  * <p><b>MySQL caveat.</b> The module is spelled for MariaDB and verified against it. MySQL lifted
  * this restriction in 8.0.12, so if a MySQL dialect is ever split out of this one, this rule must
@@ -60,10 +59,14 @@ public class MariadbValidator implements Collector<List<Violation>> {
     @Override
     public boolean visit(Deque<Object> deque, Select select) {
         if (select.isRollup() && hasOrderBy(select)) {
-            violations.add(new Violation(Violation.UNSUPPORTED, select, range(select),
-                    "MariaDB does not support ORDER BY combined with ROLLUP"
-                            + " (server error 1221: \"Incorrect usage of CUBE/ROLLUP and ORDER BY\"); "
-                            + "remove the ORDER BY, or wrap the rollup query in a sub-select and sort the outer query."));
+            violations.add(
+                    new Violation(
+                            Violation.UNSUPPORTED,
+                            select,
+                            range(select),
+                            "MariaDB does not support ORDER BY combined with ROLLUP"
+                                    + " (server error 1221: \"Incorrect usage of CUBE/ROLLUP and ORDER BY\"); "
+                                    + "remove the ORDER BY, or wrap the rollup query in a sub-select and sort the outer query."));
         }
         return true;
     }
@@ -79,9 +82,9 @@ public class MariadbValidator implements Collector<List<Violation>> {
     }
 
     /**
-     * Mirrors {@code SqlSelectRenderer}'s ORDER BY assembly: the rendered
-     * ORDER BY of a SELECT is the union of the orders declared on the SELECT
-     * itself, on its start source and on every (transitively) joined source.
+     * Mirrors {@code SqlSelectRenderer}'s ORDER BY assembly: the rendered ORDER BY of a SELECT is
+     * the union of the orders declared on the SELECT itself, on its start source and on every
+     * (transitively) joined source.
      */
     private static boolean hasOrderBy(Select select) {
         if (!select.getOrder().isEmpty()) {

@@ -17,33 +17,31 @@
 package ai.koryki.sqlite.iql.validate;
 
 import ai.koryki.antlr.Range;
-import ai.koryki.iql.Collector;
-import ai.koryki.iql.Visitor;
 import ai.koryki.catalog.types.WallClockEncoding;
+import ai.koryki.iql.Collector;
 import ai.koryki.iql.IQLVisibilityContext;
+import ai.koryki.iql.Visitor;
 import ai.koryki.iql.query.Exists;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Select;
 import ai.koryki.iql.typing.ExpressionTypeResolver;
 import ai.koryki.iql.validate.Violation;
-import org.antlr.v4.runtime.RuleContext;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
+import org.antlr.v4.runtime.RuleContext;
 
 /**
- * SQLite-specific validation — the dialect analogue of the core validators, a {@link Collector}
- * run via {@code Walker.apply}. It rejects constructs SQLite cannot express, so a query fails
- * with a located {@link Violation} instead of an opaque runtime error from the driver.
+ * SQLite-specific validation — the dialect analogue of the core validators, a {@link Collector} run
+ * via {@code Walker.apply}. It rejects constructs SQLite cannot express, so a query fails with a
+ * located {@link Violation} instead of an opaque runtime error from the driver.
  *
  * <p>Currently the only rule: SQLite has no {@code GROUP BY ROLLUP}. Other dialects spell it
- * differently — MariaDB uses a trailing {@code WITH ROLLUP} via
- * {@code SqlDialect#rollupSuffix()} — but that hook only chooses the wording; there is none for
- * refusing it, so without this check SQLite receives the standard {@code ROLLUP (...)} and the
- * driver rejects the finished statement.
+ * differently — MariaDB uses a trailing {@code WITH ROLLUP} via {@code SqlDialect#rollupSuffix()} —
+ * but that hook only chooses the wording; there is none for refusing it, so without this check
+ * SQLite receives the standard {@code ROLLUP (...)} and the driver rejects the finished statement.
  *
  * <p>The category is {@link Violation#UNSUPPORTED}, not something like {@code "rollup"}: that is
  * what marks the failure as "this dialect cannot express this query" rather than "this query is
@@ -63,19 +61,19 @@ public class SqliteValidator implements Visitor, Collector<List<Violation>> {
     }
 
     /**
-     * A wall-clock(zone) column carries a naive value plus the zone it was written in, so reading it
-     * means converting that zone to the model zone — {@code CONVERT_TZ}, {@code AT TIME ZONE} and
-     * their kin. SQLite ships no time-zone database at all, and its {@code 'localtime'} modifier
-     * follows the machine's setting rather than a named zone, so the conversion has no expression
-     * here. The other seven dialects all implement it.
+     * A wall-clock(zone) column carries a naive value plus the zone it was written in, so reading
+     * it means converting that zone to the model zone — {@code CONVERT_TZ}, {@code AT TIME ZONE}
+     * and their kin. SQLite ships no time-zone database at all, and its {@code 'localtime'}
+     * modifier follows the machine's setting rather than a named zone, so the conversion has no
+     * expression here. The other seven dialects all implement it.
      *
      * <p>This used to surface as {@code SqlDialect.wallClockToModelZone}'s default throwing a bare
      * {@code KorykiaiException} while rendering — no position, no violation, and so a hand-written
      * {@code ignore=sqlite} marker on the fixture, which suppressed its SQL check along with it. It
      * is the same shape as {@code at_zone}/{@code to_utc}, which are functions and could simply be
      * declared unsupported; a column's <em>storage</em> has no such declaration, and saying it here
-     * needs the schema — which is why {@code validators} now receives a
-     * {@link ai.koryki.iql.validate.ValidationContext} rather than the position map alone.
+     * needs the schema — which is why {@code validators} now receives a {@link
+     * ai.koryki.iql.validate.ValidationContext} rather than the position map alone.
      */
     @Override
     public boolean visit(Deque<Object> deque, Expression expression) {
@@ -84,11 +82,17 @@ public class SqliteValidator implements Visitor, Collector<List<Violation>> {
         }
         var type = resolveOrNull(expression);
         if (type != null && type.getTypeEncoding() instanceof WallClockEncoding wc) {
-            violations.add(new Violation(Violation.UNSUPPORTED, expression,
-                    Range.of(iqlToContext, expression),
-                    "column '" + expression.getField().getName() + "' is stored as a wall-clock in "
-                            + wc.getZone().getId() + ", and SQLite has no time-zone database to "
-                            + "convert it to the model zone"));
+            violations.add(
+                    new Violation(
+                            Violation.UNSUPPORTED,
+                            expression,
+                            Range.of(iqlToContext, expression),
+                            "column '"
+                                    + expression.getField().getName()
+                                    + "' is stored as a wall-clock in "
+                                    + wc.getZone().getId()
+                                    + ", and SQLite has no time-zone database to "
+                                    + "convert it to the model zone"));
         }
         return true;
     }
@@ -96,7 +100,8 @@ public class SqliteValidator implements Visitor, Collector<List<Violation>> {
     /** Best-effort: a field that cannot be typed is not this rule's business. */
     private ai.koryki.catalog.types.TypeDescriptor resolveOrNull(Expression expression) {
         try {
-            return new ExpressionTypeResolver(context.resolver(), scopes.peek(), context.functions())
+            return new ExpressionTypeResolver(
+                            context.resolver(), scopes.peek(), context.functions())
                     .resolve(expression);
         } catch (RuntimeException unresolved) {
             return null;
@@ -131,9 +136,12 @@ public class SqliteValidator implements Visitor, Collector<List<Violation>> {
     public boolean visit(Deque<Object> deque, Select select) {
         scopes.push(scope().child(select));
         if (select.isRollup()) {
-            violations.add(new Violation(Violation.UNSUPPORTED, select,
-                    Range.of(iqlToContext, select),
-                    "ROLLUP is not supported by SQLite"));
+            violations.add(
+                    new Violation(
+                            Violation.UNSUPPORTED,
+                            select,
+                            Range.of(iqlToContext, select),
+                            "ROLLUP is not supported by SQLite"));
         }
         return true;
     }

@@ -16,7 +16,6 @@
  */
 package ai.koryki.kql;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public class DictionaryTranslator implements Translator {
@@ -51,7 +50,6 @@ public class DictionaryTranslator implements Translator {
     public String crit(String crit) {
         return ld.get(crit);
     }
-
 
     public Map<String, String> getLinkDictionary() {
         return ld;

@@ -18,8 +18,6 @@ package ai.koryki.iql;
 
 import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.iql.query.*;
-import org.antlr.v4.runtime.RuleContext;
-
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -27,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.antlr.v4.runtime.RuleContext;
 
 public class SqlQueryRenderer implements SqlRenderer {
 
@@ -36,9 +35,9 @@ public class SqlQueryRenderer implements SqlRenderer {
     private final Identifier identifier;
     protected SqlDialect dialect;
 
-
     /** The model zone (docs/TEMPORAL.md): set by the caller, never silently defaulted here. */
     private final ZoneId modelZone;
+
     protected IQLVisibilityContext visibilityContext;
     protected Map<Object, RuleContext> iqlToContext;
 
@@ -58,9 +57,9 @@ public class SqlQueryRenderer implements SqlRenderer {
      *
      * <p>{@link Identifier#lowercase} for every engine, and that is not a simplification. Unquoted,
      * PostgreSQL folds a name down and Oracle folds it up, so one lowercase catalog resolves on
-     * both; and what happens to a name that cannot go unquoted is decided by
-     * {@link SqlDialect#renderIdentifier}, not by this constant. The other constructor forces
-     * quoting on everything, which is a different question and one only {@code OraviewTest} asks.
+     * both; and what happens to a name that cannot go unquoted is decided by {@link
+     * SqlDialect#renderIdentifier}, not by this constant. The other constructor forces quoting on
+     * everything, which is a different question and one only {@code OraviewTest} asks.
      */
     public SqlQueryRenderer(SqlDialect dialect, ZoneId modelZone) {
         this(Identifier.lowercase, dialect, modelZone);
@@ -72,7 +71,10 @@ public class SqlQueryRenderer implements SqlRenderer {
         this.modelZone = Objects.requireNonNull(modelZone, "modelZone");
     }
 
-    /** The model zone this renderer transpiles for (docs/TEMPORAL.md), threaded to the select renderers. */
+    /**
+     * The model zone this renderer transpiles for (docs/TEMPORAL.md), threaded to the select
+     * renderers.
+     */
     public ZoneId getModelZone() {
         return modelZone;
     }
@@ -83,7 +85,11 @@ public class SqlQueryRenderer implements SqlRenderer {
     }
 
     @Override
-    public Rendered toSql(LinkResolver resolver, IQLVisibilityContext visibilityContext, Query query, Map<Object, RuleContext> iqlToContext) {
+    public Rendered toSql(
+            LinkResolver resolver,
+            IQLVisibilityContext visibilityContext,
+            Query query,
+            Map<Object, RuleContext> iqlToContext) {
         this.iqlToContext = iqlToContext;
         this.visibilityContext = visibilityContext;
         this.query = query;
@@ -98,9 +104,8 @@ public class SqlQueryRenderer implements SqlRenderer {
 
     private String toSql(LinkResolver resolver) {
 
-        return toSql( resolver, -1);
+        return toSql(resolver, -1);
     }
-
 
     private String toSql(LinkResolver resolver, int indent) {
         StringBuilder b = new StringBuilder();
@@ -123,8 +128,10 @@ public class SqlQueryRenderer implements SqlRenderer {
 
         StringBuilder b = toRecursive(resolver, block, indent);
 
-        b.append(block.stream().map(
-                e -> toSql(resolver, e.getId(), e, indent)).collect(Collectors.joining(NL + ", ")));
+        b.append(
+                block.stream()
+                        .map(e -> toSql(resolver, e.getId(), e, indent))
+                        .collect(Collectors.joining(NL + ", ")));
         b.append(NL);
 
         return b.toString();
@@ -134,7 +141,8 @@ public class SqlQueryRenderer implements SqlRenderer {
         StringBuilder b = new StringBuilder();
         b.append(Identifier.indent(indent)).append(WITH).append(" ");
 
-        boolean recursive = block.stream().anyMatch(x -> Walker.apply(x, new BlockRecursionDetector(resolver)));
+        boolean recursive =
+                block.stream().anyMatch(x -> Walker.apply(x, new BlockRecursionDetector(resolver)));
 
         b.append(dialect.recursive(recursive));
 
@@ -176,7 +184,6 @@ public class SqlQueryRenderer implements SqlRenderer {
         return toSql(resolver, alias, block.getSet(), indent);
     }
 
-
     protected String toSql(LinkResolver resolver, String alias, Set set, int indent) {
         StringBuilder b = new StringBuilder();
         b.append(normal(alias));
@@ -185,7 +192,10 @@ public class SqlQueryRenderer implements SqlRenderer {
         IQLVisibilityContext leadingSelect = visibilityContext.child(SqlQueryRenderer.select(set));
 
         b.append(" (");
-        b.append(out.stream().map(o -> toHeader(resolver, leadingSelect, o)).collect(Collectors.joining(", ")));
+        b.append(
+                out.stream()
+                        .map(o -> toHeader(resolver, leadingSelect, o))
+                        .collect(Collectors.joining(", ")));
         b.append(")");
 
         b.append(" AS (");
@@ -216,21 +226,30 @@ public class SqlQueryRenderer implements SqlRenderer {
         } else {
             StringBuilder b = new StringBuilder();
 
-            b.append(setOperand(toSql(resolver, set.getLeft(), indent + 1), set, set.getLeft(), false));
+            b.append(
+                    setOperand(
+                            toSql(resolver, set.getLeft(), indent + 1), set, set.getLeft(), false));
             b.append(mapOperator(set));
             b.append(NL);
-            b.append(setOperand(toSql(resolver, set.getRight(), indent + 1), set, set.getRight(), true));
+            b.append(
+                    setOperand(
+                            toSql(resolver, set.getRight(), indent + 1),
+                            set,
+                            set.getRight(),
+                            true));
 
             return b.toString();
         }
     }
 
     private String setOperand(String sql, Set parent, Set child, boolean rightSide) {
-        boolean parens = dialect.uniformSetOperatorPrecedence()
-                // one precedence level, left-assoc: left children are flat by definition and
-                // parenthesized compound operands are a syntax error (SQLite)
-                ? child.getSelect() == null && rightSide
-                : setOperandNeedsParens(parent, child, rightSide);
+        boolean parens =
+                dialect.uniformSetOperatorPrecedence()
+                        // one precedence level, left-assoc: left children are flat by definition
+                        // and
+                        // parenthesized compound operands are a syntax error (SQLite)
+                        ? child.getSelect() == null && rightSide
+                        : setOperandNeedsParens(parent, child, rightSide);
         if (parens) {
             return "(" + NL + sql + ")" + NL;
         }
@@ -238,11 +257,11 @@ public class SqlQueryRenderer implements SqlRenderer {
     }
 
     /**
-     * SQL gives INTERSECT higher precedence than UNION/EXCEPT and associates same-level
-     * operators left. A nested set-op child needs parens exactly when flat rendering would
-     * re-associate it: a lower-precedence child anywhere (UNION under INTERSECT), or a
-     * same-precedence child on the right ({@code A MINUS (B UNION C)}). Left same-level
-     * children stay flat — that is what left-associativity already encodes.
+     * SQL gives INTERSECT higher precedence than UNION/EXCEPT and associates same-level operators
+     * left. A nested set-op child needs parens exactly when flat rendering would re-associate it: a
+     * lower-precedence child anywhere (UNION under INTERSECT), or a same-precedence child on the
+     * right ({@code A MINUS (B UNION C)}). Left same-level children stay flat — that is what
+     * left-associativity already encodes.
      */
     static boolean setOperandNeedsParens(Set parent, Set child, boolean rightSide) {
         if (child.getSelect() != null) {
@@ -257,11 +276,13 @@ public class SqlQueryRenderer implements SqlRenderer {
         return "INTERSECT".equals(set.getOperator()) ? 2 : 1;
     }
 
-    protected SqlSelectRenderer createSelectRenderer(LinkResolver resolver, IQLVisibilityContext ctx) {
+    protected SqlSelectRenderer createSelectRenderer(
+            LinkResolver resolver, IQLVisibilityContext ctx) {
         return new SqlSelectRenderer(identifier, iqlToContext, resolver, ctx, dialect, modelZone);
     }
 
-    protected SqlSelectRenderer createOutermostSelectRenderer(LinkResolver resolver, IQLVisibilityContext ctx) {
+    protected SqlSelectRenderer createOutermostSelectRenderer(
+            LinkResolver resolver, IQLVisibilityContext ctx) {
         return createSelectRenderer(resolver, ctx);
     }
 
@@ -275,18 +296,31 @@ public class SqlQueryRenderer implements SqlRenderer {
             return toOutermostSql(resolver, set.getSelect(), indent);
         }
         StringBuilder b = new StringBuilder();
-        b.append(setOperand(toOutermostSql(resolver, set.getLeft(), indent + 1), set, set.getLeft(), false));
+        b.append(
+                setOperand(
+                        toOutermostSql(resolver, set.getLeft(), indent + 1),
+                        set,
+                        set.getLeft(),
+                        false));
         b.append(mapOperator(set)).append(NL);
-        b.append(setOperand(toOutermostSql(resolver, set.getRight(), indent + 1), set, set.getRight(), true));
+        b.append(
+                setOperand(
+                        toOutermostSql(resolver, set.getRight(), indent + 1),
+                        set,
+                        set.getRight(),
+                        true));
         return b.toString();
     }
 
     protected String toOutermostSql(LinkResolver resolver, Select select, int indent) {
-        SqlSelectRenderer s2s = createOutermostSelectRenderer(resolver, visibilityContext.child(select));
+        SqlSelectRenderer s2s =
+                createOutermostSelectRenderer(resolver, visibilityContext.child(select));
         return s2s.toSql(select, indent + 1);
     }
 
-    /** An identifier, rendered as the dialect needs it -- see {@link SqlDialect#renderIdentifier}. */
+    /**
+     * An identifier, rendered as the dialect needs it -- see {@link SqlDialect#renderIdentifier}.
+     */
     private String normal(String text) {
         return dialect.renderIdentifier(identifier, text);
     }
@@ -298,6 +332,7 @@ public class SqlQueryRenderer implements SqlRenderer {
     public static Select select(Query query) {
         return select(query.getSet());
     }
+
     public static Select select(Set set) {
         if (set.getSelect() != null) {
             return set.getSelect();
@@ -346,17 +381,19 @@ public class SqlQueryRenderer implements SqlRenderer {
      * chose, so each rule records the FETCH position as {@code idx} and it is restored here. A 0
      * means the entry never had one and belongs at the end.
      *
-     * <p>Shared because it was written four times and forgotten once. GROUP BY on the main query was
-     * the omission: {@code FETCH c.category_name, p.product_name} over {@code o → od → p → c}
-     * grouped by product before category, and reversing the FETCH order changed nothing at all — the
-     * position was being ignored rather than used. Written out per clause, a fifth path can repeat
-     * that by simply not mentioning it; here it has to remove a call.
+     * <p>Shared because it was written four times and forgotten once. GROUP BY on the main query
+     * was the omission: {@code FETCH c.category_name, p.product_name} over {@code o → od → p → c}
+     * grouped by product before category, and reversing the FETCH order changed nothing at all —
+     * the position was being ignored rather than used. Written out per clause, a fifth path can
+     * repeat that by simply not mentioning it; here it has to remove a call.
      */
     static <T> void sortByFetchPosition(List<T> list, java.util.function.ToIntFunction<T> idx) {
-        list.sort(Comparator.comparingInt(t -> {
-            int i = idx.applyAsInt(t);
-            return i == 0 ? Integer.MAX_VALUE : i;
-        }));
+        list.sort(
+                Comparator.comparingInt(
+                        t -> {
+                            int i = idx.applyAsInt(t);
+                            return i == 0 ? Integer.MAX_VALUE : i;
+                        }));
     }
 
     public static List<Out> collectOut(List<Join> join) {

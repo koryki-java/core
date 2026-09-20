@@ -24,8 +24,7 @@ public class JdbcDialect implements SqlDialect {
 
     public static final SqlDialect INSTANCE = new JdbcDialect();
 
-    private JdbcDialect() {
-    }
+    private JdbcDialect() {}
 
     @Override
     public String timeLiteral(LocalTime time) {

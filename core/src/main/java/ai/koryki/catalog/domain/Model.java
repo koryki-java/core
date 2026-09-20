@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
 
 public class Model {
 
-
     private String name;
     private String label;
     private String comment;
@@ -35,7 +34,7 @@ public class Model {
         this(null);
     }
 
-    public Model(String name)  {
+    public Model(String name) {
         this(name, null, null);
     }
 
@@ -43,7 +42,12 @@ public class Model {
         this(name, comment, description, new ArrayList<>(), new ArrayList<>());
     }
 
-    public Model(String name, String comment, String description, List<Entity> entities, List<Link> links)  {
+    public Model(
+            String name,
+            String comment,
+            String description,
+            List<Entity> entities,
+            List<Link> links) {
         this.name = name;
         this.comment = comment;
         this.description = description;
@@ -106,7 +110,8 @@ public class Model {
         copy.setComment(Locale.getComment());
         copy.setDescription(Locale.getDescription());
         copy.setName(Locale.getName());
-        copy.setEntities(Locale.getEntities().stream().map(Model::deepCopy).collect(Collectors.toList()));
+        copy.setEntities(
+                Locale.getEntities().stream().map(Model::deepCopy).collect(Collectors.toList()));
         copy.setLinks(Locale.getLinks().stream().map(Model::deepCopy).collect(Collectors.toList()));
         return copy;
     }
@@ -118,7 +123,8 @@ public class Model {
         copy.setLabel(tabpe.getLabel());
         copy.setComment(tabpe.getComment());
         copy.setDescription(tabpe.getDescription());
-        copy.setAttributes(tabpe.getAttributes().stream().map(Model::deepCopy).collect(Collectors.toList()));
+        copy.setAttributes(
+                tabpe.getAttributes().stream().map(Model::deepCopy).collect(Collectors.toList()));
         return copy;
     }
 
@@ -141,7 +147,6 @@ public class Model {
         return copy;
     }
 
-
     public List<Link> getLinks() {
         return links;
     }
@@ -149,6 +154,4 @@ public class Model {
     public void setLinks(List<Link> links) {
         this.links = links;
     }
-
-
 }

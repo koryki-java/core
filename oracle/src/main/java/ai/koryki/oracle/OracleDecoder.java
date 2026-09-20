@@ -20,26 +20,24 @@ import ai.koryki.catalog.types.CoreTypeEncoding;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeEncoding;
 import ai.koryki.jdbc.ColumnInfo;
-import ai.koryki.jdbc.IntervalStrings;
 import ai.koryki.jdbc.CoreDecoder;
-import ai.koryki.jdbc.Interval;
-
+import ai.koryki.jdbc.IntervalStrings;
+import java.time.ZoneId;
 import oracle.sql.INTERVALDS;
 import oracle.sql.INTERVALYM;
 
-import java.time.ZoneId;
-
 /**
- * Oracle has two native interval types: INTERVAL YEAR TO MONTH (read as
- * {@link INTERVALYM}) and INTERVAL DAY TO SECOND (read as {@link INTERVALDS}).
- * Both expose only {@code stringValue()}, so parse that:
+ * Oracle has two native interval types: INTERVAL YEAR TO MONTH (read as {@link INTERVALYM}) and
+ * INTERVAL DAY TO SECOND (read as {@link INTERVALDS}). Both expose only {@code stringValue()}, so
+ * parse that:
+ *
  * <ul>
- *   <li>YEAR TO MONTH: {@code "[-]Y-M"} (e.g. {@code "2-3"}, {@code "-1-6"})</li>
- *   <li>DAY TO SECOND: {@code "[-]D H:M:S[.fffffffff]"} (e.g. {@code "4 5:6:7.0"})</li>
+ *   <li>YEAR TO MONTH: {@code "[-]Y-M"} (e.g. {@code "2-3"}, {@code "-1-6"})
+ *   <li>DAY TO SECOND: {@code "[-]D H:M:S[.fffffffff]"} (e.g. {@code "4 5:6:7.0"})
  * </ul>
- * Depending on the type map a column may instead arrive as a {@code String} in
- * the same format; the column encoding then selects the parser. Everything else
- * falls through to {@link CoreDecoder}.
+ *
+ * Depending on the type map a column may instead arrive as a {@code String} in the same format; the
+ * column encoding then selects the parser. Everything else falls through to {@link CoreDecoder}.
  */
 public class OracleDecoder extends CoreDecoder {
 
@@ -53,8 +51,10 @@ public class OracleDecoder extends CoreDecoder {
         if (v instanceof INTERVALDS ds) return IntervalStrings.parseDaySecond(ds.stringValue());
         if (v instanceof String s) {
             TypeEncoding enc = encoding(info);
-            if (CoreTypeEncoding.INTERVAL_YEAR_MONTH.equals(enc)) return IntervalStrings.parseYearMonth(s);
-            if (CoreTypeEncoding.INTERVAL_DAY_SECOND.equals(enc)) return IntervalStrings.parseDaySecond(s);
+            if (CoreTypeEncoding.INTERVAL_YEAR_MONTH.equals(enc))
+                return IntervalStrings.parseYearMonth(s);
+            if (CoreTypeEncoding.INTERVAL_DAY_SECOND.equals(enc))
+                return IntervalStrings.parseDaySecond(s);
         }
         return super.decode(v, info);
     }
@@ -63,5 +63,4 @@ public class OracleDecoder extends CoreDecoder {
         TypeDescriptor td = info != null ? info.getTypeDescriptor() : null;
         return td != null ? td.getTypeEncoding() : null;
     }
-
 }

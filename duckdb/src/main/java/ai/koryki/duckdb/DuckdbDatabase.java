@@ -18,7 +18,6 @@ package ai.koryki.duckdb;
 
 import ai.koryki.jdbc.JdbcDatabase;
 import ai.koryki.jdbc.ResultProcessor;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,10 +31,9 @@ import java.time.ZoneId;
 
 public class DuckdbDatabase<P extends ResultProcessor<?>> extends JdbcDatabase<P> {
 
-
     public DuckdbDatabase(String name, Connection connection, ZoneId modelZone) {
         super(name, connection, modelZone);
-        setDecoder(new DuckdbDecoder(modelZone));   // native INTERVAL verbose string -> Interval
+        setDecoder(new DuckdbDecoder(modelZone)); // native INTERVAL verbose string -> Interval
     }
 
     /** Pin the session so TIMESTAMPTZ reads are reproducible (TEMPORAL.md). */
@@ -49,7 +47,7 @@ public class DuckdbDatabase<P extends ResultProcessor<?>> extends JdbcDatabase<P
      */
     public static Connection fromResource(String resource, Path tempFile) {
 
-        if (Files.exists(tempFile)){
+        if (Files.exists(tempFile)) {
             tempFile.toFile().delete();
         }
 
@@ -72,7 +70,7 @@ public class DuckdbDatabase<P extends ResultProcessor<?>> extends JdbcDatabase<P
         if (!f.canRead() || f.length() == 0) {
             throw new RuntimeException("missing db " + file + " " + f.length());
         }
-        String url =  "jdbc:duckdb:" + file;
+        String url = "jdbc:duckdb:" + file;
         try {
             return DriverManager.getConnection(url);
         } catch (SQLException e) {

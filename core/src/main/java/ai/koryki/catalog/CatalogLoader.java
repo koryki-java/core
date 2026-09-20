@@ -20,35 +20,35 @@ import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.catalog.domain.Link;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Schema;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
-
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 /**
- * Loads catalog objects from JSON resources on the classpath: the physical {@link Schema}
- * ({@code db.json}), the semantic {@link Model} ({@code model.json}, locale-scoped), the FK
- * blacklist and link-info side files. The write/output side lives in {@link Util}.
+ * Loads catalog objects from JSON resources on the classpath: the physical {@link Schema} ({@code
+ * db.json}), the semantic {@link Model} ({@code model.json}, locale-scoped), the FK blacklist and
+ * link-info side files. The write/output side lives in {@link Util}.
  */
 public class CatalogLoader {
 
     public static final String DB_RESOURCE = "/db.json";
     public static final String MODEL_RESOURCE = "/model.json";
-    @Deprecated
-    public static final String SCHEMA_RESOURCE = "/schema.json";
+    @Deprecated public static final String SCHEMA_RESOURCE = "/schema.json";
     public static final String BLACKLIST_RESOURCE = "/blacklist.json";
 
     public static Schema db(String resourceRoot) {
-        InputStream i = CatalogLoader.class.getResourceAsStream(resource(resourceRoot, DB_RESOURCE));
+        InputStream i =
+                CatalogLoader.class.getResourceAsStream(resource(resourceRoot, DB_RESOURCE));
         return readSchemaJson(i);
     }
 
     public static Model model(String resourceRoot, Locale locale) {
-        InputStream i = CatalogLoader.class.getResourceAsStream(modelResource(resourceRoot, locale));
+        InputStream i =
+                CatalogLoader.class.getResourceAsStream(modelResource(resourceRoot, locale));
         Model m = readModelJson(i);
         return m;
     }
@@ -138,7 +138,8 @@ public class CatalogLoader {
         }
     }
 
-    public static <K, V> Map<K, V> readHashSetFromStream(InputStream in, TypeReference<Map<K, V>> ref) {
+    public static <K, V> Map<K, V> readHashSetFromStream(
+            InputStream in, TypeReference<Map<K, V>> ref) {
 
         try {
             ObjectMapper mapper = new ObjectMapper();
@@ -154,13 +155,12 @@ public class CatalogLoader {
     public static Map<String, List<String>> readHashSetFromResource(String resource) {
         return readHashSetFromStream(
                 CatalogLoader.class.getResourceAsStream(resource),
-                new TypeReference<Map<String, List<String>>>() { });
+                new TypeReference<Map<String, List<String>>>() {});
     }
 
-    public static <K, V> Map<K, V> readHashSetFromResource(String resource, TypeReference<Map<K, V>> ref) {
-        return readHashSetFromStream(
-                CatalogLoader.class.getResourceAsStream(resource),
-                ref);
+    public static <K, V> Map<K, V> readHashSetFromResource(
+            String resource, TypeReference<Map<K, V>> ref) {
+        return readHashSetFromStream(CatalogLoader.class.getResourceAsStream(resource), ref);
     }
 
     public static Map<String, List<String>> readHashSetFromStream(InputStream in) {

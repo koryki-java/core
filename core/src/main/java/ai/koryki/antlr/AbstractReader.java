@@ -16,25 +16,28 @@
  */
 package ai.koryki.antlr;
 
-import org.antlr.v4.runtime.BufferedTokenStream;
-import org.antlr.v4.runtime.Lexer;
-import org.antlr.v4.runtime.Parser;
-import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.tree.ParseTree;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import org.antlr.v4.runtime.BufferedTokenStream;
+import org.antlr.v4.runtime.Lexer;
+import org.antlr.v4.runtime.Parser;
+import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.ParseTree;
 
 public abstract class AbstractReader<L extends Lexer, P extends Parser, C extends ParseTree> {
 
-    public abstract L getLexer() ;
+    public abstract L getLexer();
+
     public abstract P getParser();
+
     public abstract BufferedTokenStream getTokens();
+
     public abstract List<Interval> getPanic();
+
     public abstract C getCtx();
 
     public int getTokenCount() {
@@ -46,8 +49,7 @@ public abstract class AbstractReader<L extends Lexer, P extends Parser, C extend
     }
 
     public String getComment(ParseTree node) {
-        List<Token> hiddenTokens =
-                getTokens().getHiddenTokensToLeft(node.getSourceInterval().a);
+        List<Token> hiddenTokens = getTokens().getHiddenTokensToLeft(node.getSourceInterval().a);
 
         StringBuilder b = new StringBuilder();
         if (hiddenTokens != null) {
@@ -100,4 +102,3 @@ public abstract class AbstractReader<L extends Lexer, P extends Parser, C extend
         return result.toString(cs);
     }
 }
-

@@ -16,12 +16,11 @@
  */
 package ai.koryki.iql.validate;
 
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.List;
+import org.junit.jupiter.api.Test;
 
 /**
  * {@link Suggest} on its own — no catalog, no database.
@@ -32,8 +31,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SuggestTest {
 
     private static final List<String> ORDERS =
-            List.of("order_id", "order_date", "required_date", "shipped_date", "freight",
-                    "ship_name", "ship_city", "ship_country");
+            List.of(
+                    "order_id",
+                    "order_date",
+                    "required_date",
+                    "shipped_date",
+                    "freight",
+                    "ship_name",
+                    "ship_city",
+                    "ship_country");
 
     /**
      * The reason for Damerau over plain Levenshtein: two adjacent keys struck in the wrong order is
@@ -90,13 +96,15 @@ class SuggestTest {
     /** Nearest first, ties by name so a golden pinned to the message cannot flicker. */
     @Test
     void suggestionsAreNearestFirstAndCappedAtThree() {
-        List<String> many = List.of("ship_city", "ship_name", "ship_country", "ship_region", "ship_via");
+        List<String> many =
+                List.of("ship_city", "ship_name", "ship_country", "ship_region", "ship_via");
         List<String> got = Suggest.closest("ship_cty", many);
         assertEquals("ship_city", got.get(0));
         assertTrue(got.size() <= 3, () -> "at most three: " + got);
 
         // equal distance, alphabetical
-        assertEquals(List.of("aaa_x", "aaa_y"), Suggest.closest("aaa_z", List.of("aaa_y", "aaa_x")));
+        assertEquals(
+                List.of("aaa_x", "aaa_y"), Suggest.closest("aaa_z", List.of("aaa_y", "aaa_x")));
     }
 
     @Test

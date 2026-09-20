@@ -16,9 +16,8 @@
  */
 package ai.koryki.jdbc;
 
-import ai.koryki.catalog.Util;
 import ai.koryki.antlr.KorykiaiException;
-
+import ai.koryki.catalog.Util;
 import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -35,8 +34,7 @@ public class CSVFileResult<C extends ColumnInfo> implements ResultProcessor<C> {
         this(file, StandardCharsets.UTF_8);
     }
 
-
-    public CSVFileResult(File file, Charset cs)  {
+    public CSVFileResult(File file, Charset cs) {
         this.file = file;
 
         try {
@@ -49,7 +47,8 @@ public class CSVFileResult<C extends ColumnInfo> implements ResultProcessor<C> {
     @Override
     public boolean append(List<Object> row) {
 
-        // print, not println: the line break comes from toCSV. println appended a second one — every
+        // print, not println: the line break comes from toCSV. println appended a second one —
+        // every
         // data row was followed by a blank line. It would also be the platform's break, while toCSV
         // uses Text.NL, so one file would contain both forms.
         writer.print(toCSV(formatRow(row, getInfos())));
@@ -57,7 +56,10 @@ public class CSVFileResult<C extends ColumnInfo> implements ResultProcessor<C> {
     }
 
     public static String toCSV(List<String> row) {
-        return row.stream().map(c -> c != null ? mask(c.toString()) : "").collect(Collectors.joining(", ")) + Util.NL;
+        return row.stream()
+                        .map(c -> c != null ? mask(c.toString()) : "")
+                        .collect(Collectors.joining(", "))
+                + Util.NL;
     }
 
     private static String mask(String text) {
@@ -66,7 +68,7 @@ public class CSVFileResult<C extends ColumnInfo> implements ResultProcessor<C> {
 
     @Override
     public void close() {
-        if (writer != null)              {
+        if (writer != null) {
             writer.close();
         }
     }

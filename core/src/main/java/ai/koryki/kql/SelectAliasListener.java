@@ -18,30 +18,31 @@ package ai.koryki.kql;
 
 import java.util.*;
 
-/**
- * Must not check ambiguous alias here, because for legitim cycles in fetch-clause.
- */
+/** Must not check ambiguous alias here, because for legitim cycles in fetch-clause. */
 public class SelectAliasListener extends KQLParserBaseListener {
 
     private Map<Object, Map<String, KQLParser.SourceContext>> selectToAliases = new HashMap<>();
 
-    public SelectAliasListener() {
-    }
+    public SelectAliasListener() {}
 
     public Map<Object, Map<String, KQLParser.SourceContext>> collect() {
         return selectToAliases;
     }
 
-    @Override public void enterSelect(KQLParser.SelectContext select) {
+    @Override
+    public void enterSelect(KQLParser.SelectContext select) {
 
         Map<String, KQLParser.SourceContext> a = aliases(select);
         selectToAliases.put(select, a);
     }
 
-    @Override public void enterExists(KQLParser.ExistsContext exists) {
+    @Override
+    public void enterExists(KQLParser.ExistsContext exists) {
 
         Map<String, KQLParser.SourceContext> aliases = new HashMap<>();
-        KQLParser.SourceContext t = aliases.put(exists.existslink().source().alias.getText(), exists.existslink().source());
+        KQLParser.SourceContext t =
+                aliases.put(
+                        exists.existslink().source().alias.getText(), exists.existslink().source());
         // EXISTS
 
         exists.link().forEach(l -> aliases(l, aliases));
@@ -74,5 +75,4 @@ public class SelectAliasListener extends KQLParserBaseListener {
             return set.select();
         }
     }
-
 }

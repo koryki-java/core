@@ -16,20 +16,20 @@
  */
 package ai.koryki.oracle;
 
+import static org.junit.platform.commons.util.AnnotationUtils.findAnnotation;
+
 import ai.koryki.oracle.northwind.NorthwindOracle;
+import java.util.Optional;
 import org.junit.jupiter.api.extension.ConditionEvaluationResult;
 import org.junit.jupiter.api.extension.ExecutionCondition;
 import org.junit.jupiter.api.extension.ExtensionContext;
-
-import java.util.Optional;
-
-import static org.junit.platform.commons.util.AnnotationUtils.findAnnotation;
 
 public class OracleAvailabilityCondition implements ExecutionCondition {
 
     @Override
     public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext context) {
-        final Optional<OracleUnavailable> optional = findAnnotation(context.getElement(), OracleUnavailable.class);
+        final Optional<OracleUnavailable> optional =
+                findAnnotation(context.getElement(), OracleUnavailable.class);
         if (optional.isPresent()) {
             final OracleUnavailable annotation = optional.get();
             try {
@@ -42,4 +42,3 @@ public class OracleAvailabilityCondition implements ExecutionCondition {
         return ConditionEvaluationResult.enabled("No assumptions, moving on...");
     }
 }
-

@@ -20,9 +20,10 @@ package ai.koryki.iql.functions;
  * The documentation metadata of a {@link FunctionDefinition}: its category plus the generated-docs
  * prose — a one-line {@code description} and an optional extra {@code paragraph}.
  *
- * <p>Held as one value so a dialect overlay's copy carries it atomically and can never silently drop
- * a field (a {@code paragraph} once was, when the copy constructor still copied fields by hand). It
- * has no role in typing or rendering; only the doc generators ({@code tools/docs}) consume it.
+ * <p>Held as one value so a dialect overlay's copy carries it atomically and can never silently
+ * drop a field (a {@code paragraph} once was, when the copy constructor still copied fields by
+ * hand). It has no role in typing or rendering; only the doc generators ({@code tools/docs})
+ * consume it.
  *
  * <p>There is deliberately no {@code example} here. Usage is documented by each function's sample
  * query — a real fixture that is transpiled to every dialect for the page's "Generated SQL" block

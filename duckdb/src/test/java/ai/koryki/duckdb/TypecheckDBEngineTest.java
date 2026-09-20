@@ -24,17 +24,18 @@ import ai.koryki.databases.northwind.duckdb.NorthwindDuckdb;
 import ai.koryki.databases.typecheck.duckdb.TypecheckService;
 import ai.koryki.kql.EngineBuilder;
 import ai.koryki.kql.HeaderInfo;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Locale;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class TypecheckDBEngineTest extends BaseEngineTest<HeaderInfo> {
 
-    @Override protected String schema() { return "typecheck"; }
-
+    @Override
+    protected String schema() {
+        return "typecheck";
+    }
 
     public TypecheckDBEngineTest() {
         super("duckdb", true);
@@ -42,8 +43,13 @@ public class TypecheckDBEngineTest extends BaseEngineTest<HeaderInfo> {
 
     @BeforeAll
     public void setup() throws IOException {
-        engine = EngineBuilder.headers(NorthwindDuckdb.<ListWithSqlResult<HeaderInfo>>northwind(), TypecheckService.resolver(),
-                new SqlQueryRenderer(java.time.ZoneId.of("UTC"))).valueFormat(new StableFormat(Locale.ROOT)).build();
+        engine =
+                EngineBuilder.headers(
+                                NorthwindDuckdb.<ListWithSqlResult<HeaderInfo>>northwind(),
+                                TypecheckService.resolver(),
+                                new SqlQueryRenderer(java.time.ZoneId.of("UTC")))
+                        .valueFormat(new StableFormat(Locale.ROOT))
+                        .build();
     }
 
     @Test

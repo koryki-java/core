@@ -26,6 +26,9 @@ import java.util.List;
  */
 public interface BranchedConditional {
 
-    /** Operand indices of the value/result branches for a call of {@code argCount} arity, in branch order. */
+    /**
+     * Operand indices of the value/result branches for a call of {@code argCount} arity, in branch
+     * order.
+     */
     List<Integer> branchIndices(int argCount);
 }

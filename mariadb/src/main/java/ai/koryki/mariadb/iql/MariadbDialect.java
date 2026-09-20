@@ -16,7 +16,6 @@
  */
 package ai.koryki.mariadb.iql;
 
-import ai.koryki.mariadb.iql.validate.MariadbValidator;
 import ai.koryki.catalog.types.CoreTypeEncoding;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.Families;
@@ -30,24 +29,32 @@ import ai.koryki.iql.query.Duration;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
 import ai.koryki.iql.typing.TimeEncodings;
-
+import ai.koryki.mariadb.iql.validate.MariadbValidator;
 import java.util.List;
 
 public class MariadbDialect implements SqlDialect {
 
     public static final SqlDialect INSTANCE = new MariadbDialect();
 
-    private MariadbDialect() {
-    }
+    private MariadbDialect() {}
 
-    /** Wall-clock(zone) → model zone via {@code CONVERT_TZ} (named zones; server tz tables must be loaded). */
+    /**
+     * Wall-clock(zone) → model zone via {@code CONVERT_TZ} (named zones; server tz tables must be
+     * loaded).
+     */
     @Override
-    public String wallClockToModelZone(String columnSql,
-                                       WallClockEncoding enc, java.time.ZoneId modelZone) {
+    public String wallClockToModelZone(
+            String columnSql, WallClockEncoding enc, java.time.ZoneId modelZone) {
         String decl = "'" + enc.getZone().getId() + "'";
         String model = "'" + modelZone.getId() + "'";
         if (CoreTypeFamily.DATE.equals(enc.family())) {
-            return "CAST(CONVERT_TZ(CAST(" + columnSql + " AS DATETIME), " + decl + ", " + model + ") AS DATE)";
+            return "CAST(CONVERT_TZ(CAST("
+                    + columnSql
+                    + " AS DATETIME), "
+                    + decl
+                    + ", "
+                    + model
+                    + ") AS DATE)";
         }
         return "CONVERT_TZ(" + columnSql + ", " + decl + ", " + model + ")";
     }
@@ -59,26 +66,142 @@ public class MariadbDialect implements SqlDialect {
      * {@code lead} and {@code lag} became reserved when the window functions arrived and catch
      * older schemas out. {@code interval} is reserved here and nowhere else among the eight.
      */
-    private static final java.util.Set<String> RESERVED = java.util.Set.of(
-            "accessible", "analyze", "asensitive", "before", "call", "cascade", "change",
-            "condition", "continue", "database", "databases", "day_hour", "day_microsecond",
-            "day_minute", "day_second", "delayed", "describe", "deterministic", "distinctrow",
-            "div", "dual", "each", "elseif", "enclosed", "escaped", "exit", "explain", "float4",
-            "float8", "force", "fulltext", "general", "groups", "high_priority", "hour_microsecond",
-            "hour_minute", "hour_second", "if", "ignore", "index", "infile", "inout", "int1",
-            "int2", "int3", "int4", "int8", "interval", "iterate", "key", "keys", "kill", "lag",
-            "lead", "leave", "lines", "load", "localtime", "localtimestamp", "lock", "long",
-            "longblob", "longtext", "loop", "low_priority", "match", "mediumblob", "mediumint",
-            "mediumtext", "middleint", "minute_microsecond", "minute_second", "mod", "modifies",
-            "no_write_to_binlog", "optimize", "option", "optionally", "out", "outfile", "purge",
-            "range", "rank", "read", "reads", "read_write", "regexp", "release", "rename",
-            "repeat", "replace", "require", "resignal", "restrict", "return", "rlike", "rows",
-            "schemas", "second_microsecond", "sensitive", "separator", "show", "signal", "spatial",
-            "specific", "sql_big_result", "sql_calc_found_rows", "sql_small_result", "sqlexception",
-            "sqlstate", "sqlwarning", "ssl", "starting", "straight_join", "terminated",
-            "tinyblob", "tinyint", "tinytext", "trigger", "undo", "unlock", "unsigned", "usage",
-            "use", "utc_date", "utc_time", "utc_timestamp", "varbinary", "varcharacter", "while",
-            "write", "xor", "year_month", "zerofill");
+    private static final java.util.Set<String> RESERVED =
+            java.util.Set.of(
+                    "accessible",
+                    "analyze",
+                    "asensitive",
+                    "before",
+                    "call",
+                    "cascade",
+                    "change",
+                    "condition",
+                    "continue",
+                    "database",
+                    "databases",
+                    "day_hour",
+                    "day_microsecond",
+                    "day_minute",
+                    "day_second",
+                    "delayed",
+                    "describe",
+                    "deterministic",
+                    "distinctrow",
+                    "div",
+                    "dual",
+                    "each",
+                    "elseif",
+                    "enclosed",
+                    "escaped",
+                    "exit",
+                    "explain",
+                    "float4",
+                    "float8",
+                    "force",
+                    "fulltext",
+                    "general",
+                    "groups",
+                    "high_priority",
+                    "hour_microsecond",
+                    "hour_minute",
+                    "hour_second",
+                    "if",
+                    "ignore",
+                    "index",
+                    "infile",
+                    "inout",
+                    "int1",
+                    "int2",
+                    "int3",
+                    "int4",
+                    "int8",
+                    "interval",
+                    "iterate",
+                    "key",
+                    "keys",
+                    "kill",
+                    "lag",
+                    "lead",
+                    "leave",
+                    "lines",
+                    "load",
+                    "localtime",
+                    "localtimestamp",
+                    "lock",
+                    "long",
+                    "longblob",
+                    "longtext",
+                    "loop",
+                    "low_priority",
+                    "match",
+                    "mediumblob",
+                    "mediumint",
+                    "mediumtext",
+                    "middleint",
+                    "minute_microsecond",
+                    "minute_second",
+                    "mod",
+                    "modifies",
+                    "no_write_to_binlog",
+                    "optimize",
+                    "option",
+                    "optionally",
+                    "out",
+                    "outfile",
+                    "purge",
+                    "range",
+                    "rank",
+                    "read",
+                    "reads",
+                    "read_write",
+                    "regexp",
+                    "release",
+                    "rename",
+                    "repeat",
+                    "replace",
+                    "require",
+                    "resignal",
+                    "restrict",
+                    "return",
+                    "rlike",
+                    "rows",
+                    "schemas",
+                    "second_microsecond",
+                    "sensitive",
+                    "separator",
+                    "show",
+                    "signal",
+                    "spatial",
+                    "specific",
+                    "sql_big_result",
+                    "sql_calc_found_rows",
+                    "sql_small_result",
+                    "sqlexception",
+                    "sqlstate",
+                    "sqlwarning",
+                    "ssl",
+                    "starting",
+                    "straight_join",
+                    "terminated",
+                    "tinyblob",
+                    "tinyint",
+                    "tinytext",
+                    "trigger",
+                    "undo",
+                    "unlock",
+                    "unsigned",
+                    "usage",
+                    "use",
+                    "utc_date",
+                    "utc_time",
+                    "utc_timestamp",
+                    "varbinary",
+                    "varcharacter",
+                    "while",
+                    "write",
+                    "xor",
+                    "year_month",
+                    "zerofill");
 
     @Override
     public boolean isReserved(String name) {
@@ -114,9 +237,9 @@ public class MariadbDialect implements SqlDialect {
      * string is affected; a regex only makes it most visible.
      *
      * <p>At this point {@code \'} has already become {@code ''} (SqlSelectRenderer), so the
-     * remaining backslashes are the author's intent. The alternative would be
-     * {@code sql_mode=NO_BACKSLASH_ESCAPES} on the connection, but that changes the behaviour of
-     * the whole session instead of only the literals koryki emits itself.
+     * remaining backslashes are the author's intent. The alternative would be {@code
+     * sql_mode=NO_BACKSLASH_ESCAPES} on the connection, but that changes the behaviour of the whole
+     * session instead of only the literals koryki emits itself.
      */
     @Override
     public String textLiteral(String quoted) {
@@ -142,30 +265,32 @@ public class MariadbDialect implements SqlDialect {
         registry.override("random", "RAND()");
         registry.override("trunc", 1, "TRUNCATE({0}, 0)");
         registry.override("trunc", 2, "TRUNCATE({0}, {1})");
-        registry.override("days_between",   "TIMESTAMPDIFF(DAY, {0}, {1})");
+        registry.override("days_between", "TIMESTAMPDIFF(DAY, {0}, {1})");
         registry.override("months_between", "TIMESTAMPDIFF(MONTH, {0}, {1})");
-        registry.override("month_end",   "LAST_DAY({0})");
-        registry.override("week_begin",  "(DATE({0}) - INTERVAL WEEKDAY({0}) DAY)");
-        registry.override("week_end",    "(DATE({0}) - INTERVAL WEEKDAY({0}) DAY + INTERVAL 6 DAY)");
-        registry.override("quarter_end", "LAST_DAY(MAKEDATE(YEAR({0}), 1) + INTERVAL (QUARTER({0}) * 3 - 1) MONTH)");
-        registry.override("year_end",    "LAST_DAY(MAKEDATE(YEAR({0}), 1) + INTERVAL 11 MONTH)");
+        registry.override("month_end", "LAST_DAY({0})");
+        registry.override("week_begin", "(DATE({0}) - INTERVAL WEEKDAY({0}) DAY)");
+        registry.override("week_end", "(DATE({0}) - INTERVAL WEEKDAY({0}) DAY + INTERVAL 6 DAY)");
+        registry.override(
+                "quarter_end",
+                "LAST_DAY(MAKEDATE(YEAR({0}), 1) + INTERVAL (QUARTER({0}) * 3 - 1) MONTH)");
+        registry.override("year_end", "LAST_DAY(MAKEDATE(YEAR({0}), 1) + INTERVAL 11 MONTH)");
 
         // string functions (MySQL/MariaDB spellings)
-        registry.override("char_length", "CHAR_LENGTH({0})");          // character count, not bytes
-        registry.override("to_hex",      "HEX({0})");
+        registry.override("char_length", "CHAR_LENGTH({0})"); // character count, not bytes
+        registry.override("to_hex", "HEX({0})");
         // MariaDB has no character-set trim: TRIM(BOTH x FROM s) removes a substring, not a set
         // of characters, and would give the wrong 'helloba' for trim('abhelloba','ab'). This used
         // to carry only the one-argument template, so the two-argument call died on SqlTemplate's
         // too-many-operands guard -- named, but without a position, without the UNSUPPORTED
         // category, and therefore with a hand-written ignore= marker on the fixture whose own
         // comment had to explain that it is precisely NOT a difference in the result.
-        registry.override("trim",        "TRIM({0})");
+        registry.override("trim", "TRIM({0})");
         registry.unsupported("trim", 2);
         registry.override("starts_with", "(LEFT({0}, CHAR_LENGTH({1})) = {1})");
-        registry.override("overlay",     "INSERT({0}, {2}, {3}, {1})");
+        registry.override("overlay", "INSERT({0}, {2}, {3}, {1})");
         registry.override("string_agg", 2, "GROUP_CONCAT({0} SEPARATOR {1})");
         registry.override("string_agg", 3, "GROUP_CONCAT({0} ORDER BY {2} SEPARATOR {1})");
-        registry.override("week",      "WEEKOFYEAR({0})");
+        registry.override("week", "WEEKOFYEAR({0})");
         registry.override("dayofweek", "(WEEKDAY({0}) + 1)");
         // MariaDB's LAG/LEAD take only (expr, offset) -- they have no third parameter for the
         // default used on rows without a neighbour. Measured: a syntax error right at " 0)".
@@ -173,11 +298,13 @@ public class MariadbDialect implements SqlDialect {
         // OVER clause AFTER the body, so it would land outside the COALESCE.
         registry.unsupported("lag", 3);
         registry.unsupported("lead", 3);
-        registry.windowUnsupported("count_distinct");   // COUNT(DISTINCT ...) cannot be a window function here
+        registry.windowUnsupported(
+                "count_distinct"); // COUNT(DISTINCT ...) cannot be a window function here
         // Measured: MariaDB takes the comma list and rejects the row constructor.
         registry.override("count_distinct", 2, "COUNT(DISTINCT {*})");
-        registry.windowUnsupported("string_agg");   // MySQL/MariaDB: GROUP_CONCAT cannot be a window function
-        registry.override("split_part",  "SUBSTRING_INDEX(SUBSTRING_INDEX({0}, {1}, {2}), {1}, -1)");
+        registry.windowUnsupported(
+                "string_agg"); // MySQL/MariaDB: GROUP_CONCAT cannot be a window function
+        registry.override("split_part", "SUBSTRING_INDEX(SUBSTRING_INDEX({0}, {1}, {2}), {1}, -1)");
         registry.override("regexp_like", "({0} REGEXP {1})");
 
         // numeric/temporal casts — MySQL CAST target types (no BIGINT/SMALLINT/BOOLEAN/TIMESTAMP)
@@ -186,64 +313,113 @@ public class MariadbDialect implements SqlDialect {
         // measured on concat_null. concat_ws skips NULL by definition, and with an empty separator
         // it is the same as concat.
         registry.override("concat", "concat_ws('', {*})");
-        registry.override("to_bigint",    "CAST({0} AS SIGNED)");
-        registry.override("to_smallint",  "CAST({0} AS SIGNED)");
-        registry.override("to_boolean",   "({0} <> 0)");
+        registry.override("to_bigint", "CAST({0} AS SIGNED)");
+        registry.override("to_smallint", "CAST({0} AS SIGNED)");
+        registry.override("to_boolean", "({0} <> 0)");
         registry.override("to_timestamp", "CAST({0} AS DATETIME)");
 
         // date/time construction & distance
-        registry.override("make_time",      "MAKETIME({0}, {1}, {2})");
-        registry.override("make_date",      "STR_TO_DATE(CONCAT({0}, '-', {1}, '-', {2}), '%Y-%m-%d')");
-        registry.override("make_timestamp", "STR_TO_DATE(CONCAT({0}, '-', {1}, '-', {2}, ' ', "
-                + "{3}, ':', {4}, ':', {5}), '%Y-%m-%d %H:%i:%s')");
-        registry.override("years_between",  "TIMESTAMPDIFF(YEAR, {0}, {1})");   // canonical uses PG age()
-        registry.override("clock_now",      "SYSDATE()");                       // real execution time, distinct from NOW()=CURRENT_TIMESTAMP
+        registry.override("make_time", "MAKETIME({0}, {1}, {2})");
+        registry.override("make_date", "STR_TO_DATE(CONCAT({0}, '-', {1}, '-', {2}), '%Y-%m-%d')");
+        registry.override(
+                "make_timestamp",
+                "STR_TO_DATE(CONCAT({0}, '-', {1}, '-', {2}, ' ', "
+                        + "{3}, ':', {4}, ':', {5}), '%Y-%m-%d %H:%i:%s')");
+        registry.override(
+                "years_between", "TIMESTAMPDIFF(YEAR, {0}, {1})"); // canonical uses PG age()
+        registry.override(
+                "clock_now",
+                "SYSDATE()"); // real execution time, distinct from NOW()=CURRENT_TIMESTAMP
 
         // period boundaries — the canonical *_begin templates emit a literal date_trunc(...) call,
-        // so they need their own MySQL rendering (they don't route through the date_trunc override).
-        registry.override("minute_begin",  "CAST(DATE_FORMAT({0}, '%Y-%m-%d %H:%i:00') AS DATETIME)");
-        registry.override("hour_begin",    "CAST(DATE_FORMAT({0}, '%Y-%m-%d %H:00:00') AS DATETIME)");
-        registry.override("day_begin",     "CAST(DATE({0}) AS DATETIME)");
-        registry.override("month_begin",   "(MAKEDATE(YEAR({0}), 1) + INTERVAL (MONTH({0}) - 1) MONTH)");
-        registry.override("quarter_begin", "(MAKEDATE(YEAR({0}), 1) + INTERVAL (QUARTER({0}) - 1) * 3 MONTH)");
-        registry.override("year_begin",    "MAKEDATE(YEAR({0}), 1)");
+        // so they need their own MySQL rendering (they don't route through the date_trunc
+        // override).
+        registry.override(
+                "minute_begin", "CAST(DATE_FORMAT({0}, '%Y-%m-%d %H:%i:00') AS DATETIME)");
+        registry.override("hour_begin", "CAST(DATE_FORMAT({0}, '%Y-%m-%d %H:00:00') AS DATETIME)");
+        registry.override("day_begin", "CAST(DATE({0}) AS DATETIME)");
+        registry.override(
+                "month_begin", "(MAKEDATE(YEAR({0}), 1) + INTERVAL (MONTH({0}) - 1) MONTH)");
+        registry.override(
+                "quarter_begin",
+                "(MAKEDATE(YEAR({0}), 1) + INTERVAL (QUARTER({0}) - 1) * 3 MONTH)");
+        registry.override("year_begin", "MAKEDATE(YEAR({0}), 1)");
 
         // date_trunc itself (invoked directly)
-        registry.register(new FunctionDefinition("date_trunc", ReturnTypes.ARG1) {
-            @Override
-            protected String renderBody(SqlSelectRenderer renderer, Function function, int indent) {
-                String unit = renderer.toSql(function.getArguments().get(0), indent).replace("'", "");
-                String d = renderer.toSql(function.getArguments().get(1), indent);
-                return switch (unit) {
-                    case "minute"  -> "CAST(DATE_FORMAT(" + d + ", '%Y-%m-%d %H:%i:00') AS DATETIME)";
-                    case "hour"    -> "CAST(DATE_FORMAT(" + d + ", '%Y-%m-%d %H:00:00') AS DATETIME)";
-                    case "day"     -> "CAST(DATE(" + d + ") AS DATETIME)";
-                    case "month"   -> "(MAKEDATE(YEAR(" + d + "), 1) + INTERVAL (MONTH(" + d + ") - 1) MONTH)";
-                    case "quarter" -> "(MAKEDATE(YEAR(" + d + "), 1) + INTERVAL (QUARTER(" + d + ") - 1) * 3 MONTH)";
-                    case "year"    -> "MAKEDATE(YEAR(" + d + "), 1)";
-                    default -> throw new UnsupportedOperationException(
-                            "date_trunc unit not supported by MariaDB: " + unit);
-                };
-            }
-        }.args(FunctionArg.arg("unit", CoreTypeFamily.TEXT), FunctionArg.arg("value", Families.TEMPORAL)));
+        registry.register(
+                new FunctionDefinition("date_trunc", ReturnTypes.ARG1) {
+                    @Override
+                    protected String renderBody(
+                            SqlSelectRenderer renderer, Function function, int indent) {
+                        String unit =
+                                renderer.toSql(function.getArguments().get(0), indent)
+                                        .replace("'", "");
+                        String d = renderer.toSql(function.getArguments().get(1), indent);
+                        return switch (unit) {
+                            case "minute" ->
+                                    "CAST(DATE_FORMAT(" + d + ", '%Y-%m-%d %H:%i:00') AS DATETIME)";
+                            case "hour" ->
+                                    "CAST(DATE_FORMAT(" + d + ", '%Y-%m-%d %H:00:00') AS DATETIME)";
+                            case "day" -> "CAST(DATE(" + d + ") AS DATETIME)";
+                            case "month" ->
+                                    "(MAKEDATE(YEAR("
+                                            + d
+                                            + "), 1) + INTERVAL (MONTH("
+                                            + d
+                                            + ") - 1) MONTH)";
+                            case "quarter" ->
+                                    "(MAKEDATE(YEAR("
+                                            + d
+                                            + "), 1) + INTERVAL (QUARTER("
+                                            + d
+                                            + ") - 1) * 3 MONTH)";
+                            case "year" -> "MAKEDATE(YEAR(" + d + "), 1)";
+                            default ->
+                                    throw new UnsupportedOperationException(
+                                            "date_trunc unit not supported by MariaDB: " + unit);
+                        };
+                    }
+                }.args(
+                        FunctionArg.arg("unit", CoreTypeFamily.TEXT),
+                        FunctionArg.arg("value", Families.TEMPORAL)));
 
         // to_char via DATE_FORMAT (format mask translated to MySQL tokens)
-        registry.register(new FunctionDefinition("to_char", ReturnTypes.TEXT) {
-            @Override
-            protected String renderBody(SqlSelectRenderer renderer, Function function, int indent) {
-                return "DATE_FORMAT(" + renderer.toSql(function.getArguments().get(0), indent)
-                        + ", " + mysqlFormat(renderer.toSql(function.getArguments().get(1), indent)) + ")";
-            }
-        }.args(FunctionArg.arg("value", Families.ANY), FunctionArg.arg("format", CoreTypeFamily.TEXT)));
+        registry.register(
+                new FunctionDefinition("to_char", ReturnTypes.TEXT) {
+                    @Override
+                    protected String renderBody(
+                            SqlSelectRenderer renderer, Function function, int indent) {
+                        return "DATE_FORMAT("
+                                + renderer.toSql(function.getArguments().get(0), indent)
+                                + ", "
+                                + mysqlFormat(
+                                        renderer.toSql(function.getArguments().get(1), indent))
+                                + ")";
+                    }
+                }.args(
+                        FunctionArg.arg("value", Families.ANY),
+                        FunctionArg.arg("format", CoreTypeFamily.TEXT)));
 
         // parse_date/time/timestamp(value, format) → STR_TO_DATE, which returns DATETIME;
         // DATE()/TIME() narrow it to the declared return type.
-        registry.register(DateTimeFunctions.parseWithMask("parse_date", ReturnTypes.DATE,
-                MariadbDialect::mysqlFormat, (v, f) -> "DATE(STR_TO_DATE(" + v + ", " + f + "))"));
-        registry.register(DateTimeFunctions.parseWithMask("parse_time", ReturnTypes.TIME,
-                MariadbDialect::mysqlFormat, (v, f) -> "TIME(STR_TO_DATE(" + v + ", " + f + "))"));
-        registry.register(DateTimeFunctions.parseWithMask("parse_timestamp", ReturnTypes.TIMESTAMP,
-                MariadbDialect::mysqlFormat, (v, f) -> "STR_TO_DATE(" + v + ", " + f + ")"));
+        registry.register(
+                DateTimeFunctions.parseWithMask(
+                        "parse_date",
+                        ReturnTypes.DATE,
+                        MariadbDialect::mysqlFormat,
+                        (v, f) -> "DATE(STR_TO_DATE(" + v + ", " + f + "))"));
+        registry.register(
+                DateTimeFunctions.parseWithMask(
+                        "parse_time",
+                        ReturnTypes.TIME,
+                        MariadbDialect::mysqlFormat,
+                        (v, f) -> "TIME(STR_TO_DATE(" + v + ", " + f + "))"));
+        registry.register(
+                DateTimeFunctions.parseWithMask(
+                        "parse_timestamp",
+                        ReturnTypes.TIMESTAMP,
+                        MariadbDialect::mysqlFormat,
+                        (v, f) -> "STR_TO_DATE(" + v + ", " + f + ")"));
 
         // MySQL/MariaDB have no translate, format-mask to_number, initcap or regexp_count
         for (String fn : List.of("translate", "to_number", "initcap", "regexp_count")) {
@@ -252,7 +428,10 @@ public class MariadbDialect implements SqlDialect {
         return registry;
     }
 
-    /** Translate a canonical KQL format literal to MySQL DATE_FORMAT tokens; non-literals pass through. */
+    /**
+     * Translate a canonical KQL format literal to MySQL DATE_FORMAT tokens; non-literals pass
+     * through.
+     */
     private static String mysqlFormat(String rendered) {
         return FormatMask.translate(rendered, FormatMask.MYSQL);
     }
@@ -273,25 +452,39 @@ public class MariadbDialect implements SqlDialect {
     // JdbcDatabase#read decodes the integer to a LocalTime.
 
     @Override
-    public String renderEncodedArithmetic(SqlSelectRenderer renderer, String operator,
-            Expression left, TypeDescriptor leftType, Expression right, TypeDescriptor rightType, int indent) {
-        return renderEncodedArithmetic(renderer, operator, renderer.toSql(left, indent), leftType, right, rightType, indent);
+    public String renderEncodedArithmetic(
+            SqlSelectRenderer renderer,
+            String operator,
+            Expression left,
+            TypeDescriptor leftType,
+            Expression right,
+            TypeDescriptor rightType,
+            int indent) {
+        return renderEncodedArithmetic(
+                renderer,
+                operator,
+                renderer.toSql(left, indent),
+                leftType,
+                right,
+                rightType,
+                indent);
     }
 
     /**
      * MariaDB date/time arithmetic. Two MariaDB-specifics force an override of the default:
+     *
      * <ul>
      *   <li>It cannot add two INTERVALs together, so a multi-component duration must be
      *       <em>chained</em> on the date ({@code d - INTERVAL 1 DAY - INTERVAL 1 HOUR}), not
      *       wrapped as {@code d - (INTERVAL 1 DAY + INTERVAL 1 HOUR)}. Month-end is clamped by
-     *       MariaDB itself, so chaining matches the model.</li>
+     *       MariaDB itself, so chaining matches the model.
      *   <li>{@code DATE + INT} is numeric (yyyymmdd + n), so a DATE_FROM_EPOCH_DAY column must add
-     *       its days as {@code INTERVAL <col> DAY}, not a bare {@code +}.</li>
+     *       its days as {@code INTERVAL <col> DAY}, not a bare {@code +}.
      * </ul>
      */
     /**
-     * {@code DATE - DATE} is numeric yyyymmdd subtraction here — the same trap as {@code DATE + INT}
-     * noted above, and it agrees with the day count only within a single month.
+     * {@code DATE - DATE} is numeric yyyymmdd subtraction here — the same trap as {@code DATE +
+     * INT} noted above, and it agrees with the day count only within a single month.
      */
     @Override
     public String dateDiffDays(String leftSql, String rightSql) {
@@ -299,18 +492,27 @@ public class MariadbDialect implements SqlDialect {
     }
 
     @Override
-    public String renderEncodedArithmetic(SqlSelectRenderer renderer, String operator,
-            String leftSql, TypeDescriptor leftType, Expression right, TypeDescriptor rightType, int indent) {
-        String diff = renderTemporalDiff(renderer, operator, leftSql, leftType, right, rightType, indent);
+    public String renderEncodedArithmetic(
+            SqlSelectRenderer renderer,
+            String operator,
+            String leftSql,
+            TypeDescriptor leftType,
+            Expression right,
+            TypeDescriptor rightType,
+            int indent) {
+        String diff =
+                renderTemporalDiff(renderer, operator, leftSql, leftType, right, rightType, indent);
         if (diff != null) {
             return diff;
         }
-        java.util.Optional<String> time = TimeEncodings
-                .secondsArithmetic(renderer, leftSql, leftType, operator, right, indent);
+        java.util.Optional<String> time =
+                TimeEncodings.secondsArithmetic(
+                        renderer, leftSql, leftType, operator, right, indent);
         if (time.isPresent()) {
             return time.get();
         }
-        if (leftType != null && CoreTypeEncoding.DATE_FROM_EPOCH_DAY.equals(leftType.getTypeEncoding())) {
+        if (leftType != null
+                && CoreTypeEncoding.DATE_FROM_EPOCH_DAY.equals(leftType.getTypeEncoding())) {
             leftSql = "(DATE '1970-01-01' + INTERVAL " + leftSql + " DAY)";
         }
         leftSql = materializeEpochTimestampLeft(leftSql, leftType);
@@ -326,52 +528,69 @@ public class MariadbDialect implements SqlDialect {
         return leftSql + " " + operator + " " + renderer.toSql(right, indent);
     }
 
-    /** MariaDB has no {@code EXTRACT(EPOCH ...)}; {@code UNIX_TIMESTAMP} reads epoch-seconds (UTC session). */
+    /**
+     * MariaDB has no {@code EXTRACT(EPOCH ...)}; {@code UNIX_TIMESTAMP} reads epoch-seconds (UTC
+     * session).
+     */
     @Override
     public String timestampToEpochSeconds(String expr, boolean instant) {
         return "UNIX_TIMESTAMP(" + expr + ")";
     }
 
-    /** MariaDB has no {@code make_timestamp}; {@code FROM_UNIXTIME(seconds)} → DATETIME (UTC session). */
+    /**
+     * MariaDB has no {@code make_timestamp}; {@code FROM_UNIXTIME(seconds)} → DATETIME (UTC
+     * session).
+     */
     @Override
     public String epochToTimestamp(String expr, java.time.temporal.ChronoUnit unit) {
         return "FROM_UNIXTIME(" + SqlDialect.secondsFromEpoch(expr, unit) + ")";
     }
 
-    /** MariaDB uses {@code CONCAT} ({@code ||} is logical OR); it casts the numbers to text implicitly. */
+    /**
+     * MariaDB uses {@code CONCAT} ({@code ||} is logical OR); it casts the numbers to text
+     * implicitly.
+     */
     @Override
     public String pairText(String a, String b) {
         return "CONCAT(" + a + ", ';', " + b + ")";
     }
 
-    /** One duration component as a MariaDB {@code INTERVAL '<value>' <UNIT>} (QUARTAL→QUARTER, ms→µs). */
+    /**
+     * One duration component as a MariaDB {@code INTERVAL '<value>' <UNIT>} (QUARTAL→QUARTER,
+     * ms→µs).
+     */
     private static String intervalComponent(Duration.Component c) {
         return switch (c.unit()) {
             case MILLISECOND -> "INTERVAL '" + (c.value() * 1000) + "' MICROSECOND";
-            case SECOND      -> "INTERVAL '" + c.value() + "' SECOND";
-            case MINUTE      -> "INTERVAL '" + c.value() + "' MINUTE";
-            case HOUR        -> "INTERVAL '" + c.value() + "' HOUR";
-            case DAY         -> "INTERVAL '" + c.value() + "' DAY";
-            case WEEK        -> "INTERVAL '" + c.value() + "' WEEK";
-            case MONTH       -> "INTERVAL '" + c.value() + "' MONTH";
-            case QUARTAL     -> "INTERVAL '" + c.value() + "' QUARTER";
-            case YEAR        -> "INTERVAL '" + c.value() + "' YEAR";
+            case SECOND -> "INTERVAL '" + c.value() + "' SECOND";
+            case MINUTE -> "INTERVAL '" + c.value() + "' MINUTE";
+            case HOUR -> "INTERVAL '" + c.value() + "' HOUR";
+            case DAY -> "INTERVAL '" + c.value() + "' DAY";
+            case WEEK -> "INTERVAL '" + c.value() + "' WEEK";
+            case MONTH -> "INTERVAL '" + c.value() + "' MONTH";
+            case QUARTAL -> "INTERVAL '" + c.value() + "' QUARTER";
+            case YEAR -> "INTERVAL '" + c.value() + "' YEAR";
         };
     }
 
-
     /**
-     * MariaDB has {@code MOD} and {@code FLOOR} but not {@code EXTRACT(EPOCH …)};
-     * {@code TIME_TO_SEC} is the direct equivalent for a 'HH:MM:SS' text time. {@code CAST(… AS
-     * INTEGER)} is not valid either, so the integer form stays in {@code FLOOR}.
+     * MariaDB has {@code MOD} and {@code FLOOR} but not {@code EXTRACT(EPOCH …)}; {@code
+     * TIME_TO_SEC} is the direct equivalent for a 'HH:MM:SS' text time. {@code CAST(… AS INTEGER)}
+     * is not valid either, so the integer form stays in {@code FLOOR}.
      */
     @Override
     public String timeColumnAsSeconds(String columnSql, TypeDescriptor timeType) {
         var enc = timeType != null ? timeType.getTypeEncoding() : null;
         if (CoreTypeEncoding.TIME_FROM_INTEGER.equals(enc)) {
-            return "FLOOR(" + columnSql + " / 10000) * 3600"
-                 + " + MOD(FLOOR(" + columnSql + " / 100), 100) * 60"
-                 + " + MOD(" + columnSql + ", 100)";
+            return "FLOOR("
+                    + columnSql
+                    + " / 10000) * 3600"
+                    + " + MOD(FLOOR("
+                    + columnSql
+                    + " / 100), 100) * 60"
+                    + " + MOD("
+                    + columnSql
+                    + ", 100)";
         }
         if (CoreTypeEncoding.TIME_FROM_STRING.equals(enc)) {
             return "TIME_TO_SEC(" + columnSql + ")";
@@ -379,13 +598,11 @@ public class MariadbDialect implements SqlDialect {
         return SqlDialect.super.timeColumnAsSeconds(columnSql, timeType);
     }
 
-
     /** Negating distinctness gives plain {@code <=>} — no NOT wrapper needed. */
     @Override
     public String negatedOperatorTemplate(String op) {
         return "DISTINCT".equals(op) ? "{0} <=> {1}" : SqlDialect.super.negatedOperatorTemplate(op);
     }
-
 
     @Override
     public java.util.List<ai.koryki.iql.Collector<java.util.List<ai.koryki.iql.validate.Violation>>>

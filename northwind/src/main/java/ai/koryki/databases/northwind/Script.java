@@ -27,7 +27,8 @@ import java.util.List;
 
 public class Script {
 
-    public static void executeScript(Connection connection, String script) throws IOException, SQLException {
+    public static void executeScript(Connection connection, String script)
+            throws IOException, SQLException {
         List<String> stmts = statements(script);
 
         try (Statement stmt = connection.createStatement()) {
@@ -36,7 +37,8 @@ public class Script {
                 long start = System.currentTimeMillis();
                 try {
                     stmt.execute(s);
-                    System.out.println("true " + idx++ + " " + (System.currentTimeMillis() - start));
+                    System.out.println(
+                            "true " + idx++ + " " + (System.currentTimeMillis() - start));
                 } catch (SQLException e) {
                     throw new RuntimeException(s, e);
                 }
@@ -53,17 +55,19 @@ public class Script {
 
     /**
      * Splits a SQL script into individual statements, correctly handling:
+     *
      * <ul>
-     *   <li>{@code --} line comments (standard SQL, PostgreSQL, MySQL)</li>
-     *   <li>{@code #} line comments (MySQL)</li>
-     *   <li>{@code /* … *}{@code /} block comments (standard SQL, MySQL, PostgreSQL)</li>
-     *   <li>{@code '…'} single-quoted string literals ({@code ''} escape)</li>
-     *   <li>{@code "…"} double-quoted identifiers ({@code ""} escape)</li>
-     *   <li>{@code `…`} backtick-quoted identifiers (MySQL, {@code ``} escape)</li>
-     *   <li>{@code $tag$…$tag$} dollar-quoted strings (PostgreSQL)</li>
+     *   <li>{@code --} line comments (standard SQL, PostgreSQL, MySQL)
+     *   <li>{@code #} line comments (MySQL)
+     *   <li>{@code /* … *}{@code /} block comments (standard SQL, MySQL, PostgreSQL)
+     *   <li>{@code '…'} single-quoted string literals ({@code ''} escape)
+     *   <li>{@code "…"} double-quoted identifiers ({@code ""} escape)
+     *   <li>{@code `…`} backtick-quoted identifiers (MySQL, {@code ``} escape)
+     *   <li>{@code $tag$…$tag$} dollar-quoted strings (PostgreSQL)
      * </ul>
-     * Note: MySQL backslash escapes inside strings ({@code \'}, {@code \\}) are not handled;
-     * use {@code ''} quoting in scripts intended to run through this method.
+     *
+     * Note: MySQL backslash escapes inside strings ({@code \'}, {@code \\}) are not handled; use
+     * {@code ''} quoting in scripts intended to run through this method.
      */
     static List<String> splitStatements(String sql) {
         List<String> result = new ArrayList<>();
@@ -112,7 +116,9 @@ public class Script {
                 // PostgreSQL dollar-quoted string: $tag$…$tag$ — copy verbatim
                 // Distinguish from positional parameters ($1, $2) by requiring a closing $
                 int tagEnd = i + 1;
-                while (tagEnd < len && (Character.isLetterOrDigit(sql.charAt(tagEnd)) || sql.charAt(tagEnd) == '_')) {
+                while (tagEnd < len
+                        && (Character.isLetterOrDigit(sql.charAt(tagEnd))
+                                || sql.charAt(tagEnd) == '_')) {
                     tagEnd++;
                 }
                 if (tagEnd < len && sql.charAt(tagEnd) == '$') {
@@ -156,7 +162,10 @@ public class Script {
         return result;
     }
 
-    /** Copies a quoted token (delimited by {@code quote}) into {@code out}, handling doubled-quote escaping. */
+    /**
+     * Copies a quoted token (delimited by {@code quote}) into {@code out}, handling doubled-quote
+     * escaping.
+     */
     private static int copyQuoted(String sql, int i, int len, char quote, StringBuilder out) {
         out.append(quote);
         i++;

@@ -17,12 +17,11 @@
 package ai.koryki.iql;
 
 import ai.koryki.iql.query.Block;
-
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
 
-public class BlockRegistryCollector implements Visitor, Collector<Map<String, Block>>{
+public class BlockRegistryCollector implements Visitor, Collector<Map<String, Block>> {
 
     private Map<String, Block> blockIdToBlockMap = new HashMap<>();
 

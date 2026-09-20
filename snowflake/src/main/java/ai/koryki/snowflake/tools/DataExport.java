@@ -17,11 +17,10 @@
 package ai.koryki.snowflake.tools;
 
 import ai.koryki.antlr.Text;
-import ai.koryki.jdbc.XMLFileResult;
-import ai.koryki.kql.Engine;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.schema.Table;
-
+import ai.koryki.jdbc.XMLFileResult;
+import ai.koryki.kql.Engine;
 import java.io.File;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -42,17 +41,20 @@ public class DataExport<C extends XMLFileResult<?>> {
             dir.mkdirs();
         }
 
-        ((Schema)engine.getResolver().getSchema()).getTables().forEach(t -> exportTable(dir, t));
+        ((Schema) engine.getResolver().getSchema()).getTables().forEach(t -> exportTable(dir, t));
     }
 
     public void exportTable(File dir, Table table) {
 
         String alias = "a";
-        String fetch = table.getColumns().stream().map(c -> alias + "." + c.getName().toLowerCase()).collect(Collectors.joining(", "));
+        String fetch =
+                table.getColumns().stream()
+                        .map(c -> alias + "." + c.getName().toLowerCase())
+                        .collect(Collectors.joining(", "));
 
         String kql = "FIND " + table.getName().toLowerCase() + " " + alias + Text.NL;
         kql += "FETCH " + fetch;
-        //kql += " LIMIT 10";
+        // kql += " LIMIT 10";
         try {
 
             long start = System.currentTimeMillis();
@@ -62,13 +64,12 @@ public class DataExport<C extends XMLFileResult<?>> {
 
             C result = engine.executeKQL(kql, () -> resultFactory.apply(file));
 
-            System.out.println(" " +  result.getFile().length() + " " + (System.currentTimeMillis() - start));
+            System.out.println(
+                    " " + result.getFile().length() + " " + (System.currentTimeMillis() - start));
         } catch (RuntimeException e) {
             System.out.println("failed to export: " + table.getName());
             System.out.println(kql);
             e.printStackTrace(System.out);
         }
     }
-
-
 }

@@ -22,14 +22,11 @@ import ai.koryki.databases.cases.StableFormat;
 import ai.koryki.databases.northwind.duckdb.NorthwindService;
 import ai.koryki.kql.EngineBuilder;
 import ai.koryki.kql.HeaderInfo;
+import ai.koryki.snowflake.SnowflakeUnavailable;
 import ai.koryki.snowflake.iql.SqlQueryRenderer;
 import ai.koryki.snowflake.northwind.NorthwindSnowflake;
-import ai.koryki.snowflake.SnowflakeUnavailable;
-import org.junit.jupiter.api.BeforeAll;
-
-import java.io.IOException;
-import java.sql.SQLException;
 import java.util.Locale;
+import org.junit.jupiter.api.BeforeAll;
 
 /**
  * The casts corpus on Snowflake. It ran on DuckDB alone, which is how {@code to_integer(4.5)} could
@@ -51,7 +48,12 @@ public class CastsSnowflakeEngineTest extends BaseEngineTest<HeaderInfo> {
 
     @BeforeAll
     public void setup() throws Exception {
-        engine = EngineBuilder.headers(new NorthwindSnowflake<ListWithSqlResult<HeaderInfo>>(), NorthwindService.resolver(),
-                new SqlQueryRenderer(java.time.ZoneId.of("UTC"))).valueFormat(new StableFormat(Locale.ROOT)).build();
+        engine =
+                EngineBuilder.headers(
+                                new NorthwindSnowflake<ListWithSqlResult<HeaderInfo>>(),
+                                NorthwindService.resolver(),
+                                new SqlQueryRenderer(java.time.ZoneId.of("UTC")))
+                        .valueFormat(new StableFormat(Locale.ROOT))
+                        .build();
     }
 }

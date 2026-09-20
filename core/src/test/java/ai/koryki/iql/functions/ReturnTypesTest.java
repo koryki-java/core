@@ -16,20 +16,19 @@
  */
 package ai.koryki.iql.functions;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeNames;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
-import org.junit.jupiter.api.Test;
-
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Test;
 
 /** Phase 3 — DECIMAL multiplication precision propagation, with fallback to LEAST_RESTRICTIVE. */
 class ReturnTypesTest {
@@ -55,47 +54,55 @@ class ReturnTypesTest {
 
     @Test
     void multiplyOfTwoDecimals() {
-        TypeDescriptor r = ReturnTypes.DECIMAL_MULTIPLY.infer(binding(decimal(18, 6), decimal(18, 6)));
+        TypeDescriptor r =
+                ReturnTypes.DECIMAL_MULTIPLY.infer(binding(decimal(18, 6), decimal(18, 6)));
         assertEquals(CoreTypeFamily.DECIMAL, r.getTypeFamily());
-        assertEquals(37, r.getPrecision());   // p1 + p2 + 1
-        assertEquals(12, r.getScale());        // s1 + s2
+        assertEquals(37, r.getPrecision()); // p1 + p2 + 1
+        assertEquals(12, r.getScale()); // s1 + s2
     }
 
     @Test
     void multiplyFoldsAcrossThreeDecimals() {
-        TypeDescriptor r = ReturnTypes.DECIMAL_MULTIPLY.infer(binding(decimal(5, 2), decimal(5, 2), decimal(5, 2)));
-        assertEquals(17, r.getPrecision());    // (5+5+1) + 5 + 1
-        assertEquals(6, r.getScale());         // 2 + 2 + 2
+        TypeDescriptor r =
+                ReturnTypes.DECIMAL_MULTIPLY.infer(
+                        binding(decimal(5, 2), decimal(5, 2), decimal(5, 2)));
+        assertEquals(17, r.getPrecision()); // (5+5+1) + 5 + 1
+        assertEquals(6, r.getScale()); // 2 + 2 + 2
     }
 
     @Test
     void fallsBackForIntegerOperands() {
-        TypeDescriptor r = ReturnTypes.DECIMAL_MULTIPLY.infer(binding(TypeDescriptor.INTEGER, TypeDescriptor.INTEGER));
+        TypeDescriptor r =
+                ReturnTypes.DECIMAL_MULTIPLY.infer(
+                        binding(TypeDescriptor.INTEGER, TypeDescriptor.INTEGER));
         assertEquals(CoreTypeFamily.INTEGER, r.getTypeFamily());
     }
 
     @Test
     void fallsBackWhenAnyDecimalLacksPrecision() {
-        // TypeDescriptor.DECIMAL constant has precision/scale = -1 -> not eligible -> LEAST_RESTRICTIVE
-        TypeDescriptor r = ReturnTypes.DECIMAL_MULTIPLY.infer(binding(decimal(18, 6), TypeDescriptor.DECIMAL));
+        // TypeDescriptor.DECIMAL constant has precision/scale = -1 -> not eligible ->
+        // LEAST_RESTRICTIVE
+        TypeDescriptor r =
+                ReturnTypes.DECIMAL_MULTIPLY.infer(binding(decimal(18, 6), TypeDescriptor.DECIMAL));
         assertEquals(CoreTypeFamily.DECIMAL, r.getTypeFamily());
-        assertEquals(18, r.getPrecision());    // operand(0), NOT the 37 the multiply rule would give
+        assertEquals(18, r.getPrecision()); // operand(0), NOT the 37 the multiply rule would give
     }
 
     @Test
     void addOfTwoDecimals() {
         TypeDescriptor r = ReturnTypes.DECIMAL_ADD.infer(binding(decimal(18, 6), decimal(18, 6)));
         assertEquals(CoreTypeFamily.DECIMAL, r.getTypeFamily());
-        assertEquals(19, r.getPrecision());    // max(12,12) + 6 + 1
+        assertEquals(19, r.getPrecision()); // max(12,12) + 6 + 1
         assertEquals(6, r.getScale());
     }
 
     @Test
     void divideOfTwoDecimals() {
-        TypeDescriptor r = ReturnTypes.DECIMAL_DIVIDE.infer(binding(decimal(18, 6), decimal(18, 6)));
+        TypeDescriptor r =
+                ReturnTypes.DECIMAL_DIVIDE.infer(binding(decimal(18, 6), decimal(18, 6)));
         assertEquals(CoreTypeFamily.DECIMAL, r.getTypeFamily());
-        assertEquals(6, r.getScale());         // max(6,6,6)
-        assertEquals(24, r.getPrecision());    // (18-6) + 6 + 6
+        assertEquals(6, r.getScale()); // max(6,6,6)
+        assertEquals(24, r.getPrecision()); // (18-6) + 6 + 6
     }
 
     @Test

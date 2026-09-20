@@ -17,7 +17,6 @@
 package ai.koryki.oracle.northwind;
 
 import ai.koryki.databases.northwind.Script;
-
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -32,25 +31,42 @@ public class BuildNorthwind {
 
             Script.executeScript(connection, "/ai/koryki/databases/northwind/oracle/tables.sql");
 
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/oracle/data_categories.sql");
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/oracle/data_countries.sql");
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/oracle/data_customers.sql");
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/oracle/data_employees.sql");
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/oracle/data_employees_territories.sql");
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/oracle/data_order_details.sql");
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/oracle/data_orders.sql");
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/oracle/data_products.sql");
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/oracle/data_region.sql");
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/oracle/data_shippers.sql");
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/oracle/data_suppliers.sql");
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/oracle/data_territories.sql");
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/oracle/data_us_states.sql");
+            Script.executeScript(
+                    connection, "/ai/koryki/databases/northwind/oracle/data_categories.sql");
+            Script.executeScript(
+                    connection, "/ai/koryki/databases/northwind/oracle/data_countries.sql");
+            Script.executeScript(
+                    connection, "/ai/koryki/databases/northwind/oracle/data_customers.sql");
+            Script.executeScript(
+                    connection, "/ai/koryki/databases/northwind/oracle/data_employees.sql");
+            Script.executeScript(
+                    connection,
+                    "/ai/koryki/databases/northwind/oracle/data_employees_territories.sql");
+            Script.executeScript(
+                    connection, "/ai/koryki/databases/northwind/oracle/data_order_details.sql");
+            Script.executeScript(
+                    connection, "/ai/koryki/databases/northwind/oracle/data_orders.sql");
+            Script.executeScript(
+                    connection, "/ai/koryki/databases/northwind/oracle/data_products.sql");
+            Script.executeScript(
+                    connection, "/ai/koryki/databases/northwind/oracle/data_region.sql");
+            Script.executeScript(
+                    connection, "/ai/koryki/databases/northwind/oracle/data_shippers.sql");
+            Script.executeScript(
+                    connection, "/ai/koryki/databases/northwind/oracle/data_suppliers.sql");
+            Script.executeScript(
+                    connection, "/ai/koryki/databases/northwind/oracle/data_territories.sql");
+            Script.executeScript(
+                    connection, "/ai/koryki/databases/northwind/oracle/data_us_states.sql");
 
-           Script.executeScript(connection, "/ai/koryki/databases/northwind/oracle/data_check_temporal.sql");
-           Script.executeScript(connection, "/ai/koryki/databases/northwind/oracle/data_check_type.sql");
+            Script.executeScript(
+                    connection, "/ai/koryki/databases/northwind/oracle/data_check_temporal.sql");
+            Script.executeScript(
+                    connection, "/ai/koryki/databases/northwind/oracle/data_check_type.sql");
 
             connection.commit();
-            Script.executeScript(connection, "/ai/koryki/databases/northwind/oracle/constraints.sql");
+            Script.executeScript(
+                    connection, "/ai/koryki/databases/northwind/oracle/constraints.sql");
             connection.commit();
         }
     }

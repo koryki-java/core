@@ -16,6 +16,9 @@
  */
 package ai.koryki.mariadb.temporal;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import ai.koryki.catalog.CatalogLoader;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Schema;
@@ -29,30 +32,28 @@ import ai.koryki.kql.HeaderInfo;
 import ai.koryki.mariadb.MariadbUnavailable;
 import ai.koryki.mariadb.iql.SqlQueryRenderer;
 import ai.koryki.mariadb.northwind.NorthwindMariadb;
-import org.junit.jupiter.api.Test;
-
 import java.util.Locale;
 import java.util.TimeZone;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
 
 /**
- * A MariaDB {@code TIMESTAMP} is an instant (stored UTC, session-zone-converted on read). The engine
- * pins the session to {@code +00:00} ({@code MariadbDatabase}) and reads it as a zone-neutral
- * wall-clock so the value never depends on who runs the query (docs/TEMPORAL.md). These tests vary the
- * JVM default zone around the read and assert the instant is unchanged — they would fail if the JVM
- * zone leaked into the conversion (e.g. via {@code Timestamp.toInstant()} or a dropped session pin).
+ * A MariaDB {@code TIMESTAMP} is an instant (stored UTC, session-zone-converted on read). The
+ * engine pins the session to {@code +00:00} ({@code MariadbDatabase}) and reads it as a
+ * zone-neutral wall-clock so the value never depends on who runs the query (docs/TEMPORAL.md).
+ * These tests vary the JVM default zone around the read and assert the instant is unchanged — they
+ * would fail if the JVM zone leaked into the conversion (e.g. via {@code Timestamp.toInstant()} or
+ * a dropped session pin).
  *
- * <p>{@code timestamp_zoned} for {@code nr = 1} is {@code 2024-04-12 12:14:40Z} (the canonical INSTANT
- * shared across all dialects).
+ * <p>{@code timestamp_zoned} for {@code nr = 1} is {@code 2024-04-12 12:14:40Z} (the canonical
+ * INSTANT shared across all dialects).
  */
 @MariadbUnavailable
 public class InstantSessionTest {
 
-    private static final String DB    = "/ai/koryki/mariadb/databases/temporal";
+    private static final String DB = "/ai/koryki/mariadb/databases/temporal";
     private static final String MODEL = "/ai/koryki/mariadb/databases/temporal/model";
-    private static final String QUERY = "FIND check_temporal c FILTER c.nr = 1 FETCH c.timestamp_zoned";
+    private static final String QUERY =
+            "FIND check_temporal c FILTER c.nr = 1 FETCH c.timestamp_zoned";
 
     /** Fresh engine (and connection) under the current JVM default zone. */
     private static Engine<HeaderInfo, ListWithSqlResult<HeaderInfo>> engine() throws Exception {
@@ -60,8 +61,12 @@ public class InstantSessionTest {
         Schema db = CatalogLoader.db(DB);
         Model schema = CatalogLoader.model(MODEL, locale);
         LinkResolver resolver = new LinkResolver(locale, db, schema, true);
-        return EngineBuilder.headers(new NorthwindMariadb<ListWithSqlResult<HeaderInfo>>(), resolver,
-                new SqlQueryRenderer(java.time.ZoneId.of("UTC"))).valueFormat(new StableFormat(Locale.ROOT)).build();
+        return EngineBuilder.headers(
+                        new NorthwindMariadb<ListWithSqlResult<HeaderInfo>>(),
+                        resolver,
+                        new SqlQueryRenderer(java.time.ZoneId.of("UTC")))
+                .valueFormat(new StableFormat(Locale.ROOT))
+                .build();
     }
 
     private static String readInstant() throws Exception {
@@ -72,14 +77,16 @@ public class InstantSessionTest {
     void instantReadIsIndependentOfJvmDefaultZone() throws Exception {
         TimeZone original = TimeZone.getDefault();
         try {
-            TimeZone.setDefault(TimeZone.getTimeZone("America/Los_Angeles"));   // -07/-08
+            TimeZone.setDefault(TimeZone.getTimeZone("America/Los_Angeles")); // -07/-08
             String la = readInstant();
-            TimeZone.setDefault(TimeZone.getTimeZone("Asia/Kolkata"));          // +05:30
+            TimeZone.setDefault(TimeZone.getTimeZone("Asia/Kolkata")); // +05:30
             String kolkata = readInstant();
 
             assertEquals(la, kolkata, "instant read must not depend on the JVM default zone");
-            assertTrue(la.contains("2024-04-12") && la.contains("12:14:40"),
-                    "instant must read as its UTC wall-clock (session pinned to +00:00), got: " + la);
+            assertTrue(
+                    la.contains("2024-04-12") && la.contains("12:14:40"),
+                    "instant must read as its UTC wall-clock (session pinned to +00:00), got: "
+                            + la);
         } finally {
             TimeZone.setDefault(original);
         }

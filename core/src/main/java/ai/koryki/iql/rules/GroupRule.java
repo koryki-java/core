@@ -21,15 +21,12 @@ import ai.koryki.iql.Visitor;
 import ai.koryki.iql.Walker;
 import ai.koryki.iql.query.*;
 import ai.koryki.iql.validate.FunctionValidator;
-import org.antlr.v4.runtime.RuleContext;
-
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
+import org.antlr.v4.runtime.RuleContext;
 
-/**
- * Add GROUP-Expression, if aggregates are present.
- */
+/** Add GROUP-Expression, if aggregates are present. */
 public class GroupRule {
 
     private final Query query;
@@ -67,19 +64,22 @@ public class GroupRule {
             List<Out> list = SqlQueryRenderer.collectOut(select);
             if (hasAggregate(list) || hasHaving(select)) {
 
-                list.forEach(o -> {
-                    // windowed expressions are neither aggregates nor legal GROUP BY keys:
-                    // they evaluate after grouping and SQL forbids them in the GROUP BY clause
-                    if (!isAggregate(o) && !FunctionValidator.containsWindow(o.getExpression())) {
+                list.forEach(
+                        o -> {
+                            // windowed expressions are neither aggregates nor legal GROUP BY keys:
+                            // they evaluate after grouping and SQL forbids them in the GROUP BY
+                            // clause
+                            if (!isAggregate(o)
+                                    && !FunctionValidator.containsWindow(o.getExpression())) {
 
-                        Group g = new Group();
-                        g.setIdx(o.getIdx());
-                        g.setExpression(o.getExpression());
-                        // The GROUP BY entry arises from exactly this FETCH expression.
-                        Rules.inherit(iqlToContext, o.getExpression(), g);
-                        select.getGroup().add(g);
-                    }
-                });
+                                Group g = new Group();
+                                g.setIdx(o.getIdx());
+                                g.setExpression(o.getExpression());
+                                // The GROUP BY entry arises from exactly this FETCH expression.
+                                Rules.inherit(iqlToContext, o.getExpression(), g);
+                                select.getGroup().add(g);
+                            }
+                        });
             }
         }
 

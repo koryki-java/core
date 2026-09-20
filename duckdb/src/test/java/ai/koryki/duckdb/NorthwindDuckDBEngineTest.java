@@ -24,23 +24,35 @@ import ai.koryki.databases.northwind.duckdb.NorthwindDuckdb;
 import ai.koryki.databases.northwind.duckdb.NorthwindService;
 import ai.koryki.kql.EngineBuilder;
 import ai.koryki.kql.HeaderInfo;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Locale;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class NorthwindDuckDBEngineTest extends BaseEngineTest<HeaderInfo> {
 
-    @Override protected String schema() { return "northwind"; }
+    @Override
+    protected String schema() {
+        return "northwind";
+    }
 
     // The parse_* fixtures are dialect-specific here (their own format masks) and therefore live
     // in the module, not in the shared corpus.
-    @Override protected Path localQueries() { return Path.of("src/test/resources/ai/koryki/duckdb/queries/northwind"); }
-    @Override protected Path localExpectedCsv() { return Path.of("src/test/resources/ai/koryki/duckdb/expected/northwind/csv"); }
-    @Override protected Path localExpectedSql() { return Path.of("src/test/resources/ai/koryki/duckdb/expected/northwind/sql"); }
+    @Override
+    protected Path localQueries() {
+        return Path.of("src/test/resources/ai/koryki/duckdb/queries/northwind");
+    }
 
+    @Override
+    protected Path localExpectedCsv() {
+        return Path.of("src/test/resources/ai/koryki/duckdb/expected/northwind/csv");
+    }
+
+    @Override
+    protected Path localExpectedSql() {
+        return Path.of("src/test/resources/ai/koryki/duckdb/expected/northwind/sql");
+    }
 
     public NorthwindDuckDBEngineTest() {
         super("duckdb", true);
@@ -48,8 +60,13 @@ public class NorthwindDuckDBEngineTest extends BaseEngineTest<HeaderInfo> {
 
     @BeforeAll
     public void setup() throws IOException {
-        engine = EngineBuilder.headers(NorthwindDuckdb.<ListWithSqlResult<HeaderInfo>>northwind(), NorthwindService.resolver(),
-                new SqlQueryRenderer(java.time.ZoneId.of("UTC"))).valueFormat(new StableFormat(Locale.ROOT)).build();
+        engine =
+                EngineBuilder.headers(
+                                NorthwindDuckdb.<ListWithSqlResult<HeaderInfo>>northwind(),
+                                NorthwindService.resolver(),
+                                new SqlQueryRenderer(java.time.ZoneId.of("UTC")))
+                        .valueFormat(new StableFormat(Locale.ROOT))
+                        .build();
     }
 
     @Test

@@ -16,27 +16,25 @@
  */
 package ai.koryki.antlr;
 
-
+import java.util.Objects;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 
-import java.util.Objects;
-
 /**
- * One point in the query text the user wrote: <b>line and column are both 1-based</b>, and a range's
- * stop is exclusive — the same convention an editor uses.
+ * One point in the query text the user wrote: <b>line and column are both 1-based</b>, and a
+ * range's stop is exclusive — the same convention an editor uses.
  *
- * <p>ANTLR does not hand it over that way. {@code Token.getLine()} counts from 1, but
- * {@code getCharPositionInLine()} counts from 0, and passing that mixture on made every column read
- * one character too far left. Measured on {@code to_number.kql}: {@code to_number} starts at line 5,
+ * <p>ANTLR does not hand it over that way. {@code Token.getLine()} counts from 1, but {@code
+ * getCharPositionInLine()} counts from 0, and passing that mixture on made every column read one
+ * character too far left. Measured on {@code to_number.kql}: {@code to_number} starts at line 5,
  * column 7, and the violation used to report {@code 5:6}. The conversion therefore happens once,
  * here at the boundary, in {@link #column(int)} — never at a call site, where it would be forgotten
  * in one of them.
  *
  * <p>The constructor rejects anything below 1 for the same reason: a 0 can only come from a raw
- * ANTLR value that skipped this class, and that is worth an exception rather than a position that is
- * quietly off by one. Code that needs a placeholder rather than a real position uses
- * {@code (1, 1)}.
+ * ANTLR value that skipped this class, and that is worth an exception rather than a position that
+ * is quietly off by one. Code that needs a placeholder rather than a real position uses {@code (1,
+ * 1)}.
  *
  * <p>Comparisons — {@link #compareTo}, {@link #equals}, {@code Range.overlaps} — are unaffected by
  * the convention: they only ever relate positions of the same origin, and a uniform shift leaves
@@ -69,8 +67,10 @@ public class Position implements Comparable<Position> {
             throw new IllegalArgumentException("line is 1-based, got " + line);
         }
         if (pos < 1) {
-            throw new IllegalArgumentException("column is 1-based, got " + pos
-                    + " — a raw ANTLR charPositionInLine must go through Position.start/stop");
+            throw new IllegalArgumentException(
+                    "column is 1-based, got "
+                            + pos
+                            + " — a raw ANTLR charPositionInLine must go through Position.start/stop");
         }
         if (line > Integer.MAX_VALUE / 2) {
             throw new IllegalArgumentException("max line " + line);
@@ -121,14 +121,16 @@ public class Position implements Comparable<Position> {
         }
         int lastNewline = text.lastIndexOf('\n');
         if (lastNewline < 0) {
-            return new Position(token.getLine(), column(token.getCharPositionInLine() + text.length()));
+            return new Position(
+                    token.getLine(), column(token.getCharPositionInLine() + text.length()));
         }
         int newlineCount = 0;
         for (int i = 0; i < text.length(); i++) {
             if (text.charAt(i) == '\n') newlineCount++;
         }
         // A multi-line token ends on a later line, so the column restarts after the last newline.
-        return new Position(token.getLine() + newlineCount, column(text.length() - lastNewline - 1));
+        return new Position(
+                token.getLine() + newlineCount, column(text.length() - lastNewline - 1));
     }
 
     public static Position start(Token token) {
@@ -140,5 +142,4 @@ public class Position implements Comparable<Position> {
 
         return start(pCtx.getStart());
     }
-
 }

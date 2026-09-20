@@ -16,14 +16,13 @@
  */
 package ai.koryki.iql.functions;
 
-import org.junit.jupiter.api.Test;
-
-import java.util.Map;
-
-import ai.koryki.antlr.KorykiaiException;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import ai.koryki.antlr.KorykiaiException;
+import java.util.Map;
+import org.junit.jupiter.api.Test;
 
 public class FormatMaskTest {
 
@@ -51,8 +50,10 @@ public class FormatMaskTest {
     @Test
     public void nameTokensAreRejected() {
         for (String bad : FormatMask.REJECTED) {
-            KorykiaiException e = assertThrows(KorykiaiException.class,
-                    () -> FormatMask.translate("'YYYY " + bad + "'", STRFTIME));
+            KorykiaiException e =
+                    assertThrows(
+                            KorykiaiException.class,
+                            () -> FormatMask.translate("'YYYY " + bad + "'", STRFTIME));
             assertTrue(e.getMessage().contains(bad), e.getMessage());
             assertTrue(e.getMessage().contains("double quotes"), e.getMessage());
         }
@@ -108,7 +109,9 @@ public class FormatMaskTest {
     public void scanReportsTokensAndLiteralRuns() {
         // the path SQL Server compiles through: tokens become expressions, literals stay text
         StringBuilder trace = new StringBuilder();
-        FormatMask.scan("DD.MM \"at\" HH24", FormatMask.TOKENS,
+        FormatMask.scan(
+                "DD.MM \"at\" HH24",
+                FormatMask.TOKENS,
                 token -> trace.append('<').append(token).append('>'),
                 literal -> trace.append('[').append(literal).append(']'));
         assertEquals("<DD>[.]<MM>[ at ]<HH24>", trace.toString());

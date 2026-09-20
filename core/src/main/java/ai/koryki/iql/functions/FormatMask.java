@@ -16,61 +16,72 @@
  */
 package ai.koryki.iql.functions;
 
-import java.util.Collection;
 import ai.koryki.antlr.KorykiaiException;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
 /**
- * The canonical KQL datetime format-mask vocabulary, and its translation into each dialect's
- * tokens (strftime {@code %}-codes, MySQL DATE_FORMAT codes, T-SQL date-part expressions).
+ * The canonical KQL datetime format-mask vocabulary, and its translation into each dialect's tokens
+ * (strftime {@code %}-codes, MySQL DATE_FORMAT codes, T-SQL date-part expressions).
  *
  * <p>The canonical masks are the <b>PostgreSQL template patterns</b> (which PostgreSQL inherits
- * from Oracle, so the two are the same family): {@code YYYY MM DD HH24 HH12 MI SS MON MONTH DY
- * DAY AM PM}. PostgreSQL, Oracle and Snowflake therefore need no translation at all — a KQL mask
- * is already valid there and passes straight through. Only the strftime and MySQL-style dialects
+ * from Oracle, so the two are the same family): {@code YYYY MM DD HH24 HH12 MI SS MON MONTH DY DAY
+ * AM PM}. PostgreSQL, Oracle and Snowflake therefore need no translation at all — a KQL mask is
+ * already valid there and passes straight through. Only the strftime and MySQL-style dialects
  * translate.
  *
  * <p>Operates on a <em>rendered</em> SQL string literal ({@code '...'}); anything else passes
  * through unchanged — a runtime format expression cannot be translated at transpile time.
- * Double-quoted sections ({@code "literal text"}) are embedded verbatim without token
- * substitution; unrecognised tokens and characters pass through unchanged. Single-pass
- * longest-match replaces the earlier sequential {@code String.replace} chains, which corrupted
- * literal text and depended on replacement order.
+ * Double-quoted sections ({@code "literal text"}) are embedded verbatim without token substitution;
+ * unrecognised tokens and characters pass through unchanged. Single-pass longest-match replaces the
+ * earlier sequential {@code String.replace} chains, which corrupted literal text and depended on
+ * replacement order.
  */
 public final class FormatMask {
 
-    private FormatMask() {
-    }
+    private FormatMask() {}
 
     /** strftime {@code %}-codes — DuckDB and SQLite. */
-    public static final Map<String, String> STRFTIME = Map.ofEntries(
-            Map.entry("HH24", "%H"),  Map.entry("HH12", "%I"),
-            Map.entry("HH", "%I"),
-            Map.entry("YYYY", "%Y"),  Map.entry("YY", "%y"),
-            Map.entry("MM", "%m"),    Map.entry("DD", "%d"),
-            Map.entry("MI", "%M"),    Map.entry("SS", "%S"),
-            Map.entry("AM", "%p"),    Map.entry("PM", "%p"));
+    public static final Map<String, String> STRFTIME =
+            Map.ofEntries(
+                    Map.entry("HH24", "%H"),
+                    Map.entry("HH12", "%I"),
+                    Map.entry("HH", "%I"),
+                    Map.entry("YYYY", "%Y"),
+                    Map.entry("YY", "%y"),
+                    Map.entry("MM", "%m"),
+                    Map.entry("DD", "%d"),
+                    Map.entry("MI", "%M"),
+                    Map.entry("SS", "%S"),
+                    Map.entry("AM", "%p"),
+                    Map.entry("PM", "%p"));
 
     /** MySQL {@code DATE_FORMAT}/{@code STR_TO_DATE} codes — MariaDB and Trino. */
-    public static final Map<String, String> MYSQL = Map.ofEntries(
-            Map.entry("HH24", "%H"),  Map.entry("HH12", "%h"),
-            Map.entry("HH", "%h"),
-            Map.entry("YYYY", "%Y"),  Map.entry("YY", "%y"),
-            Map.entry("MM", "%m"),    Map.entry("DD", "%d"),
-            Map.entry("MI", "%i"),    Map.entry("SS", "%s"),
-            Map.entry("AM", "%p"),    Map.entry("PM", "%p"));
+    public static final Map<String, String> MYSQL =
+            Map.ofEntries(
+                    Map.entry("HH24", "%H"),
+                    Map.entry("HH12", "%h"),
+                    Map.entry("HH", "%h"),
+                    Map.entry("YYYY", "%Y"),
+                    Map.entry("YY", "%y"),
+                    Map.entry("MM", "%m"),
+                    Map.entry("DD", "%d"),
+                    Map.entry("MI", "%i"),
+                    Map.entry("SS", "%s"),
+                    Map.entry("AM", "%p"),
+                    Map.entry("PM", "%p"));
 
     /**
      * Name tokens that once existed and are now rejected.
      *
      * <p>Measured, they gave five different answers for the same day: {@code July} on
-     * DuckDB/MariaDB/SQL Server, {@code JULY} padded to nine characters on PostgreSQL,
-     * {@code JULI} on Oracle, {@code Juli} on Trino -- and an <em>empty</em> column on SQLite,
-     * whose strftime knows neither {@code %B} nor {@code %A}. Oracle and Trino also answered in
-     * the client's language rather than a fixed one.
+     * DuckDB/MariaDB/SQL Server, {@code JULY} padded to nine characters on PostgreSQL, {@code JULI}
+     * on Oracle, {@code Juli} on Trino -- and an <em>empty</em> column on SQLite, whose strftime
+     * knows neither {@code %B} nor {@code %A}. Oracle and Trino also answered in the client's
+     * language rather than a fixed one.
      *
      * <p>A mask containing one of these tokens is therefore not portable. It is rejected instead of
      * silently producing five results; month names belong in the application, which knows the
@@ -107,12 +118,14 @@ public final class FormatMask {
      * Edge has no {@code FORMAT} — so the longest-match rule and the quoted-literal handling have a
      * single definition.
      */
-    public static void scan(String mask, Collection<String> tokens,
-            Consumer<String> onToken, Consumer<String> onLiteral) {
+    public static void scan(
+            String mask,
+            Collection<String> tokens,
+            Consumer<String> onToken,
+            Consumer<String> onLiteral) {
 
-        List<String> keys = tokens.stream()
-                .sorted(Comparator.comparingInt(String::length).reversed())
-                .toList();
+        List<String> keys =
+                tokens.stream().sorted(Comparator.comparingInt(String::length).reversed()).toList();
 
         StringBuilder literal = new StringBuilder();
         int i = 0;
@@ -131,10 +144,13 @@ public final class FormatMask {
             }
             for (String bad : REJECTED) {
                 if (mask.regionMatches(i, bad, 0, bad.length())) {
-                    throw new KorykiaiException("format mask token '" + bad + "' is not supported: it"
-                            + " gives a different answer on every dialect and none at all on SQLite."
-                            + " Use MM or DD for the number, and render the name in the application."
-                            + " To keep the word as literal text, put it in double quotes.");
+                    throw new KorykiaiException(
+                            "format mask token '"
+                                    + bad
+                                    + "' is not supported: it"
+                                    + " gives a different answer on every dialect and none at all on SQLite."
+                                    + " Use MM or DD for the number, and render the name in the application."
+                                    + " To keep the word as literal text, put it in double quotes.");
                 }
             }
             String match = null;

@@ -17,15 +17,15 @@
 package ai.koryki.iql.functions;
 
 /**
- * Documentation category of a function, mirroring the chapters of the
- * PostgreSQL function reference (the catalog's coverage benchmark).
- * Drives the grouping of generated markdown docs; has no runtime semantics.
+ * Documentation category of a function, mirroring the chapters of the PostgreSQL function reference
+ * (the catalog's coverage benchmark). Drives the grouping of generated markdown docs; has no
+ * runtime semantics.
  *
- * <p>{@code order} is the docs-site nav position written into each page's
- * {@code order:} frontmatter, kept in step with the index in {@code docs/FUNCTIONS.md}. It is
- * declared rather than derived from {@link #ordinal()} so that adding or moving a constant cannot
- * silently renumber every published page. The per-dialect pages occupy 21–28
- * ({@code DocDialects.ALL}), so the two ranges do not collide.
+ * <p>{@code order} is the docs-site nav position written into each page's {@code order:}
+ * frontmatter, kept in step with the index in {@code docs/FUNCTIONS.md}. It is declared rather than
+ * derived from {@link #ordinal()} so that adding or moving a constant cannot silently renumber
+ * every published page. The per-dialect pages occupy 21–28 ({@code DocDialects.ALL}), so the two
+ * ranges do not collide.
  */
 public enum FunctionCategory {
     LOGICAL("Logical Operators", 1),

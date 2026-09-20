@@ -22,14 +22,13 @@ import ai.koryki.databases.cases.StableFormat;
 import ai.koryki.databases.northwind.duckdb.NorthwindService;
 import ai.koryki.kql.EngineBuilder;
 import ai.koryki.kql.HeaderInfo;
+import ai.koryki.trino.TrinoUnavailable;
 import ai.koryki.trino.iql.SqlQueryRenderer;
 import ai.koryki.trino.northwind.NorthwindTrino;
-import ai.koryki.trino.TrinoUnavailable;
-import org.junit.jupiter.api.BeforeAll;
-
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Locale;
+import org.junit.jupiter.api.BeforeAll;
 
 /**
  * The casts corpus on Trino. It ran on DuckDB alone, which is how {@code to_integer(4.5)} could
@@ -51,7 +50,12 @@ public class CastsTrinoEngineTest extends BaseEngineTest<HeaderInfo> {
 
     @BeforeAll
     public void setup() throws IOException, SQLException {
-        engine = EngineBuilder.headers(new NorthwindTrino<ListWithSqlResult<HeaderInfo>>(), NorthwindService.resolver(),
-                new SqlQueryRenderer(java.time.ZoneId.of("UTC"))).valueFormat(new StableFormat(Locale.ROOT)).build();
+        engine =
+                EngineBuilder.headers(
+                                new NorthwindTrino<ListWithSqlResult<HeaderInfo>>(),
+                                NorthwindService.resolver(),
+                                new SqlQueryRenderer(java.time.ZoneId.of("UTC")))
+                        .valueFormat(new StableFormat(Locale.ROOT))
+                        .build();
     }
 }

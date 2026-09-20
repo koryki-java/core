@@ -16,19 +16,12 @@
  */
 package ai.koryki.duckdb;
 
-import ai.koryki.databases.cases.Fixtures;
-
-import ai.koryki.catalog.Util;
 import ai.koryki.databases.FileAsserter;
+import ai.koryki.databases.cases.Fixtures;
 import ai.koryki.databases.cases.TestUtil;
 import ai.koryki.databases.northwind.duckdb.NorthwindService;
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.kql.KQLTranspiler;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -36,11 +29,16 @@ import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 public class PartsDuckDBEngineTest {
 
-    private static final String QUERIES     = "src/test/resources/ai/koryki/duckdb/queries/parts";
-    private static final String EXPECTED_SQL = "src/test/resources/ai/koryki/duckdb/expected/parts/sql";
+    private static final String QUERIES = "src/test/resources/ai/koryki/duckdb/queries/parts";
+    private static final String EXPECTED_SQL =
+            "src/test/resources/ai/koryki/duckdb/expected/parts/sql";
 
     private static LinkResolver resolver;
 
@@ -66,7 +64,8 @@ public class PartsDuckDBEngineTest {
     }
 
     private static void check(Path kql) throws IOException {
-        KQLTranspiler transpiler = KQLTranspiler.builder(new FileInputStream(kql.toFile()), resolver).build();
+        KQLTranspiler transpiler =
+                KQLTranspiler.builder(new FileInputStream(kql.toFile()), resolver).build();
         String sql = transpiler.getSql(new SqlQueryRenderer(java.time.ZoneId.of("UTC")));
 
         Path expected = TestUtil.expected(kql, Path.of(QUERIES), Path.of(EXPECTED_SQL), ".sql");

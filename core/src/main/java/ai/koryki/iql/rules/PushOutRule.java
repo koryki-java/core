@@ -22,19 +22,13 @@ import ai.koryki.iql.query.Out;
 import ai.koryki.iql.query.Query;
 import ai.koryki.iql.query.Select;
 import ai.koryki.iql.query.Source;
-
 import java.util.Deque;
 import java.util.List;
 
-/**
- * Push out expressions from select.out, to table.out.
- */
+/** Push out expressions from select.out, to table.out. */
 public class PushOutRule {
 
-
-    public PushOutRule() {
-
-    }
+    public PushOutRule() {}
 
     public void apply(Query query) {
 
@@ -44,24 +38,23 @@ public class PushOutRule {
 
     private static class PushExpressionVisitor implements Visitor {
 
-        public PushExpressionVisitor() {
-
-        }
+        public PushExpressionVisitor() {}
 
         @Override
         public boolean visit(Deque<Object> deque, Select select) {
 
             List<Out> out = select.getOut();
 
-            out.removeIf(o -> {
-                String a = PushLogicalExpressionRule.homogenAlias(o.getExpression());
-                if (a != null) {
-                    Source table = Visitor.findSourceInSelect(select, a);
-                    table.getOut().add(o);
-                    return true;
-                }
-                return false;
-            });
+            out.removeIf(
+                    o -> {
+                        String a = PushLogicalExpressionRule.homogenAlias(o.getExpression());
+                        if (a != null) {
+                            Source table = Visitor.findSourceInSelect(select, a);
+                            table.getOut().add(o);
+                            return true;
+                        }
+                        return false;
+                    });
             return true;
         }
     }

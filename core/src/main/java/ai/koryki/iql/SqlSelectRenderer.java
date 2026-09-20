@@ -19,19 +19,18 @@ package ai.koryki.iql;
 import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.antlr.Range;
 import ai.koryki.antlr.RangeException;
+import ai.koryki.catalog.schema.Relation;
+import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.WallClockEncoding;
+import ai.koryki.iql.functions.FunctionRenderer;
 import ai.koryki.iql.logic.NodeType;
 import ai.koryki.iql.logic.Normalizer;
 import ai.koryki.iql.query.*;
-import ai.koryki.iql.functions.FunctionRenderer;
 import ai.koryki.iql.typing.ExpressionTypeResolver;
-import ai.koryki.catalog.schema.Relation;
-import ai.koryki.catalog.types.TypeDescriptor;
-import org.antlr.v4.runtime.RuleContext;
-
 import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.antlr.v4.runtime.RuleContext;
 
 public class SqlSelectRenderer {
 
@@ -53,12 +52,13 @@ public class SqlSelectRenderer {
     private final Map<Object, RuleContext> iqlToContext;
     private final ZoneId modelZone;
 
-
-    public SqlSelectRenderer(Identifier identifier, Map<Object, RuleContext> iqlToContext,
-                             LinkResolver resolver,
-                             IQLVisibilityContext visibilityContext,
-                             SqlDialect dialect,
-                             ZoneId modelZone) {
+    public SqlSelectRenderer(
+            Identifier identifier,
+            Map<Object, RuleContext> iqlToContext,
+            LinkResolver resolver,
+            IQLVisibilityContext visibilityContext,
+            SqlDialect dialect,
+            ZoneId modelZone) {
         this.identifier = identifier;
         this.iqlToContext = iqlToContext;
         this.resolver = resolver;
@@ -68,7 +68,9 @@ public class SqlSelectRenderer {
         this.modelZone = modelZone;
     }
 
-    /** The model zone (docs/TEMPORAL.md), used by zone-aware literal reconciliation in the dialect. */
+    /**
+     * The model zone (docs/TEMPORAL.md), used by zone-aware literal reconciliation in the dialect.
+     */
     public ZoneId getModelZone() {
         return modelZone;
     }
@@ -134,7 +136,10 @@ public class SqlSelectRenderer {
 
     private String selectClause(List<Out> out, int indent) {
         StringBuilder b = new StringBuilder();
-        String s = out.stream().map(o -> toSql(o, indent + 1)).collect(Collectors.joining(SqlRenderer.NL + indent(indent) + ", "));
+        String s =
+                out.stream()
+                        .map(o -> toSql(o, indent + 1))
+                        .collect(Collectors.joining(SqlRenderer.NL + indent(indent) + ", "));
         b.append(s);
         b.append(SqlRenderer.NL);
         return b.toString();
@@ -166,7 +171,6 @@ public class SqlSelectRenderer {
         return toSql(expression, indent);
     }
 
-
     private String filterClause(Select select, int indent) {
         String w = filterClause(select.getStart(), select.getJoin(), select.getFilter(), indent);
 
@@ -178,7 +182,8 @@ public class SqlSelectRenderer {
         }
     }
 
-    private String filterClause(Source start, List<Join> join, LogicalExpression filter, int indent) {
+    private String filterClause(
+            Source start, List<Join> join, LogicalExpression filter, int indent) {
         StringBuilder b = new StringBuilder();
 
         b.append(toSql(start, combinedFilter(start, join, filter), indent, true));
@@ -190,7 +195,8 @@ public class SqlSelectRenderer {
         return b.toString();
     }
 
-    private LogicalExpression combinedFilter(Source start, List<Join> join, LogicalExpression filter) {
+    private LogicalExpression combinedFilter(
+            Source start, List<Join> join, LogicalExpression filter) {
         List<LogicalExpression> filters = new ArrayList<>();
         if (start.getFilter() != null) {
             filters.add(start.getFilter());
@@ -205,7 +211,8 @@ public class SqlSelectRenderer {
     }
 
     protected List<LogicalExpression> collectInnerFilter(List<Join> join) {
-        // inner joins only: an optional join's filter renders in its LEFT JOIN ... ON, not the WHERE
+        // inner joins only: an optional join's filter renders in its LEFT JOIN ... ON, not the
+        // WHERE
         return collectClause(join, Source::getFilter, true);
     }
 
@@ -215,13 +222,14 @@ public class SqlSelectRenderer {
     }
 
     /**
-     * Walks the join tree collecting one clause slot (filter or having) from each source.
-     * The slot is addressed by accessor so filter- and having-collection share this walk;
-     * {@code innerOnly} skips optional joins and their subtree (the filter semantics).
+     * Walks the join tree collecting one clause slot (filter or having) from each source. The slot
+     * is addressed by accessor so filter- and having-collection share this walk; {@code innerOnly}
+     * skips optional joins and their subtree (the filter semantics).
      */
-    private static List<LogicalExpression> collectClause(List<Join> join,
-                                                         java.util.function.Function<Source, LogicalExpression> slot,
-                                                         boolean innerOnly) {
+    private static List<LogicalExpression> collectClause(
+            List<Join> join,
+            java.util.function.Function<Source, LogicalExpression> slot,
+            boolean innerOnly) {
         List<LogicalExpression> l = new ArrayList<>();
         for (Join j : join) {
             if (innerOnly && j.isOptional()) {
@@ -261,8 +269,11 @@ public class SqlSelectRenderer {
         return l;
     }
 
-    /** @see SqlQueryRenderer#sortByFetchPosition — one method for all four collection paths. */
-    private static <T> void sortByFetchPosition(List<T> list, java.util.function.ToIntFunction<T> idx) {
+    /**
+     * @see SqlQueryRenderer#sortByFetchPosition — one method for all four collection paths.
+     */
+    private static <T> void sortByFetchPosition(
+            List<T> list, java.util.function.ToIntFunction<T> idx) {
         SqlQueryRenderer.sortByFetchPosition(list, idx);
     }
 
@@ -293,7 +304,10 @@ public class SqlSelectRenderer {
 
     private String groupbyClause(boolean rollup, List<Group> list, int indent) {
 
-        String group = list.stream().map(o -> toSql(o, indent + 1)).collect(Collectors.joining(SqlRenderer.NL + indent(indent) + ", "));
+        String group =
+                list.stream()
+                        .map(o -> toSql(o, indent + 1))
+                        .collect(Collectors.joining(SqlRenderer.NL + indent(indent) + ", "));
 
         if (group.length() > 0) {
             StringBuilder b = new StringBuilder();
@@ -323,7 +337,8 @@ public class SqlSelectRenderer {
         return havingClause(select.getStart(), select.getJoin(), select.getHaving(), indent);
     }
 
-    private String havingClause(Source start, List<Join> join, LogicalExpression having, int indent) {
+    private String havingClause(
+            Source start, List<Join> join, LogicalExpression having, int indent) {
         StringBuilder b = new StringBuilder();
 
         List<LogicalExpression> havings = new ArrayList<>();
@@ -368,7 +383,10 @@ public class SqlSelectRenderer {
 
     private String orderbyClause(List<Order> list, List<Join> join, int indent) {
 
-        String order = list.stream().map(o -> toSql(o, indent + 1)).collect(Collectors.joining(SqlRenderer.NL + indent(indent) + ", "));
+        String order =
+                list.stream()
+                        .map(o -> toSql(o, indent + 1))
+                        .collect(Collectors.joining(SqlRenderer.NL + indent(indent) + ", "));
 
         if (order.length() > 0) {
             StringBuilder b = new StringBuilder();
@@ -401,7 +419,8 @@ public class SqlSelectRenderer {
 
         for (Join j : join) {
             b.append(toSql(left, j, indent + 1, underOptional));
-            b.append(toSql(j.getSource(), j.getJoin(), indent + 2, underOptional || j.isOptional()));
+            b.append(
+                    toSql(j.getSource(), j.getJoin(), indent + 2, underOptional || j.isOptional()));
         }
         return b.toString();
     }
@@ -461,26 +480,37 @@ public class SqlSelectRenderer {
             if (folded != null) {
                 return prefix + folded;
             }
-            return prefix + "NOT (" + toSql(parent, expression.getChildren().get(0), indent + 1, false) + ")";
+            return prefix
+                    + "NOT ("
+                    + toSql(parent, expression.getChildren().get(0), indent + 1, false)
+                    + ")";
         } else if (expression.isValue()) {
             return prefix + toSql(parent, expression.getUnaryRelationalExpression(), indent + 1);
         } else {
             StringBuilder b = new StringBuilder();
 
-            String delim = SqlRenderer.NL + indent(indent + 1) + expression.getType().name() + SqlRenderer.NL;
-            b.append(expression.getChildren().stream().map(e -> toSqlChild(parent, expression, e, indent)).collect(Collectors.joining(delim)));
+            String delim =
+                    SqlRenderer.NL
+                            + indent(indent + 1)
+                            + expression.getType().name()
+                            + SqlRenderer.NL;
+            b.append(
+                    expression.getChildren().stream()
+                            .map(e -> toSqlChild(parent, expression, e, indent))
+                            .collect(Collectors.joining(delim)));
             return b.toString();
         }
     }
 
     /**
-     * A negation folded into the negated thing itself — {@code x IS NOT NULL}, {@code x NOT IN (…)},
-     * {@code NOT EXISTS (…)} — rather than wrapped as {@code NOT (…)}. Null when there is no such
-     * form and the structural negation stands.
+     * A negation folded into the negated thing itself — {@code x IS NOT NULL}, {@code x NOT IN
+     * (…)}, {@code NOT EXISTS (…)} — rather than wrapped as {@code NOT (…)}. Null when there is no
+     * such form and the structural negation stands.
      *
      * <p>Equivalent either way in three-valued logic ({@code NOT (x IN s)} and {@code x NOT IN s}
      * agree on NULL too), so this is about the SQL reading the way a person would write it, and
-     * about optimisers that detect anti-joins from {@code NOT EXISTS} / {@code NOT IN} specifically.
+     * about optimisers that detect anti-joins from {@code NOT EXISTS} / {@code NOT IN}
+     * specifically.
      *
      * <p>Only a normalized {@code NOT} over a single predicate reaches here: De Morgan has already
      * pushed negation down to the leaves, so there is no {@code NOT (a AND b)} left to fold.
@@ -500,17 +530,34 @@ public class SqlSelectRenderer {
         if (u.getLeft() == null || u.getOp() == null) {
             return null;
         }
-        return dialect.renderComparison(this, u.getLeft(), resolveType(u.getLeft()),
-                u.getOp(), u.getRight(), indent + 2, true);
+        return dialect.renderComparison(
+                this,
+                u.getLeft(),
+                resolveType(u.getLeft()),
+                u.getOp(),
+                u.getRight(),
+                indent + 2,
+                true);
     }
 
-    private String toSqlChild(Source parent, LogicalExpression node, LogicalExpression child, int indent) {
+    private String toSqlChild(
+            Source parent, LogicalExpression node, LogicalExpression child, int indent) {
         String s = toSql(parent, child, indent + 1, true);
-        // OR binds looser than AND in SQL: a bare OR child between AND siblings must keep its grouping.
-        // effectiveType, not getType: a single-child AND/OR wrapper renders as its content, so an OR
+        // OR binds looser than AND in SQL: a bare OR child between AND siblings must keep its
+        // grouping.
+        // effectiveType, not getType: a single-child AND/OR wrapper renders as its content, so an
+        // OR
         // hiding under one still needs the parens.
-        if (node.getType() == NodeType.AND && child.effectiveType() == NodeType.OR && node.getChildren().size() > 1) {
-            return indent(indent + 1) + "(" + SqlRenderer.NL + s + SqlRenderer.NL + indent(indent + 1) + ")";
+        if (node.getType() == NodeType.AND
+                && child.effectiveType() == NodeType.OR
+                && node.getChildren().size() > 1) {
+            return indent(indent + 1)
+                    + "("
+                    + SqlRenderer.NL
+                    + s
+                    + SqlRenderer.NL
+                    + indent(indent + 1)
+                    + ")";
         }
         return s;
     }
@@ -519,13 +566,20 @@ public class SqlSelectRenderer {
         if (unaryLogicalExpression.getExists() != null) {
             return SqlRenderer.NL + toSql(parent, unaryLogicalExpression.getExists(), indent);
         } else if (unaryLogicalExpression.getNode() != null) {
-            return "(" + SqlRenderer.NL + toSql(parent, unaryLogicalExpression.getNode(), indent, false) + SqlRenderer.NL + indent(indent) + ")";
+            return "("
+                    + SqlRenderer.NL
+                    + toSql(parent, unaryLogicalExpression.getNode(), indent, false)
+                    + SqlRenderer.NL
+                    + indent(indent)
+                    + ")";
         } else {
             Expression left = unaryLogicalExpression.getLeft();
             List<Expression> right = unaryLogicalExpression.getRight();
             String op = unaryLogicalExpression.getOp();
-            boolean bare = right.isEmpty() && (op == null || op.isBlank())
-                    && unaryLogicalExpression.getPlaceholder() == null;
+            boolean bare =
+                    right.isEmpty()
+                            && (op == null || op.isBlank())
+                            && unaryLogicalExpression.getPlaceholder() == null;
             if (bare && left.getFunction() != null) {
                 // A boolean function used as a predicate. Dialects that cannot use the value form
                 // in a WHERE (SQL Server's BIT) supply the comparison here instead.
@@ -567,7 +621,13 @@ public class SqlSelectRenderer {
     }
 
     protected SqlSelectRenderer subSelect(Map<Object, RuleContext> iqlToContext, Object child) {
-        return new SqlSelectRenderer(identifier, iqlToContext, resolver, visibilityContext.child(child), dialect, modelZone);
+        return new SqlSelectRenderer(
+                identifier,
+                iqlToContext,
+                resolver,
+                visibilityContext.child(child),
+                dialect,
+                modelZone);
     }
 
     private String existsSubselect(Source left, Exists exists, int indent) {
@@ -592,7 +652,8 @@ public class SqlSelectRenderer {
         if (!w.isEmpty()) {
             b.append(indent(indent)).append("AND");
             b.append(SqlRenderer.NL);
-            LogicalExpression combined = combinedFilter(exists.getStart(), exists.getJoin(), exists.getFilter());
+            LogicalExpression combined =
+                    combinedFilter(exists.getStart(), exists.getJoin(), exists.getFilter());
             if (combined.effectiveType() == NodeType.OR) {
                 // textually ANDed with the join correlation above: an OR-headed
                 // filter must keep its grouping against SQL operator precedence
@@ -649,14 +710,45 @@ public class SqlSelectRenderer {
         String endName = inverse ? leftName : rightName;
         String endAlias = inverse ? leftAlias : rightAlias;
 
-        return joinColumns(Range.of(iqlToContext, join), indent, startName, startAlias, endName, endAlias, crit, msg, rightSource, explicit);
+        return joinColumns(
+                Range.of(iqlToContext, join),
+                indent,
+                startName,
+                startAlias,
+                endName,
+                endAlias,
+                crit,
+                msg,
+                rightSource,
+                explicit);
     }
 
-    private String joinColumns(int indent, Source start, Source end, String crit, String msg, Source right) {
-        return joinColumns(Range.of(iqlToContext, start), indent, start.getName(), start.getAlias(), end.getName(), end.getAlias(), crit, msg, right, null);
+    private String joinColumns(
+            int indent, Source start, Source end, String crit, String msg, Source right) {
+        return joinColumns(
+                Range.of(iqlToContext, start),
+                indent,
+                start.getName(),
+                start.getAlias(),
+                end.getName(),
+                end.getAlias(),
+                crit,
+                msg,
+                right,
+                null);
     }
 
-    private String joinColumns(Range range, int indent, String startName, String startAlias, String endName, String endAlias, String crit, String msg, Source right, JoinColumns explicit) {
+    private String joinColumns(
+            Range range,
+            int indent,
+            String startName,
+            String startAlias,
+            String endName,
+            String endAlias,
+            String crit,
+            String msg,
+            Source right,
+            JoinColumns explicit) {
 
         String firstQualifier = startAlias != null ? startAlias : startName;
         String secondQualifier = endAlias != null ? endAlias : endName;
@@ -671,25 +763,33 @@ public class SqlSelectRenderer {
 
         // Explicit columns ARE the criterion -- resolving one would answer a question the author
         // has already answered, and possibly answer it differently.
-        Relation r = explicit != null
-                ? resolver.relationFor(range, startName, endName, explicit)
-                : getRelation(range , startName, endName, crit, msg, right.getName());
+        Relation r =
+                explicit != null
+                        ? resolver.relationFor(range, startName, endName, explicit)
+                        : getRelation(range, startName, endName, crit, msg, right.getName());
 
         for (int i = 0; i < r.getStartColumns().size(); i++) {
 
-            Expression leftExpr  = joinColumnExpression(startBlock, getRelationStartColumn(r, i), firstQualifier);
-            Expression rightExpr = joinColumnExpression(endBlock,   getRelationEndColumn(r, i),   secondQualifier);
+            Expression leftExpr =
+                    joinColumnExpression(startBlock, getRelationStartColumn(r, i), firstQualifier);
+            Expression rightExpr =
+                    joinColumnExpression(endBlock, getRelationEndColumn(r, i), secondQualifier);
             TypeDescriptor leftType = resolveType(leftExpr);
-            lines.add(dialect.renderComparison(this, leftExpr, leftType, "=", List.of(rightExpr), indent));
+            lines.add(
+                    dialect.renderComparison(
+                            this, leftExpr, leftType, "=", List.of(rightExpr), indent));
         }
         b.append(
-                lines.stream().collect(Collectors.joining(
-                        SqlRenderer.NL + Identifier.indent( indent -1)  + "AND" +
-                        SqlRenderer.NL + Identifier.indent(indent)
-                        )));
+                lines.stream()
+                        .collect(
+                                Collectors.joining(
+                                        SqlRenderer.NL
+                                                + Identifier.indent(indent - 1)
+                                                + "AND"
+                                                + SqlRenderer.NL
+                                                + Identifier.indent(indent))));
         return b.toString();
     }
-
 
     private String getRelationEndColumn(Relation r, int i) {
         // Do not translate, Relation already has target language
@@ -703,7 +803,8 @@ public class SqlSelectRenderer {
         return r.getStartColumns().get(i);
     }
 
-    private Expression joinColumnExpression(Source blockSource, String translatedJoinCol, String qualifier) {
+    private Expression joinColumnExpression(
+            Source blockSource, String translatedJoinCol, String qualifier) {
         String fieldName;
         if (blockSource != null) {
             for (Out o : blockSource.getOut()) {
@@ -718,7 +819,8 @@ public class SqlSelectRenderer {
                     return e;
                 }
             }
-            throw new KorykiaiException("missing joinColumn: " + translatedJoinCol + " " + blockSource.getAlias());
+            throw new KorykiaiException(
+                    "missing joinColumn: " + translatedJoinCol + " " + blockSource.getAlias());
         } else {
             Field f = new Field();
             f.setAlias(qualifier);
@@ -736,7 +838,13 @@ public class SqlSelectRenderer {
         String sourcename = b != null ? b.getName() : source.getName();
         String f = toSql(sourcename, field);
         if (f == null) {
-            throw new KorykiaiException("unknow field " + source.getAlias() + " " + source.getName() + "." + field.getName());
+            throw new KorykiaiException(
+                    "unknow field "
+                            + source.getAlias()
+                            + " "
+                            + source.getName()
+                            + "."
+                            + field.getName());
         }
         return f;
     }
@@ -840,7 +948,9 @@ public class SqlSelectRenderer {
         }
     }
 
-    /** Inline (single-line) rendering of a boolean logical expression used as a function argument. */
+    /**
+     * Inline (single-line) rendering of a boolean logical expression used as a function argument.
+     */
     private String toSqlInline(LogicalExpression logical, int indent) {
         if (logical.isNot()) {
             return "NOT (" + toSqlInline(logical.getChildren().get(0), indent) + ")";
@@ -849,9 +959,11 @@ public class SqlSelectRenderer {
             return toSql((Source) null, logical.getUnaryRelationalExpression(), indent);
         }
         String op = " " + logical.getType().name() + " ";
-        return "(" + logical.getChildren().stream()
-                .map(c -> toSqlInline(c, indent))
-                .collect(Collectors.joining(op)) + ")";
+        return "("
+                + logical.getChildren().stream()
+                        .map(c -> toSqlInline(c, indent))
+                        .collect(Collectors.joining(op))
+                + ")";
     }
 
     protected String timeExpression(Expression expression) {
@@ -874,7 +986,8 @@ public class SqlSelectRenderer {
 
         Source source = visibilityContext.getSource(field.getAlias());
         if (source == null) {
-            throw new KorykiaiException("unknown source alias '" + field.getAlias() + "' for field " + field.getName());
+            throw new KorykiaiException(
+                    "unknown source alias '" + field.getAlias() + "' for field " + field.getName());
         }
 
         b.append(normal(toSql(source, field)));
@@ -887,16 +1000,18 @@ public class SqlSelectRenderer {
 
     public TypeDescriptor resolveType(Expression expression) {
         if (typeResolver == null) {
-            typeResolver = new ExpressionTypeResolver(resolver, visibilityContext, functionRenderer);
+            typeResolver =
+                    new ExpressionTypeResolver(resolver, visibilityContext, functionRenderer);
         }
         return typeResolver.resolve(expression);
     }
 
     /**
      * If {@code fieldExpr} is a wall-clock(zone) column, wrap its rendered SQL in the dialect's
-     * declared-zone → model-zone conversion (docs/TEMPORAL.md). Applied wherever a column is rendered,
-     * so a bare column, an arithmetic operand and a comparison operand all carry the model-zone value
-     * (the conversion is SQL-side and precedes any arithmetic). Best-effort: an un-typable field is bare.
+     * declared-zone → model-zone conversion (docs/TEMPORAL.md). Applied wherever a column is
+     * rendered, so a bare column, an arithmetic operand and a comparison operand all carry the
+     * model-zone value (the conversion is SQL-side and precedes any arithmetic). Best-effort: an
+     * un-typable field is bare.
      */
     private String wallClockWrapped(String columnSql, Expression fieldExpr) {
         TypeDescriptor t;
@@ -924,7 +1039,9 @@ public class SqlSelectRenderer {
         return sql;
     }
 
-    /** An identifier, rendered as the dialect needs it -- see {@link SqlDialect#renderIdentifier}. */
+    /**
+     * An identifier, rendered as the dialect needs it -- see {@link SqlDialect#renderIdentifier}.
+     */
     private String normal(String text) {
         return dialect.renderIdentifier(identifier, text);
     }
@@ -945,13 +1062,17 @@ public class SqlSelectRenderer {
         throw new KorykiaiException("can't find source: " + source);
     }
 
-
-    protected Relation getRelation(Range range, String startName, String endName, String crit, String msg, String right) {
+    protected Relation getRelation(
+            Range range, String startName, String endName, String crit, String msg, String right) {
         String startSource = getSource(startName);
         String endSource = getSource(endName);
 
-
-        Optional<Relation> o = resolver.findRelation(range, Identifier.normal(Identifier.lowercase, startSource), Identifier.normal(Identifier.lowercase, endSource), crit);
+        Optional<Relation> o =
+                resolver.findRelation(
+                        range,
+                        Identifier.normal(Identifier.lowercase, startSource),
+                        Identifier.normal(Identifier.lowercase, endSource),
+                        crit);
 
         if (o.isEmpty()) {
             throw new RangeException(range, msg + " " + crit + " " + right);

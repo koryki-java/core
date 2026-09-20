@@ -20,19 +20,17 @@ import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.functions.FunctionCatalog;
 
 /**
- * Fluent assembly of a {@link KQLTranspiler} from the KQL source and its model
- * {@link LinkResolver} (which already carries the catalog locale), plus the
- * optional validation {@link FunctionCatalog}.
+ * Fluent assembly of a {@link KQLTranspiler} from the KQL source and its model {@link LinkResolver}
+ * (which already carries the catalog locale), plus the optional validation {@link FunctionCatalog}.
  *
- * <p>This is the single place to wire transpiler components: a
- * {@link ai.koryki.iql.functions.FunctionRenderer} is itself a
- * {@code FunctionCatalog}, so {@link #functions} also covers the dialect's
- * renderer. New components (e.g. a bound dialect renderer, or building the
- * resolver from a catalog + locale) are added here as further fluent methods,
- * rather than as yet another {@code KQLTranspiler} constructor.
+ * <p>This is the single place to wire transpiler components: a {@link
+ * ai.koryki.iql.functions.FunctionRenderer} is itself a {@code FunctionCatalog}, so {@link
+ * #functions} also covers the dialect's renderer. New components (e.g. a bound dialect renderer, or
+ * building the resolver from a catalog + locale) are added here as further fluent methods, rather
+ * than as yet another {@code KQLTranspiler} constructor.
  *
- * <p>Obtain one via {@link KQLTranspiler#builder(String, LinkResolver)} /
- * {@link KQLTranspiler#builder(java.io.InputStream, LinkResolver)}.
+ * <p>Obtain one via {@link KQLTranspiler#builder(String, LinkResolver)} / {@link
+ * KQLTranspiler#builder(java.io.InputStream, LinkResolver)}.
  */
 public final class KQLTranspilerBuilder {
 
@@ -47,9 +45,9 @@ public final class KQLTranspilerBuilder {
     }
 
     /**
-     * Function catalog for arity / operand-family / unsupported validation; a
-     * {@code FunctionRenderer} is also a {@code FunctionCatalog}. Null (the
-     * default) skips function-level validation.
+     * Function catalog for arity / operand-family / unsupported validation; a {@code
+     * FunctionRenderer} is also a {@code FunctionCatalog}. Null (the default) skips function-level
+     * validation.
      */
     public KQLTranspilerBuilder functions(FunctionCatalog functions) {
         this.functions = functions;

@@ -20,28 +20,32 @@ import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.iql.SqlSelectRenderer;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
-
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Searched CASE: {@code case(cond1, result1, cond2, result2, ..., [else])} — alternating
- * predicate/result pairs with an optional trailing else, rendered as
- * {@code CASE WHEN cond1 THEN result1 WHEN cond2 THEN result2 [ELSE else] END}.
+ * predicate/result pairs with an optional trailing else, rendered as {@code CASE WHEN cond1 THEN
+ * result1 WHEN cond2 THEN result2 [ELSE else] END}.
  *
  * <p>Conditions are at even indices (each paired with the result at {@code i+1}); a trailing odd
- * argument is the else. The result/else branches are the value branches: they reconcile to one output
- * type ({@link ConditionalReconciler}) and each renders wrapped in its reconciliation conversion. The
- * conditions render in predicate position (a {@code WHEN}), so a {@code logical_expression} argument
- * is portable there.
+ * argument is the else. The result/else branches are the value branches: they reconcile to one
+ * output type ({@link ConditionalReconciler}) and each renders wrapped in its reconciliation
+ * conversion. The conditions render in predicate position (a {@code WHEN}), so a {@code
+ * logical_expression} argument is portable there.
  */
 public class CaseFunctionDefinition extends FunctionDefinition implements BranchedConditional {
 
     public CaseFunctionDefinition() {
-        super("case", binding -> ConditionalReconciler.reconcile(valueBranchTypes(binding)).target());
+        super(
+                "case",
+                binding -> ConditionalReconciler.reconcile(valueBranchTypes(binding)).target());
     }
 
-    /** True if argument {@code i} is a WHEN condition (an even index paired with a result at {@code i+1}). */
+    /**
+     * True if argument {@code i} is a WHEN condition (an even index paired with a result at {@code
+     * i+1}).
+     */
     public static boolean isCondition(int i, int argCount) {
         return i % 2 == 0 && i + 1 < argCount;
     }
@@ -50,10 +54,10 @@ public class CaseFunctionDefinition extends FunctionDefinition implements Branch
     public static List<Integer> valueBranchIndices(int argCount) {
         List<Integer> indices = new ArrayList<>();
         for (int i = 1; i < argCount; i += 2) {
-            indices.add(i);                        // result of each WHEN
+            indices.add(i); // result of each WHEN
         }
         if (argCount % 2 == 1) {
-            indices.add(argCount - 1);             // trailing ELSE
+            indices.add(argCount - 1); // trailing ELSE
         }
         return indices;
     }
@@ -85,11 +89,24 @@ public class CaseFunctionDefinition extends FunctionDefinition implements Branch
         StringBuilder b = new StringBuilder("CASE");
         int branch = 0;
         for (int i = 0; i + 1 < n; i += 2) {
-            b.append(" WHEN ").append(renderer.toSql(args.get(i), indent))
-                    .append(" THEN ").append(ConditionalReconciler.convert(renderer, result, branch++, renderer.toSql(args.get(i + 1), indent)));
+            b.append(" WHEN ")
+                    .append(renderer.toSql(args.get(i), indent))
+                    .append(" THEN ")
+                    .append(
+                            ConditionalReconciler.convert(
+                                    renderer,
+                                    result,
+                                    branch++,
+                                    renderer.toSql(args.get(i + 1), indent)));
         }
         if (n % 2 == 1) {
-            b.append(" ELSE ").append(ConditionalReconciler.convert(renderer, result, branch++, renderer.toSql(args.get(n - 1), indent)));
+            b.append(" ELSE ")
+                    .append(
+                            ConditionalReconciler.convert(
+                                    renderer,
+                                    result,
+                                    branch++,
+                                    renderer.toSql(args.get(n - 1), indent)));
         }
         b.append(" END");
         return b.toString();

@@ -16,13 +16,12 @@
  */
 package ai.koryki.antlr;
 
+import java.util.Comparator;
+import java.util.Objects;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
-
-import java.util.Comparator;
-import java.util.Objects;
 
 public class Range implements Comparable<Range> {
 
@@ -57,20 +56,27 @@ public class Range implements Comparable<Range> {
         Position otherStart = other.getStart();
         Position otherStop = other.getStop();
 
-        if (start.getLine() == stop.getLine() && start.getLine() == otherStart.getLine() && otherStart.getLine() == otherStop.getLine()) {
+        if (start.getLine() == stop.getLine()
+                && start.getLine() == otherStart.getLine()
+                && otherStart.getLine() == otherStop.getLine()) {
             // all in one line
             boolean rightOuter = start.getPos() > otherStop.getPos();
             boolean leftOuter = stop.getPos() < otherStart.getPos();
             return !(rightOuter || leftOuter);
         } else if (start.getLine() == otherStart.getLine()) {
             // both start at same line
-            boolean leftOuter = start.getLine() == stop.getLine() && stop.getPos() < otherStart.getPos();
-            boolean rightOuter = otherStart.getLine() == otherStop.getLine() && otherStart.getPos() > stop.getPos();
+            boolean leftOuter =
+                    start.getLine() == stop.getLine() && stop.getPos() < otherStart.getPos();
+            boolean rightOuter =
+                    otherStart.getLine() == otherStop.getLine()
+                            && otherStart.getPos() > stop.getPos();
             return !(rightOuter || leftOuter);
         } else if (stop.getLine() == otherStop.getLine()) {
             // both stop at same line
-            boolean leftOuter = otherStart.getLine() == stop.getLine() && otherStart.getPos() > stop.getPos();
-            boolean rightOuter = start.getLine() == stop.getLine() && otherStop.getPos() < start.getPos();
+            boolean leftOuter =
+                    otherStart.getLine() == stop.getLine() && otherStart.getPos() > stop.getPos();
+            boolean rightOuter =
+                    start.getLine() == stop.getLine() && otherStop.getPos() < start.getPos();
             return !(rightOuter || leftOuter);
         } else {
             // lines are different
@@ -90,7 +96,7 @@ public class Range implements Comparable<Range> {
 
         if (other instanceof Range) {
             Range r = (Range) other;
-            return start.equals(r.start)  && stop.equals(r.stop);
+            return start.equals(r.start) && stop.equals(r.stop);
         }
         return false;
     }
@@ -101,7 +107,8 @@ public class Range implements Comparable<Range> {
         return start + "-" + stop;
     }
 
-    private static final Comparator<Range> comparator = Comparator.comparing(Range::getStart).thenComparing(Range::getStop);
+    private static final Comparator<Range> comparator =
+            Comparator.comparing(Range::getStart).thenComparing(Range::getStop);
 
     @Override
     public int compareTo(Range range) {
@@ -113,15 +120,17 @@ public class Range implements Comparable<Range> {
      *
      * <p>Prefer this over {@code range(map.get(node))}: a node the map does not know then reports
      * <em>which</em> node it was, instead of a bare "cant calc range NULL" that names nothing and
-     * surfaces far from the cause. A miss has one meaning — a rule created the node and did not pass
-     * it to {@code Rules.inherit}, so it never got an origin.
+     * surfaces far from the cause. A miss has one meaning — a rule created the node and did not
+     * pass it to {@code Rules.inherit}, so it never got an origin.
      */
-    public static Range of(java.util.Map<Object, org.antlr.v4.runtime.RuleContext> iqlToContext, Object node) {
+    public static Range of(
+            java.util.Map<Object, org.antlr.v4.runtime.RuleContext> iqlToContext, Object node) {
         org.antlr.v4.runtime.RuleContext ctx = iqlToContext == null ? null : iqlToContext.get(node);
         if (ctx == null) {
-            throw new KorykiaiException("no source position for "
-                    + (node == null ? "null" : node.getClass().getSimpleName())
-                    + " — a rule that creates nodes must pass them to Rules.inherit(...)");
+            throw new KorykiaiException(
+                    "no source position for "
+                            + (node == null ? "null" : node.getClass().getSimpleName())
+                            + " — a rule that creates nodes must pass them to Rules.inherit(...)");
         }
         return range(ctx);
     }
@@ -129,12 +138,13 @@ public class Range implements Comparable<Range> {
     public static Range range(ParseTree pCtx) {
 
         if (pCtx instanceof ParserRuleContext) {
-            return range((ParserRuleContext)pCtx);
+            return range((ParserRuleContext) pCtx);
         } else if (pCtx instanceof TerminalNode) {
-            return range((TerminalNode)pCtx);
+            return range((TerminalNode) pCtx);
         } else if (pCtx == null) {
-            throw new KorykiaiException("cannot compute a range: the node has no parse context. "
-                    + "Use Range.of(iqlToContext, node) so the message names it.");
+            throw new KorykiaiException(
+                    "cannot compute a range: the node has no parse context. "
+                            + "Use Range.of(iqlToContext, node) so the message names it.");
         } else {
             throw new KorykiaiException("cant calc range " + pCtx.getClass());
         }
@@ -155,5 +165,4 @@ public class Range implements Comparable<Range> {
         Position position = Position.start(token);
         return new Range(position, position);
     }
-
 }

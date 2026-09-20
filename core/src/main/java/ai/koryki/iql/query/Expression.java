@@ -35,7 +35,10 @@ public class Expression {
 
     private Duration duration;
 
-    /** A boolean-valued logical expression used as a function argument (e.g. the condition of {@code if}). */
+    /**
+     * A boolean-valued logical expression used as a function argument (e.g. the condition of {@code
+     * if}).
+     */
     private LogicalExpression logical;
 
     private boolean parenthesized;

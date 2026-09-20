@@ -18,7 +18,6 @@ package ai.koryki.snowflake.northwind;
 
 import ai.koryki.jdbc.ResultProcessor;
 import ai.koryki.snowflake.SnowflakeDatabase;
-
 import java.sql.Connection;
 import java.time.ZoneId;
 
@@ -37,7 +36,6 @@ public class NorthwindSnowflake<C extends ResultProcessor<?>> extends SnowflakeD
 
         return connection(
                 System.getProperty("snowflake.northwind.user"),
-                System.getProperty("snowflake.northwind.url") );
+                System.getProperty("snowflake.northwind.url"));
     }
-
 }

@@ -20,7 +20,6 @@ import ai.koryki.iql.Visitor;
 import ai.koryki.iql.Walker;
 import ai.koryki.iql.logic.NodeType;
 import ai.koryki.iql.query.*;
-
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
@@ -30,15 +29,12 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
- * Push logical expressions from select.filter, to table.filter.
- * We must do this to execute outer joins correctly, otherwise
- * they will behave like inner joins.
+ * Push logical expressions from select.filter, to table.filter. We must do this to execute outer
+ * joins correctly, otherwise they will behave like inner joins.
  */
 public class PushLogicalExpressionRule {
 
-    public PushLogicalExpressionRule() {
-
-    }
+    public PushLogicalExpressionRule() {}
 
     public void apply(Query query) {
 
@@ -48,8 +44,7 @@ public class PushLogicalExpressionRule {
 
     private static class PushExpressionVisitor implements Visitor {
 
-        public PushExpressionVisitor() {
-        }
+        public PushExpressionVisitor() {}
 
         @Override
         public boolean visit(Deque<Object> deque, Select select) {
@@ -95,8 +90,12 @@ public class PushLogicalExpressionRule {
             return true;
         }
 
-
-        private void pushExpressions(Select select, LogicalExpression exp, BiConsumer<Source, LogicalExpression> tableExpressionConsumer, java.util.function.Function<Source, LogicalExpression> tableExpressionFunctoin, Consumer<LogicalExpression> allExpressionConsumer) {
+        private void pushExpressions(
+                Select select,
+                LogicalExpression exp,
+                BiConsumer<Source, LogicalExpression> tableExpressionConsumer,
+                java.util.function.Function<Source, LogicalExpression> tableExpressionFunctoin,
+                Consumer<LogicalExpression> allExpressionConsumer) {
             if (exp.getType().isValue()) {
                 String a = homogenAlias(exp);
                 if (a != null) {
@@ -105,7 +104,9 @@ public class PushLogicalExpressionRule {
                     Source table = Visitor.findSourceInSelect(select, a);
                     // alias not in this scope (e.g. outer alias): keep the expression where it is
                     if (table != null) {
-                        tableExpressionConsumer.accept(table, LogicalExpression.and(exp, tableExpressionFunctoin.apply(table)));
+                        tableExpressionConsumer.accept(
+                                table,
+                                LogicalExpression.and(exp, tableExpressionFunctoin.apply(table)));
                         resetAll(allExpressionConsumer);
                     }
                 }
@@ -121,11 +122,14 @@ public class PushLogicalExpressionRule {
                     if (a != null) {
                         // push children
                         Source table = Visitor.findSourceInSelect(select, a);
-                        // alias not in this scope (e.g. outer alias): conjunct stays in the residual filter
+                        // alias not in this scope (e.g. outer alias): conjunct stays in the
+                        // residual filter
                         if (table == null) {
                             continue;
                         }
-                        tableExpressionConsumer.accept(table, LogicalExpression.and(c, tableExpressionFunctoin.apply(table)));
+                        tableExpressionConsumer.accept(
+                                table,
+                                LogicalExpression.and(c, tableExpressionFunctoin.apply(table)));
                         // remove from exp
                         exp.getChildren().remove(c);
                     }
@@ -136,16 +140,24 @@ public class PushLogicalExpressionRule {
             }
         }
 
-        private void pushExpressions(Exists select, LogicalExpression exp, BiConsumer<Source, LogicalExpression> tableExpressionConsumer, java.util.function.Function<Source, LogicalExpression> tableExpressionFunctoin, Consumer<LogicalExpression> allExpressionConsumer) {
+        private void pushExpressions(
+                Exists select,
+                LogicalExpression exp,
+                BiConsumer<Source, LogicalExpression> tableExpressionConsumer,
+                java.util.function.Function<Source, LogicalExpression> tableExpressionFunctoin,
+                Consumer<LogicalExpression> allExpressionConsumer) {
             if (exp.getType().isValue()) {
                 String a = homogenAlias(exp);
                 if (a != null) {
                     // push exp at all
 
                     Source table = Visitor.findSourceInExists(select, a);
-                    // alias belongs to the enclosing select (correlated filter): keep it in the exists filter
+                    // alias belongs to the enclosing select (correlated filter): keep it in the
+                    // exists filter
                     if (table != null) {
-                        tableExpressionConsumer.accept(table, LogicalExpression.and(exp, tableExpressionFunctoin.apply(table)));
+                        tableExpressionConsumer.accept(
+                                table,
+                                LogicalExpression.and(exp, tableExpressionFunctoin.apply(table)));
                         resetAll(allExpressionConsumer);
                     }
                 }
@@ -161,11 +173,14 @@ public class PushLogicalExpressionRule {
                     if (a != null) {
                         // push children
                         Source table = Visitor.findSourceInExists(select, a);
-                        // alias belongs to the enclosing select (correlated conjunct): stays in the residual filter
+                        // alias belongs to the enclosing select (correlated conjunct): stays in the
+                        // residual filter
                         if (table == null) {
                             continue;
                         }
-                        tableExpressionConsumer.accept(table, LogicalExpression.and(c, tableExpressionFunctoin.apply(table)));
+                        tableExpressionConsumer.accept(
+                                table,
+                                LogicalExpression.and(c, tableExpressionFunctoin.apply(table)));
                         // remove from exp
                         exp.getChildren().remove(c);
                     }
@@ -225,11 +240,12 @@ public class PushLogicalExpressionRule {
             return expression.getField().getAlias();
         } else if (expression.getFunction() != null) {
 
-            List<String> aliases = expression.getFunction().getArguments().stream()
-                    .map(PushLogicalExpressionRule::homogenAlias)
-                    .distinct()
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
+            List<String> aliases =
+                    expression.getFunction().getArguments().stream()
+                            .map(PushLogicalExpressionRule::homogenAlias)
+                            .distinct()
+                            .filter(Objects::nonNull)
+                            .collect(Collectors.toList());
             return aliases.size() == 1 ? aliases.get(0) : null;
         }
         return null;

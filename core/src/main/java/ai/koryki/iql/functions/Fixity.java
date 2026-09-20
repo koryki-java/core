@@ -17,12 +17,12 @@
 package ai.koryki.iql.functions;
 
 /**
- * Surface-syntax shape of a catalog entry. Functions are {@link #PREFIX}
- * (a call: {@code name(args)}); operators carry one of the infix/affix shapes.
+ * Surface-syntax shape of a catalog entry. Functions are {@link #PREFIX} (a call: {@code
+ * name(args)}); operators carry one of the infix/affix shapes.
  *
- * <p>This is the closed half of unifying functions and operators: new operators
- * are open data in the catalog, but they must pick one of these fixed rendering
- * shapes. New shapes are rare and the only thing that touches the renderer.
+ * <p>This is the closed half of unifying functions and operators: new operators are open data in
+ * the catalog, but they must pick one of these fixed rendering shapes. New shapes are rare and the
+ * only thing that touches the renderer.
  */
 public enum Fixity {
 

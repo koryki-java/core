@@ -19,7 +19,6 @@ package ai.koryki.catalog.domain;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 public class Entity {
 
@@ -30,19 +29,19 @@ public class Entity {
     private String table;
     private List<Attribute> attributes;
 
-    public Entity()  {
+    public Entity() {
         this(null, null, null, new ArrayList<>());
     }
 
-    public Entity(String name)  {
+    public Entity(String name) {
         this(name, null, null, new ArrayList<>());
     }
 
-    public Entity(String name, String comment, String description)  {
+    public Entity(String name, String comment, String description) {
         this(name, comment, description, new ArrayList<>());
     }
 
-    public Entity(String name, String comment, String description, List<Attribute> properties)  {
+    public Entity(String name, String comment, String description, List<Attribute> properties) {
         this.name = name;
         this.comment = comment;
         this.description = description;
@@ -86,7 +85,12 @@ public class Entity {
     }
 
     public Optional<Attribute> getAttribute(String name) {
-        return attributes.stream().filter(c -> c.getName().equals(name) | (c.getColumn() != null && c.getColumn().equals(name))).findFirst();
+        return attributes.stream()
+                .filter(
+                        c ->
+                                c.getName().equals(name)
+                                        | (c.getColumn() != null && c.getColumn().equals(name)))
+                .findFirst();
     }
 
     public String getLabel() {
@@ -103,8 +107,8 @@ public class Entity {
      * <p><b>The exact stored spelling.</b> Not a logical name and not a convenience spelling: this
      * value is what the renderer will put between quotes the moment the name cannot go bare, and a
      * quoted name is matched literally. Nothing here introspects a database, so the renderer has no
-     * second source to check it against - if the catalog says {@code Betrag} and the entity's table was
-     * created unquoted on Oracle, it is stored {@code BETRAG} and the query finds nothing.
+     * second source to check it against - if the catalog says {@code Betrag} and the entity's table
+     * was created unquoted on Oracle, it is stored {@code BETRAG} and the query finds nothing.
      *
      * <p>The distinction is invisible for the ordinary case and only bites at the edges. An
      * all-lowercase name goes unquoted, and every engine either folds an unquoted name or ignores

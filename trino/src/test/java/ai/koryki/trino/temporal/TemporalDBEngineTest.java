@@ -22,33 +22,34 @@ import ai.koryki.catalog.schema.Schema;
 import ai.koryki.databases.cases.BaseEngineTest;
 import ai.koryki.databases.cases.ListWithSqlResult;
 import ai.koryki.databases.cases.StableFormat;
-import ai.koryki.kql.HeaderInfo;
 import ai.koryki.databases.cases.TestUtil;
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.kql.EngineBuilder;
+import ai.koryki.kql.HeaderInfo;
 import ai.koryki.trino.TrinoUnavailable;
 import ai.koryki.trino.iql.SqlQueryRenderer;
 import ai.koryki.trino.northwind.NorthwindTrino;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.Locale;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 @TrinoUnavailable
 public class TemporalDBEngineTest extends BaseEngineTest<HeaderInfo> {
 
-    @Override protected String schema() { return "temporal"; }
+    @Override
+    protected String schema() {
+        return "temporal";
+    }
 
-    public static final String DB    = "/ai/koryki/trino/databases/temporal";
+    public static final String DB = "/ai/koryki/trino/databases/temporal";
     public static final String MODEL = "/ai/koryki/trino/databases/temporal/model";
 
     public TemporalDBEngineTest() {
         super("trino", true);
     }
-
 
     @BeforeAll
     public void readNorthwindDB() throws IOException, SQLException {
@@ -56,8 +57,13 @@ public class TemporalDBEngineTest extends BaseEngineTest<HeaderInfo> {
         Schema db = CatalogLoader.db(DB);
         Model schema = CatalogLoader.model(MODEL, locale);
         LinkResolver resolver = new LinkResolver(locale, db, schema, true);
-        engine = EngineBuilder.headers(new NorthwindTrino<ListWithSqlResult<HeaderInfo>>(), resolver,
-                new SqlQueryRenderer(java.time.ZoneId.of("UTC"))).valueFormat(new StableFormat(Locale.ROOT)).build();
+        engine =
+                EngineBuilder.headers(
+                                new NorthwindTrino<ListWithSqlResult<HeaderInfo>>(),
+                                resolver,
+                                new SqlQueryRenderer(java.time.ZoneId.of("UTC")))
+                        .valueFormat(new StableFormat(Locale.ROOT))
+                        .build();
     }
 
     @Test

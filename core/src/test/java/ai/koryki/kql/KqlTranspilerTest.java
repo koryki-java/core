@@ -16,22 +16,18 @@
  */
 package ai.koryki.kql;
 
-import ai.koryki.antlr.Text;
-import ai.koryki.databases.cases.Fixtures;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import ai.koryki.antlr.KorykiaiException;
+import ai.koryki.antlr.Text;
 import ai.koryki.databases.FileAsserter;
+import ai.koryki.databases.cases.Fixtures;
 import ai.koryki.databases.cases.TestUtil;
 import ai.koryki.databases.northwind.duckdb.NorthwindService;
 import ai.koryki.iql.*;
 import ai.koryki.iql.query.Out;
 import ai.koryki.iql.query.Query;
-import ai.koryki.catalog.Util;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -41,18 +37,21 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.fail;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 public class KqlTranspilerTest {
 
     public static final Path SHARED = Fixtures.queries("northwind");
     public static final Path LOCAL = Path.of("src/test/resources/ai/koryki/core/kql/northwind");
     public static final Path EXPECTED_SQL = Fixtures.expected("kql", "northwind").resolve("sql");
-    public static final Path LOCAL_SQL = Path.of("src/test/resources/ai/koryki/core/expected/kql/northwind/sql");
+    public static final Path LOCAL_SQL =
+            Path.of("src/test/resources/ai/koryki/core/expected/kql/northwind/sql");
     public static final Path EXPECTED_IQL = Fixtures.expected("kql", "northwind").resolve("iql");
-    public static final Path LOCAL_IQL = Path.of("src/test/resources/ai/koryki/core/expected/kql/northwind/iql");
+    public static final Path LOCAL_IQL =
+            Path.of("src/test/resources/ai/koryki/core/expected/kql/northwind/iql");
     public static final String SUFFIX = ".kql";
 
     private static LinkResolver resolver;
@@ -62,21 +61,28 @@ public class KqlTranspilerTest {
 
         resolver = NorthwindService.resolver();
     }
+
     /** Both roots: the shared fixtures and the ones only core has. */
     private static Stream<Path> walk(Path root) throws IOException {
         // The local root is absent wherever a schema has no core-owned fixtures.
         return Files.isDirectory(root)
-                ? Files.walk(root, FileVisitOption.FOLLOW_LINKS).filter(p -> p.toString().endsWith(SUFFIX))
+                ? Files.walk(root, FileVisitOption.FOLLOW_LINKS)
+                        .filter(p -> p.toString().endsWith(SUFFIX))
                 : Stream.empty();
     }
 
     /** Which root applies is decided by the one the fixture was found under. */
-    private static Path root(Path kql) { return kql.startsWith(LOCAL) ? LOCAL : SHARED; }
+    private static Path root(Path kql) {
+        return kql.startsWith(LOCAL) ? LOCAL : SHARED;
+    }
 
-    private static Path sqlRoot(Path kql) { return kql.startsWith(LOCAL) ? LOCAL_SQL : EXPECTED_SQL; }
+    private static Path sqlRoot(Path kql) {
+        return kql.startsWith(LOCAL) ? LOCAL_SQL : EXPECTED_SQL;
+    }
 
-    private static Path iqlRoot(Path kql) { return kql.startsWith(LOCAL) ? LOCAL_IQL : EXPECTED_IQL; }
-
+    private static Path iqlRoot(Path kql) {
+        return kql.startsWith(LOCAL) ? LOCAL_IQL : EXPECTED_IQL;
+    }
 
     static Stream<Path> testFiles() throws IOException {
 
@@ -98,12 +104,12 @@ public class KqlTranspilerTest {
 
     private static void test(Path kql) throws IOException {
 
-
         if (checkInvalid(kql)) {
             return;
         }
 
-        KQLTranspiler transpiler = KQLTranspiler.builder(new FileInputStream(kql.toFile()), resolver).build();
+        KQLTranspiler transpiler =
+                KQLTranspiler.builder(new FileInputStream(kql.toFile()), resolver).build();
         // These tests render with DuckDB; a sample using a function DuckDB declares unsupported
         // can't render. TestUtil.unsupportedOnThisDialect derives that from the catalog, so the
         // fixture no longer needs a hand-written ignore=duckdb marker.
@@ -118,10 +124,13 @@ public class KqlTranspilerTest {
         }
         String sql;
         try {
-            sql = transpiler.getSql(new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, java.time.ZoneId.of("UTC")));
+            sql =
+                    transpiler.getSql(
+                            new SqlQueryRenderer(
+                                    DuckdbBaseDialect.INSTANCE, java.time.ZoneId.of("UTC")));
         } catch (RuntimeException e) {
             if (ai.koryki.databases.cases.TestUtil.cannotRunOnThisDialect(e)) {
-                return;   // DuckDB declares one of this fixture's functions unsupported
+                return; // DuckDB declares one of this fixture's functions unsupported
             }
             throw e;
         }
@@ -137,18 +146,20 @@ public class KqlTranspilerTest {
 
     private static String ignoreSkip(String kqlDe) {
         // skip ignore-lines
-        kqlDe = kqlDe.lines()
-                .filter(line -> !line.startsWith("-- ignore="))
-                .filter(line -> !line.startsWith("// ignore="))
-                .collect(Collectors.joining(Text.NL));
+        kqlDe =
+                kqlDe.lines()
+                        .filter(line -> !line.startsWith("-- ignore="))
+                        .filter(line -> !line.startsWith("// ignore="))
+                        .collect(Collectors.joining(Text.NL));
         return kqlDe;
     }
 
-    private static void checkKql(Path kql, String sql, KQLParser.QueryContext ctx, String description, Query original) throws IOException {
-
+    private static void checkKql(
+            Path kql, String sql, KQLParser.QueryContext ctx, String description, Query original)
+            throws IOException {
 
         Path expected = TestUtil.expected(kql, root(kql), sqlRoot(kql), ".sql");
-        //Path expected = FileAsserter.getSibling(kql, SUFFIX, ".sql");
+        // Path expected = FileAsserter.getSibling(kql, SUFFIX, ".sql");
         File expectedFile = expected.toFile();
         if (expectedFile.canRead()) {
             String content = Files.readString(expected);
@@ -162,7 +173,7 @@ public class KqlTranspilerTest {
 
     private static void checkIql(Path kql, Query query, String sql) throws IOException {
         Path iql = TestUtil.expected(kql, root(kql), iqlRoot(kql), ".iql");
-        //Path iql = FileAsserter.getSibling(kql, SUFFIX, ".iql");
+        // Path iql = FileAsserter.getSibling(kql, SUFFIX, ".iql");
         String iql2 = new IQLSerializer(query).toString();
         iql2 = ignoreSkip(iql2);
         if (iql.toFile().canRead()) {
@@ -180,8 +191,12 @@ public class KqlTranspilerTest {
             // reproduce the KQL-rendered SQL byte for byte (catches lost parenthesization,
             // window sort order, set-operation grouping and non-idempotent rules)
             IQLTranspiler roundtrip = IQLTranspiler.builder(content, resolver).build();
-            String sql2 = ignoreSkip(roundtrip.getSql(
-                    new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, java.time.ZoneId.of("UTC"))));
+            String sql2 =
+                    ignoreSkip(
+                            roundtrip.getSql(
+                                    new SqlQueryRenderer(
+                                            DuckdbBaseDialect.INSTANCE,
+                                            java.time.ZoneId.of("UTC"))));
             FileAsserter.scriptAssert(sql, sql2);
 
         } else {
@@ -195,9 +210,13 @@ public class KqlTranspilerTest {
         }
         // Validation (arity / operator-family checks) needs the dialect catalog,
         // unlike the catalog-free transpile path used for valid queries.
-        KQLTranspiler transpiler = KQLTranspiler.builder(new FileInputStream(kql.toFile()), resolver).functions(DuckdbBaseDialect.INSTANCE.getFunctionRenderer()).build();
+        KQLTranspiler transpiler =
+                KQLTranspiler.builder(new FileInputStream(kql.toFile()), resolver)
+                        .functions(DuckdbBaseDialect.INSTANCE.getFunctionRenderer())
+                        .build();
         try {
-            transpiler.getSql(new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, java.time.ZoneId.of("UTC")));
+            transpiler.getSql(
+                    new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, java.time.ZoneId.of("UTC")));
             fail("expected the invalid query to be rejected: " + kql);
         } catch (KorykiaiException expected) {
             // parse (PanicException) or validation (ValidateException) failure — both expected
@@ -209,21 +228,25 @@ public class KqlTranspilerTest {
      * Re-formats the query to KQL, transpiles that, and requires the result to be the same query.
      *
      * <p>Compared on <em>two</em> levels, because SQL alone is too coarse: a fetch label reaches no
-     * SQL, so {@code KQLFormatter} could drop it — and did — without moving a single character here.
-     * The IQL keeps everything the model carries, so comparing it catches whatever the formatter
-     * loses on the way out, for every construct rather than the one that was noticed.
+     * SQL, so {@code KQLFormatter} could drop it — and did — without moving a single character
+     * here. The IQL keeps everything the model carries, so comparing it catches whatever the
+     * formatter loses on the way out, for every construct rather than the one that was noticed.
      */
-    private static void roundtrip(KQLParser.QueryContext ctx, String desc, String sql, Query original) {
+    private static void roundtrip(
+            KQLParser.QueryContext ctx, String desc, String sql, Query original) {
         KQLFormatter bean2IQL = new KQLFormatter(ctx, desc);
         String kql2 = bean2IQL.format();
         KQLTranspiler again = KQLTranspiler.builder(kql2, resolver).build();
-        String sql2 = again.getSql(new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, java.time.ZoneId.of("UTC")));
+        String sql2 =
+                again.getSql(
+                        new SqlQueryRenderer(
+                                DuckdbBaseDialect.INSTANCE, java.time.ZoneId.of("UTC")));
         sql2 = ignoreSkip(sql2);
         FileAsserter.scriptAssert(sql, sql2);
         if (original != null) {
-            FileAsserter.scriptAssert(new IQLSerializer(original).toString(),
+            FileAsserter.scriptAssert(
+                    new IQLSerializer(original).toString(),
                     new IQLSerializer(again.getQuery()).toString());
         }
     }
-
 }

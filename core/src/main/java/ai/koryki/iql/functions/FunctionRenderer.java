@@ -18,7 +18,6 @@ package ai.koryki.iql.functions;
 
 import ai.koryki.iql.SqlSelectRenderer;
 import ai.koryki.iql.query.Function;
-
 import java.util.stream.Collectors;
 
 /** The rendering role of the function catalog; {@link FunctionCatalog} is the type-facing role. */
@@ -37,11 +36,12 @@ public interface FunctionRenderer extends FunctionCatalog {
         StringBuilder b = new StringBuilder();
         b.append(function(function.getFunc()));
         b.append("(");
-        b.append(function.getArguments().stream().map(
-                a -> renderer.toSql(a, indent)).collect(Collectors.joining(", ")));
+        b.append(
+                function.getArguments().stream()
+                        .map(a -> renderer.toSql(a, indent))
+                        .collect(Collectors.joining(", ")));
         b.append(")");
         b.append(renderer.toSql(function.getWindow(), indent));
         return b.toString();
     }
-
 }

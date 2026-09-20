@@ -16,9 +16,8 @@
  */
 package ai.koryki.oracle.northwind;
 
-import ai.koryki.oracle.OracleDatabase;
 import ai.koryki.jdbc.ResultProcessor;
-
+import ai.koryki.oracle.OracleDatabase;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -40,7 +39,8 @@ public class NorthwindOracle<P extends ResultProcessor<?>> extends OracleDatabas
         this(name, connection());
     }
 
-    public NorthwindOracle(String name, String user, String passwort, String url) throws SQLException {
+    public NorthwindOracle(String name, String user, String passwort, String url)
+            throws SQLException {
         this(name, connection(user, passwort, url));
     }
 
@@ -53,7 +53,8 @@ public class NorthwindOracle<P extends ResultProcessor<?>> extends OracleDatabas
     }
 
     @Override
-    public void execute(String sql, java.util.function.Consumer<java.sql.PreparedStatement> statementConsumer) {
+    public void execute(
+            String sql, java.util.function.Consumer<java.sql.PreparedStatement> statementConsumer) {
         try {
             super.execute(sql, statementConsumer);
         } catch (RuntimeException e) {
@@ -76,12 +77,14 @@ public class NorthwindOracle<P extends ResultProcessor<?>> extends OracleDatabas
     }
 
     public static Connection connection() throws SQLException {
-        return connection(System.getProperty("oracle.northwind.user"),
-            System.getProperty("oracle.northwind.password"),
-            System.getProperty("oracle.northwind.url") );
+        return connection(
+                System.getProperty("oracle.northwind.user"),
+                System.getProperty("oracle.northwind.password"),
+                System.getProperty("oracle.northwind.url"));
     }
 
-    public static Connection connection(String user, String password, String url) throws SQLException {
+    public static Connection connection(String user, String password, String url)
+            throws SQLException {
         Properties props = new Properties();
         props.setProperty("user", user);
         props.setProperty("password", password);

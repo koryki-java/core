@@ -16,7 +16,6 @@
  */
 package ai.koryki.catalog.schema;
 
-
 public class Column {
 
     private String name;
@@ -55,9 +54,7 @@ public class Column {
     private String quantity;
     private String presentation;
 
-    public Column() {
-
-    }
+    public Column() {}
 
     public Column(String name) {
         this.name = name;
@@ -142,7 +139,7 @@ public class Column {
     }
 
     public String getDialectType() {
-       return dialectType;
+        return dialectType;
     }
 
     public void setDialectType(String dialectType) {
@@ -166,10 +163,10 @@ public class Column {
     }
 
     /**
-     * How this column's values should read, as a
-     * {@link ai.koryki.presentation.Presentation Presentation} name — {@code "DECIMALS:2"}, later
-     * {@code "IP"}. Travels as one string exactly like {@link #getTypeEncoding()}, and is resolved
-     * through {@link ai.koryki.presentation.PresentationRegistry PresentationRegistry}.
+     * How this column's values should read, as a {@link ai.koryki.presentation.Presentation
+     * Presentation} name — {@code "DECIMALS:2"}, later {@code "IP"}. Travels as one string exactly
+     * like {@link #getTypeEncoding()}, and is resolved through {@link
+     * ai.koryki.presentation.PresentationRegistry PresentationRegistry}.
      *
      * <p>A name, not the type: the catalog describes data, and how a value is <em>shown</em> is not
      * a description of it. That is why the family lives in {@code ai.koryki.presentation} and only

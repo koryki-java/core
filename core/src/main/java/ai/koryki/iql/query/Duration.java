@@ -59,7 +59,8 @@ public class Duration {
 
     /** Compound duration with multiple components, e.g. 2d4h6min. */
     public Duration(List<Component> components) {
-        if (components.isEmpty()) throw new IllegalArgumentException("Duration requires at least one component");
+        if (components.isEmpty())
+            throw new IllegalArgumentException("Duration requires at least one component");
         this.components = List.copyOf(components);
     }
 
@@ -95,9 +96,10 @@ public class Duration {
     public String toString() {
         boolean allNegative = components.stream().allMatch(c -> c.value() < 0);
         if (allNegative) {
-            return "-" + components.stream()
-                    .map(c -> new Component(-c.value(), c.unit()).toString())
-                    .collect(Collectors.joining());
+            return "-"
+                    + components.stream()
+                            .map(c -> new Component(-c.value(), c.unit()).toString())
+                            .collect(Collectors.joining());
         }
         return components.stream().map(Component::toString).collect(Collectors.joining());
     }

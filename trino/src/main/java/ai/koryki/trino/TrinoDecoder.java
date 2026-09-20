@@ -22,7 +22,6 @@ import ai.koryki.jdbc.ColumnInfo;
 import ai.koryki.jdbc.CoreDecoder;
 import ai.koryki.jdbc.Interval;
 import ai.koryki.jdbc.IntervalStrings;
-
 import java.time.ZoneId;
 
 /**
@@ -32,8 +31,8 @@ import java.time.ZoneId;
  * {@code INTERVAL DAY TO SECOND} as {@code "0 01:02:03.000"} — the SQL-standard spellings, and the
  * same ones Oracle produces. Without a decoder those strings travelled all the way into the result,
  * so a query answering {@code 1h2min3s} on seven dialects answered {@code 0 01:02:03.000} here. The
- * value was never wrong, only its spelling, which is why the two fixtures carried an
- * {@code ignore=trino} marker claiming the results differ.
+ * value was never wrong, only its spelling, which is why the two fixtures carried an {@code
+ * ignore=trino} marker claiming the results differ.
  *
  * <p>Everything else is the core decoder's business; this only converts what the driver leaves as
  * vendor text.
@@ -51,9 +50,13 @@ public class TrinoDecoder extends CoreDecoder {
         // String -- but their toString() is exactly the standard spelling, so the text form is
         // the portable way in without compiling against driver classes. Anything CoreDecoder
         // already understands is left to it, and a shape it does not recognise falls through.
-        if (td != null && CoreTypeFamily.INTERVAL.equals(td.getTypeFamily()) && v != null
-                && !(v instanceof Interval) && !(v instanceof java.time.Period)
-                && !(v instanceof java.time.Duration) && !(v instanceof Number)) {
+        if (td != null
+                && CoreTypeFamily.INTERVAL.equals(td.getTypeFamily())
+                && v != null
+                && !(v instanceof Interval)
+                && !(v instanceof java.time.Period)
+                && !(v instanceof java.time.Duration)
+                && !(v instanceof Number)) {
             Interval parsed = IntervalStrings.parse(v.toString());
             if (parsed != null) {
                 return parsed;

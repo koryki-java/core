@@ -20,8 +20,8 @@ import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.presentation.Presentation;
 
 /**
- * What the read layer knows about one output column: its name, its resolved type, and how its values
- * should read.
+ * What the read layer knows about one output column: its name, its resolved type, and how its
+ * values should read.
  *
  * <p>This is the reader family's own vocabulary — {@code ResultConsumer}, {@code ResultProcessor},
  * {@code ListResult}, {@code CSVFileResult} and {@code XMLFileResult} are all bounded by it — which
@@ -44,13 +44,11 @@ public interface ColumnInfo {
     }
 
     /**
-     * Resolved logical type of this output column (the type of the FETCH
-     * expression, including computed ones). Enables type-driven decode and
-     * locale-aware presentation at the read boundary. Default no-ops keep
-     * existing implementations valid; {@code null} = type unknown.
+     * Resolved logical type of this output column (the type of the FETCH expression, including
+     * computed ones). Enables type-driven decode and locale-aware presentation at the read
+     * boundary. Default no-ops keep existing implementations valid; {@code null} = type unknown.
      */
-    default void setTypeDescriptor(TypeDescriptor type) {
-    }
+    default void setTypeDescriptor(TypeDescriptor type) {}
 
     default TypeDescriptor getTypeDescriptor() {
         return null;

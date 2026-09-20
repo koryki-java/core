@@ -16,13 +16,10 @@
  */
 package ai.koryki.trino;
 
-import org.junit.jupiter.api.extension.ExtendWith;
-
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 @Retention(RetentionPolicy.RUNTIME)
 @ExtendWith(TrinoAvailabilityCondition.class)
-public @interface TrinoUnavailable {
-
-}
+public @interface TrinoUnavailable {}

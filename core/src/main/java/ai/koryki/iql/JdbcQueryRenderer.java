@@ -23,8 +23,9 @@ public class JdbcQueryRenderer extends SqlQueryRenderer {
     }
 
     @Override
-    protected SqlSelectRenderer createSelectRenderer(LinkResolver resolver, IQLVisibilityContext ctx) {
-        return new JdbcSelectRenderer(getIdentifier(), iqlToContext, resolver, ctx, JdbcDialect.INSTANCE, getModelZone());
+    protected SqlSelectRenderer createSelectRenderer(
+            LinkResolver resolver, IQLVisibilityContext ctx) {
+        return new JdbcSelectRenderer(
+                getIdentifier(), iqlToContext, resolver, ctx, JdbcDialect.INSTANCE, getModelZone());
     }
-
 }

@@ -17,7 +17,6 @@
 package ai.koryki.iql;
 
 import ai.koryki.iql.query.*;
-
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
@@ -25,48 +24,102 @@ import java.util.Optional;
 
 public interface Visitor {
 
-    default boolean visit(Deque<Object> deque, Query query) {return true;}
-    default boolean visit(Deque<Object> deque, Block block) {return true;}
-    default boolean visit(Deque<Object> deque, Set set) {return true;}
-    default boolean visit(Deque<Object> deque, Select select) {return true;}
-    default boolean visit(Deque<Object> deque, Join join) {return true;}
-    default boolean visit(Deque<Object> deque, Source source) {return true;}
-    default boolean visit(Deque<Object> deque, Out out) {return true;}
-    default boolean visit(Deque<Object> deque, LogicalExpression logicalExpression) {return true;}
-    default boolean visit(Deque<Object> deque, UnaryLogicalExpression logicalExpression) {return true;}
-    default boolean visit(Deque<Object> deque, Group group) {return true;}
-    default boolean visit(Deque<Object> deque, Order order) {return true;}
-    default boolean visit(Deque<Object> deque, Expression expression) {return true;}
-    default boolean visit(Deque<Object> deque, Function function) {return true;}
-    default boolean visit(Deque<Object> deque, Field column) {return true;}
-    default boolean visit(Deque<Object> deque, Exists column) {return true;}
+    default boolean visit(Deque<Object> deque, Query query) {
+        return true;
+    }
 
+    default boolean visit(Deque<Object> deque, Block block) {
+        return true;
+    }
+
+    default boolean visit(Deque<Object> deque, Set set) {
+        return true;
+    }
+
+    default boolean visit(Deque<Object> deque, Select select) {
+        return true;
+    }
+
+    default boolean visit(Deque<Object> deque, Join join) {
+        return true;
+    }
+
+    default boolean visit(Deque<Object> deque, Source source) {
+        return true;
+    }
+
+    default boolean visit(Deque<Object> deque, Out out) {
+        return true;
+    }
+
+    default boolean visit(Deque<Object> deque, LogicalExpression logicalExpression) {
+        return true;
+    }
+
+    default boolean visit(Deque<Object> deque, UnaryLogicalExpression logicalExpression) {
+        return true;
+    }
+
+    default boolean visit(Deque<Object> deque, Group group) {
+        return true;
+    }
+
+    default boolean visit(Deque<Object> deque, Order order) {
+        return true;
+    }
+
+    default boolean visit(Deque<Object> deque, Expression expression) {
+        return true;
+    }
+
+    default boolean visit(Deque<Object> deque, Function function) {
+        return true;
+    }
+
+    default boolean visit(Deque<Object> deque, Field column) {
+        return true;
+    }
+
+    default boolean visit(Deque<Object> deque, Exists column) {
+        return true;
+    }
 
     default void leave(Query query) {}
+
     default void leave(Block block) {}
+
     default void leave(Set set) {}
+
     default void leave(Select select) {}
+
     default void leave(Join join) {}
+
     default void leave(Source source) {}
+
     default void leave(Out out) {}
+
     default void leave(LogicalExpression logicalExpression) {}
+
     default void leave(UnaryLogicalExpression logicalExpression) {}
+
     default void leave(Group group) {}
+
     default void leave(Order order) {}
+
     default void leave(Expression expression) {}
+
     default void leave(Function function) {}
+
     default void leave(Field column) {}
+
     default void leave(Exists column) {}
 
-
     /**
-     * Returns the n-th element from the deque.
-     * n = 1 → element
-     * n = 2 → second element
+     * Returns the n-th element from the deque. n = 1 → element n = 2 → second element
      *
      * @param deque the deque to read from
-     * @param n     1-based index from the strat
-     * @param <E>   element type
+     * @param n 1-based index from the strat
+     * @param <E> element type
      * @return Optional with the n-th element or Optional.empty()
      */
     static <E> Optional<E> getNthElement(Deque<E> deque, int n) {
@@ -85,13 +138,13 @@ public interface Visitor {
     static <E> Select parentSelect(Deque<E> deque) {
 
         Iterator<E> iter = deque.iterator();
-        while(true) {
+        while (true) {
             if (!iter.hasNext()) {
                 return null;
             }
             Object e = iter.next();
             if (e instanceof Select) {
-                return (Select)e;
+                return (Select) e;
             }
         }
     }
@@ -105,10 +158,10 @@ public interface Visitor {
     }
 
     /**
-     * Resolves an alias against the scope's own from-tree only: the start source and the
-     * join tree. Deliberately does NOT walk filters — an EXISTS nested there is its own
-     * scope, and alias reuse inside it is legal; the previous whole-subtree walk was
-     * last-match-wins and let a nested exists steal the enclosing scope's alias.
+     * Resolves an alias against the scope's own from-tree only: the start source and the join tree.
+     * Deliberately does NOT walk filters — an EXISTS nested there is its own scope, and alias reuse
+     * inside it is legal; the previous whole-subtree walk was last-match-wins and let a nested
+     * exists steal the enclosing scope's alias.
      */
     private static Source findInFromTree(Source start, List<Join> joins, String alias) {
         if (start != null && alias.equals(start.getAlias())) {

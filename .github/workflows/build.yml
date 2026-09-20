@@ -25,6 +25,9 @@ jobs:
           distribution: temurin
           java-version: 21
 
+      - name: Check formatting
+        run: ./gradlew spotlessCheck --no-daemon
+
       - name: Test
         run: ./gradlew test --no-daemon
 

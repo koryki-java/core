@@ -19,16 +19,15 @@ package ai.koryki.kql;
 import ai.koryki.antlr.AbstractReader;
 import ai.koryki.antlr.Interval;
 import ai.koryki.antlr.MsgErrorListener;
-import org.antlr.v4.runtime.BufferedTokenStream;
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
-
 import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import org.antlr.v4.runtime.BufferedTokenStream;
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
 
 public class KQLReader extends AbstractReader<KQLLexer, KQLParser, KQLParser.QueryContext> {
 
@@ -86,10 +85,11 @@ public class KQLReader extends AbstractReader<KQLLexer, KQLParser, KQLParser.Que
         this.abort = abort;
     }
 
-    public KQLReader(BufferedTokenStream tokens, List<Interval> panic, KQLParser.QueryContext script) {
+    public KQLReader(
+            BufferedTokenStream tokens, List<Interval> panic, KQLParser.QueryContext script) {
 
         this.tokens = tokens;
-        this.panic =  panic;
+        this.panic = panic;
         this.script = script;
     }
 
@@ -111,7 +111,6 @@ public class KQLReader extends AbstractReader<KQLLexer, KQLParser, KQLParser.Que
         parseduration = System.currentTimeMillis() - start;
         panic.addAll(listener.getPanic());
     }
-
 
     private void lex() {
         if (tokens != null) {

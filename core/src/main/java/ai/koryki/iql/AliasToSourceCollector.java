@@ -17,7 +17,6 @@
 package ai.koryki.iql;
 
 import ai.koryki.iql.query.Source;
-
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;

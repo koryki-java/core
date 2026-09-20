@@ -21,9 +21,6 @@ import ai.koryki.iql.DuckdbBaseDialect;
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.SqlQueryRenderer;
 import ai.koryki.kql.KQLTranspiler;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,16 +28,18 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /**
  * Every complete query written into a hand-authored category intro must actually transpile.
  *
- * <p>The per-function "Sample query" blocks are real fixtures and are transpiled by
- * {@link FunctionDocsTest}, but the intro fragments under
- * {@code resources/ai/koryki/tools/docs/intro/} are free prose — nothing used to check that the
- * KQL in them parses, and an example using an operator the grammar does not have shipped that
- * way. A block is picked up when its first line starts with {@code FIND}, i.e. it is a whole
- * query rather than a deliberately abstract fragment such as {@code FILTER a OR b AND c}.
+ * <p>The per-function "Sample query" blocks are real fixtures and are transpiled by {@link
+ * FunctionDocsTest}, but the intro fragments under {@code resources/ai/koryki/tools/docs/intro/}
+ * are free prose — nothing used to check that the KQL in them parses, and an example using an
+ * operator the grammar does not have shipped that way. A block is picked up when its first line
+ * starts with {@code FIND}, i.e. it is a whole query rather than a deliberately abstract fragment
+ * such as {@code FILTER a OR b AND c}.
  */
 class IntroExamplesTest {
 
@@ -57,10 +56,12 @@ class IntroExamplesTest {
     static Stream<Example> examples() throws IOException {
         List<Example> examples = new ArrayList<>();
         if (!Files.isDirectory(INTROS)) {
-            return Stream.of();   // run outside the module: nothing to check
+            return Stream.of(); // run outside the module: nothing to check
         }
         try (Stream<Path> files = Files.list(INTROS)) {
-            for (Path p : (Iterable<Path>) files.filter(f -> f.toString().endsWith(".md")).sorted()::iterator) {
+            for (Path p :
+                    (Iterable<Path>)
+                            files.filter(f -> f.toString().endsWith(".md")).sorted()::iterator) {
                 examples.addAll(queries(p.getFileName().toString(), Files.readString(p)));
             }
         }
@@ -114,7 +115,8 @@ class IntroExamplesTest {
     @MethodSource("examples")
     void introExampleTranspiles(Example example) throws IOException {
         LinkResolver resolver = DocDialects.resolvers().get("northwind");
-        KQLTranspiler.builder(example.kql(), resolver).build()
+        KQLTranspiler.builder(example.kql(), resolver)
+                .build()
                 .getSql(new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, ZoneId.of("UTC")));
     }
 }

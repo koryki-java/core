@@ -16,18 +16,17 @@
  */
 package ai.koryki.databases.oraview;
 
+import ai.koryki.catalog.CatalogLoader;
+import ai.koryki.catalog.domain.Model;
+import ai.koryki.catalog.schema.Schema;
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.SqlRenderer;
 import ai.koryki.jdbc.ColumnInfo;
 import ai.koryki.jdbc.Database;
 import ai.koryki.jdbc.ResultProcessor;
-import ai.koryki.catalog.CatalogLoader;
-import ai.koryki.catalog.domain.Model;
-import ai.koryki.catalog.schema.Schema;
 import ai.koryki.kql.Engine;
 import ai.koryki.kql.EngineBuilder;
 import ai.koryki.kql.HeaderInfo;
-
 import java.util.function.Supplier;
 
 public class OraViewService<I extends ColumnInfo, P extends ResultProcessor<I>> {
@@ -36,28 +35,36 @@ public class OraViewService<I extends ColumnInfo, P extends ResultProcessor<I>> 
 
     private final Engine<I, P> engine;
 
-    public static <I extends ColumnInfo, P extends ResultProcessor<I>> OraViewService<I, P> build(Database<P> database, SqlRenderer renderer, Supplier<I> supplier) {
+    public static <I extends ColumnInfo, P extends ResultProcessor<I>> OraViewService<I, P> build(
+            Database<P> database, SqlRenderer renderer, Supplier<I> supplier) {
         return new OraViewService<>(database, renderer, supplier);
     }
 
-    public static <P extends ResultProcessor<ColumnInfo>> OraViewService<ColumnInfo, P> build(Database<P> database, SqlRenderer renderer) {
+    public static <P extends ResultProcessor<ColumnInfo>> OraViewService<ColumnInfo, P> build(
+            Database<P> database, SqlRenderer renderer) {
 
         return new OraViewService<>(database, renderer, HeaderInfo::new);
     }
 
-    /**
-     * Create Service with Locale.ENGLISH, not system default Locale!
-     */
+    /** Create Service with Locale.ENGLISH, not system default Locale! */
     public OraViewService(Database<P> database, SqlRenderer renderer, Supplier<I> supplier) {
         this(database, renderer, java.util.Locale.ENGLISH, supplier);
     }
 
-    public OraViewService(Database<P> database, SqlRenderer renderer, java.util.Locale locale, Supplier<I> supplier) {
+    public OraViewService(
+            Database<P> database,
+            SqlRenderer renderer,
+            java.util.Locale locale,
+            Supplier<I> supplier) {
 
         this(database, renderer, resolver(locale), supplier);
     }
 
-    public OraViewService(Database<P> database, SqlRenderer renderer, LinkResolver resolver, Supplier<I> supplier) {
+    public OraViewService(
+            Database<P> database,
+            SqlRenderer renderer,
+            LinkResolver resolver,
+            Supplier<I> supplier) {
         engine = new EngineBuilder<I, P>(database, resolver, renderer).info(supplier).build();
     }
 

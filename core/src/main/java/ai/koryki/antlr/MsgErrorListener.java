@@ -16,13 +16,12 @@
  */
 package ai.koryki.antlr;
 
-import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.tree.ParseTree;
-import org.antlr.v4.runtime.tree.TerminalNode;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.TerminalNode;
 
 public class MsgErrorListener extends BaseErrorListener {
 
@@ -36,13 +35,13 @@ public class MsgErrorListener extends BaseErrorListener {
     }
 
     @Override
-    public void syntaxError(Recognizer<?, ?> recognizer,
-                            Object offendingSymbol,
-                            int line,
-                            int charPositionInLine,
-                            String msg,
-                            RecognitionException e)
-    {
+    public void syntaxError(
+            Recognizer<?, ?> recognizer,
+            Object offendingSymbol,
+            int line,
+            int charPositionInLine,
+            String msg,
+            RecognitionException e) {
 
         if (recognizer instanceof Parser) {
 
@@ -53,25 +52,44 @@ public class MsgErrorListener extends BaseErrorListener {
                 panic((Parser) recognizer, t, msg);
             }
         } else if (recognizer instanceof Lexer) {
-            String l = "line " + line + ":" + charPositionInLine + " at " + offendingSymbol + " : " + msg;
+            String l =
+                    "line "
+                            + line
+                            + ":"
+                            + charPositionInLine
+                            + " at "
+                            + offendingSymbol
+                            + " : "
+                            + msg;
 
-            GrammarException se = new GrammarException(line, charPositionInLine, "Lexer" + Text.NL + l);
+            GrammarException se =
+                    new GrammarException(line, charPositionInLine, "Lexer" + Text.NL + l);
             throw se;
         } else if (recognizer == null) {
             GrammarException se = new GrammarException(line, charPositionInLine, "null" + Text.NL);
             throw se;
         } else {
-            GrammarException se = new GrammarException(line, charPositionInLine, recognizer.getClass().getSimpleName() + Text.NL + msg);
+            GrammarException se =
+                    new GrammarException(
+                            line,
+                            charPositionInLine,
+                            recognizer.getClass().getSimpleName() + Text.NL + msg);
             throw se;
         }
     }
 
-    private static void abort(Parser recognizer, Object offendingSymbol, int line, int charPositionInLine, String msg) {
+    private static void abort(
+            Parser recognizer,
+            Object offendingSymbol,
+            int line,
+            int charPositionInLine,
+            String msg) {
         List<String> stack = recognizer.getRuleInvocationStack();
         Collections.reverse(stack);
 
         String s = "rule stack: " + stack;
-        String l = "line " + line + ":" + charPositionInLine + " at " + offendingSymbol + " : " + msg;
+        String l =
+                "line " + line + ":" + charPositionInLine + " at " + offendingSymbol + " : " + msg;
 
         GrammarException se = new GrammarException(line, charPositionInLine, s + Text.NL + l);
         throw se;
@@ -95,7 +113,7 @@ public class MsgErrorListener extends BaseErrorListener {
     private static int least(ParseTree context) {
 
         if (context instanceof ParserRuleContext) {
-            ParserRuleContext c = (ParserRuleContext)context;
+            ParserRuleContext c = (ParserRuleContext) context;
             if (c.children != null && !c.children.isEmpty()) {
                 return least(c.children.get(c.children.size() - 1));
             } else if (c.stop != null) {
@@ -104,9 +122,9 @@ public class MsgErrorListener extends BaseErrorListener {
                 return c.start.getTokenIndex();
             }
         } else if (context instanceof TerminalNode) {
-            TerminalNode n = (TerminalNode)context;
+            TerminalNode n = (TerminalNode) context;
             return n.getSymbol().getTokenIndex();
-        } else  {
+        } else {
             throw new KorykiaiException();
         }
     }
@@ -118,5 +136,4 @@ public class MsgErrorListener extends BaseErrorListener {
     public boolean isAbort() {
         return abort;
     }
-
 }

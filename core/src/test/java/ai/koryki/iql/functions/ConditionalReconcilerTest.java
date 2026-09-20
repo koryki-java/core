@@ -16,20 +16,19 @@
  */
 package ai.koryki.iql.functions;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.EncodingLattice;
 import ai.koryki.catalog.types.EpochTypeEncoding;
 import ai.koryki.catalog.types.NativeEncoding;
 import ai.koryki.catalog.types.TypeDescriptor;
-import org.junit.jupiter.api.Test;
-
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
 
 /** Step 1 — conditional-branch reconciliation: numeric widening + lossless epoch encoding. */
 class ConditionalReconcilerTest {
@@ -40,8 +39,12 @@ class ConditionalReconcilerTest {
 
     @Test
     void numericBranchesWidenToFloatNative() {
-        ConditionalReconciler.Result r = ConditionalReconciler.reconcile(
-                List.of(TypeDescriptor.INTEGER, TypeDescriptor.DECIMAL, TypeDescriptor.FLOAT));
+        ConditionalReconciler.Result r =
+                ConditionalReconciler.reconcile(
+                        List.of(
+                                TypeDescriptor.INTEGER,
+                                TypeDescriptor.DECIMAL,
+                                TypeDescriptor.FLOAT));
 
         assertEquals(CoreTypeFamily.FLOAT, r.target().getTypeFamily());
         assertEquals(NativeEncoding.of(CoreTypeFamily.FLOAT), r.target().getTypeEncoding());
@@ -51,8 +54,9 @@ class ConditionalReconcilerTest {
 
     @Test
     void epochSecondsAndMillisUnifyToMillis() {
-        ConditionalReconciler.Result r = ConditionalReconciler.reconcile(
-                List.of(epoch(ChronoUnit.SECONDS), epoch(ChronoUnit.MILLIS)));
+        ConditionalReconciler.Result r =
+                ConditionalReconciler.reconcile(
+                        List.of(epoch(ChronoUnit.SECONDS), epoch(ChronoUnit.MILLIS)));
 
         assertEquals(CoreTypeFamily.TIMESTAMP, r.target().getTypeFamily());
         assertEquals(new EpochTypeEncoding(ChronoUnit.MILLIS), r.target().getTypeEncoding());
@@ -62,8 +66,9 @@ class ConditionalReconcilerTest {
 
     @Test
     void nullLiteralBranchIsIgnored() {
-        ConditionalReconciler.Result r = ConditionalReconciler.reconcile(
-                List.of(TypeDescriptor.NULL, epoch(ChronoUnit.MILLIS)));
+        ConditionalReconciler.Result r =
+                ConditionalReconciler.reconcile(
+                        List.of(TypeDescriptor.NULL, epoch(ChronoUnit.MILLIS)));
 
         assertEquals(new EpochTypeEncoding(ChronoUnit.MILLIS), r.target().getTypeEncoding());
         assertTrue(r.perBranch().get(0).isIdentity(), "NULL literal needs no conversion");
@@ -72,8 +77,9 @@ class ConditionalReconcilerTest {
 
     @Test
     void dateAndTimestampWidenToTimestamp() {
-        ConditionalReconciler.Result r = ConditionalReconciler.reconcile(
-                List.of(TypeDescriptor.DATE, TypeDescriptor.TIMESTAMP));
+        ConditionalReconciler.Result r =
+                ConditionalReconciler.reconcile(
+                        List.of(TypeDescriptor.DATE, TypeDescriptor.TIMESTAMP));
 
         assertEquals(CoreTypeFamily.TIMESTAMP, r.target().getTypeFamily());
         assertEquals(NativeEncoding.of(CoreTypeFamily.TIMESTAMP), r.target().getTypeEncoding());
@@ -81,21 +87,30 @@ class ConditionalReconcilerTest {
 
     @Test
     void timeDoesNotWidenWithDate() {
-        assertThrows(ConditionalReconciler.ReconcileException.class, () ->
-                ConditionalReconciler.reconcile(List.of(TypeDescriptor.TIME, TypeDescriptor.DATE)));
+        assertThrows(
+                ConditionalReconciler.ReconcileException.class,
+                () ->
+                        ConditionalReconciler.reconcile(
+                                List.of(TypeDescriptor.TIME, TypeDescriptor.DATE)));
     }
 
     @Test
     void differentFamilyGroupsAreAHardError() {
-        assertThrows(ConditionalReconciler.ReconcileException.class, () ->
-                ConditionalReconciler.reconcile(List.of(TypeDescriptor.TIME, TypeDescriptor.INTEGER)));
+        assertThrows(
+                ConditionalReconciler.ReconcileException.class,
+                () ->
+                        ConditionalReconciler.reconcile(
+                                List.of(TypeDescriptor.TIME, TypeDescriptor.INTEGER)));
     }
 
     @Test
     void noLosslessCommonEncodingIsAHardError() {
         TypeDescriptor nativeTs = new TypeDescriptor("TIMESTAMP", null, CoreTypeFamily.TIMESTAMP);
-        assertThrows(ConditionalReconciler.ReconcileException.class, () ->
-                ConditionalReconciler.reconcile(List.of(epoch(ChronoUnit.SECONDS), nativeTs)));
+        assertThrows(
+                ConditionalReconciler.ReconcileException.class,
+                () ->
+                        ConditionalReconciler.reconcile(
+                                List.of(epoch(ChronoUnit.SECONDS), nativeTs)));
     }
 
     @Test

@@ -16,16 +16,15 @@
  */
 package ai.koryki.jdbc;
 
-import ai.koryki.antlr.Text;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import ai.koryki.antlr.Text;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * The file-writing side of {@link CSVFileResult} had no test until now — and a bug: {@code append}

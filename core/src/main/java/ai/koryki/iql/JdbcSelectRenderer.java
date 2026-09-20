@@ -17,17 +17,19 @@
 package ai.koryki.iql;
 
 import ai.koryki.iql.query.Expression;
-import org.antlr.v4.runtime.RuleContext;
-
 import java.time.ZoneId;
 import java.util.Map;
+import org.antlr.v4.runtime.RuleContext;
 
 public class JdbcSelectRenderer extends SqlSelectRenderer {
 
-    public JdbcSelectRenderer(Identifier identifier, Map<Object, RuleContext> iqlToContext, LinkResolver resolver,
-                              IQLVisibilityContext visibilityContext,
-                              SqlDialect dialect,
-                              ZoneId modelZone) {
+    public JdbcSelectRenderer(
+            Identifier identifier,
+            Map<Object, RuleContext> iqlToContext,
+            LinkResolver resolver,
+            IQLVisibilityContext visibilityContext,
+            SqlDialect dialect,
+            ZoneId modelZone) {
         super(identifier, iqlToContext, resolver, visibilityContext, dialect, modelZone);
     }
 

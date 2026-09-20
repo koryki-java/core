@@ -18,7 +18,6 @@ package ai.koryki.iql;
 
 import ai.koryki.iql.query.Block;
 import ai.koryki.iql.query.Source;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,15 +30,23 @@ public class IQLVisibilityContext {
     private final Map<String, Source> aliasToSourceMap;
     private final Map<Object, Map<String, Source>> childToAliasesMap;
 
-    public IQLVisibilityContext(Map<String, Block> blockIdToBlockMap, Map<String, Source> blockIdToLeadingSourceMap,
-                                Map<Object, Map<String, Source>> childToAliasesMap) {
+    public IQLVisibilityContext(
+            Map<String, Block> blockIdToBlockMap,
+            Map<String, Source> blockIdToLeadingSourceMap,
+            Map<Object, Map<String, Source>> childToAliasesMap) {
 
-        this(blockIdToBlockMap, blockIdToLeadingSourceMap, childToAliasesMap, Collections.emptyMap());
+        this(
+                blockIdToBlockMap,
+                blockIdToLeadingSourceMap,
+                childToAliasesMap,
+                Collections.emptyMap());
     }
 
-    public IQLVisibilityContext(Map<String, Block> blockIdToBlockMap, Map<String, Source> blockIdToLeadingSourceMap,
-                                Map<Object, Map<String, Source>> childToAliasesMap,
-                                Map<String, Source> aliasToSourceMap) {
+    public IQLVisibilityContext(
+            Map<String, Block> blockIdToBlockMap,
+            Map<String, Source> blockIdToLeadingSourceMap,
+            Map<Object, Map<String, Source>> childToAliasesMap,
+            Map<String, Source> aliasToSourceMap) {
 
         this.blockIdToBlockMap = blockIdToBlockMap;
         this.blockIdToLeadingSourceMap = blockIdToLeadingSourceMap;
@@ -56,7 +63,8 @@ public class IQLVisibilityContext {
             childMap.putAll(c);
         }
 
-        return new IQLVisibilityContext(blockIdToBlockMap, blockIdToLeadingSourceMap, childToAliasesMap, childMap);
+        return new IQLVisibilityContext(
+                blockIdToBlockMap, blockIdToLeadingSourceMap, childToAliasesMap, childMap);
     }
 
     public Source getLeadingSource(String source) {

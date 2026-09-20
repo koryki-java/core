@@ -17,7 +17,6 @@
 package ai.koryki.catalog.types;
 
 import ai.koryki.catalog.schema.Column;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -26,21 +25,24 @@ import java.util.regex.Pattern;
 public interface TypeDescriptorParser {
 
     public static final Pattern TYPE_PATTERN =
-            Pattern.compile("^\\s*([A-Z_ 0-9]+)\\s*(?:\\(([^)]*)\\))?\\s*,?\\s*$", Pattern.CASE_INSENSITIVE);
-
+            Pattern.compile(
+                    "^\\s*([A-Z_ 0-9]+)\\s*(?:\\(([^)]*)\\))?\\s*,?\\s*$",
+                    Pattern.CASE_INSENSITIVE);
 
     public static final Pattern INTERVAL_PATTERN =
             Pattern.compile(
-                    "^INTERVAL\\s+" +
-                            "([A-Z]+)" +                  // start field
-                            "(?:\\((\\d+)\\))?" +         // optional precision of the start field
-                            "\\s+TO\\s+" +
-                            "([A-Z]+)" +                  // end field
-                            "(?:\\((\\d+)\\))?" +         // optional precision of the end field
+                    "^INTERVAL\\s+"
+                            + "([A-Z]+)"
+                            + // start field
+                            "(?:\\((\\d+)\\))?"
+                            + // optional precision of the start field
+                            "\\s+TO\\s+"
+                            + "([A-Z]+)"
+                            + // end field
+                            "(?:\\((\\d+)\\))?"
+                            + // optional precision of the end field
                             "$",
-                    Pattern.CASE_INSENSITIVE
-            );
-
+                    Pattern.CASE_INSENSITIVE);
 
     default TypeDescriptor parse(Column column) {
         TypeFamily family = TypeFamilyRegistry.of(column.getTypeFamily());
@@ -51,9 +53,15 @@ public interface TypeDescriptorParser {
         // Invariant: an encoding binds to exactly one family, which must be the
         // column's declared family (see TypeEncoding#family).
         if (typeEncoding != null && !typeEncoding.family().equals(family)) {
-            throw new IllegalArgumentException("column '" + column.getName() + "': encoding "
-                    + typeEncoding.name() + " is a " + typeEncoding.family().name()
-                    + " but the column declares family " + family.name());
+            throw new IllegalArgumentException(
+                    "column '"
+                            + column.getName()
+                            + "': encoding "
+                            + typeEncoding.name()
+                            + " is a "
+                            + typeEncoding.family().name()
+                            + " but the column declares family "
+                            + family.name());
         }
 
         Matcher matcher = TYPE_PATTERN.matcher(dialectType);
@@ -81,25 +89,29 @@ public interface TypeDescriptorParser {
 
         if (family instanceof CoreTypeFamily core) {
             return switch (core) {
-                case BLOB      -> parseBlob(dialectType, typeEncoding);
-                case BOOLEAN   -> parseBoolean(dialectType, typeEncoding);
-                case DATE      -> parseDate(dialectType, typeEncoding);
-                case DECIMAL   -> parseDecimal(dialectType, typeEncoding, params);
-                case FLOAT     -> parseFloat(dialectType, typeName, typeEncoding);
-                case INTEGER   -> parseInteger(dialectType, typeName, typeEncoding, params);
-                case TIME      -> parseTime(dialectType, typeName, typeEncoding, params);
-                case INTERVAL  -> parseInterval(dialectType, typeName, typeEncoding);
+                case BLOB -> parseBlob(dialectType, typeEncoding);
+                case BOOLEAN -> parseBoolean(dialectType, typeEncoding);
+                case DATE -> parseDate(dialectType, typeEncoding);
+                case DECIMAL -> parseDecimal(dialectType, typeEncoding, params);
+                case FLOAT -> parseFloat(dialectType, typeName, typeEncoding);
+                case INTEGER -> parseInteger(dialectType, typeName, typeEncoding, params);
+                case TIME -> parseTime(dialectType, typeName, typeEncoding, params);
+                case INTERVAL -> parseInterval(dialectType, typeName, typeEncoding);
                 case TIMESTAMP -> parseTimestamp(dialectType, typeName, typeEncoding, params);
-                case TEXT      -> parseText(dialectType, typeName, typeEncoding, params);
-                case JSON      -> parseJson(dialectType, typeName, typeEncoding);
-                case UUID      -> parseUuid(dialectType, typeName, typeEncoding);
+                case TEXT -> parseText(dialectType, typeName, typeEncoding, params);
+                case JSON -> parseJson(dialectType, typeName, typeEncoding);
+                case UUID -> parseUuid(dialectType, typeName, typeEncoding);
             };
         }
         return parseExtended(column, family, dialectType, typeName, typeEncoding, params);
     }
 
-    default TypeDescriptor parseExtended(Column column, TypeFamily family,
-            String dialectType, String typeName, TypeEncoding typeEncoding,
+    default TypeDescriptor parseExtended(
+            Column column,
+            TypeFamily family,
+            String dialectType,
+            String typeName,
+            TypeEncoding typeEncoding,
             List<Integer> params) {
         throw new IllegalArgumentException("Unknown type family: " + family.name());
     }
@@ -116,55 +128,83 @@ public interface TypeDescriptorParser {
         return new TypeDescriptor(dialectType, typeEncoding, CoreTypeFamily.DATE);
     }
 
-    default TypeDescriptor parseDecimal(String dialectType, TypeEncoding typeEncoding, List<Integer> params) {
+    default TypeDescriptor parseDecimal(
+            String dialectType, TypeEncoding typeEncoding, List<Integer> params) {
 
         return numericType(CoreTypeFamily.DECIMAL, dialectType, typeEncoding, params);
     }
 
-    private static TypeDescriptor numericType(TypeFamily family, String dialectType, TypeEncoding typeEncoding, List<Integer> params) {
+    private static TypeDescriptor numericType(
+            TypeFamily family,
+            String dialectType,
+            TypeEncoding typeEncoding,
+            List<Integer> params) {
         if (params.isEmpty()) {
             return new TypeDescriptor(dialectType, typeEncoding, family);
-        } else if  (params.size() == 1) {
+        } else if (params.size() == 1) {
             return new TypeDescriptor(dialectType, typeEncoding, family, params.get(0), -1);
-        } else if  (params.size() == 2) {
-            return new TypeDescriptor(dialectType, typeEncoding, family, params.get(0), params.get(1));
+        } else if (params.size() == 2) {
+            return new TypeDescriptor(
+                    dialectType, typeEncoding, family, params.get(0), params.get(1));
         } else {
-            throw new IllegalArgumentException("'" + dialectType + "' carries " + params.size()
-                    + " size parameters; a numeric type takes at most two (precision, scale)");
+            throw new IllegalArgumentException(
+                    "'"
+                            + dialectType
+                            + "' carries "
+                            + params.size()
+                            + " size parameters; a numeric type takes at most two (precision, scale)");
         }
     }
 
-    /** Single optional size parameter (char length / temporal fractional-seconds precision) -> precision field. */
-    private static TypeDescriptor sized(TypeFamily family, String dialectType, TypeEncoding typeEncoding, List<Integer> params) {
+    /**
+     * Single optional size parameter (char length / temporal fractional-seconds precision) ->
+     * precision field.
+     */
+    private static TypeDescriptor sized(
+            TypeFamily family,
+            String dialectType,
+            TypeEncoding typeEncoding,
+            List<Integer> params) {
         return params.isEmpty()
                 ? new TypeDescriptor(dialectType, typeEncoding, family)
                 : new TypeDescriptor(dialectType, typeEncoding, family, params.get(0), -1);
     }
 
     /**
-     * The approximate-numeric spellings. All of them are one family — how wide the engine's float is
-     * shows in the value, not in the type KQL reasons about.
+     * The approximate-numeric spellings. All of them are one family — how wide the engine's float
+     * is shows in the value, not in the type KQL reasons about.
      *
-     * <p>{@code DOUBLE PRECISION} and {@code BINARY_DOUBLE} were missing, which is only visible once
-     * a column actually declares family FLOAT: until then no tested schema used it, and PostgreSQL's
-     * and Oracle's own spellings for their 8-byte float were unparseable. The failure was a bare
-     * {@code IllegalArgumentException} with no message — it named neither the type nor the column,
-     * and surfaced as an initializationError with nothing to act on.
+     * <p>{@code DOUBLE PRECISION} and {@code BINARY_DOUBLE} were missing, which is only visible
+     * once a column actually declares family FLOAT: until then no tested schema used it, and
+     * PostgreSQL's and Oracle's own spellings for their 8-byte float were unparseable. The failure
+     * was a bare {@code IllegalArgumentException} with no message — it named neither the type nor
+     * the column, and surfaced as an initializationError with nothing to act on.
      */
     default TypeDescriptor parseFloat(String dialectType, String type, TypeEncoding typeEncoding) {
 
-        for (String known : List.of(TypeNames.TYPE_FLOAT, TypeNames.TYPE_REAL, TypeNames.TYPE_DOUBLE,
-                TypeNames.TYPE_DOUBLE_PRECISION, TypeNames.TYPE_BINARY_DOUBLE,
-                TypeNames.TYPE_BINARY_FLOAT)) {
+        for (String known :
+                List.of(
+                        TypeNames.TYPE_FLOAT,
+                        TypeNames.TYPE_REAL,
+                        TypeNames.TYPE_DOUBLE,
+                        TypeNames.TYPE_DOUBLE_PRECISION,
+                        TypeNames.TYPE_BINARY_DOUBLE,
+                        TypeNames.TYPE_BINARY_FLOAT)) {
             if (type.equalsIgnoreCase(known)) {
                 return new TypeDescriptor(dialectType, typeEncoding, CoreTypeFamily.FLOAT);
             }
         }
-        throw new IllegalArgumentException("'" + dialectType + "' is declared as an approximate "
-                + "numeric, but '" + type + "' is not a float type this parser knows");
+        throw new IllegalArgumentException(
+                "'"
+                        + dialectType
+                        + "' is declared as an approximate "
+                        + "numeric, but '"
+                        + type
+                        + "' is not a float type this parser knows");
     }
 
-    default TypeDescriptor parseInteger(String dialectType, String type, TypeEncoding typeEncoding, List<Integer> params) {
+    default TypeDescriptor parseInteger(
+            String dialectType, String type, TypeEncoding typeEncoding, List<Integer> params) {
 
         if (type.equalsIgnoreCase(TypeNames.TYPE_TINYINT)) {
             return new TypeDescriptor(dialectType, typeEncoding, CoreTypeFamily.INTEGER);
@@ -192,16 +232,18 @@ public interface TypeDescriptorParser {
             return numericType(CoreTypeFamily.INTEGER, dialectType, typeEncoding, params);
         } else if (type.toLowerCase().startsWith("number")) {
             return numericType(CoreTypeFamily.INTEGER, dialectType, typeEncoding, params);
-        }  else {
+        } else {
             throw new IllegalArgumentException(type);
         }
     }
 
-    default TypeDescriptor parseTime(String dialectType, String type, TypeEncoding typeEncoding, List<Integer> params) {
+    default TypeDescriptor parseTime(
+            String dialectType, String type, TypeEncoding typeEncoding, List<Integer> params) {
         return sized(CoreTypeFamily.TIME, dialectType, typeEncoding, params);
     }
 
-    default TypeDescriptor parseInterval(String dialectType, String type, TypeEncoding typeEncoding) {
+    default TypeDescriptor parseInterval(
+            String dialectType, String type, TypeEncoding typeEncoding) {
 
         Matcher matcher = INTERVAL_PATTERN.matcher(dialectType);
 
@@ -223,9 +265,11 @@ public interface TypeDescriptorParser {
             }
 
             if (startUnit.equalsIgnoreCase("YEAR") && endUnit.equalsIgnoreCase("MONTH")) {
-                return new TypeDescriptor(dialectType, typeEncoding, CoreTypeFamily.INTERVAL, precision, scale);
+                return new TypeDescriptor(
+                        dialectType, typeEncoding, CoreTypeFamily.INTERVAL, precision, scale);
             } else if (startUnit.equalsIgnoreCase("DAY") && endUnit.equalsIgnoreCase("SECOND")) {
-                return new TypeDescriptor(dialectType, typeEncoding, CoreTypeFamily.INTERVAL, precision, scale);
+                return new TypeDescriptor(
+                        dialectType, typeEncoding, CoreTypeFamily.INTERVAL, precision, scale);
             } else {
                 throw new IllegalArgumentException(type);
             }
@@ -246,7 +290,8 @@ public interface TypeDescriptorParser {
         }
     }
 
-    default TypeDescriptor parseTimestamp(String dialectType, String type, TypeEncoding typeEncoding, List<Integer> params) {
+    default TypeDescriptor parseTimestamp(
+            String dialectType, String type, TypeEncoding typeEncoding, List<Integer> params) {
 
         // An explicit encoding defines the timestamp semantics; the physical
         // storage type is then free-form metadata (epoch integer, ISO text,
@@ -278,7 +323,8 @@ public interface TypeDescriptorParser {
         return new TypeDescriptor(dialectType, typeEncoding, CoreTypeFamily.UUID);
     }
 
-    default TypeDescriptor parseText(String dialectType, String string, TypeEncoding typeEncoding, List<Integer> params) {
+    default TypeDescriptor parseText(
+            String dialectType, String string, TypeEncoding typeEncoding, List<Integer> params) {
         return sized(CoreTypeFamily.TEXT, dialectType, typeEncoding, params);
     }
 }

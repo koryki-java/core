@@ -44,6 +44,6 @@ public class HeaderInfo implements ColumnInfo {
 
     @Override
     public String toString() {
-       return getHeader();
+        return getHeader();
     }
 }

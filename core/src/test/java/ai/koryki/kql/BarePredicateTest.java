@@ -16,19 +16,18 @@
  */
 package ai.koryki.kql;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import ai.koryki.databases.northwind.duckdb.NorthwindService;
 import ai.koryki.iql.DuckdbBaseDialect;
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.SqlQueryRenderer;
 import ai.koryki.iql.validate.Violation;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
 import java.time.ZoneId;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 /**
  * A boolean expression standing alone as a predicate.
@@ -49,20 +48,23 @@ public class BarePredicateTest {
 
     @Test
     void booleanFunctionIsAPredicate() {
-        assertTrue(sql("FIND customers c FILTER starts_with(c.company_name, 'A') FETCH c.customer_id")
-                .contains("starts_with(c.company_name, 'A')"));
+        assertTrue(
+                sql("FIND customers c FILTER starts_with(c.company_name, 'A') FETCH c.customer_id")
+                        .contains("starts_with(c.company_name, 'A')"));
     }
 
     @Test
     void negatedBooleanFunctionIsAPredicate() {
-        assertTrue(sql("FIND customers c FILTER NOT starts_with(c.company_name, 'A') FETCH c.customer_id")
-                .contains("NOT ("));
+        assertTrue(
+                sql("FIND customers c FILTER NOT starts_with(c.company_name, 'A') FETCH c.customer_id")
+                        .contains("NOT ("));
     }
 
     /** It must still be a *boolean* expression — the grammar cannot tell, only the type can. */
     @Test
     void nonBooleanBarePredicateIsAnError() {
-        List<Violation> v = violations("FIND customers c FILTER c.company_name FETCH c.customer_id");
+        List<Violation> v =
+                violations("FIND customers c FILTER c.company_name FETCH c.customer_id");
         assertFalse(v.isEmpty(), "a TEXT column is not a filter condition");
         assertTrue(v.stream().anyMatch(Violation::isError), v.toString());
         assertTrue(v.get(0).getMessage().contains("yes/no test"), v.get(0).getMessage());
@@ -71,17 +73,22 @@ public class BarePredicateTest {
     /** The operator forms must be untouched by the new alternative. */
     @Test
     void ordinaryComparisonsStillParse() {
-        assertTrue(sql("FIND orders o FILTER o.freight > 100 AND o.ship_city = 'London' FETCH o.order_id")
-                .contains("o.freight > 100"));
+        assertTrue(
+                sql("FIND orders o FILTER o.freight > 100 AND o.ship_city = 'London' FETCH o.order_id")
+                        .contains("o.freight > 100"));
     }
 
     private static String sql(String kql) {
-        return KQLTranspiler.builder(kql, resolver).functions(DuckdbBaseDialect.INSTANCE.getFunctionRenderer())
-                .build().getSql(new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, ZoneId.of("UTC")));
+        return KQLTranspiler.builder(kql, resolver)
+                .functions(DuckdbBaseDialect.INSTANCE.getFunctionRenderer())
+                .build()
+                .getSql(new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, ZoneId.of("UTC")));
     }
 
     private static List<Violation> violations(String kql) {
         return KQLTranspiler.builder(kql, resolver)
-                .functions(DuckdbBaseDialect.INSTANCE.getFunctionRenderer()).build().violations();
+                .functions(DuckdbBaseDialect.INSTANCE.getFunctionRenderer())
+                .build()
+                .violations();
     }
 }

@@ -20,35 +20,36 @@ import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.iql.SqlSelectRenderer;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Declarative rendering for the common case of a dialect function mapping:
- * a SQL string with argument placeholders.
+ * Declarative rendering for the common case of a dialect function mapping: a SQL string with
+ * argument placeholders.
  *
  * <ul>
- *   <li>{@code {0}}, {@code {1}}, … — the n-th argument, rendered</li>
- *   <li>{@code {*}} — all arguments, rendered and comma-joined</li>
- *   <li>{@code {2*}} — arguments from index 2 on, rendered and comma-joined</li>
+ *   <li>{@code {0}}, {@code {1}}, … — the n-th argument, rendered
+ *   <li>{@code {*}} — all arguments, rendered and comma-joined
+ *   <li>{@code {2*}} — arguments from index 2 on, rendered and comma-joined
  * </ul>
  *
- * Examples: {@code POSITION({0} IN {1})}, {@code INSTR({1}, {0})},
- * {@code CAST({0} AS DECIMAL({1}, {2}))}, {@code COALESCE({*})},
- * {@code CURRENT_TIMESTAMP}.
+ * Examples: {@code POSITION({0} IN {1})}, {@code INSTR({1}, {0})}, {@code CAST({0} AS DECIMAL({1},
+ * {2}))}, {@code COALESCE({*})}, {@code CURRENT_TIMESTAMP}.
  *
- * <p>The template is parsed once at construction. Referencing an argument index
- * beyond the call's argument list fails at render time; arity should be guarded
- * by the owning definition's {@link FunctionSignature}.
+ * <p>The template is parsed once at construction. Referencing an argument index beyond the call's
+ * argument list fails at render time; arity should be guarded by the owning definition's {@link
+ * FunctionSignature}.
  */
 public final class SqlTemplate {
 
     /** One parsed template piece: either literal SQL or a placeholder. */
     private sealed interface Segment permits Literal, Arg, Rest {}
+
     private record Literal(String text) implements Segment {}
+
     private record Arg(int index) implements Segment {}
+
     private record Rest(int from) implements Segment {}
 
     private final String template;
@@ -99,7 +100,8 @@ public final class SqlTemplate {
             }
             return new Arg(Integer.parseInt(body));
         } catch (NumberFormatException e) {
-            throw new KorykiaiException("invalid placeholder {" + body + "} in template: " + template);
+            throw new KorykiaiException(
+                    "invalid placeholder {" + body + "} in template: " + template);
         }
     }
 
@@ -112,24 +114,31 @@ public final class SqlTemplate {
                 b.append(l.text());
             } else if (s instanceof Arg a) {
                 if (a.index() >= args.size()) {
-                    throw new KorykiaiException(function.getFunc() + ": template references argument {"
-                            + a.index() + "} but the call has " + args.size() + " arguments");
+                    throw new KorykiaiException(
+                            function.getFunc()
+                                    + ": template references argument {"
+                                    + a.index()
+                                    + "} but the call has "
+                                    + args.size()
+                                    + " arguments");
                 }
                 b.append(renderer.toSql(args.get(a.index()), indent));
             } else if (s instanceof Rest r) {
-                b.append(args.stream().skip(r.from())
-                        .map(e -> renderer.toSql(e, indent))
-                        .collect(Collectors.joining(", ")));
+                b.append(
+                        args.stream()
+                                .skip(r.from())
+                                .map(e -> renderer.toSql(e, indent))
+                                .collect(Collectors.joining(", ")));
             }
         }
         return b.toString();
     }
 
     /**
-     * Fills the placeholders with already-rendered argument strings. Used to
-     * drive operator rendering from a definition's template while the operands
-     * are rendered upstream (e.g. through comparison encoding reconciliation),
-     * rather than via {@link #render} which renders the arguments itself.
+     * Fills the placeholders with already-rendered argument strings. Used to drive operator
+     * rendering from a definition's template while the operands are rendered upstream (e.g. through
+     * comparison encoding reconciliation), rather than via {@link #render} which renders the
+     * arguments itself.
      */
     public String fill(List<String> args) {
         requireNoSurplus(args.size(), null);
@@ -139,12 +148,20 @@ public final class SqlTemplate {
                 b.append(l.text());
             } else if (s instanceof Arg a) {
                 if (a.index() >= args.size()) {
-                    throw new KorykiaiException("template " + template + " references argument {"
-                            + a.index() + "} but only " + args.size() + " were provided");
+                    throw new KorykiaiException(
+                            "template "
+                                    + template
+                                    + " references argument {"
+                                    + a.index()
+                                    + "} but only "
+                                    + args.size()
+                                    + " were provided");
                 }
                 b.append(args.get(a.index()));
             } else if (s instanceof Rest r) {
-                b.append(String.join(", ", args.subList(Math.min(r.from(), args.size()), args.size())));
+                b.append(
+                        String.join(
+                                ", ", args.subList(Math.min(r.from(), args.size()), args.size())));
             }
         }
         return b.toString();
@@ -171,17 +188,22 @@ public final class SqlTemplate {
             }
         }
         if (provided > referenced) {
-            throw new KorykiaiException((function != null ? function + ": " : "")
-                    + "template " + template + " references " + referenced
-                    + " argument(s) but the call has " + provided + " — the surplus would be"
-                    + " dropped without a trace");
+            throw new KorykiaiException(
+                    (function != null ? function + ": " : "")
+                            + "template "
+                            + template
+                            + " references "
+                            + referenced
+                            + " argument(s) but the call has "
+                            + provided
+                            + " — the surplus would be"
+                            + " dropped without a trace");
         }
     }
 
     /**
-     * Renders the template with symbolic argument names instead of real
-     * expressions — used by the documentation generator to show a dialect's
-     * rendering without needing a live renderer.
+     * Renders the template with symbolic argument names instead of real expressions — used by the
+     * documentation generator to show a dialect's rendering without needing a live renderer.
      */
     public String preview(List<String> argNames) {
         StringBuilder b = new StringBuilder();
@@ -191,7 +213,11 @@ public final class SqlTemplate {
             } else if (s instanceof Arg a) {
                 b.append(a.index() < argNames.size() ? argNames.get(a.index()) : "arg" + a.index());
             } else if (s instanceof Rest r) {
-                b.append(String.join(", ", argNames.subList(Math.min(r.from(), argNames.size()), argNames.size())));
+                b.append(
+                        String.join(
+                                ", ",
+                                argNames.subList(
+                                        Math.min(r.from(), argNames.size()), argNames.size())));
             }
         }
         return b.toString();

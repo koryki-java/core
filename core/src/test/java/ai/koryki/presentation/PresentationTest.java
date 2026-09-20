@@ -16,23 +16,23 @@
  */
 package ai.koryki.presentation;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.Test;
 
 /**
  * What a presentation is and how it renders — the half of the question that needs no query.
  *
- * <p>Who <em>concludes</em> which presentation a column gets is the job of {@code ai.koryki.derivation},
- * and its tests live in that project. What stays here is what this package owns on its own: that a
- * presentation survives the trip through its own name, and that each one renders what it promises.
+ * <p>Who <em>concludes</em> which presentation a column gets is the job of {@code
+ * ai.koryki.derivation}, and its tests live in that project. What stays here is what this package
+ * owns on its own: that a presentation survives the trip through its own name, and that each one
+ * renders what it promises.
  *
  * <p>The round trip is the load-bearing one. It is the promise the catalog annotation rests on —
  * without it, {@code "presentation": "DECIMALS:2"} in a {@code db.json} is a string nobody checks.
@@ -43,9 +43,14 @@ public class PresentationTest {
 
     @Test
     void everyPresentationRoundTripsThroughItsName() {
-        for (Presentation p : List.of(new DecimalsPresentation(0), new DecimalsPresentation(2),
-                new SignificantPresentation(3), new SignificantPresentation(4),
-                new ScalePresentation(1_000_000L, "M"), PlainPresentation.INSTANCE)) {
+        for (Presentation p :
+                List.of(
+                        new DecimalsPresentation(0),
+                        new DecimalsPresentation(2),
+                        new SignificantPresentation(3),
+                        new SignificantPresentation(4),
+                        new ScalePresentation(1_000_000L, "M"),
+                        PlainPresentation.INSTANCE)) {
             assertEquals(p, PresentationRegistry.ofNullable(p.name()), p.name());
         }
     }
@@ -53,7 +58,9 @@ public class PresentationTest {
     /** An unknown name is an error, not a silent null: a typo must not read as "none wanted". */
     @Test
     void anUnknownNameIsRejected() {
-        assertThrows(IllegalArgumentException.class, () -> PresentationRegistry.ofNullable("NONSENSE:9"));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> PresentationRegistry.ofNullable("NONSENSE:9"));
         assertNull(PresentationRegistry.ofNullable(null));
     }
 

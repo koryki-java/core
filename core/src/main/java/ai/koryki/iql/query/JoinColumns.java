@@ -19,8 +19,8 @@ package ai.koryki.iql.query;
 import java.util.List;
 
 /**
- * The columns an explicitly written join compares, as two ordered lists of equal length:
- * {@code left.get(i)} is matched against {@code right.get(i)}.
+ * The columns an explicitly written join compares, as two ordered lists of equal length: {@code
+ * left.get(i)} is matched against {@code right.get(i)}.
  *
  * <p>This is the alternative to a named criterion ({@code VIA name}), which the catalog resolves to
  * exactly such a pair of lists — {@code Relation.startColumns} and {@code endColumns}. A join
@@ -41,8 +41,12 @@ public record JoinColumns(List<String> left, List<String> right) {
             throw new IllegalArgumentException("join columns: both sides are required");
         }
         if (left.size() != right.size()) {
-            throw new IllegalArgumentException("join columns: " + left.size() + " on the left but "
-                    + right.size() + " on the right — every column needs its counterpart");
+            throw new IllegalArgumentException(
+                    "join columns: "
+                            + left.size()
+                            + " on the left but "
+                            + right.size()
+                            + " on the right — every column needs its counterpart");
         }
         if (left.isEmpty()) {
             throw new IllegalArgumentException("join columns: at least one column is required");

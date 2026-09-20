@@ -24,12 +24,12 @@ import java.time.temporal.ChronoUnit;
  * and {@code 1d} against {@code 25h} have no answer that does not depend on <em>which</em> month or
  * <em>which</em> day.
  *
- * <p>Shared deliberately. Two places need this same judgement and must not drift apart:
- * {@code FunctionValidator.checkIntervalComparison}, which rejects ordering across classes, and
- * {@link EncodingLattice}, which may only scale one unit into another <em>within</em> a class.
- * The lattice case is the subtle one — {@code DAYS} to {@code HOURS} is an exact ×24 by
- * {@link ChronoUnit#getDuration()} and would look perfectly convertible on the arithmetic alone,
- * while being exactly the conversion the validator forbids.
+ * <p>Shared deliberately. Two places need this same judgement and must not drift apart: {@code
+ * FunctionValidator.checkIntervalComparison}, which rejects ordering across classes, and {@link
+ * EncodingLattice}, which may only scale one unit into another <em>within</em> a class. The lattice
+ * case is the subtle one — {@code DAYS} to {@code HOURS} is an exact ×24 by {@link
+ * ChronoUnit#getDuration()} and would look perfectly convertible on the arithmetic alone, while
+ * being exactly the conversion the validator forbids.
  */
 public enum IntervalUnitClass {
 
@@ -47,7 +47,7 @@ public enum IntervalUnitClass {
         return switch (unit) {
             case YEARS, MONTHS -> MONTH;
             case WEEKS, DAYS -> DAY;
-            default -> CLOCK;               // HOURS .. NANOS
+            default -> CLOCK; // HOURS .. NANOS
         };
     }
 }

@@ -20,17 +20,18 @@ import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.iql.SqlSelectRenderer;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
 
 /**
  * The COALESCE-family conditional: <em>every</em> operand is a value branch, all reconciled to one
- * output type ({@link ConditionalReconciler}) and rendered wrapped in its reconciliation conversion.
- * Renders via the definition's template ({@code COALESCE({*})}) or the default {@code name(args)} form.
+ * output type ({@link ConditionalReconciler}) and rendered wrapped in its reconciliation
+ * conversion. Renders via the definition's template ({@code COALESCE({*})}) or the default {@code
+ * name(args)} form.
  */
-public class ConditionalFunctionDefinition extends FunctionDefinition implements BranchedConditional {
+public class ConditionalFunctionDefinition extends FunctionDefinition
+        implements BranchedConditional {
 
     public ConditionalFunctionDefinition(String name) {
         super(name, ReturnTypes.RECONCILE);
@@ -52,7 +53,9 @@ public class ConditionalFunctionDefinition extends FunctionDefinition implements
 
         List<String> rendered = new ArrayList<>(args.size());
         for (int i = 0; i < args.size(); i++) {
-            rendered.add(ConditionalReconciler.convert(renderer, result, i, renderer.toSql(args.get(i), indent)));
+            rendered.add(
+                    ConditionalReconciler.convert(
+                            renderer, result, i, renderer.toSql(args.get(i), indent)));
         }
 
         return getTemplate() != null

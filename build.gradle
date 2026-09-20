@@ -1,3 +1,9 @@
+// apply false: only put on the classpath here, so every subproject applies the same resolved
+// version instead of each re-declaring it (and risking a different one).
+plugins {
+    alias(libs.plugins.spotless) apply false
+}
+
 rootProject.allprojects {
 
     version = rootProject.version
@@ -81,6 +87,23 @@ rootProject.allprojects {
         java {
             toolchain {
                 languageVersion = JavaLanguageVersion.of(javaVersion)
+            }
+        }
+    }
+
+    // AOSP variant (4-space indent) to match this codebase's existing style, rather than
+    // google-java-format's 2-space default. `check` depends on spotlessCheck automatically.
+    //
+    // target is explicit rather than left to Spotless's default (every dir in the source set):
+    // core and kqlcore add generated ANTLR output under build/generated-src as a source dir, and
+    // that directory does not exist until the antlr task has run -- formatting it is both wasted
+    // work and, before generation, a target that resolves to nothing.
+    pluginManager.withPlugin('java') {
+        apply plugin: 'com.diffplug.spotless'
+        spotless {
+            java {
+                target 'src/**/*.java'
+                googleJavaFormat(libs.versions.google.java.format.get()).aosp()
             }
         }
     }

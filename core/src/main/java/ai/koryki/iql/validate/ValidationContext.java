@@ -19,9 +19,8 @@ package ai.koryki.iql.validate;
 import ai.koryki.iql.IQLVisibilityContext;
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.functions.FunctionCatalog;
-import org.antlr.v4.runtime.RuleContext;
-
 import java.util.Map;
+import org.antlr.v4.runtime.RuleContext;
 
 /**
  * What a validator needs to judge a query — handed to {@code SqlDialect#validators} so a dialect's
@@ -29,17 +28,17 @@ import java.util.Map;
  *
  * <p>Only {@code iqlToContext} used to be passed, which is enough to <em>position</em> a violation
  * but not to <em>find</em> one: any rule about a column's type could not be written at all. That is
- * why SQLite's inability to read a wall-clock(zone) column stayed a render-time
- * {@code KorykiaiException} with no position while the comparable function-level cases
- * ({@code at_zone}, {@code to_utc}) became declared violations.
+ * why SQLite's inability to read a wall-clock(zone) column stayed a render-time {@code
+ * KorykiaiException} with no position while the comparable function-level cases ({@code at_zone},
+ * {@code to_utc}) became declared violations.
  *
  * @param iqlToContext model node → parser context, so a violation can point at the source
- * @param resolver     schema and model, for resolving a field to its column and type
- * @param visibility   alias scopes, so a field resolves in the scope that binds it
- * @param functions    the dialect's catalog, which type inference consults for call results
+ * @param resolver schema and model, for resolving a field to its column and type
+ * @param visibility alias scopes, so a field resolves in the scope that binds it
+ * @param functions the dialect's catalog, which type inference consults for call results
  */
-public record ValidationContext(Map<Object, RuleContext> iqlToContext,
-                                LinkResolver resolver,
-                                IQLVisibilityContext visibility,
-                                FunctionCatalog functions) {
-}
+public record ValidationContext(
+        Map<Object, RuleContext> iqlToContext,
+        LinkResolver resolver,
+        IQLVisibilityContext visibility,
+        FunctionCatalog functions) {}

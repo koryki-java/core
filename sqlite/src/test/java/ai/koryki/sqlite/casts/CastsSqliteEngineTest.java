@@ -24,11 +24,10 @@ import ai.koryki.kql.EngineBuilder;
 import ai.koryki.kql.HeaderInfo;
 import ai.koryki.sqlite.iql.SqlQueryRenderer;
 import ai.koryki.sqlite.northwind.NorthwindSqlite;
-import org.junit.jupiter.api.BeforeAll;
-
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Locale;
+import org.junit.jupiter.api.BeforeAll;
 
 /**
  * The casts corpus on SQLite. It ran on DuckDB alone, which is how {@code to_integer(4.5)} could
@@ -49,7 +48,12 @@ public class CastsSqliteEngineTest extends BaseEngineTest<HeaderInfo> {
 
     @BeforeAll
     public void setup() throws IOException, SQLException {
-        engine = EngineBuilder.headers(NorthwindSqlite.<ListWithSqlResult<HeaderInfo>>northwind(), NorthwindService.resolver(),
-                new SqlQueryRenderer(java.time.ZoneId.of("UTC"))).valueFormat(new StableFormat(Locale.ROOT)).build();
+        engine =
+                EngineBuilder.headers(
+                                NorthwindSqlite.<ListWithSqlResult<HeaderInfo>>northwind(),
+                                NorthwindService.resolver(),
+                                new SqlQueryRenderer(java.time.ZoneId.of("UTC")))
+                        .valueFormat(new StableFormat(Locale.ROOT))
+                        .build();
     }
 }

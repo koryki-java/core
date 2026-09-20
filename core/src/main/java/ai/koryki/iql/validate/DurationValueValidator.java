@@ -17,36 +17,35 @@
 package ai.koryki.iql.validate;
 
 import ai.koryki.antlr.Range;
+import ai.koryki.catalog.types.CoreTypeEncoding;
+import ai.koryki.catalog.types.TypeDescriptor;
+import ai.koryki.catalog.types.TypeEncoding;
 import ai.koryki.iql.Collector;
 import ai.koryki.iql.SqlDialect;
 import ai.koryki.iql.Visitor;
 import ai.koryki.iql.functions.MathOp;
-import ai.koryki.catalog.types.CoreTypeEncoding;
-import ai.koryki.catalog.types.TypeDescriptor;
-import ai.koryki.catalog.types.TypeEncoding;
-import ai.koryki.iql.typing.ExpressionTypeResolver;
 import ai.koryki.iql.query.Duration;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
-import org.antlr.v4.runtime.RuleContext;
-
+import ai.koryki.iql.typing.ExpressionTypeResolver;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
+import org.antlr.v4.runtime.RuleContext;
 
 /**
  * Reports a duration the engine cannot represent <em>as a value</em>, according to what the dialect
  * declares in {@link SqlDialect#intervalSupport()}.
  *
- * <p>Only the value path is at stake. In arithmetic no interval is ever built: {@code date + 1y2mo1d}
- * expands into chained per-unit steps, which is why that form works on every engine. The two paths
- * are told apart structurally, without type resolution — a duration that is an operand of
+ * <p>Only the value path is at stake. In arithmetic no interval is ever built: {@code date +
+ * 1y2mo1d} expands into chained per-unit steps, which is why that form works on every engine. The
+ * two paths are told apart structurally, without type resolution — a duration that is an operand of
  * {@code +}/{@code −} alongside something that is not itself a duration is on the arithmetic path.
  *
- * <p>Why this is a validator and not a render-time exception: the default
- * {@link SqlDialect#durationLiteral} happily emits {@code INTERVAL '1' HOUR + INTERVAL '2' MINUTE},
- * and MariaDB, SQL Server and SQLite — which have no interval type at all — inherited it. They
+ * <p>Why this is a validator and not a render-time exception: the default {@link
+ * SqlDialect#durationLiteral} happily emits {@code INTERVAL '1' HOUR + INTERVAL '2' MINUTE}, and
+ * MariaDB, SQL Server and SQLite — which have no interval type at all — inherited it. They
  * therefore produced SQL that only the database rejected, at a point with no position to report and
  * nothing in the catalog predicting it. Nine fixtures carried a hand-written {@code ignore=} marker
  * for that, which also suppressed their SQL check. Trino and Oracle failed the same way one step
@@ -68,7 +67,8 @@ public class DurationValueValidator implements Visitor, Collector<List<Violation
      * alias belongs to the select it was written in, and {@code ExpressionTypeResolver} then trips
      * over a null source. {@code FunctionValidator} keeps the same stack for the same reason.
      */
-    private final java.util.Deque<ai.koryki.iql.IQLVisibilityContext> scopes = new java.util.ArrayDeque<>();
+    private final java.util.Deque<ai.koryki.iql.IQLVisibilityContext> scopes =
+            new java.util.ArrayDeque<>();
 
     @Override
     public boolean visit(Deque<Object> deque, ai.koryki.iql.query.Select select) {
@@ -92,10 +92,10 @@ public class DurationValueValidator implements Visitor, Collector<List<Violation
     /**
      * On a {@code SPLIT} engine, comparing the two interval families with each other.
      *
-     * <p>Oracle stores {@code INTERVAL YEAR TO MONTH} and {@code INTERVAL DAY TO SECOND} as separate
-     * types with no conversion between them, so {@code c.interval_year_month > 1h2min3s} is not a
-     * value it can answer -- it raises ORA-00932. Every dialect with a single interval type answers
-     * it, which is why this is declared per dialect rather than rejected outright.
+     * <p>Oracle stores {@code INTERVAL YEAR TO MONTH} and {@code INTERVAL DAY TO SECOND} as
+     * separate types with no conversion between them, so {@code c.interval_year_month > 1h2min3s}
+     * is not a value it can answer -- it raises ORA-00932. Every dialect with a single interval
+     * type answers it, which is why this is declared per dialect rather than rejected outright.
      *
      * <p>Which family a column belongs to is read from its {@code typeEncoding}, not from the text
      * of its dialect type: {@code INTERVAL_YEAR_MONTH} and {@code INTERVAL_DAY_SECOND} exist for
@@ -104,9 +104,11 @@ public class DurationValueValidator implements Visitor, Collector<List<Violation
      * above has already said so.
      */
     @Override
-    public boolean visit(Deque<Object> deque, ai.koryki.iql.query.UnaryLogicalExpression comparison) {
+    public boolean visit(
+            Deque<Object> deque, ai.koryki.iql.query.UnaryLogicalExpression comparison) {
         if (support != SqlDialect.IntervalSupport.SPLIT
-                || comparison.getOp() == null || comparison.getRight().isEmpty()) {
+                || comparison.getOp() == null
+                || comparison.getRight().isEmpty()) {
             return true;
         }
         List<Expression> operands = new ArrayList<>();
@@ -119,8 +121,8 @@ public class DurationValueValidator implements Visitor, Collector<List<Violation
         if (scopes.isEmpty()) {
             return true;
         }
-        ExpressionTypeResolver types = new ExpressionTypeResolver(
-                context.resolver(), scopes.peek(), context.functions());
+        ExpressionTypeResolver types =
+                new ExpressionTypeResolver(context.resolver(), scopes.peek(), context.functions());
         for (Expression e : operands) {
             if (e == null) {
                 continue;
@@ -138,16 +140,22 @@ public class DurationValueValidator implements Visitor, Collector<List<Violation
         if (duration == null || column == null || isMixed(duration)) {
             return true;
         }
-        boolean durationIsCalendar = duration.getComponents().stream().allMatch(c -> isCalendar(c.unit()));
+        boolean durationIsCalendar =
+                duration.getComponents().stream().allMatch(c -> isCalendar(c.unit()));
         boolean columnIsCalendar = CoreTypeEncoding.INTERVAL_YEAR_MONTH.equals(column);
         if (durationIsCalendar != columnIsCalendar) {
-            violations.add(new Violation(Violation.UNSUPPORTED, durationOperand,
-                    Range.of(iqlToContext, durationOperand),
-                    "duration '" + duration + "' is a "
-                            + (durationIsCalendar ? "YEAR TO MONTH" : "DAY TO SECOND")
-                            + " amount and the other side is "
-                            + (columnIsCalendar ? "YEAR TO MONTH" : "DAY TO SECOND")
-                            + " — this dialect keeps the two interval types apart and cannot compare them"));
+            violations.add(
+                    new Violation(
+                            Violation.UNSUPPORTED,
+                            durationOperand,
+                            Range.of(iqlToContext, durationOperand),
+                            "duration '"
+                                    + duration
+                                    + "' is a "
+                                    + (durationIsCalendar ? "YEAR TO MONTH" : "DAY TO SECOND")
+                                    + " amount and the other side is "
+                                    + (columnIsCalendar ? "YEAR TO MONTH" : "DAY TO SECOND")
+                                    + " — this dialect keeps the two interval types apart and cannot compare them"));
         }
         return true;
     }
@@ -157,11 +165,13 @@ public class DurationValueValidator implements Visitor, Collector<List<Violation
         try {
             TypeDescriptor t = types.resolve(e);
             TypeEncoding enc = t != null ? t.getTypeEncoding() : null;
-            if (CoreTypeEncoding.INTERVAL_YEAR_MONTH.equals(enc) || CoreTypeEncoding.INTERVAL_DAY_SECOND.equals(enc)) {
+            if (CoreTypeEncoding.INTERVAL_YEAR_MONTH.equals(enc)
+                    || CoreTypeEncoding.INTERVAL_DAY_SECOND.equals(enc)) {
                 return (CoreTypeEncoding) enc;
             }
         } catch (RuntimeException ignored) {
-            // An operand that cannot be typed is not this rule's business; the schema check reports it.
+            // An operand that cannot be typed is not this rule's business; the schema check reports
+            // it.
         }
         return null;
     }
@@ -178,20 +188,30 @@ public class DurationValueValidator implements Visitor, Collector<List<Violation
         if (inTemporalArithmetic(deque, expression)) {
             return true;
         }
-        violations.add(new Violation(Violation.UNSUPPORTED, expression,
-                Range.of(iqlToContext, expression), message(duration)));
+        violations.add(
+                new Violation(
+                        Violation.UNSUPPORTED,
+                        expression,
+                        Range.of(iqlToContext, expression),
+                        message(duration)));
         return true;
     }
 
     private String message(Duration duration) {
         String tail = " Adding it to a date works; using it as a value does not";
         if (support == SqlDialect.IntervalSupport.NONE) {
-            return "duration '" + duration + "' cannot be a value on this dialect — it has no "
-                    + "interval type." + tail;
+            return "duration '"
+                    + duration
+                    + "' cannot be a value on this dialect — it has no "
+                    + "interval type."
+                    + tail;
         }
-        return "duration '" + duration + "' mixes calendar units (y, q, mo) with clock units, and "
+        return "duration '"
+                + duration
+                + "' mixes calendar units (y, q, mo) with clock units, and "
                 + "this dialect keeps YEAR TO MONTH and DAY TO SECOND apart with no type spanning "
-                + "both." + tail;
+                + "both."
+                + tail;
     }
 
     private static boolean isMixed(Duration duration) {
@@ -202,7 +222,9 @@ public class DurationValueValidator implements Visitor, Collector<List<Violation
 
     /** YEAR/QUARTAL/MONTH are the year-month family; everything from WEEK down is day-to-second. */
     private static boolean isCalendar(Duration.Unit unit) {
-        return unit == Duration.Unit.YEAR || unit == Duration.Unit.QUARTAL || unit == Duration.Unit.MONTH;
+        return unit == Duration.Unit.YEAR
+                || unit == Duration.Unit.QUARTAL
+                || unit == Duration.Unit.MONTH;
     }
 
     /**
@@ -218,7 +240,8 @@ public class DurationValueValidator implements Visitor, Collector<List<Violation
             if (!(ancestor instanceof Function fn)) {
                 return false;
             }
-            if (!MathOp.add.name().equals(fn.getFunc()) && !MathOp.minus.name().equals(fn.getFunc())) {
+            if (!MathOp.add.name().equals(fn.getFunc())
+                    && !MathOp.minus.name().equals(fn.getFunc())) {
                 return false;
             }
             return fn.getArguments().stream().anyMatch(a -> a != self && a.getDuration() == null);

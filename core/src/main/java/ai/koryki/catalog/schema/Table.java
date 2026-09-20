@@ -28,19 +28,19 @@ public class Table {
     private String description;
     private List<Column> columns;
 
-    public Table()  {
+    public Table() {
         this(null, null, null, new ArrayList<>());
     }
 
-    public Table(String name)  {
+    public Table(String name) {
         this(name, null, null, new ArrayList<>());
     }
 
-    public Table(String name, String comment, String description)  {
+    public Table(String name, String comment, String description) {
         this(name, comment, description, new ArrayList<>());
     }
 
-    public Table(String name, String comment, String description, List<Column> columns)  {
+    public Table(String name, String comment, String description, List<Column> columns) {
         this.name = name;
         this.comment = comment;
         this.description = description;
@@ -94,6 +94,4 @@ public class Table {
     public void setLabel(String label) {
         this.label = label;
     }
-
-
 }

@@ -16,25 +16,25 @@
  */
 package ai.koryki.kql;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import ai.koryki.databases.northwind.duckdb.NorthwindService;
 import ai.koryki.iql.DuckdbBaseDialect;
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.SqlQueryRenderer;
 import ai.koryki.iql.validate.Violation;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
 import java.time.ZoneId;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 /**
  * Window-only functions — the ones that answer "where does this row sit among those rows".
  *
  * <p>The grammar already allowed {@code OVER (…)} on any call and the renderer already emitted it;
- * what was missing was the functions themselves and a kind that says they cannot be used without it.
+ * what was missing was the functions themselves and a kind that says they cannot be used without
+ * it.
  */
 public class WindowFunctionTest {
 
@@ -54,14 +54,17 @@ public class WindowFunctionTest {
 
     @Test
     void lagTakesTheValueFromAnEarlierRow() {
-        assertTrue(sql("FIND orders o FETCH o.order_id, lag(o.freight) OVER (ORDER o.order_date) prev")
-                .contains("lag(o.freight) OVER ( ORDER BY o.order_date)"));
+        assertTrue(
+                sql("FIND orders o FETCH o.order_id, lag(o.freight) OVER (ORDER o.order_date) prev")
+                        .contains("lag(o.freight) OVER ( ORDER BY o.order_date)"));
     }
 
     @Test
     void partitionAndOrderBothRender() {
-        String sql = sql("FIND orders o FETCH o.order_id, "
-                + "row_number() OVER (PARTITION o.ship_country ORDER o.freight) n");
+        String sql =
+                sql(
+                        "FIND orders o FETCH o.order_id, "
+                                + "row_number() OVER (PARTITION o.ship_country ORDER o.freight) n");
         assertTrue(sql.contains("PARTITION BY o.ship_country"), sql);
         assertTrue(sql.contains("ORDER BY o.freight"), sql);
     }
@@ -77,10 +80,16 @@ public class WindowFunctionTest {
     /** A rank with nothing to rank by is arbitrary; row_number is deliberately exempt. */
     @Test
     void rankWithoutOrderIsAnError() {
-        assertTrue(violations("FIND orders o FETCH o.order_id, rank() OVER (PARTITION o.ship_country) r")
-                .stream().anyMatch(Violation::isError));
-        assertTrue(violations("FIND orders o FETCH o.order_id, row_number() OVER (PARTITION o.ship_country) n")
-                .isEmpty(), "numbering an unordered partition is legitimate");
+        assertTrue(
+                violations(
+                                "FIND orders o FETCH o.order_id, rank() OVER (PARTITION o.ship_country) r")
+                        .stream()
+                        .anyMatch(Violation::isError));
+        assertTrue(
+                violations(
+                                "FIND orders o FETCH o.order_id, row_number() OVER (PARTITION o.ship_country) n")
+                        .isEmpty(),
+                "numbering an unordered partition is legitimate");
     }
 
     /**
@@ -89,17 +98,22 @@ public class WindowFunctionTest {
      */
     @Test
     void windowFunctionDoesNotTriggerGroupBy() {
-        assertFalse(sql("FIND orders o FETCH o.order_id, rank() OVER (ORDER o.freight) r")
-                .contains("GROUP BY"));
+        assertFalse(
+                sql("FIND orders o FETCH o.order_id, rank() OVER (ORDER o.freight) r")
+                        .contains("GROUP BY"));
     }
 
     private static String sql(String kql) {
-        return KQLTranspiler.builder(kql, resolver).functions(DuckdbBaseDialect.INSTANCE.getFunctionRenderer())
-                .build().getSql(new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, ZoneId.of("UTC")));
+        return KQLTranspiler.builder(kql, resolver)
+                .functions(DuckdbBaseDialect.INSTANCE.getFunctionRenderer())
+                .build()
+                .getSql(new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, ZoneId.of("UTC")));
     }
 
     private static List<Violation> violations(String kql) {
         return KQLTranspiler.builder(kql, resolver)
-                .functions(DuckdbBaseDialect.INSTANCE.getFunctionRenderer()).build().violations();
+                .functions(DuckdbBaseDialect.INSTANCE.getFunctionRenderer())
+                .build()
+                .violations();
     }
 }

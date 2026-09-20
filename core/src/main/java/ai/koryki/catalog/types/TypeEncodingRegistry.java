@@ -36,7 +36,8 @@ public final class TypeEncodingRegistry {
     }
 
     public static TypeEncoding ofNullable(String name) {
-        // An absent encoding (null) or the explicit family-native marker ("NATIVE") both resolve to the
+        // An absent encoding (null) or the explicit family-native marker ("NATIVE") both resolve to
+        // the
         // per-family NATIVE encoding. The family is not known here, so return null and let the
         // TypeDescriptor constructor fill NATIVE from the column's family.
         if (name == null || NativeEncoding.NAME.equals(name)) return null;
@@ -51,7 +52,11 @@ public final class TypeEncodingRegistry {
         return enc;
     }
 
-    /** Prefix-parameterized encodings: {@code DATE_WALLCLOCK:<zone>}/{@code TIMESTAMP_WALLCLOCK:<zone>}, {@code EPOCH:<unit>}, {@code DURATION:<unit>}, {@code SCALED:<scale>}. */
+    /**
+     * Prefix-parameterized encodings: {@code DATE_WALLCLOCK:<zone>}/{@code
+     * TIMESTAMP_WALLCLOCK:<zone>}, {@code EPOCH:<unit>}, {@code DURATION:<unit>}, {@code
+     * SCALED:<scale>}.
+     */
     private static TypeEncoding parseParameterized(String name) {
         if (WallClockEncoding.matches(name)) {
             return WallClockEncoding.parse(name);
@@ -59,7 +64,8 @@ public final class TypeEncodingRegistry {
         if (name.startsWith(EpochTypeEncoding.PREFIX)) {
             return EpochTypeEncoding.parse(name);
         }
-        if (name.startsWith(IntervalStringEncoding.PREFIX)) {   // "INTERVAL_FROM_STRING:" before "INTERVAL:"
+        if (name.startsWith(
+                IntervalStringEncoding.PREFIX)) { // "INTERVAL_FROM_STRING:" before "INTERVAL:"
             return IntervalStringEncoding.parse(name);
         }
         if (name.startsWith(IntervalTypeEncoding.PREFIX)) {

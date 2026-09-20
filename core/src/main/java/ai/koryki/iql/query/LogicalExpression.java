@@ -18,7 +18,6 @@ package ai.koryki.iql.query;
 
 import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.iql.logic.NodeType;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -90,16 +89,24 @@ public class LogicalExpression {
         if (type == NodeType.VAR) {
             return unary.toString();
         }
-        if (type == NodeType.NOT){
+        if (type == NodeType.NOT) {
             return "NOT(" + children.get(0) + ")";
         }
         String op = type.toString();
-        return op + "(" + String.join(", ", children.stream().map(LogicalExpression::toString).collect(Collectors.toList())) + ")";
+        return op
+                + "("
+                + String.join(
+                        ", ",
+                        children.stream()
+                                .map(LogicalExpression::toString)
+                                .collect(Collectors.toList()))
+                + ")";
     }
 
     public void add(NodeType type, LogicalExpression child) {
         if (!this.type.equals(type)) {
-            throw new IllegalArgumentException("invalid type, expected: " + this.type + " actual: " + type);
+            throw new IllegalArgumentException(
+                    "invalid type, expected: " + this.type + " actual: " + type);
         }
         children.add(child);
     }
@@ -117,10 +124,9 @@ public class LogicalExpression {
     }
 
     /**
-     * The operator that will actually render. A normalized AND/OR carrying a single child
-     * is a transparent wrapper — it emits no keyword — so every precedence decision
-     * (whether a child needs grouping parens) has to look through it rather than at
-     * {@link #getType()}.
+     * The operator that will actually render. A normalized AND/OR carrying a single child is a
+     * transparent wrapper — it emits no keyword — so every precedence decision (whether a child
+     * needs grouping parens) has to look through it rather than at {@link #getType()}.
      */
     public NodeType effectiveType() {
         LogicalExpression e = this;
@@ -133,9 +139,11 @@ public class LogicalExpression {
     public boolean isBinary() {
         return type.isBinary();
     }
+
     public boolean isValue() {
         return type.isValue();
     }
+
     public boolean isNot() {
         return type.isNot();
     }
