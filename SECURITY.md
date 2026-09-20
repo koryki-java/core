@@ -49,7 +49,8 @@ This repository publishes a Java library that turns KQL and IQL into SQL and run
 - **Rendered SQL that reaches beyond the query.** A query, catalog or identifier that makes the
   transpiler emit SQL doing something the query did not ask for — injection through an identifier,
   a literal, a type or a catalog name — is the worst thing this project can get wrong. If you have
-  an input that escapes the rendering, that is the report to send.
+  an input that escapes the rendering, that is the report to send. [`docs/INJECTION.md`](./docs/INJECTION.md)
+  names every path text can take into the rendered SQL and the barrier that stops it at each one.
 - **Catalog and query handling.** A crafted `db.json`, `model.json` or query that makes the loader
   read or write outside its resources, or that exhausts memory or time out of proportion to its
   size.

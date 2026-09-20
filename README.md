@@ -95,6 +95,7 @@ dependencies {
 - Package [`ai.koryki.catalog`](./docs/SCAFFOLD.md "package ai.koryki.catalog") – Database schema description and semantic layer — see also [`Semantic Layer`](./docs/SEMANTIC_LAYER.md "Semantic Layer")
 
 - [`KQL-Grammar definition`](./kqlcore/src/main/antlr/ai/koryki/kql/KQLParser.g4 "KQL grammar")
+- [`SQL Injection`](./docs/INJECTION.md "injection paths, barriers and hardening strategy") – how author-controlled text reaches the rendered SQL, and what stops it
 
 
 ## Building & Testing

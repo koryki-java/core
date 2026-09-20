@@ -58,8 +58,8 @@ public class LiteralInjectionTest {
 
         assertTrue(sql.contains("'O''Brien'"), sql);
         // A backslash escape is KQL's spelling, not SQL's. Left in place it would close the literal
-        // early on every engine that does not read backslashes — and open it on MariaDB, which
-        // does.
+        // early on the six engines that do not read backslashes — and open one on MariaDB and
+        // Snowflake, which do.
         assertFalse(sql.contains("\\'"), "a KQL backslash escape reached the SQL:\n" + sql);
     }
 
@@ -142,13 +142,14 @@ public class LiteralInjectionTest {
      * into a way out on an engine that reads backslashes.
      *
      * <p>The KQL {@code 'x\\' OR 1=1 -- '} is a literal whose value is {@code x\' OR 1=1 -- }, and
-     * it renders as {@code 'x\'' OR 1=1 -- '}. On DuckDB, PostgreSQL, Oracle, Snowflake, SQLite,
-     * Trino and SQL Server that is one literal: a backslash is an ordinary character there, so the
-     * {@code ''} is an escaped quote and the closing quote is the last one. On MySQL and MariaDB it
+     * it renders as {@code 'x\'' OR 1=1 -- '}. On DuckDB, PostgreSQL, Oracle, SQLite, Trino and SQL
+     * Server that is one literal: a backslash is an ordinary character there, so the {@code ''} is
+     * an escaped quote and the closing quote is the last one. On MySQL/MariaDB and on Snowflake it
      * would not be — {@code \'} is <em>their</em> escape, which would make the following {@code '}
      * close the literal and leave {@code OR 1=1} standing as SQL. That is why {@code
-     * MariadbDialect.textLiteral} doubles every backslash, and why this case is written out rather
-     * than left to the general one above.
+     * MariadbDialect.textLiteral} and {@code SnowflakeDialect.textLiteral} double every backslash,
+     * and why this case is written out rather than left to the general one above. See {@code
+     * docs/INJECTION.md}, barrier B2.
      */
     @Test
     void aBackslashBeforeTheEscapedQuoteDoesNotReopenTheLiteral() {
