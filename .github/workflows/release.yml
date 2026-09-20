@@ -25,7 +25,7 @@ jobs:
       ORG_GRADLE_PROJECT_centralPortalUsername: ${{ secrets.CENTRAL_PORTAL_USERNAME }}
       ORG_GRADLE_PROJECT_centralPortalPassword: ${{ secrets.CENTRAL_PORTAL_PASSWORD }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # The tests read the fixture corpus from the northwind-fixtures submodule.
           submodules: true
@@ -47,7 +47,7 @@ jobs:
       # checksums, so a jar swapped in a commit cannot run with the signing key in reach.
       - uses: gradle/actions/wrapper-validation@v6
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 21

@@ -1,0 +1,24 @@
+version: 2
+updates:
+  # The version catalog (gradle/libs.versions.toml) and the nmcp settings plugin.
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      gradle-minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    ignore:
+      # Reads northwind.duckdb, which koryki-java/northwind builds with its own pinned driver
+      # (1.5.5.0 in both repositories). A newer driver here may not read what that one wrote, so the
+      # two move together or not at all.
+      - dependency-name: org.duckdb:duckdb_jdbc
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]
