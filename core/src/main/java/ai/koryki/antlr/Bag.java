@@ -46,6 +46,7 @@ public class Bag<ITEM> {
     public boolean isPresent() {
         return item != null;
     }
+
     public boolean isAbsent() {
         return item == null;
     }

@@ -22,7 +22,6 @@ import ai.koryki.iql.functions.FunctionDefinition;
 import ai.koryki.iql.functions.FunctionRegistry;
 import ai.koryki.iql.functions.FunctionSignature;
 import ai.koryki.iql.functions.StandardFunctions;
-
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
@@ -30,36 +29,44 @@ import java.util.Map;
 
 /**
  * Argument-type coverage audit: do all function definitions declare a type family for every
- * argument? Unlike {@code FunctionDocCoverage} (now published from incubator's {@code koryki-tools},
- * not on this module's classpath), this checks <strong>every overload</strong> in each name's
- * overload set (not just the representative), so a set with one typed and one untyped overload is
- * reported in full.
+ * argument? Unlike {@code FunctionDocCoverage} (now published from incubator's {@code
+ * koryki-tools}, not on this module's classpath), this checks <strong>every overload</strong> in
+ * each name's overload set (not just the representative), so a set with one typed and one untyped
+ * overload is reported in full.
  *
  * <p>An argument is "untyped" when {@link FunctionArg#family()} is {@code null} — the any-type
  * wildcard ({@code arg("name")} rather than {@code arg("name", FAMILY)}). A definition with no
  * signature ({@link FunctionDefinition#getSignature()} {@code == null}) declares no arguments or
  * arity at all and is reported separately.
  *
- * <p>Run: <pre>./gradlew :tools:argTypeAudit -q</pre>
+ * <p>Run:
+ *
+ * <pre>./gradlew :tools:argTypeAudit -q</pre>
  */
 public final class FunctionArgTypeAudit {
 
-    private FunctionArgTypeAudit() {
-    }
+    private FunctionArgTypeAudit() {}
 
     public static String report(FunctionRegistry registry) {
-        Map<FunctionCategory, List<FunctionDefinition>> byCategory = new EnumMap<>(FunctionCategory.class);
+        Map<FunctionCategory, List<FunctionDefinition>> byCategory =
+                new EnumMap<>(FunctionCategory.class);
         for (List<FunctionDefinition> overloadSet : registry.all()) {
-            for (FunctionDefinition d : overloadSet) {                 // every overload, not just the first
+            for (FunctionDefinition d : overloadSet) { // every overload, not just the first
                 byCategory.computeIfAbsent(d.getCategory(), k -> new ArrayList<>()).add(d);
             }
         }
 
         StringBuilder b = new StringBuilder();
         b.append("Function argument-type coverage — StandardFunctions (all overloads)\n");
-        b.append("(untyped arg = FunctionArg.family() is null; \"no signature\" = no declared args/arity)\n\n");
+        b.append(
+                "(untyped arg = FunctionArg.family() is null; \"no signature\" = no declared args/arity)\n\n");
 
-        int defs = 0, fullyTyped = 0, withUntyped = 0, noSignature = 0, totalArgs = 0, untypedArgs = 0;
+        int defs = 0,
+                fullyTyped = 0,
+                withUntyped = 0,
+                noSignature = 0,
+                totalArgs = 0,
+                untypedArgs = 0;
         for (FunctionCategory category : FunctionCategory.values()) {
             List<FunctionDefinition> defsInCategory = byCategory.get(category);
             if (defsInCategory == null) {
@@ -86,7 +93,8 @@ public final class FunctionArgTypeAudit {
                     fullyTyped++;
                 } else {
                     withUntyped++;
-                    gaps.add("  " + d.getName() + sig + " — untyped: " + String.join(", ", untyped));
+                    gaps.add(
+                            "  " + d.getName() + sig + " — untyped: " + String.join(", ", untyped));
                 }
             }
             if (!gaps.isEmpty()) {
@@ -97,13 +105,23 @@ public final class FunctionArgTypeAudit {
         }
 
         boolean complete = withUntyped == 0 && noSignature == 0 && untypedArgs == 0;
-        b.append(complete ? "COMPLETE: every argument of every overload has a declared type.\n\n" : "");
-        b.append("TOTAL: ").append(defs).append(" overload definitions")
-                .append(" | fully typed: ").append(fullyTyped)
-                .append(" | has untyped args: ").append(withUntyped)
-                .append(" | no signature: ").append(noSignature)
-                .append(" | args: ").append(totalArgs)
-                .append(", untyped: ").append(untypedArgs)
+        b.append(
+                complete
+                        ? "COMPLETE: every argument of every overload has a declared type.\n\n"
+                        : "");
+        b.append("TOTAL: ")
+                .append(defs)
+                .append(" overload definitions")
+                .append(" | fully typed: ")
+                .append(fullyTyped)
+                .append(" | has untyped args: ")
+                .append(withUntyped)
+                .append(" | no signature: ")
+                .append(noSignature)
+                .append(" | args: ")
+                .append(totalArgs)
+                .append(", untyped: ")
+                .append(untypedArgs)
                 .append('\n');
         return b.toString();
     }

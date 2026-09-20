@@ -1,4 +1,22 @@
+/*
+ * Copyright 2025-2026 Johannes Zemlin
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package ai.koryki.catalog.schema.types;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.types.CoreTypeFamily;
@@ -6,13 +24,12 @@ import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeDescriptorParser;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 /**
  * Locks in the precision/scale contract of {@link TypeDescriptorParser}:
+ *
  * <ul>
- *   <li>Phase 0 — {@code DECIMAL(p,s)} stores precision=p, scale=s (not swapped).</li>
- *   <li>Phase 1 — char length and temporal fractional precision are captured into precision.</li>
+ *   <li>Phase 0 — {@code DECIMAL(p,s)} stores precision=p, scale=s (not swapped).
+ *   <li>Phase 1 — char length and temporal fractional precision are captured into precision.
  * </ul>
  */
 class TypeDescriptorParserTest {
@@ -30,7 +47,8 @@ class TypeDescriptorParserTest {
     void decimalKeepsPrecisionThenScale() {
         TypeDescriptor d = parse("DECIMAL", "decimal(18,6)");
         assertEquals(CoreTypeFamily.DECIMAL, d.getTypeFamily());
-        assertEquals(18, d.getPrecision(), "precision must be the first DECIMAL param (not swapped)");
+        assertEquals(
+                18, d.getPrecision(), "precision must be the first DECIMAL param (not swapped)");
         assertEquals(6, d.getScale(), "scale must be the second DECIMAL param");
     }
 

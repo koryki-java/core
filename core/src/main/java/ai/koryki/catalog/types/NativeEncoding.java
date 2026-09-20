@@ -17,25 +17,27 @@
 package ai.koryki.catalog.types;
 
 import com.fasterxml.jackson.annotation.JsonValue;
-
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The "no extra type information" encoding: a value stored in its family's natural
- * physical type (a plain INTEGER, VARCHAR, DATE, native INTERVAL, …). Output type
- * descriptors carry {@code NATIVE} in place of a null encoding so the encoding field is
- * always meaningful — never "unknown/unresolved" — at output time. A schema ({@code db.json})
- * may leave the encoding {@code null}, which is interpreted as NATIVE.
+ * The "no extra type information" encoding: a value stored in its family's natural physical type (a
+ * plain INTEGER, VARCHAR, DATE, native INTERVAL, …). Output type descriptors carry {@code NATIVE}
+ * in place of a null encoding so the encoding field is always meaningful — never
+ * "unknown/unresolved" — at output time. A schema ({@code db.json}) may leave the encoding {@code
+ * null}, which is interpreted as NATIVE.
  *
- * <p>Bound to exactly one family like every other {@link TypeEncoding}, so the
- * {@code (family, encoding)} invariant holds; created from a family (never parsed from a
- * name), and serialized as the literal {@code "NATIVE"} (the family travels in its own field).
+ * <p>Bound to exactly one family like every other {@link TypeEncoding}, so the {@code (family,
+ * encoding)} invariant holds; created from a family (never parsed from a name), and serialized as
+ * the literal {@code "NATIVE"} (the family travels in its own field).
  */
 public final class NativeEncoding implements TypeEncoding {
 
-    /** The single serialized name shared by every family's NATIVE encoding (the family travels separately). */
+    /**
+     * The single serialized name shared by every family's NATIVE encoding (the family travels
+     * separately).
+     */
     public static final String NAME = "NATIVE";
 
     private static final Map<TypeFamily, NativeEncoding> CACHE = new ConcurrentHashMap<>();

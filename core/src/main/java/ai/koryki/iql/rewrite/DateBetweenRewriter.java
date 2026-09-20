@@ -16,9 +16,7 @@
  */
 package ai.koryki.iql.rewrite;
 
-import ai.koryki.iql.logic.NodeType;
 import ai.koryki.iql.query.*;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -32,29 +30,29 @@ import java.util.function.Supplier;
  *   →  expr &gt;= lower AND expr &lt; exclusiveUpper
  * </pre>
  *
- * DATE upper:      exclusiveUpper = upper + 1 day  (LocalDate.plusDays(1))
- * TIMESTAMP upper: only when it names the end of its day — see {@link #namesEndOfDay} —
- *                  exclusiveUpper = start of next day  (date part + 1 day at midnight)
+ * DATE upper: exclusiveUpper = upper + 1 day (LocalDate.plusDays(1)) TIMESTAMP upper: only when it
+ * names the end of its day — see {@link #namesEndOfDay} — exclusiveUpper = start of next day (date
+ * part + 1 day at midnight)
  *
  * <p>A DATE names a day, so covering the whole of it is what the author asked for. A TIMESTAMP
  * names an instant, and it used to be treated as a day anyway: the time was discarded and the bound
- * moved to the next midnight. For {@code 23:59:59} that is what the author meant; for
- * {@code 17:00:00} it silently added seven hours nobody asked for. The rewrite now applies to a
- * TIMESTAMP only where the written time <em>is</em> the end of its day, and every other time is
- * taken literally, with the inclusive upper bound SQL gives it.
+ * moved to the next midnight. For {@code 23:59:59} that is what the author meant; for {@code
+ * 17:00:00} it silently added seven hours nobody asked for. The rewrite now applies to a TIMESTAMP
+ * only where the written time <em>is</em> the end of its day, and every other time is taken
+ * literally, with the inclusive upper bound SQL gives it.
  *
- * The {@code expr} (left side) is shared by reference in both new conditions — safe because
- * the renderer is read-only and the mutation is rolled back after rendering.
+ * <p>The {@code expr} (left side) is shared by reference in both new conditions — safe because the
+ * renderer is read-only and the mutation is rolled back after rendering.
  *
- * The rewrite temporarily mutates filter/having references on Select, Source and Exists
- * containers. {@link #rewrite} returns a {@code Runnable} that restores the original state;
- * callers must invoke it (preferably in a {@code finally} block) after rendering is complete.
+ * <p>The rewrite temporarily mutates filter/having references on Select, Source and Exists
+ * containers. {@link #rewrite} returns a {@code Runnable} that restores the original state; callers
+ * must invoke it (preferably in a {@code finally} block) after rendering is complete.
  */
 public class DateBetweenRewriter {
 
     /**
-     * Applies the BETWEEN → half-open rewrite to the query and returns a restore action.
-     * The caller is responsible for calling {@code restore.run()} after rendering.
+     * Applies the BETWEEN → half-open rewrite to the query and returns a restore action. The caller
+     * is responsible for calling {@code restore.run()} after rendering.
      */
     public static Runnable rewrite(Query query) {
         List<Runnable> restores = new ArrayList<>();
@@ -107,20 +105,25 @@ public class DateBetweenRewriter {
 
     /**
      * Rewrites one filter/having slot in place, recording an undo. The slot is addressed
-     * functionally — {@code get}/{@code set} method references — so Select, Source and Exists
-     * share this without a common type (the {@code query} package stays pure data).
+     * functionally — {@code get}/{@code set} method references — so Select, Source and Exists share
+     * this without a common type (the {@code query} package stays pure data).
      */
-    private static void rewriteSlot(Supplier<LogicalExpression> get,
-                                    Consumer<LogicalExpression> set,
-                                    List<Runnable> restores) {
+    private static void rewriteSlot(
+            Supplier<LogicalExpression> get,
+            Consumer<LogicalExpression> set,
+            List<Runnable> restores) {
         LogicalExpression old = get.get();
         LogicalExpression rewritten = rewriteLogical(old, restores);
-        if (rewritten != old) { set.accept(rewritten); restores.add(() -> set.accept(old)); }
+        if (rewritten != old) {
+            set.accept(rewritten);
+            restores.add(() -> set.accept(old));
+        }
     }
 
     // Returns a (possibly new) LogicalExpression with BETWEEN rewrites applied.
     // Unchanged subtrees are returned by reference (structural sharing).
-    private static LogicalExpression rewriteLogical(LogicalExpression expr, List<Runnable> restores) {
+    private static LogicalExpression rewriteLogical(
+            LogicalExpression expr, List<Runnable> restores) {
         if (expr == null) return null;
 
         return switch (expr.getType()) {
@@ -176,15 +179,15 @@ public class DateBetweenRewriter {
                 restores.add(() -> e.setLogical(oldLogical));
             }
         }
-        if (e.getFunction() != null) e.getFunction().getArguments()
-                .forEach(arg -> rewriteExpression(arg, restores));
+        if (e.getFunction() != null)
+            e.getFunction().getArguments().forEach(arg -> rewriteExpression(arg, restores));
     }
 
     private static boolean isBetweenWithTemporalUpper(UnaryLogicalExpression u) {
         if (u == null || !"BETWEEN".equals(u.getOp()) || u.getRight().size() != 2) return false;
         Expression upper = u.getRight().get(1);
         if (upper.getLocalDate() != null) {
-            return true;                                   // a date names a day; cover all of it
+            return true; // a date names a day; cover all of it
         }
         return upper.getLocalDateTime() != null && namesEndOfDay(upper.getLocalDateTime());
     }
@@ -205,27 +208,28 @@ public class DateBetweenRewriter {
      *
      * <p>The last row is the one judgement call. {@code 23:59:00} could equally mean that exact
      * instant, and nothing in the parsed value tells the two apart — the literal's written text is
-     * gone by then. It is read as end-of-day because that is the only way to write "the last minute"
-     * at all, and because a bound meant as an exact instant is far more likely to carry a non-zero
-     * second.
+     * gone by then. It is read as end-of-day because that is the only way to write "the last
+     * minute" at all, and because a bound meant as an exact instant is far more likely to carry a
+     * non-zero second.
      */
     private static boolean namesEndOfDay(java.time.LocalDateTime t) {
         if (t.getHour() != 23 || t.getMinute() != 59) {
             return false;
         }
-        return (t.getSecond() == 0 && t.getNano() == 0)            // 23:59:00
-                || (t.getSecond() == 59 && (t.getNano() == 0       // 23:59:59
-                        || t.getNano() == 999_000_000));           // 23:59:59.999
+        return (t.getSecond() == 0 && t.getNano() == 0) // 23:59:00
+                || (t.getSecond() == 59
+                        && (t.getNano() == 0 // 23:59:59
+                                || t.getNano() == 999_000_000)); // 23:59:59.999
     }
 
     private static LogicalExpression expand(UnaryLogicalExpression between) {
-        Expression left  = between.getLeft();          // shared reference — safe
-        Expression lower = between.getRight().get(0);  // shared reference — safe
+        Expression left = between.getLeft(); // shared reference — safe
+        Expression lower = between.getRight().get(0); // shared reference — safe
 
         return LogicalExpression.and(
                 LogicalExpression.value(unary(">=", left, lower)),
-                LogicalExpression.value(unary("<",  left, exclusiveUpper(between.getRight().get(1))))
-        );
+                LogicalExpression.value(
+                        unary("<", left, exclusiveUpper(between.getRight().get(1)))));
     }
 
     private static UnaryLogicalExpression unary(String op, Expression left, Expression right) {
@@ -242,7 +246,8 @@ public class DateBetweenRewriter {
             result.setLocalDate(upper.getLocalDate().plusDays(1));
         } else {
             // TIMESTAMP: strip time, move to next day's midnight
-            result.setLocalDateTime(upper.getLocalDateTime().toLocalDate().plusDays(1).atStartOfDay());
+            result.setLocalDateTime(
+                    upper.getLocalDateTime().toLocalDate().plusDays(1).atStartOfDay());
         }
         return result;
     }

@@ -16,9 +16,8 @@
  */
 package ai.koryki.iql.validate;
 
-import ai.koryki.antlr.Text;
 import ai.koryki.antlr.KorykiaiException;
-
+import ai.koryki.antlr.Text;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,7 +28,6 @@ public class ValidateException extends KorykiaiException {
     public ValidateException(List<Violation> violations) {
         this.violations = violations;
     }
-
 
     public List<Violation> getViolations() {
         return violations;
@@ -54,8 +52,8 @@ public class ValidateException extends KorykiaiException {
      *
      * <p>What this deliberately cannot distinguish: a plain typo in a fixture also names a column
      * that is not there, and would be skipped rather than reported. Two things keep that visible —
-     * the skip is recorded in a per-dialect violation golden, and a fixture skipped on every dialect
-     * never produces the shared result golden its siblings have.
+     * the skip is recorded in a per-dialect violation golden, and a fixture skipped on every
+     * dialect never produces the shared result golden its siblings have.
      */
     public boolean isOnlyUnknownColumn() {
         List<Violation> errors = violations.stream().filter(Violation::isError).toList();

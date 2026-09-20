@@ -19,14 +19,13 @@ package ai.koryki.iql;
 import ai.koryki.iql.functions.FunctionRenderer;
 
 /**
- * Fluent assembly of an {@link IQLTranspiler} from the IQL source and its model
- * {@link LinkResolver} (which already carries the catalog locale), plus the
- * optional validation {@link FunctionRenderer}. The IQL counterpart of
- * {@code KQLTranspilerBuilder} — the single, extensible place to wire transpiler
- * components instead of adding further constructors.
+ * Fluent assembly of an {@link IQLTranspiler} from the IQL source and its model {@link
+ * LinkResolver} (which already carries the catalog locale), plus the optional validation {@link
+ * FunctionRenderer}. The IQL counterpart of {@code KQLTranspilerBuilder} — the single, extensible
+ * place to wire transpiler components instead of adding further constructors.
  *
- * <p>Obtain one via {@link IQLTranspiler#builder(String, LinkResolver)} /
- * {@link IQLTranspiler#builder(java.io.InputStream, LinkResolver)}.
+ * <p>Obtain one via {@link IQLTranspiler#builder(String, LinkResolver)} / {@link
+ * IQLTranspiler#builder(java.io.InputStream, LinkResolver)}.
  */
 public final class IQLTranspilerBuilder {
 
@@ -40,8 +39,8 @@ public final class IQLTranspilerBuilder {
     }
 
     /**
-     * Dialect function renderer for arity / operand-family / unsupported
-     * validation; null (the default) skips function-level validation.
+     * Dialect function renderer for arity / operand-family / unsupported validation; null (the
+     * default) skips function-level validation.
      */
     public IQLTranspilerBuilder functions(FunctionRenderer functions) {
         this.functions = functions;

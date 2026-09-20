@@ -7,7 +7,7 @@ jackson = "3.2.1"
 jackson-annotations = "2.22"
 junit = "6.1.2"
 # Artifacts of the northwind repository (koryki-java/northwind).
-koryki-northwind = "0.1.0"
+koryki-northwind = "0.1.1"
 
 duckdb = "1.5.5.0"
 h2database = "2.4.240"
@@ -20,14 +20,17 @@ mariadb = "3.5.9"
 mssql = "13.4.0.jre11"
 sqlite = "3.53.2.1"
 
-[plugins]
-jacoco = { id = "jacoco" }
+spotless = "8.10.2"
+google-java-format = "1.36.1"
 
+[plugins]
 antlr = { id = "org.gradle.antlr"}
+
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 
 [libraries]
 
-koryki-catalog = { module = "ai.koryki.northwind:koryki-catalog", version.ref = "koryki-northwind" }
+koryki-catalog = { module = "ai.koryki.northwind:koryki-northwind-catalog", version.ref = "koryki-northwind" }
 koryki-northwind-duckdb = { module = "ai.koryki.northwind:koryki-northwind-duckdb", version.ref = "koryki-northwind" }
 
 duckdb = { module = "org.duckdb:duckdb_jdbc", version.ref = "duckdb" }

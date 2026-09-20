@@ -18,14 +18,11 @@ package ai.koryki.kql;
 
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.SqlRenderer;
-
 import ai.koryki.jdbc.ColumnInfo;
-import ai.koryki.jdbc.ValueFormat;
+import ai.koryki.jdbc.Database;
 import ai.koryki.jdbc.ListResult;
 import ai.koryki.jdbc.ResultConsumer;
-import ai.koryki.jdbc.Database;
-
-
+import ai.koryki.jdbc.ValueFormat;
 import java.sql.*;
 import java.util.List;
 import java.util.function.Consumer;
@@ -42,8 +39,8 @@ import java.util.function.Supplier;
  * <p><b>Why inheritance and not delegation.</b> The inherited methods have always been part of
  * Engine's public surface, and there are callers for most of them -- they must stay resolvable on
  * an Engine. As a superclass that costs no line; as a held field it costs ten forwarding methods.
- * Above all, only inheritance carries the purpose of the split outward: whoever asks for a
- * {@code Generator} accepts an Engine without unwrapping it.
+ * Above all, only inheritance carries the purpose of the split outward: whoever asks for a {@code
+ * Generator} accepts an Engine without unwrapping it.
  *
  * <p>Nothing is overridden, and every Generator operation is correct on an Engine -- this is
  * specialization, not reuse by inheritance.
@@ -53,40 +50,49 @@ public class Engine<I extends ColumnInfo, C extends ResultConsumer<I>> extends G
     private final Database<C> database;
 
     /**
-     * One result-set {@link ValueFormat}, applied to every processor; null keeps the legacy
-     * {@code ColumnInfo.toString} path.
+     * One result-set {@link ValueFormat}, applied to every processor; null keeps the legacy {@code
+     * ColumnInfo.toString} path.
      *
-     * <p>Stays here and does not move up into {@link Generator}: it is read only by
-     * {@link #executeSQL} and {@link #executeKQL}, that is, on the path that does not exist without
-     * a database. A generator has no rows it could format -- there this would be a field that is
+     * <p>Stays here and does not move up into {@link Generator}: it is read only by {@link
+     * #executeSQL} and {@link #executeKQL}, that is, on the path that does not exist without a
+     * database. A generator has no rows it could format -- there this would be a field that is
      * written and never read.
      *
      * <p>Final, and therefore settable only through the constructor: a setter afterwards would mean
-     * a caller can forget it, and the result would not be an error but silently the old
-     * {@code ColumnInfo.toString} path -- wrongly formatted output without any signal.
+     * a caller can forget it, and the result would not be an error but silently the old {@code
+     * ColumnInfo.toString} path -- wrongly formatted output without any signal.
      */
     private final ValueFormat valueFormat;
 
-    public Engine(Database<C> database, LinkResolver resolver, SqlRenderer renderer,
-                  Supplier<I> supplier) {
+    public Engine(
+            Database<C> database,
+            LinkResolver resolver,
+            SqlRenderer renderer,
+            Supplier<I> supplier) {
 
         this(database, resolver, renderer, Generator.getInfo(supplier), null);
     }
 
-
-    public Engine(Database<C> database, LinkResolver resolver, SqlRenderer renderer,
-                  Function<KQLTranspiler, List<I>> info) {
+    public Engine(
+            Database<C> database,
+            LinkResolver resolver,
+            SqlRenderer renderer,
+            Function<KQLTranspiler, List<I>> info) {
         this(database, resolver, renderer, info, null);
     }
 
     /**
      * The full constructor; {@link EngineBuilder} uses this one.
      *
-     * @param valueFormat how values become text, or null for the legacy
-     *                    {@code ColumnInfo.toString} path
+     * @param valueFormat how values become text, or null for the legacy {@code ColumnInfo.toString}
+     *     path
      */
-    public Engine(Database<C> database, LinkResolver resolver, SqlRenderer renderer,
-                  Function<KQLTranspiler, List<I>> info, ValueFormat valueFormat) {
+    public Engine(
+            Database<C> database,
+            LinkResolver resolver,
+            SqlRenderer renderer,
+            Function<KQLTranspiler, List<I>> info,
+            ValueFormat valueFormat) {
         super(resolver, renderer, info);
         this.database = database;
         this.valueFormat = valueFormat;
@@ -104,11 +110,12 @@ public class Engine<I extends ColumnInfo, C extends ResultConsumer<I>> extends G
         return new Engine<>(database, getResolver(), getRenderer(), info, valueFormat);
     }
 
-    public <P extends C> P executeSQL(String sql, Supplier<P> processor)  {
+    public <P extends C> P executeSQL(String sql, Supplier<P> processor) {
         return executeSQL(sql, processor, (statement) -> {});
     }
 
-    public <P extends C> P executeSQL(String sql, Supplier<P> processor, Consumer<Statement> stmtConsumer) {
+    public <P extends C> P executeSQL(
+            String sql, Supplier<P> processor, Consumer<Statement> stmtConsumer) {
         try (P p = processor.get()) {
 
             if (valueFormat != null) {
@@ -121,10 +128,12 @@ public class Engine<I extends ColumnInfo, C extends ResultConsumer<I>> extends G
     }
 
     private <P extends C> void execute(String sql, P p, Consumer<Statement> stmtConsumer) {
-        database.execute(sql, s -> {
-            stmtConsumer.accept(s);
-            database.execute(s, p);
-        });
+        database.execute(
+                sql,
+                s -> {
+                    stmtConsumer.accept(s);
+                    database.execute(s, p);
+                });
     }
 
     public C executeKQL(String kql, Supplier<C> processor) {
@@ -188,5 +197,4 @@ public class Engine<I extends ColumnInfo, C extends ResultConsumer<I>> extends G
     public ValueFormat getValueFormat() {
         return valueFormat;
     }
-
 }

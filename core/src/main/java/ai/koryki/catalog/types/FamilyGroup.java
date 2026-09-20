@@ -19,14 +19,12 @@ package ai.koryki.catalog.types;
 import java.util.Set;
 
 /**
- * A named umbrella over several leaf {@link TypeFamily} values — e.g. NUMERIC
- * over {INTEGER, DECIMAL, FLOAT}. Lets an operand declare "any numeric value"
- * without enumerating the members at every call site, mirroring Calcite's
- * {@code SqlTypeFamily} groups.
+ * A named umbrella over several leaf {@link TypeFamily} values — e.g. NUMERIC over {INTEGER,
+ * DECIMAL, FLOAT}. Lets an operand declare "any numeric value" without enumerating the members at
+ * every call site, mirroring Calcite's {@code SqlTypeFamily} groups.
  *
- * <p>A group only ever appears on the <em>declared</em> side of a check: a
- * resolved operand type is always a leaf family, so {@link #accepts} tests
- * membership of the candidate leaf.
+ * <p>A group only ever appears on the <em>declared</em> side of a check: a resolved operand type is
+ * always a leaf family, so {@link #accepts} tests membership of the candidate leaf.
  */
 public final class FamilyGroup implements TypeFamily {
 

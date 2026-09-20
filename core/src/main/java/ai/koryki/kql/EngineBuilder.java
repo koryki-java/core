@@ -20,23 +20,22 @@ import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.SqlRenderer;
 import ai.koryki.jdbc.ColumnInfo;
 import ai.koryki.jdbc.Database;
-import ai.koryki.jdbc.ValueFormat;
 import ai.koryki.jdbc.ResultConsumer;
-
+import ai.koryki.jdbc.ValueFormat;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * Fluent assembly of an {@link Engine} from its three required components
- * (database, model resolver, dialect renderer) and two optionals (the per-row
- * column-info supplier and the result {@link ValueFormat}). It replaces the spread of
- * two constructors, a static factory and a post-construction {@code setFormat},
- * and yields an engine fully configured at build time — the setters it replaced are gone, so this
- * is now the only way to give an engine a {@link ValueFormat}.
+ * Fluent assembly of an {@link Engine} from its three required components (database, model
+ * resolver, dialect renderer) and two optionals (the per-row column-info supplier and the result
+ * {@link ValueFormat}). It replaces the spread of two constructors, a static factory and a
+ * post-construction {@code setFormat}, and yields an engine fully configured at build time — the
+ * setters it replaced are gone, so this is now the only way to give an engine a {@link
+ * ValueFormat}.
  *
- * <p>Use {@link #headers} for the common {@link HeaderInfo} case; the
- * generic constructor here serves a custom {@link ColumnInfo} via {@link #info}.
+ * <p>Use {@link #headers} for the common {@link HeaderInfo} case; the generic constructor here
+ * serves a custom {@link ColumnInfo} via {@link #info}.
  */
 public final class EngineBuilder<I extends ColumnInfo, C extends ResultConsumer<I>> {
 
@@ -53,8 +52,8 @@ public final class EngineBuilder<I extends ColumnInfo, C extends ResultConsumer<
     }
 
     /**
-     * The common {@link HeaderInfo} case: a builder whose info supplier is already
-     * {@code HeaderInfo::new}, so that only {@link #valueFormat} is left to choose.
+     * The common {@link HeaderInfo} case: a builder whose info supplier is already {@code
+     * HeaderInfo::new}, so that only {@link #valueFormat} is left to choose.
      *
      * <p>Deliberately here and not on {@link Engine}: Engine is generic over its {@link ColumnInfo}
      * throughout -- no field, no parameter and no return type names an implementation. Only the

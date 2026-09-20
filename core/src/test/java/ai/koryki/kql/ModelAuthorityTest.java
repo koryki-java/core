@@ -1,19 +1,34 @@
+/*
+ * Copyright 2025-2026 Johannes Zemlin
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package ai.koryki.kql;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.koryki.databases.northwind.duckdb.NorthwindService;
 import ai.koryki.iql.DuckdbBaseDialect;
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.functions.FunctionRenderer;
 import ai.koryki.iql.validate.Violation;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 /**
  * model.json is the language, and a rejected name says what to write instead.
@@ -25,7 +40,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class ModelAuthorityTest {
 
-    private static final FunctionRenderer FUNCTIONS = DuckdbBaseDialect.INSTANCE.getFunctionRenderer();
+    private static final FunctionRenderer FUNCTIONS =
+            DuckdbBaseDialect.INSTANCE.getFunctionRenderer();
 
     private static LinkResolver en;
     private static LinkResolver de;
@@ -45,14 +61,16 @@ public class ModelAuthorityTest {
         List<Violation> v = errors("FIND orders o FETCH o.employee_id", en);
         assertEquals(1, v.size(), () -> "expected exactly one violation: " + v);
         assertEquals(Violation.UNKNOWN_COLUMN, v.getFirst().getCategory());
-        assertTrue(v.getFirst().getMessage().startsWith("unknown column 'employee_id' on orders"),
+        assertTrue(
+                v.getFirst().getMessage().startsWith("unknown column 'employee_id' on orders"),
                 () -> v.getFirst().getMessage());
     }
 
     /** The attributes the model does expose keep working, suggestions and all. */
     @Test
     void anAttributeTheModelExposesStillValidates() {
-        assertEquals(List.of(), errors("FIND orders o FETCH o.order_id, o.freight, o.customer_id", en));
+        assertEquals(
+                List.of(), errors("FIND orders o FETCH o.order_id, o.freight, o.customer_id", en));
     }
 
     /** A misspelt column names the entity's own attributes, and nothing wider. */
@@ -61,7 +79,8 @@ public class ModelAuthorityTest {
         List<Violation> v = errors("FIND customers c FETCH c.company_nmae", en);
         assertEquals(1, v.size(), v::toString);
         assertEquals(List.of("company_name"), v.getFirst().getDidYouMean());
-        assertEquals("unknown column 'company_nmae' on customers — did you mean 'company_name'?",
+        assertEquals(
+                "unknown column 'company_nmae' on customers — did you mean 'company_name'?",
                 v.getFirst().getMessage());
     }
 
@@ -78,7 +97,8 @@ public class ModelAuthorityTest {
         List<Violation> v = errors("FIND orders o FETCH o.orderid", en);
         assertEquals(1, v.size(), v::toString);
         assertEquals(List.of("order_id"), v.getFirst().getDidYouMean());
-        assertEquals("unknown column 'orderid' on orders — did you mean 'order_id'?",
+        assertEquals(
+                "unknown column 'orderid' on orders — did you mean 'order_id'?",
                 v.getFirst().getMessage());
     }
 
@@ -100,18 +120,27 @@ public class ModelAuthorityTest {
     @Test
     void anUnknownSourceNamesItselfAndSuggests() {
         List<Violation> v = errors("FIND custmers c FETCH c.company_name", en);
-        Violation source = v.stream().filter(x -> x.getMessage().startsWith("invalid source"))
-                .findFirst().orElseThrow(() -> new AssertionError(v.toString()));
+        Violation source =
+                v.stream()
+                        .filter(x -> x.getMessage().startsWith("invalid source"))
+                        .findFirst()
+                        .orElseThrow(() -> new AssertionError(v.toString()));
         assertEquals("invalid source 'custmers' — did you mean 'customers'?", source.getMessage());
     }
 
     /** An explicit join column list is held to the same rule as any other field. */
     @Test
     void anExplicitJoinColumnMustAlsoBeAModelAttribute() {
-        List<Violation> v = errors(
-                "FIND orders o, o [employee_id = employee_id] employees e FETCH o.order_id", en);
-        assertTrue(v.stream().anyMatch(x -> Violation.UNKNOWN_COLUMN.equals(x.getCategory())
-                        && x.getMessage().contains("employee_id")),
+        List<Violation> v =
+                errors(
+                        "FIND orders o, o [employee_id = employee_id] employees e FETCH o.order_id",
+                        en);
+        assertTrue(
+                v.stream()
+                        .anyMatch(
+                                x ->
+                                        Violation.UNKNOWN_COLUMN.equals(x.getCategory())
+                                                && x.getMessage().contains("employee_id")),
                 () -> "the hidden foreign key must be rejected here too: " + v);
     }
 
@@ -121,9 +150,11 @@ public class ModelAuthorityTest {
         List<Violation> v = warnings("FIND orders o FETCH upperr(o.ship_city)", en);
         assertEquals(1, v.size(), v::toString);
         assertEquals(List.of("upper"), v.getFirst().getDidYouMean());
-        assertTrue(v.getFirst().getMessage().startsWith("'upperr' is not a KQL function"),
+        assertTrue(
+                v.getFirst().getMessage().startsWith("'upperr' is not a KQL function"),
                 () -> v.getFirst().getMessage());
-        assertTrue(v.getFirst().getMessage().endsWith("— did you mean 'upper'?"),
+        assertTrue(
+                v.getFirst().getMessage().endsWith("— did you mean 'upper'?"),
                 () -> v.getFirst().getMessage());
     }
 

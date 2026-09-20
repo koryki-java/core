@@ -17,21 +17,18 @@
 package ai.koryki.catalog.types;
 
 import com.fasterxml.jackson.annotation.JsonValue;
-
 import java.util.Objects;
 
 /**
- * Storage declaration "interval as a formatted string": an INTERVAL held in a
- * text column, written in a declared {@link Format}. Mirrors
- * {@link WallClockEncoding} — which parameterizes a temporal column by its named
- * zone — except the parameter here is the textual interval <em>format</em>, so
- * that both the read decoder ({@link ai.koryki.jdbc.CoreDecoder}) and the
- * comparison SQL-decode know how to parse the stored text.
+ * Storage declaration "interval as a formatted string": an INTERVAL held in a text column, written
+ * in a declared {@link Format}. Mirrors {@link WallClockEncoding} — which parameterizes a temporal
+ * column by its named zone — except the parameter here is the textual interval <em>format</em>, so
+ * that both the read decoder ({@link ai.koryki.jdbc.CoreDecoder}) and the comparison SQL-decode
+ * know how to parse the stored text.
  *
- * <p>Spelled {@code "INTERVAL_FROM_STRING:<format>"} (e.g.
- * {@code "INTERVAL_FROM_STRING:ISO8601"}); parsed and cached by
- * {@link TypeEncodingRegistry}. The bare, formatless
- * {@link CoreTypeEncoding#INTERVAL_FROM_STRING} is the implied {@link Format#ISO8601}.
+ * <p>Spelled {@code "INTERVAL_FROM_STRING:<format>"} (e.g. {@code "INTERVAL_FROM_STRING:ISO8601"});
+ * parsed and cached by {@link TypeEncodingRegistry}. The bare, formatless {@link
+ * CoreTypeEncoding#INTERVAL_FROM_STRING} is the implied {@link Format#ISO8601}.
  */
 public final class IntervalStringEncoding implements TypeEncoding {
 

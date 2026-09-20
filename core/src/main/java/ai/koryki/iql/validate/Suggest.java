@@ -51,8 +51,7 @@ public final class Suggest {
     /** How many names a message will carry. Beyond three it stops reading as a hint. */
     private static final int MAX = 3;
 
-    private Suggest() {
-    }
+    private Suggest() {}
 
     /**
      * Case and separators removed, so the comparison sees the name and not its spelling convention.
@@ -63,8 +62,8 @@ public final class Suggest {
      * to split words apart.
      *
      * <p>This decides only how close two names <em>score</em>. It does not make any of those
-     * spellings valid: the model name is the only one KQL accepts, and the others are still
-     * errors — errors that now say which spelling to use.
+     * spellings valid: the model name is the only one KQL accepts, and the others are still errors
+     * — errors that now say which spelling to use.
      */
     public static String normalize(String s) {
         StringBuilder b = new StringBuilder(s.length());
@@ -85,9 +84,9 @@ public final class Suggest {
      * mistake it is.
      *
      * <p>The unrestricted form of the metric additionally permits edits <em>between</em> a
-     * transposed pair, which changes the answer only for inputs like {@code CA} against
-     * {@code ABC}. Identifiers do not go wrong that way, and the restricted form needs no
-     * alphabet-indexed table, so it stays a handful of lines.
+     * transposed pair, which changes the answer only for inputs like {@code CA} against {@code
+     * ABC}. Identifiers do not go wrong that way, and the restricted form needs no alphabet-indexed
+     * table, so it stays a handful of lines.
      */
     public static int distance(String a, String b) {
         int[] beforePrevious = new int[b.length() + 1];
@@ -101,7 +100,9 @@ public final class Suggest {
             for (int j = 1; j <= b.length(); j++) {
                 int substitute = previous[j - 1] + (a.charAt(i - 1) == b.charAt(j - 1) ? 0 : 1);
                 current[j] = Math.min(Math.min(current[j - 1] + 1, previous[j] + 1), substitute);
-                if (i > 1 && j > 1 && a.charAt(i - 1) == b.charAt(j - 2)
+                if (i > 1
+                        && j > 1
+                        && a.charAt(i - 1) == b.charAt(j - 2)
                         && a.charAt(i - 2) == b.charAt(j - 1)) {
                     current[j] = Math.min(current[j], beforePrevious[j - 2] + 1);
                 }
@@ -145,7 +146,7 @@ public final class Suggest {
             return List.of();
         }
         int limit = limit(w.length());
-        record Scored(String name, int distance) { }
+        record Scored(String name, int distance) {}
         List<Scored> scored = new ArrayList<>();
         for (String c : candidates) {
             if (c == null) {

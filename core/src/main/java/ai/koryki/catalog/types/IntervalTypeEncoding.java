@@ -17,26 +17,24 @@
 package ai.koryki.catalog.types;
 
 import com.fasterxml.jackson.annotation.JsonValue;
-
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 
 /**
- * Storage declaration "interval as integer count of a unit": an INTERVAL amount
- * held in a plain numeric column as a count of <em>unit</em>s — e.g. a NUMBER
- * column storing seconds ({@code 3600} → 1h under {@code DURATION:SECONDS}),
- * millis, or a YEAR-TO-MONTH interval as a count of months ({@code DURATION:MONTHS}).
- * The unit decides the materialized java.time value: time units (SECONDS, MILLIS,
- * MICROS, NANOS, HOURS, …) yield a {@link java.time.Duration}; calendar units
+ * Storage declaration "interval as integer count of a unit": an INTERVAL amount held in a plain
+ * numeric column as a count of <em>unit</em>s — e.g. a NUMBER column storing seconds ({@code 3600}
+ * → 1h under {@code DURATION:SECONDS}), millis, or a YEAR-TO-MONTH interval as a count of months
+ * ({@code DURATION:MONTHS}). The unit decides the materialized java.time value: time units
+ * (SECONDS, MILLIS, MICROS, NANOS, HOURS, …) yield a {@link java.time.Duration}; calendar units
  * (MONTHS, YEARS) a {@link java.time.Period}.
  *
- * <p>The non-native counterpart of the native INTERVAL columns (whose family +
- * dialectType already describe them, no encoding needed) — this adapts the model
- * to existing schemas that store durations in numeric columns, the same role
- * {@link CoreTypeEncoding#TIME_SECONDS_FROM_MIDNIGHT} plays for TIME.
+ * <p>The non-native counterpart of the native INTERVAL columns (whose family + dialectType already
+ * describe them, no encoding needed) — this adapts the model to existing schemas that store
+ * durations in numeric columns, the same role {@link CoreTypeEncoding#TIME_SECONDS_FROM_MIDNIGHT}
+ * plays for TIME.
  *
- * <p>Declared in the schema as {@code "DURATION:<unit>"} (e.g. {@code "DURATION:MILLIS"});
- * parsed and cached by {@link TypeEncodingRegistry}.
+ * <p>Declared in the schema as {@code "DURATION:<unit>"} (e.g. {@code "DURATION:MILLIS"}); parsed
+ * and cached by {@link TypeEncodingRegistry}.
  */
 public final class IntervalTypeEncoding implements TypeEncoding {
 

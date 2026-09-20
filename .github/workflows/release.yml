@@ -24,28 +24,77 @@ jobs:
       SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
       ORG_GRADLE_PROJECT_centralPortalUsername: ${{ secrets.CENTRAL_PORTAL_USERNAME }}
       ORG_GRADLE_PROJECT_centralPortalPassword: ${{ secrets.CENTRAL_PORTAL_PASSWORD }}
+      # Authorization is not secret -- only the derived token below is. settings.gradle's
+      # centralManualTesting repository needs both to resolve a koryki-northwind version that is
+      # only a pending Central Portal deployment (see gradle/libs.versions.toml).
+      ORG_GRADLE_PROJECT_centralManualTestingAuthHeaderName: Authorization
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # The tests read the fixture corpus from the northwind-fixtures submodule.
           submodules: true
 
-      - name: Check tag matches version
-        if: github.event_name == 'push'
+      # A release runs from its tag only, however it is started. A manual run on a branch would
+      # publish the version in gradle.properties without a tag, and pushing the tag afterwards would
+      # fail: Central does not take a version twice. Started manually on the tag, it repeats a
+      # release that failed before the upload.
+      - name: Check release tag
+        if: github.event_name == 'push' || inputs.target == 'release'
         run: |
           version=$(sed -n 's/^version=//p' gradle.properties)
-          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME does not match version=$version in gradle.properties"
+          if [ "$GITHUB_REF_TYPE" != tag ] || [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::A release runs from the tag v$version only, not from $GITHUB_REF_TYPE $GITHUB_REF_NAME"
             exit 1
           fi
 
-      - uses: actions/setup-java@v4
+      # gradle-wrapper.jar is the first thing the build runs: check it against Gradle's published
+      # checksums, so a jar swapped in a commit cannot run with the signing key in reach.
+      - uses: gradle/actions/wrapper-validation@v6
+
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 21
 
+      # Same Bearer-token scheme as Central Portal's "manual testing" endpoint expects -- derived
+      # from CENTRAL_PORTAL_USERNAME/PASSWORD above rather than a separate secret, so there is
+      # nothing extra to rotate if that token changes. Masked explicitly: GitHub only auto-masks
+      # the secrets it was given verbatim, not values derived from them.
+      - name: Derive Central Portal manual-testing header
+        run: |
+          token=$(printf '%s:%s' "$ORG_GRADLE_PROJECT_centralPortalUsername" "$ORG_GRADLE_PROJECT_centralPortalPassword" | base64 -w0)
+          echo "::add-mask::$token"
+          echo "ORG_GRADLE_PROJECT_centralManualTestingAuthHeaderValue=Bearer $token" >> "$GITHUB_ENV"
+
       - name: Test
         run: ./gradlew test --no-daemon
+
+      # An upload with a missing or malformed credential fails as "HTTP error 401: ''" at the very
+      # end, after the build and the signing, and the value is masked in the log -- so say here
+      # what is wrong with it while it can still be read.
+      - name: Check Central Portal credentials
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_PORTAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PORTAL_PASSWORD }}
+        run: |
+          if [ -z "$CENTRAL_USERNAME" ] || [ -z "$CENTRAL_PASSWORD" ]; then
+            echo "::error::CENTRAL_PORTAL_USERNAME or CENTRAL_PORTAL_PASSWORD is not set in this repository"
+            exit 1
+          fi
+          # Both halves come from Account -> Generate User Token on central.sonatype.com. The
+          # portal login itself is rejected with the same 401, and an email address as the user
+          # name is the usual sign of it.
+          case "$CENTRAL_USERNAME" in
+            *@*) echo "::error::CENTRAL_PORTAL_USERNAME is an email address; it must be the user token's name"; exit 1 ;;
+          esac
+          # By length, not by grep: a trailing newline is a line terminator, so grep would not see
+          # the very whitespace that is easiest to paste in by accident.
+          both="$CENTRAL_USERNAME$CENTRAL_PASSWORD"
+          stripped=$(printf '%s' "$both" | tr -d '[:space:]')
+          if [ "${#stripped}" -ne "${#both}" ]; then
+            echo "::error::CENTRAL_PORTAL_USERNAME or CENTRAL_PORTAL_PASSWORD contains whitespace; a pasted space or newline breaks the Basic auth header"
+            exit 1
+          fi
 
       - name: Publish to playground (snapshot)
         if: github.event_name == 'workflow_dispatch' && inputs.target == 'snapshot'

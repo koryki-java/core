@@ -16,9 +16,8 @@
  */
 package ai.koryki.mariadb.northwind;
 
-import ai.koryki.mariadb.MariadbDatabase;
 import ai.koryki.jdbc.ResultProcessor;
-
+import ai.koryki.mariadb.MariadbDatabase;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -40,7 +39,8 @@ public class NorthwindMariadb<P extends ResultProcessor<?>> extends MariadbDatab
         this(name, connection());
     }
 
-    public NorthwindMariadb(String name, String user, String passwort, String url) throws SQLException {
+    public NorthwindMariadb(String name, String user, String passwort, String url)
+            throws SQLException {
         this(name, connection(user, passwort, url));
     }
 
@@ -53,7 +53,8 @@ public class NorthwindMariadb<P extends ResultProcessor<?>> extends MariadbDatab
     }
 
     @Override
-    public void execute(String sql, java.util.function.Consumer<java.sql.PreparedStatement> statementConsumer) {
+    public void execute(
+            String sql, java.util.function.Consumer<java.sql.PreparedStatement> statementConsumer) {
         try {
             super.execute(sql, statementConsumer);
         } catch (RuntimeException e) {
@@ -76,12 +77,14 @@ public class NorthwindMariadb<P extends ResultProcessor<?>> extends MariadbDatab
     }
 
     public static Connection connection() throws SQLException {
-        return connection(System.getProperty("mariadb.northwind.user"),
-            System.getProperty("mariadb.northwind.password"),
-            System.getProperty("mariadb.northwind.url") );
+        return connection(
+                System.getProperty("mariadb.northwind.user"),
+                System.getProperty("mariadb.northwind.password"),
+                System.getProperty("mariadb.northwind.url"));
     }
 
-    public static Connection connection(String user, String password, String url) throws SQLException {
+    public static Connection connection(String user, String password, String url)
+            throws SQLException {
         Properties props = new Properties();
         props.setProperty("user", user);
         props.setProperty("password", password);

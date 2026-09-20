@@ -17,19 +17,17 @@
 package ai.koryki.catalog.types;
 
 import com.fasterxml.jackson.annotation.JsonValue;
-
 import java.time.ZoneId;
 import java.util.Objects;
 
 /**
- * Storage declaration "wall-clock(zone)" of docs/TEMPORAL.md: the column holds
- * wall-clock values written in a declared named zone (not the model zone).
+ * Storage declaration "wall-clock(zone)" of docs/TEMPORAL.md: the column holds wall-clock values
+ * written in a declared named zone (not the model zone).
  *
- * <p>Family-tagged so every encoding binds to exactly one family: a wall-clock
- * DATE (no time-of-day) and a wall-clock TIMESTAMP read differently, so they are
- * separate encodings spelled {@code "DATE_WALLCLOCK:<zoneId>"} and
- * {@code "TIMESTAMP_WALLCLOCK:<zoneId>"} (e.g. {@code "DATE_WALLCLOCK:America/New_York"}).
- * Parsed and cached by {@link TypeEncodingRegistry}.
+ * <p>Family-tagged so every encoding binds to exactly one family: a wall-clock DATE (no
+ * time-of-day) and a wall-clock TIMESTAMP read differently, so they are separate encodings spelled
+ * {@code "DATE_WALLCLOCK:<zoneId>"} and {@code "TIMESTAMP_WALLCLOCK:<zoneId>"} (e.g. {@code
+ * "DATE_WALLCLOCK:America/New_York"}). Parsed and cached by {@link TypeEncodingRegistry}.
  */
 public final class WallClockEncoding implements TypeEncoding {
 
@@ -51,10 +49,12 @@ public final class WallClockEncoding implements TypeEncoding {
 
     public static WallClockEncoding parse(String name) {
         if (name.startsWith(DATE_PREFIX)) {
-            return new WallClockEncoding(CoreTypeFamily.DATE, ZoneId.of(name.substring(DATE_PREFIX.length())));
+            return new WallClockEncoding(
+                    CoreTypeFamily.DATE, ZoneId.of(name.substring(DATE_PREFIX.length())));
         }
         if (name.startsWith(TIMESTAMP_PREFIX)) {
-            return new WallClockEncoding(CoreTypeFamily.TIMESTAMP, ZoneId.of(name.substring(TIMESTAMP_PREFIX.length())));
+            return new WallClockEncoding(
+                    CoreTypeFamily.TIMESTAMP, ZoneId.of(name.substring(TIMESTAMP_PREFIX.length())));
         }
         throw new IllegalArgumentException("Not a wall-clock encoding: " + name);
     }
@@ -76,7 +76,9 @@ public final class WallClockEncoding implements TypeEncoding {
 
     @Override
     public boolean equals(Object o) {
-        return o instanceof WallClockEncoding other && family.equals(other.family) && zone.equals(other.zone);
+        return o instanceof WallClockEncoding other
+                && family.equals(other.family)
+                && zone.equals(other.zone);
     }
 
     @Override

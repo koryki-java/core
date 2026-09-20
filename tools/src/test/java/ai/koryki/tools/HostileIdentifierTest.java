@@ -1,4 +1,24 @@
+/*
+ * Copyright 2025-2026 Johannes Zemlin
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package ai.koryki.tools;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.koryki.catalog.domain.Attribute;
 import ai.koryki.catalog.domain.Entity;
@@ -18,8 +38,6 @@ import ai.koryki.postgresql.iql.PostgreSqlDialect;
 import ai.koryki.snowflake.iql.SnowflakeDialect;
 import ai.koryki.sqlite.iql.SqliteDialect;
 import ai.koryki.trino.iql.TrinoDialect;
-import org.junit.jupiter.api.Test;
-
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
@@ -27,10 +45,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
 
 /**
  * Names SQL cannot take bare, rendered for every dialect.
@@ -54,15 +69,16 @@ class HostileIdentifierTest {
     private static final ZoneId UTC = ZoneId.of("UTC");
 
     /** Every dialect, with the quote characters it is supposed to write. */
-    private static final Map<String, SqlDialect> DIALECTS = Map.of(
-            "duckdb", DuckdbBaseDialect.INSTANCE,
-            "sqlite", SqliteDialect.INSTANCE,
-            "postgresql", PostgreSqlDialect.INSTANCE,
-            "trino", TrinoDialect.INSTANCE,
-            "oracle", OracleDialect.INSTANCE,
-            "snowflake", SnowflakeDialect.INSTANCE,
-            "mariadb", MariadbDialect.INSTANCE,
-            "mssql", MssqlDialect.INSTANCE);
+    private static final Map<String, SqlDialect> DIALECTS =
+            Map.of(
+                    "duckdb", DuckdbBaseDialect.INSTANCE,
+                    "sqlite", SqliteDialect.INSTANCE,
+                    "postgresql", PostgreSqlDialect.INSTANCE,
+                    "trino", TrinoDialect.INSTANCE,
+                    "oracle", OracleDialect.INSTANCE,
+                    "snowflake", SnowflakeDialect.INSTANCE,
+                    "mariadb", MariadbDialect.INSTANCE,
+                    "mssql", MssqlDialect.INSTANCE);
 
     /**
      * A catalog whose physical names are all things SQL refuses bare.
@@ -85,10 +101,12 @@ class HostileIdentifierTest {
 
         Entity entity = new Entity("umsatz_2026");
         entity.setTable("Umsatz 2026");
-        entity.setAttributes(new ArrayList<>(List.of(
-                attribute("order_date", "Order Date"),
-                attribute("bestellnummer", "order"),
-                attribute("betrag", "Betrag €"))));
+        entity.setAttributes(
+                new ArrayList<>(
+                        List.of(
+                                attribute("order_date", "Order Date"),
+                                attribute("bestellnummer", "order"),
+                                attribute("betrag", "Betrag €"))));
 
         Model model = new Model("hostile");
         model.setEntities(new ArrayList<>(List.of(entity)));
@@ -103,11 +121,13 @@ class HostileIdentifierTest {
      * <p>The cases below differ only in which name they make hostile, so they share this rather
      * than each copying the six lines of schema assembly.
      */
-    private static LinkResolver catalog(String table, java.util.LinkedHashMap<String, String> columns) {
+    private static LinkResolver catalog(
+            String table, java.util.LinkedHashMap<String, String> columns) {
 
         Table t = new Table(table);
-        t.setColumns(new ArrayList<>(columns.values().stream()
-                .map(c -> column(c, "TEXT", "VARCHAR")).toList()));
+        t.setColumns(
+                new ArrayList<>(
+                        columns.values().stream().map(c -> column(c, "TEXT", "VARCHAR")).toList()));
 
         Schema schema = new Schema("one");
         schema.setTables(new ArrayList<>(List.of(t)));
@@ -115,8 +135,11 @@ class HostileIdentifierTest {
 
         Entity entity = new Entity("t");
         entity.setTable(table);
-        entity.setAttributes(new ArrayList<>(columns.entrySet().stream()
-                .map(e -> attribute(e.getKey(), e.getValue())).toList()));
+        entity.setAttributes(
+                new ArrayList<>(
+                        columns.entrySet().stream()
+                                .map(e -> attribute(e.getKey(), e.getValue()))
+                                .toList()));
 
         Model model = new Model("one");
         model.setEntities(new ArrayList<>(List.of(entity)));
@@ -127,8 +150,9 @@ class HostileIdentifierTest {
 
     private static String sql(SqlDialect dialect, LinkResolver resolver, String kql) {
         try {
-            return KQLTranspiler
-                    .builder(new ByteArrayInputStream(kql.getBytes(StandardCharsets.UTF_8)), resolver)
+            return KQLTranspiler.builder(
+                            new ByteArrayInputStream(kql.getBytes(StandardCharsets.UTF_8)),
+                            resolver)
                     .build()
                     .getSql(new SqlQueryRenderer(dialect, UTC));
         } catch (java.io.IOException e) {
@@ -157,12 +181,16 @@ class HostileIdentifierTest {
         return a;
     }
 
-    /** Unchecked on purpose: the lambdas below iterate the dialects and cannot declare IOException. */
+    /**
+     * Unchecked on purpose: the lambdas below iterate the dialects and cannot declare IOException.
+     */
     private static String sql(SqlDialect dialect, String kql) {
         try {
-            KQLTranspiler transpiler = KQLTranspiler
-                    .builder(new ByteArrayInputStream(kql.getBytes(StandardCharsets.UTF_8)), hostileCatalog())
-                    .build();
+            KQLTranspiler transpiler =
+                    KQLTranspiler.builder(
+                                    new ByteArrayInputStream(kql.getBytes(StandardCharsets.UTF_8)),
+                                    hostileCatalog())
+                            .build();
             return transpiler.getSql(new SqlQueryRenderer(dialect, UTC));
         } catch (java.io.IOException e) {
             throw new java.io.UncheckedIOException(e);
@@ -173,30 +201,45 @@ class HostileIdentifierTest {
     void aNameWithASpaceIsQuotedOnEveryDialect() {
         String kql = "FIND umsatz_2026 u FETCH u.order_date, u.betrag";
 
-        DIALECTS.forEach((name, dialect) -> {
-            String sql = sql(dialect, kql);
-            String open = switch (name) {
-                case "mariadb" -> "`";
-                case "mssql" -> "[";
-                default -> "\"";
-            };
-            String close = switch (name) {
-                case "mariadb" -> "`";
-                case "mssql" -> "]";
-                default -> "\"";
-            };
-            // Verbatim on every dialect. The tempting rule - "Oracle and Snowflake fold up, so
-            // write it upper-cased" - is wrong, and Snowflake rejected it in
-            // HostileNameSnowflakeTest: folding applies to names written WITHOUT quotes, and a
-            // name that needs quotes was never written without them.
-            String table = "Umsatz 2026";
+        DIALECTS.forEach(
+                (name, dialect) -> {
+                    String sql = sql(dialect, kql);
+                    String open =
+                            switch (name) {
+                                case "mariadb" -> "`";
+                                case "mssql" -> "[";
+                                default -> "\"";
+                            };
+                    String close =
+                            switch (name) {
+                                case "mariadb" -> "`";
+                                case "mssql" -> "]";
+                                default -> "\"";
+                            };
+                    // Verbatim on every dialect. The tempting rule - "Oracle and Snowflake fold up,
+                    // so
+                    // write it upper-cased" - is wrong, and Snowflake rejected it in
+                    // HostileNameSnowflakeTest: folding applies to names written WITHOUT quotes,
+                    // and a
+                    // name that needs quotes was never written without them.
+                    String table = "Umsatz 2026";
 
-            assertTrue(sql.contains(open + table + close),
-                    name + " should write " + open + table + close + " but rendered:\n" + sql);
-            // The failure this guards against: a bare name with a space is a syntax error, and the
-            // message the database returns names the second word, not the column.
-            assertFalse(sql.matches("(?s).*\\bFROM Umsatz 2026\\b.*"), name + " left the table bare:\n" + sql);
-        });
+                    assertTrue(
+                            sql.contains(open + table + close),
+                            name
+                                    + " should write "
+                                    + open
+                                    + table
+                                    + close
+                                    + " but rendered:\n"
+                                    + sql);
+                    // The failure this guards against: a bare name with a space is a syntax error,
+                    // and the
+                    // message the database returns names the second word, not the column.
+                    assertFalse(
+                            sql.matches("(?s).*\\bFROM Umsatz 2026\\b.*"),
+                            name + " left the table bare:\n" + sql);
+                });
     }
 
     @Test
@@ -205,16 +248,19 @@ class HostileIdentifierTest {
         // there is. Nothing about it looks like it needs quoting, and it stops the parser.
         String kql = "FIND umsatz_2026 u FETCH u.bestellnummer";
 
-        DIALECTS.forEach((name, dialect) -> {
-            String sql = sql(dialect, kql);
-            String quoted = switch (name) {
-                case "mariadb" -> "`order`";
-                case "mssql" -> "[order]";
-                default -> "\"order\"";
-            };
-            assertTrue(sql.contains(quoted),
-                    name + " should write " + quoted + " but rendered:\n" + sql);
-        });
+        DIALECTS.forEach(
+                (name, dialect) -> {
+                    String sql = sql(dialect, kql);
+                    String quoted =
+                            switch (name) {
+                                case "mariadb" -> "`order`";
+                                case "mssql" -> "[order]";
+                                default -> "\"order\"";
+                            };
+                    assertTrue(
+                            sql.contains(quoted),
+                            name + " should write " + quoted + " but rendered:\n" + sql);
+                });
     }
 
     @Test
@@ -226,7 +272,9 @@ class HostileIdentifierTest {
 
         assertTrue(sql.contains("u.\"Order Date\""), sql);
         assertFalse(sql.contains("\"u.Order Date\""), sql);
-        assertFalse(sql.contains("\"u\""), "an alias that needs no quoting should not get any:\n" + sql);
+        assertFalse(
+                sql.contains("\"u\""),
+                "an alias that needs no quoting should not get any:\n" + sql);
     }
 
     @Test
@@ -247,16 +295,21 @@ class HostileIdentifierTest {
         model.setEntities(new ArrayList<>(List.of(entity)));
         model.setLinks(new ArrayList<>());
 
-        KQLTranspiler transpiler = KQLTranspiler.builder(
-                        new ByteArrayInputStream("FIND umsatz u FETCH u.betrag".getBytes(StandardCharsets.UTF_8)),
-                        new LinkResolver(Locale.ENGLISH, schema, model, true))
-                .build();
+        KQLTranspiler transpiler =
+                KQLTranspiler.builder(
+                                new ByteArrayInputStream(
+                                        "FIND umsatz u FETCH u.betrag"
+                                                .getBytes(StandardCharsets.UTF_8)),
+                                new LinkResolver(Locale.ENGLISH, schema, model, true))
+                        .build();
 
-        DIALECTS.forEach((name, dialect) -> {
-            String sql = transpiler.getSql(new SqlQueryRenderer(dialect, UTC));
-            assertFalse(sql.contains("\"") || sql.contains("`") || sql.contains("["),
-                    name + " quoted a name that needed none:\n" + sql);
-        });
+        DIALECTS.forEach(
+                (name, dialect) -> {
+                    String sql = transpiler.getSql(new SqlQueryRenderer(dialect, UTC));
+                    assertFalse(
+                            sql.contains("\"") || sql.contains("`") || sql.contains("["),
+                            name + " quoted a name that needed none:\n" + sql);
+                });
     }
 
     /**
@@ -265,63 +318,79 @@ class HostileIdentifierTest {
      * <p>The regression this exists for: {@code WITH b (...)} was the one position that never
      * reached the quoting helper, so it emitted whatever the catalog held. Here the block projects
      * a field with no label of its own, which makes its header the <em>physical</em> column - so
-     * the list gets {@code order}, a word that stops the parser, while every reference to it
-     * inside the block body was already being quoted correctly. That mismatch inside a single
-     * statement is what made it hard to see.
+     * the list gets {@code order}, a word that stops the parser, while every reference to it inside
+     * the block body was already being quoted correctly. That mismatch inside a single statement is
+     * what made it hard to see.
      */
     @Test
     void aBlockColumnListIsQuotedLikeEveryOtherPosition() {
-        String kql = """
+        String kql =
+                """
                 WITH b AS (
                  FIND umsatz_2026 u FETCH u.bestellnummer
                 )
                 FIND b x FETCH x.bestellnummer""";
 
-        DIALECTS.forEach((name, dialect) -> {
-            String sql = sql(dialect, hostileCatalog(), kql);
-            String quoted = switch (name) {
-                case "mariadb" -> "`order`";
-                case "mssql" -> "[order]";
-                default -> "\"order\"";
-            };
-            assertTrue(sql.contains("(" + quoted + ")"),
-                    name + " left the block column list bare - expected (" + quoted + "):\n" + sql);
-            assertFalse(sql.matches("(?s).*\\(\\s*order\\s*\\).*"),
-                    name + " wrote a bare reserved word in the block column list:\n" + sql);
-        });
+        DIALECTS.forEach(
+                (name, dialect) -> {
+                    String sql = sql(dialect, hostileCatalog(), kql);
+                    String quoted =
+                            switch (name) {
+                                case "mariadb" -> "`order`";
+                                case "mssql" -> "[order]";
+                                default -> "\"order\"";
+                            };
+                    assertTrue(
+                            sql.contains("(" + quoted + ")"),
+                            name
+                                    + " left the block column list bare - expected ("
+                                    + quoted
+                                    + "):\n"
+                                    + sql);
+                    assertFalse(
+                            sql.matches("(?s).*\\(\\s*order\\s*\\).*"),
+                            name + " wrote a bare reserved word in the block column list:\n" + sql);
+                });
     }
 
     /**
      * An output alias is quoted when it is a keyword.
      *
-     * <p>Asserted here rather than left to the one golden that happens to cover it
-     * ({@code duration_display.sql}, whose {@code AS "full"} moved when quoting arrived). A golden
-     * records what the renderer did; this records what it is supposed to do.
+     * <p>Asserted here rather than left to the one golden that happens to cover it ({@code
+     * duration_display.sql}, whose {@code AS "full"} moved when quoting arrived). A golden records
+     * what the renderer did; this records what it is supposed to do.
      */
     @Test
     void anOutputAliasThatIsAKeywordIsQuoted() {
         LinkResolver r = catalog("umsatz", columns("betrag", "betrag"));
 
-        DIALECTS.forEach((name, dialect) -> {
-            String sql = sql(dialect, r, "FIND t x FETCH x.betrag full");
-            String quoted = switch (name) {
-                case "mariadb" -> "`full`";
-                case "mssql" -> "[full]";
-                default -> "\"full\"";
-            };
-            assertTrue(sql.contains("AS " + quoted),
-                    name + " should write AS " + quoted + " but rendered:\n" + sql);
-        });
+        DIALECTS.forEach(
+                (name, dialect) -> {
+                    String sql = sql(dialect, r, "FIND t x FETCH x.betrag full");
+                    String quoted =
+                            switch (name) {
+                                case "mariadb" -> "`full`";
+                                case "mssql" -> "[full]";
+                                default -> "\"full\"";
+                            };
+                    assertTrue(
+                            sql.contains("AS " + quoted),
+                            name + " should write AS " + quoted + " but rendered:\n" + sql);
+                });
     }
 
     /** GROUP BY and ORDER BY reach the column through the same path the SELECT list does. */
     @Test
     void groupByAndOrderByQuoteWhatTheSelectListQuotes() {
-        String sql = sql(PostgreSqlDialect.INSTANCE, hostileCatalog(),
-                "FIND umsatz_2026 u FETCH u.order_date ASC, count(u.betrag) n");
+        String sql =
+                sql(
+                        PostgreSqlDialect.INSTANCE,
+                        hostileCatalog(),
+                        "FIND umsatz_2026 u FETCH u.order_date ASC, count(u.betrag) n");
 
         assertTrue(sql.contains("GROUP BY"), sql);
-        assertFalse(sql.matches("(?s).*GROUP BY[^\n]*\\bOrder Date\\b.*"),
+        assertFalse(
+                sql.matches("(?s).*GROUP BY[^\n]*\\bOrder Date\\b.*"),
                 "GROUP BY left the name bare:\n" + sql);
         assertTrue(sql.contains("\"Order Date\""), sql);
     }
@@ -329,8 +398,8 @@ class HostileIdentifierTest {
     /**
      * A quote character inside a name is escaped, not treated as the name's own delimiter.
      *
-     * <p>The strip that removes redundant quotes used to take the two ends independently, so a
-     * name that merely <em>contained</em> one lost its last character: {@code He said "hi"} became
+     * <p>The strip that removes redundant quotes used to take the two ends independently, so a name
+     * that merely <em>contained</em> one lost its last character: {@code He said "hi"} became
      * {@code He said "hi} and rendered as a column nobody has - the wrong name, and no error to say
      * so. Only MariaDB and SQL Server, whose delimiters are not the double quote, were unaffected.
      */
@@ -339,37 +408,44 @@ class HostileIdentifierTest {
         String hostile = "He said \"hi\"";
         LinkResolver r = catalog("umsatz", columns("zitat", hostile));
 
-        DIALECTS.forEach((name, dialect) -> {
-            String sql = sql(dialect, r, "FIND t x FETCH x.zitat");
-            String expected = switch (name) {
-                case "mariadb" -> "`" + hostile + "`";
-                case "mssql" -> "[" + hostile + "]";
-                default -> "\"He said \"\"hi\"\"\"";
-            };
-            assertTrue(sql.contains(expected),
-                    name + " should write " + expected + " but rendered:\n" + sql);
-        });
+        DIALECTS.forEach(
+                (name, dialect) -> {
+                    String sql = sql(dialect, r, "FIND t x FETCH x.zitat");
+                    String expected =
+                            switch (name) {
+                                case "mariadb" -> "`" + hostile + "`";
+                                case "mssql" -> "[" + hostile + "]";
+                                default -> "\"He said \"\"hi\"\"\"";
+                            };
+                    assertTrue(
+                            sql.contains(expected),
+                            name + " should write " + expected + " but rendered:\n" + sql);
+                });
     }
 
     /**
      * A word is reserved on the engines that reserve it, and nowhere else.
      *
      * <p>{@code date} is an ordinary column name on seven of the eight and a parser error on
-     * Oracle. One shared list cannot express that: widening it quotes the name everywhere, which
-     * on Oracle and Snowflake changes which column it resolves to, and leaving it out breaks
-     * Oracle. Both catalogs in this project that use the name ({@code date} and {@code long}, in
-     * covid19) went bare until the list moved onto the dialect.
+     * Oracle. One shared list cannot express that: widening it quotes the name everywhere, which on
+     * Oracle and Snowflake changes which column it resolves to, and leaving it out breaks Oracle.
+     * Both catalogs in this project that use the name ({@code date} and {@code long}, in covid19)
+     * went bare until the list moved onto the dialect.
      */
     @Test
     void aReservedWordIsJudgedByTheEngineThatReservesIt() {
         LinkResolver r = catalog("umsatz", columns("tag", "date"));
 
-        assertTrue(sql(OracleDialect.INSTANCE, r, "FIND t x FETCH x.tag").contains("\"date\""),
+        assertTrue(
+                sql(OracleDialect.INSTANCE, r, "FIND t x FETCH x.tag").contains("\"date\""),
                 "Oracle reserves date and must quote it");
-        assertFalse(sql(PostgreSqlDialect.INSTANCE, r, "FIND t x FETCH x.tag").contains("\"date\""),
+        assertFalse(
+                sql(PostgreSqlDialect.INSTANCE, r, "FIND t x FETCH x.tag").contains("\"date\""),
                 "PostgreSQL does not reserve date and must leave it bare");
-        assertTrue(sql(MssqlDialect.INSTANCE, r, "FIND t x FETCH x.tag").contains("[key]")
-                        || !sql(MssqlDialect.INSTANCE, r, "FIND t x FETCH x.tag").contains("[date]"),
+        assertTrue(
+                sql(MssqlDialect.INSTANCE, r, "FIND t x FETCH x.tag").contains("[key]")
+                        || !sql(MssqlDialect.INSTANCE, r, "FIND t x FETCH x.tag")
+                                .contains("[date]"),
                 "SQL Server does not reserve date");
     }
 

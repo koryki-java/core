@@ -18,14 +18,12 @@ package ai.koryki.mssql;
 
 import ai.koryki.jdbc.JdbcDatabase;
 import ai.koryki.jdbc.ResultProcessor;
-
 import java.sql.Connection;
 import java.time.ZoneId;
 
 /**
- * Vendor base for every Mssql connection: pins session
- * state at construction (see docs/TEMPORAL.md, "Time zones") so that
- * zone-aware reads and {@code now()} never depend on who runs the query.
+ * Vendor base for every Mssql connection: pins session state at construction (see docs/TEMPORAL.md,
+ * "Time zones") so that zone-aware reads and {@code now()} never depend on who runs the query.
  */
 public class MssqlDatabase<P extends ResultProcessor<?>> extends JdbcDatabase<P> {
 

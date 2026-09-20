@@ -17,7 +17,6 @@
 package ai.koryki.iql.functions;
 
 import ai.koryki.iql.functions.catalog.AggregateFunctions;
-import ai.koryki.iql.functions.catalog.WindowFunctions;
 import ai.koryki.iql.functions.catalog.ArithmeticFunctions;
 import ai.koryki.iql.functions.catalog.ComparisonFunctions;
 import ai.koryki.iql.functions.catalog.ConditionalFunctions;
@@ -28,12 +27,12 @@ import ai.koryki.iql.functions.catalog.LogicalFunctions;
 import ai.koryki.iql.functions.catalog.MathFunctions;
 import ai.koryki.iql.functions.catalog.PatternMatchingFunctions;
 import ai.koryki.iql.functions.catalog.StringFunctions;
+import ai.koryki.iql.functions.catalog.WindowFunctions;
 
 /**
- * Facade over the canonical function catalog. The definitions live in
- * {@code ai.koryki.iql.functions.catalog}, one class per documentation
- * category; this class assembles the dialect-neutral registry and answers
- * name-level classification queries.
+ * Facade over the canonical function catalog. The definitions live in {@code
+ * ai.koryki.iql.functions.catalog}, one class per documentation category; this class assembles the
+ * dialect-neutral registry and answers name-level classification queries.
  */
 public class StandardFunctions {
 
@@ -54,8 +53,11 @@ public class StandardFunctions {
         return r;
     }
 
-    /** Standard (dialect-neutral) registry, built once, for classification queries like {@link #isAggregate}
-     *  and as the shared render catalog for dialects that add no functions of their own. */
+    /**
+     * Standard (dialect-neutral) registry, built once, for classification queries like {@link
+     * #isAggregate} and as the shared render catalog for dialects that add no functions of their
+     * own.
+     */
     private static final FunctionRegistry CANONICAL = registry();
 
     /** The dialect-neutral function renderer — assembled once and shared read-only. */
@@ -63,7 +65,10 @@ public class StandardFunctions {
         return CANONICAL;
     }
 
-    /** Whether a function is an aggregate, per the canonical function metadata (single source of truth). */
+    /**
+     * Whether a function is an aggregate, per the canonical function metadata (single source of
+     * truth).
+     */
     public static boolean isAggregate(String name) {
         FunctionDefinition fn = CANONICAL.lookup(name);
         return fn != null && fn.getKind() == FunctionKind.AGGREGATE;
@@ -75,7 +80,8 @@ public class StandardFunctions {
         DateTimeFunctions.registerExtractParts(r);
     }
 
-    public static FunctionDefinition parseTwoArg(String name, ReturnTypeInference type, String sqlFunction) {
+    public static FunctionDefinition parseTwoArg(
+            String name, ReturnTypeInference type, String sqlFunction) {
         return DateTimeFunctions.parseTwoArg(name, type, sqlFunction);
     }
 }

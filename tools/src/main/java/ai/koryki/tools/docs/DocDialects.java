@@ -1,3 +1,19 @@
+/*
+ * Copyright 2025-2026 Johannes Zemlin
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package ai.koryki.tools.docs;
 
 import ai.koryki.databases.cases.Fixtures;
@@ -14,7 +30,6 @@ import ai.koryki.postgresql.iql.PostgreSqlDialect;
 import ai.koryki.snowflake.iql.SnowflakeDialect;
 import ai.koryki.sqlite.iql.SqliteDialect;
 import ai.koryki.trino.iql.TrinoDialect;
-
 import java.io.IOException;
 import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
@@ -25,9 +40,9 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 /**
- * The single list of documented dialects and documentation samples, shared by every docs
- * generator so the function pages, the per-dialect support matrices and the test-module SQL
- * goldens can never end up covering different sets.
+ * The single list of documented dialects and documentation samples, shared by every docs generator
+ * so the function pages, the per-dialect support matrices and the test-module SQL goldens can never
+ * end up covering different sets.
  */
 public final class DocDialects {
 
@@ -43,27 +58,25 @@ public final class DocDialects {
      * One documentation sample: its slug (as incubator's {@code FunctionDocGenerator} keys pages
      * by), demo database and KQL.
      */
-    public record Sample(String slug, String db, String kql) {
-    }
-
-
+    public record Sample(String slug, String db, String kql) {}
 
     /**
-     * Sample roots in resolution order. Must match {@code FunctionDocGenerator.SAMPLE_ROOTS}:
-     * a slug present in more than one root is taken from the first, so the SQL shown on a page
-     * always belongs to the sample shown above it.
+     * Sample roots in resolution order. Must match {@code FunctionDocGenerator.SAMPLE_ROOTS}: a
+     * slug present in more than one root is taken from the first, so the SQL shown on a page always
+     * belongs to the sample shown above it.
      */
     private static final List<String> ROOTS = List.of("northwind", "typecheck", "temporal");
 
-    private static final List<Doc> ALL = List.of(
-            new Doc("duckdb", "DuckDB", 21, DuckdbBaseDialect.INSTANCE),
-            new Doc("oracle", "Oracle", 22, OracleDialect.INSTANCE),
-            new Doc("snowflake", "Snowflake", 23, SnowflakeDialect.INSTANCE),
-            new Doc("mssql", "SQL Server", 24, MssqlDialect.INSTANCE),
-            new Doc("postgresql", "PostgreSQL", 25, PostgreSqlDialect.INSTANCE),
-            new Doc("mariadb", "MariaDB", 26, MariadbDialect.INSTANCE),
-            new Doc("sqlite", "SQLite", 27, SqliteDialect.INSTANCE),
-            new Doc("trino", "Trino", 28, TrinoDialect.INSTANCE));
+    private static final List<Doc> ALL =
+            List.of(
+                    new Doc("duckdb", "DuckDB", 21, DuckdbBaseDialect.INSTANCE),
+                    new Doc("oracle", "Oracle", 22, OracleDialect.INSTANCE),
+                    new Doc("snowflake", "Snowflake", 23, SnowflakeDialect.INSTANCE),
+                    new Doc("mssql", "SQL Server", 24, MssqlDialect.INSTANCE),
+                    new Doc("postgresql", "PostgreSQL", 25, PostgreSqlDialect.INSTANCE),
+                    new Doc("mariadb", "MariaDB", 26, MariadbDialect.INSTANCE),
+                    new Doc("sqlite", "SQLite", 27, SqliteDialect.INSTANCE),
+                    new Doc("trino", "Trino", 28, TrinoDialect.INSTANCE));
 
     public static List<Doc> all() {
         return ALL;
@@ -98,7 +111,9 @@ public final class DocDialects {
                 continue;
             }
             try (Stream<Path> walk = Files.walk(root, FileVisitOption.FOLLOW_LINKS)) {
-                for (Path p : (Iterable<Path>) walk.filter(x -> x.toString().endsWith(".kql"))::iterator) {
+                for (Path p :
+                        (Iterable<Path>)
+                                walk.filter(x -> x.toString().endsWith(".kql"))::iterator) {
                     String slug = p.getFileName().toString().replaceFirst("\\.kql$", "");
                     samples.putIfAbsent(slug, new Sample(slug, db, Files.readString(p)));
                 }
@@ -107,6 +122,5 @@ public final class DocDialects {
         return samples;
     }
 
-    private DocDialects() {
-    }
+    private DocDialects() {}
 }

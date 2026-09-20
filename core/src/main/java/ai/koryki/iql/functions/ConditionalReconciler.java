@@ -16,6 +16,7 @@
  */
 package ai.koryki.iql.functions;
 
+import ai.koryki.catalog.types.CoreTypeEncoding;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.EncodingLattice;
 import ai.koryki.catalog.types.Families;
@@ -23,22 +24,20 @@ import ai.koryki.catalog.types.NativeEncoding;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeEncoding;
 import ai.koryki.catalog.types.TypeFamily;
-
+import ai.koryki.iql.SqlSelectRenderer;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import ai.koryki.catalog.types.CoreTypeEncoding;
-import ai.koryki.iql.SqlSelectRenderer;
 import java.util.Objects;
 import java.util.Set;
 
 /**
- * Reconciles the branch result-types of a conditional function ({@code case} / {@code coalesce}) to a
- * single output type. The branches must share a family-group: the numeric families widen
- * (INTEGER &lt; DECIMAL &lt; FLOAT, see {@link Families#NUMERIC}); DATE widens to TIMESTAMP; any other
+ * Reconciles the branch result-types of a conditional function ({@code case} / {@code coalesce}) to
+ * a single output type. The branches must share a family-group: the numeric families widen (INTEGER
+ * &lt; DECIMAL &lt; FLOAT, see {@link Families#NUMERIC}); DATE widens to TIMESTAMP; any other
  * family reconciles only with itself. Within the reconciled family the encodings are brought to one
- * common encoding via the lossless {@link EncodingLattice} (least total {@link EncodingLattice#cost}).
- * NULL-literal branches (no family) are ignored — they coerce to anything.
+ * common encoding via the lossless {@link EncodingLattice} (least total {@link
+ * EncodingLattice#cost}). NULL-literal branches (no family) are ignored — they coerce to anything.
  *
  * <p>Policy is lossless-only: a reconciliation that cannot be done without loss is a hard error
  * ({@link ReconcileException}), surfaced positionally by {@code FunctionValidator}.
@@ -84,8 +83,9 @@ public final class ConditionalReconciler {
             return sql;
         }
         if (CoreTypeEncoding.TIME_SECONDS_FROM_MIDNIGHT.equals(c.to())) {
-            return renderer.getDialect().timeColumnAsSeconds(
-                    sql, new TypeDescriptor(null, c.from(), CoreTypeFamily.TIME));
+            return renderer.getDialect()
+                    .timeColumnAsSeconds(
+                            sql, new TypeDescriptor(null, c.from(), CoreTypeFamily.TIME));
         }
         return result.convert(i, sql);
     }
@@ -96,11 +96,14 @@ public final class ConditionalReconciler {
         /**
          * Which of the two reconciliation steps failed. Callers that treat the failures alike
          * (conditional branches — a {@code case} must produce one value either way) can ignore it;
-         * comparison operands cannot, because the two mean very different things there: a
-         * {@link #FAMILY_GROUP} mismatch is a mistake in the query, while {@link #ENCODING} only
-         * says the two representations have no lossless meeting point.
+         * comparison operands cannot, because the two mean very different things there: a {@link
+         * #FAMILY_GROUP} mismatch is a mistake in the query, while {@link #ENCODING} only says the
+         * two representations have no lossless meeting point.
          */
-        public enum Kind { FAMILY_GROUP, ENCODING }
+        public enum Kind {
+            FAMILY_GROUP,
+            ENCODING
+        }
 
         private final Kind kind;
 
@@ -130,9 +133,13 @@ public final class ConditionalReconciler {
         TypeFamily targetFamily = typed.get(0).getTypeFamily();
         for (TypeDescriptor b : typed) {
             if (!sameGroup(targetFamily, b.getTypeFamily())) {
-                throw new ReconcileException(ReconcileException.Kind.FAMILY_GROUP,
+                throw new ReconcileException(
+                        ReconcileException.Kind.FAMILY_GROUP,
                         "cannot bring these values to a common type — different "
-                        + "family-groups: " + targetFamily.name() + " and " + b.getTypeFamily().name());
+                                + "family-groups: "
+                                + targetFamily.name()
+                                + " and "
+                                + b.getTypeFamily().name());
             }
             targetFamily = widen(targetFamily, b.getTypeFamily());
         }
@@ -144,7 +151,8 @@ public final class ConditionalReconciler {
             encodings.add(encodingInFamily(b, targetFamily));
         }
 
-        // 3. Target encoding: the lossless common encoding of least total cost (hard error if none).
+        // 3. Target encoding: the lossless common encoding of least total cost (hard error if
+        // none).
         TypeEncoding targetEncoding = chooseTarget(encodings);
 
         // 4. Output descriptor + per-branch conversions, aligned to the original branch list.
@@ -152,7 +160,7 @@ public final class ConditionalReconciler {
         List<Conversion> conversions = new ArrayList<>(branches.size());
         for (TypeDescriptor b : branches) {
             if (b == null || b.getTypeFamily() == null) {
-                conversions.add(new Conversion(null, null));   // NULL literal — no cast needed
+                conversions.add(new Conversion(null, null)); // NULL literal — no cast needed
             } else {
                 conversions.add(new Conversion(encodingInFamily(b, targetFamily), targetEncoding));
             }
@@ -163,17 +171,21 @@ public final class ConditionalReconciler {
     private static TypeEncoding encodingInFamily(TypeDescriptor b, TypeFamily targetFamily) {
         return b.getTypeFamily().equals(targetFamily)
                 ? b.getTypeEncoding()
-                : NativeEncoding.of(targetFamily);   // numeric widening — implicit in CASE/COALESCE
+                : NativeEncoding.of(targetFamily); // numeric widening — implicit in CASE/COALESCE
     }
 
-    /** The lossless common target reachable from every branch, minimizing summed conversion cost. */
+    /**
+     * The lossless common target reachable from every branch, minimizing summed conversion cost.
+     */
     private static TypeEncoding chooseTarget(List<TypeEncoding> encodings) {
-        Set<TypeEncoding> candidates = new LinkedHashSet<>(EncodingLattice.losslessTargets(encodings.get(0)));
+        Set<TypeEncoding> candidates =
+                new LinkedHashSet<>(EncodingLattice.losslessTargets(encodings.get(0)));
         for (int i = 1; i < encodings.size(); i++) {
             candidates.retainAll(EncodingLattice.losslessTargets(encodings.get(i)));
         }
         if (candidates.isEmpty()) {
-            throw new ReconcileException(ReconcileException.Kind.ENCODING,
+            throw new ReconcileException(
+                    ReconcileException.Kind.ENCODING,
                     "no lossless common encoding for these values " + encodings);
         }
         TypeEncoding best = null;
@@ -191,11 +203,15 @@ public final class ConditionalReconciler {
         return best;
     }
 
-    /** Output descriptor — reuse a branch's physical type/precision/scale where it already matches. */
-    private static TypeDescriptor describe(List<TypeDescriptor> typed, TypeFamily family, TypeEncoding encoding) {
+    /**
+     * Output descriptor — reuse a branch's physical type/precision/scale where it already matches.
+     */
+    private static TypeDescriptor describe(
+            List<TypeDescriptor> typed, TypeFamily family, TypeEncoding encoding) {
         for (TypeDescriptor b : typed) {
             if (b.getTypeFamily().equals(family) && Objects.equals(b.getTypeEncoding(), encoding)) {
-                return new TypeDescriptor(b.getPhysicalTypeName(), encoding, family, b.getPrecision(), b.getScale());
+                return new TypeDescriptor(
+                        b.getPhysicalTypeName(), encoding, family, b.getPrecision(), b.getScale());
             }
         }
         // Widened family / converted encoding: take the physical/precision of the dominant branch.
@@ -205,11 +221,16 @@ public final class ConditionalReconciler {
                 dominant = b;
             }
         }
-        return new TypeDescriptor(dominant.getPhysicalTypeName(), encoding, family,
-                dominant.getPrecision(), dominant.getScale());
+        return new TypeDescriptor(
+                dominant.getPhysicalTypeName(),
+                encoding,
+                family,
+                dominant.getPrecision(),
+                dominant.getScale());
     }
 
-    // --- family-group widening (step 1: numeric only; every other family reconciles with itself) ---
+    // --- family-group widening (step 1: numeric only; every other family reconciles with itself)
+    // ---
 
     private static boolean sameGroup(TypeFamily a, TypeFamily b) {
         if (a == null || b == null) {
@@ -224,7 +245,10 @@ public final class ConditionalReconciler {
         return temporalWiden(a) && temporalWiden(b);
     }
 
-    /** Temporal families that widen among themselves: DATE -> TIMESTAMP. TIME is excluded — it has no lossless promotion. */
+    /**
+     * Temporal families that widen among themselves: DATE -> TIMESTAMP. TIME is excluded — it has
+     * no lossless promotion.
+     */
     private static boolean temporalWiden(TypeFamily f) {
         return CoreTypeFamily.DATE.equals(f) || CoreTypeFamily.TIMESTAMP.equals(f);
     }
@@ -238,10 +262,10 @@ public final class ConditionalReconciler {
      * group, so numeric and temporal scales may reuse values. Singletons are rank 0.
      */
     private static int rank(TypeFamily f) {
-        if (CoreTypeFamily.INTEGER.equals(f))   return 1;
-        if (CoreTypeFamily.DECIMAL.equals(f))   return 2;
-        if (CoreTypeFamily.FLOAT.equals(f))     return 3;
-        if (CoreTypeFamily.DATE.equals(f))      return 1;
+        if (CoreTypeFamily.INTEGER.equals(f)) return 1;
+        if (CoreTypeFamily.DECIMAL.equals(f)) return 2;
+        if (CoreTypeFamily.FLOAT.equals(f)) return 3;
+        if (CoreTypeFamily.DATE.equals(f)) return 1;
         if (CoreTypeFamily.TIMESTAMP.equals(f)) return 2;
         return 0;
     }

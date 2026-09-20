@@ -1,12 +1,27 @@
+/*
+ * Copyright 2025-2026 Johannes Zemlin
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package ai.koryki.databases.cases;
 
 import ai.koryki.antlr.Text;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.databases.FileAsserter;
+import ai.koryki.iql.validate.ValidateException;
 import ai.koryki.jdbc.ColumnInfo;
 import ai.koryki.kql.Engine;
-import ai.koryki.iql.validate.ValidateException;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -18,17 +33,17 @@ public class TestUtil {
 
     public static Path expected(Path source, Path root, Path expected) {
         Path rela = root.relativize(source);
-        return expected.resolve(rela) ;
+        return expected.resolve(rela);
     }
+
     public static Path expected(Path source, Path root, Path expected, String suffix) {
         Path rela = root.relativize(source);
         String s = source.toFile().toString();
         s = s.substring(s.lastIndexOf('.'));
-        return Path.of(expected.resolve(rela).toFile().toString().replace(s, suffix)) ;
+        return Path.of(expected.resolve(rela).toFile().toString().replace(s, suffix));
 
-       // File oraSql = new File(s.replace(suffix, ".sql"));
+        // File oraSql = new File(s.replace(suffix, ".sql"));
     }
-
 
     /**
      * Whether a fixture failed only because this dialect declares one of its functions unsupported
@@ -51,7 +66,8 @@ public class TestUtil {
                 return true;
             }
             if (e instanceof UnsupportedOperationException
-                    && String.valueOf(e.getMessage()).contains("is not supported by this dialect")) {
+                    && String.valueOf(e.getMessage())
+                            .contains("is not supported by this dialect")) {
                 return true;
             }
             if (e.getCause() == e) {
@@ -62,19 +78,19 @@ public class TestUtil {
     }
 
     /**
-     * Whether a fixture failed only because this dialect's schema does not have a column it reads
-     * — in which case it is skipped, exactly as {@link #unsupportedOnThisDialect} does for a
-     * function the catalog declares unsupported.
+     * Whether a fixture failed only because this dialect's schema does not have a column it reads —
+     * in which case it is skipped, exactly as {@link #unsupportedOnThisDialect} does for a function
+     * the catalog declares unsupported.
      *
      * <p>This replaces 41 hand-written {@code ignore=<dialect>} markers. They were the wrong tool
      * twice over: the marker's contract says "same SQL, different answer", and these fixtures
      * produce no SQL at all on the dialects in question; and nothing tied the marker to the reason,
-     * so a column added later would have left it standing. The schemas differ on purpose —
-     * {@code interval_year_month} exists only where the engine has an interval column type, which
+     * so a column added later would have left it standing. The schemas differ on purpose — {@code
+     * interval_year_month} exists only where the engine has an interval column type, which
      * Snowflake for one does not — so the difference belongs in the catalog, where it already is.
      *
-     * <p>As narrow as its sibling: only when <em>every</em> error is an unknown column. A query that
-     * reads a missing column <em>and</em> is wrong still fails.
+     * <p>As narrow as its sibling: only when <em>every</em> error is an unknown column. A query
+     * that reads a missing column <em>and</em> is wrong still fails.
      */
     public static boolean columnMissingOnThisDialect(Throwable t) {
         for (Throwable e = t; e != null; e = e.getCause()) {
@@ -93,10 +109,10 @@ public class TestUtil {
      * already declares — an unsupported function or construct, a column this schema does not have,
      * or any mixture of the two. This is the predicate the harness uses.
      *
-     * <p>Asking {@link #unsupportedOnThisDialect} and {@link #columnMissingOnThisDialect} separately
-     * is not equivalent and was a bug: {@code duration_interval_year_month_ds_literal} reads a column
-     * MariaDB does not declare <em>and</em> uses a duration MariaDB has no type for, so each narrow
-     * predicate answered no and the fixture failed instead of skipping.
+     * <p>Asking {@link #unsupportedOnThisDialect} and {@link #columnMissingOnThisDialect}
+     * separately is not equivalent and was a bug: {@code duration_interval_year_month_ds_literal}
+     * reads a column MariaDB does not declare <em>and</em> uses a duration MariaDB has no type for,
+     * so each narrow predicate answered no and the fixture failed instead of skipping.
      */
     public static boolean cannotRunOnThisDialect(Throwable t) {
         for (Throwable e = t; e != null; e = e.getCause()) {
@@ -104,7 +120,8 @@ public class TestUtil {
                 return true;
             }
             if (e instanceof UnsupportedOperationException
-                    && String.valueOf(e.getMessage()).contains("is not supported by this dialect")) {
+                    && String.valueOf(e.getMessage())
+                            .contains("is not supported by this dialect")) {
                 return true;
             }
             if (e.getCause() == e) {
@@ -123,7 +140,8 @@ public class TestUtil {
      * expectation would repeat what the code already says and then drift away from it; that
      * happened twice with the earlier {@code ignore=} markers.
      */
-    private static void checkViolations(Path kql, Path core, Path expViolations, Throwable cause) throws IOException {
+    private static void checkViolations(Path kql, Path core, Path expViolations, Throwable cause)
+            throws IOException {
 
         if (expViolations == null) {
             return;
@@ -139,7 +157,9 @@ public class TestUtil {
         }
     }
 
-    /** The wording of the rejection: the violations themselves, otherwise the exception's message. */
+    /**
+     * The wording of the rejection: the violations themselves, otherwise the exception's message.
+     */
     private static String violationText(Throwable t) {
         for (Throwable e = t; e != null; e = e.getCause()) {
             if (e instanceof ValidateException v) {
@@ -155,33 +175,56 @@ public class TestUtil {
         return String.valueOf(t.getMessage());
     }
 
-    public static <I extends ColumnInfo> void test(Path kql, String suffix, Engine<I, ListWithSqlResult<I>> engine, Path core, Path expCsv, Path expSql) throws IOException {
+    public static <I extends ColumnInfo> void test(
+            Path kql,
+            String suffix,
+            Engine<I, ListWithSqlResult<I>> engine,
+            Path core,
+            Path expCsv,
+            Path expSql)
+            throws IOException {
         test(kql, suffix, engine, core, expCsv, expSql, null);
     }
 
-
-    public static <I extends ColumnInfo> void test(Path kql, String suffix, Engine<I, ListWithSqlResult<I>> engine, Path core, Path expCsv, Path expSql, String db) throws IOException {
+    public static <I extends ColumnInfo> void test(
+            Path kql,
+            String suffix,
+            Engine<I, ListWithSqlResult<I>> engine,
+            Path core,
+            Path expCsv,
+            Path expSql,
+            String db)
+            throws IOException {
         test(kql, suffix, engine, core, expCsv, expSql, db, false);
     }
 
-    public static <I extends ColumnInfo> void test(Path kql, String suffix, Engine<I, ListWithSqlResult<I>> engine, Path core, Path expCsv, Path expSql, String db, boolean checktype) throws IOException {
+    public static <I extends ColumnInfo> void test(
+            Path kql,
+            String suffix,
+            Engine<I, ListWithSqlResult<I>> engine,
+            Path core,
+            Path expCsv,
+            Path expSql,
+            String db,
+            boolean checktype)
+            throws IOException {
         test(kql, suffix, engine, core, expCsv, expSql, null, db, checktype);
     }
 
     /**
      * @param expViolations where the violation golden lives; null disables the check (callers that
-     *                      predate it). See {@code BaseEngineTest#expectedViolations()} for why it
-     *                      exists.
+     *     predate it). See {@code BaseEngineTest#expectedViolations()} for why it exists.
      */
     /** Compares the rendered SQL against this dialect's golden, or writes it when absent. */
-    private static <I extends ColumnInfo> void checkSqlGolden(String sql, Path kql, Path core,
-            Path expSql, CSVAssert<I> csv) throws IOException {
+    private static <I extends ColumnInfo> void checkSqlGolden(
+            String sql, Path kql, Path core, Path expSql, CSVAssert<I> csv) throws IOException {
         if (sql == null) {
             return;
         }
-        String cleaned = sql.lines()
-                .filter(line -> !line.startsWith("-- ignore="))
-                .collect(Collectors.joining(Text.NL));
+        String cleaned =
+                sql.lines()
+                        .filter(line -> !line.startsWith("-- ignore="))
+                        .collect(Collectors.joining(Text.NL));
 
         File oraSql = expected(kql, core, expSql, ".sql").toFile();
         if (oraSql.canRead()) {
@@ -191,7 +234,17 @@ public class TestUtil {
         }
     }
 
-    public static <I extends ColumnInfo> void test(Path kql, String suffix, Engine<I, ListWithSqlResult<I>> engine, Path core, Path expCsv, Path expSql, Path expViolations, String db, boolean checktype) throws IOException {
+    public static <I extends ColumnInfo> void test(
+            Path kql,
+            String suffix,
+            Engine<I, ListWithSqlResult<I>> engine,
+            Path core,
+            Path expCsv,
+            Path expSql,
+            Path expViolations,
+            String db,
+            boolean checktype)
+            throws IOException {
 
         Path sibling = expected(kql, core, expCsv, ".csv");
         File expectedFile = sibling.toFile();
@@ -210,7 +263,8 @@ public class TestUtil {
             try {
                 rendered = render.renderSql();
             } catch (RuntimeException e) {
-                // A marker claims "same SQL, different answer". If rendering throws there is no SQL,
+                // A marker claims "same SQL, different answer". If rendering throws there is no
+                // SQL,
                 // so the claim is false and the fixture needs a different remedy -- that has to be
                 // visible. This used to `return` instead, which checked nothing and recorded
                 // nothing: the fixture simply vanished from the run on that dialect.
@@ -220,9 +274,14 @@ public class TestUtil {
                 // construct an engine cannot express is declared rather than thrown at render time
                 // (unsupported, SqlDialect.intervalSupport). Measured on all eight before closing
                 // the hole: no marked fixture reaches this branch.
-                throw new AssertionError("marker on " + kql.getFileName() + " claims 'same SQL, "
-                        + "different answer', but rendering fails on " + db
-                        + " -- the marker is the wrong remedy here", e);
+                throw new AssertionError(
+                        "marker on "
+                                + kql.getFileName()
+                                + " claims 'same SQL, "
+                                + "different answer', but rendering fails on "
+                                + db
+                                + " -- the marker is the wrong remedy here",
+                        e);
             }
             checkSqlGolden(rendered, kql, core, expSql, render);
             return;
@@ -238,7 +297,7 @@ public class TestUtil {
             if (!cannotRunOnThisDialect(e)) {
                 throw e;
             }
-            unsupported = true;   // the dialect cannot express this query; skip it
+            unsupported = true; // the dialect cannot express this query; skip it
             result = null;
             checkViolations(kql, core, expViolations, e);
         } finally {
@@ -246,9 +305,6 @@ public class TestUtil {
                 checkSqlGolden(csv.getSql(), kql, core, expSql, csv);
             }
         }
-
-
-
 
         if (unsupported) {
             return;
@@ -259,9 +315,11 @@ public class TestUtil {
         if (expViolations != null) {
             File stale = expected(kql, core, expViolations, ".txt").toFile();
             if (stale.canRead()) {
-                throw new AssertionError("violation golden present, but the query runs here: " + stale
-                        + Text.NL
-                        + "The dialect handles the construct now — delete the golden.");
+                throw new AssertionError(
+                        "violation golden present, but the query runs here: "
+                                + stale
+                                + Text.NL
+                                + "The dialect handles the construct now — delete the golden.");
             }
         }
 
@@ -301,12 +359,12 @@ public class TestUtil {
      *
      * <ul>
      *   <li>{@code physicalTypeName}/{@code precision}/{@code scale} — the engine's own name for
-     *       its type: {@code INTEGER} on DuckDB, {@code INT} on MariaDB and SQL Server,
-     *       {@code DECIMAL(5,0)} on PostgreSQL.</li>
-     *   <li>{@code typeEncoding} — the storage shape the schema declares. A boolean is
-     *       {@code NATIVE} where the engine has one and {@code BOOLEAN_FROM_INT} on Trino, Oracle
-     *       and SQLite, which do not; intervals and times split the same way. That is what the
-     *       {@code bool_encodings} fixture exists to exercise, so it cannot also be a shared claim.</li>
+     *       its type: {@code INTEGER} on DuckDB, {@code INT} on MariaDB and SQL Server, {@code
+     *       DECIMAL(5,0)} on PostgreSQL.
+     *   <li>{@code typeEncoding} — the storage shape the schema declares. A boolean is {@code
+     *       NATIVE} where the engine has one and {@code BOOLEAN_FROM_INT} on Trino, Oracle and
+     *       SQLite, which do not; intervals and times split the same way. That is what the {@code
+     *       bool_encodings} fixture exists to exercise, so it cannot also be a shared claim.
      * </ul>
      *
      * The family is what koryki promises regardless of storage — a TIME column answers as a TIME
@@ -316,15 +374,16 @@ public class TestUtil {
         StringBuilder b = new StringBuilder();
         for (I info : infos) {
             TypeDescriptor t = info.getTypeDescriptor();
-            b.append(info.getHeader()).append(" : ")
+            b.append(info.getHeader())
+                    .append(" : ")
                     .append(t == null ? "unknown" : t.getTypeFamily())
                     .append(Text.NL);
         }
         return b.toString();
     }
 
-    private static <I extends ColumnInfo> void checkTypeGolden(CSVAssert<I> csv, Path kql, Path core,
-            Path expCsv) throws IOException {
+    private static <I extends ColumnInfo> void checkTypeGolden(
+            CSVAssert<I> csv, Path kql, Path core, Path expCsv) throws IOException {
         String actual = portableTypes(csv.getResult().getInfos());
         File golden = expected(kql, core, expCsv, ".json").toFile();
         if (golden.canRead()) {
@@ -333,5 +392,4 @@ public class TestUtil {
             Fixtures.writeOrFail(actual, golden);
         }
     }
-
 }

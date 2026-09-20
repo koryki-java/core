@@ -23,7 +23,5 @@ public class DuckdbDialect extends DuckdbBaseDialect {
 
     public static final SqlDialect INSTANCE = new DuckdbDialect();
 
-    private DuckdbDialect() {
-    }
-
+    private DuckdbDialect() {}
 }

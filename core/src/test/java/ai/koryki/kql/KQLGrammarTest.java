@@ -1,16 +1,31 @@
+/*
+ * Copyright 2025-2026 Johannes Zemlin
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package ai.koryki.kql;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Stream;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
 
 /**
  * Checks that the grammar is read from the classpath — and above all that {@link KQLGrammar}
@@ -59,8 +74,9 @@ class KQLGrammarTest {
 
         // getResources, not getResource: several classpath entries provide the package path —
         // core's own class directory (without .g4) comes before the grammar project's.
-        List<URL> dirs = java.util.Collections.list(
-                KQLGrammarTest.class.getClassLoader().getResources("ai/koryki/kql/"));
+        List<URL> dirs =
+                java.util.Collections.list(
+                        KQLGrammarTest.class.getClassLoader().getResources("ai/koryki/kql/"));
         assertFalse(dirs.isEmpty(), "grammar package path not on the classpath");
 
         java.util.SortedSet<String> found = new java.util.TreeSet<>();
@@ -72,9 +88,10 @@ class KQLGrammarTest {
             } else if ("jar".equals(dir.getProtocol())) {
                 // The normal case in a Gradle test run: kqlcore sits on the classpath as a jar.
                 java.net.JarURLConnection c = (java.net.JarURLConnection) dir.openConnection();
-                c.setUseCaches(false);   // otherwise the JarFile would belong to the shared cache
+                c.setUseCaches(false); // otherwise the JarFile would belong to the shared cache
                 try (java.util.jar.JarFile jar = c.getJarFile()) {
-                    jar.stream().map(java.util.zip.ZipEntry::getName)
+                    jar.stream()
+                            .map(java.util.zip.ZipEntry::getName)
                             .filter(n -> n.startsWith("ai/koryki/kql/"))
                             .map(n -> n.substring("ai/koryki/kql/".length()))
                             .filter(n -> !n.contains("/"))
@@ -85,7 +102,9 @@ class KQLGrammarTest {
         List<String> shipped = List.copyOf(found);
 
         assertFalse(shipped.isEmpty(), "no .g4 in the shipped package path");
-        assertEquals(shipped, KQLGrammar.files().stream().sorted().toList(),
+        assertEquals(
+                shipped,
+                KQLGrammar.files().stream().sorted().toList(),
                 "KQLGrammar.FILES does not cover the shipped grammar files exactly");
     }
 
@@ -98,7 +117,9 @@ class KQLGrammarTest {
 
     private static int count(String haystack, String needle) {
         int n = 0;
-        for (int i = haystack.indexOf(needle); i >= 0; i = haystack.indexOf(needle, i + needle.length())) {
+        for (int i = haystack.indexOf(needle);
+                i >= 0;
+                i = haystack.indexOf(needle, i + needle.length())) {
             n++;
         }
         return n;

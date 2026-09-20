@@ -1,4 +1,22 @@
+/*
+ * Copyright 2025-2026 Johannes Zemlin
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package ai.koryki.duckdb;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.koryki.databases.cases.ListWithSqlResult;
 import ai.koryki.databases.cases.StableFormat;
@@ -7,39 +25,42 @@ import ai.koryki.databases.temporal.duckdb.TemporalService;
 import ai.koryki.kql.Engine;
 import ai.koryki.kql.EngineBuilder;
 import ai.koryki.kql.HeaderInfo;
-import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
 import java.time.ZoneId;
 import java.util.Locale;
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
 
 /**
- * The model zone is a single source of truth carried by {@link ai.koryki.jdbc.JdbcDatabase}: it pins
- * the session, drives naive-instant interpretation AND the display of instants at the read boundary.
- * The default is UTC; with a non-UTC model zone the same absolute instant
- * ({@code timestamp_zoned} nr 1 = {@code 2024-04-12 12:14:40Z}) reads back in that zone's wall-clock.
+ * The model zone is a single source of truth carried by {@link ai.koryki.jdbc.JdbcDatabase}: it
+ * pins the session, drives naive-instant interpretation AND the display of instants at the read
+ * boundary. The default is UTC; with a non-UTC model zone the same absolute instant ({@code
+ * timestamp_zoned} nr 1 = {@code 2024-04-12 12:14:40Z}) reads back in that zone's wall-clock.
  */
 public class ModelZoneTest {
 
-    private static final String QUERY = "FIND check_temporal c FILTER c.nr = 1 FETCH c.timestamp_zoned";
+    private static final String QUERY =
+            "FIND check_temporal c FILTER c.nr = 1 FETCH c.timestamp_zoned";
 
     private static String readInstant(ZoneId modelZone) throws IOException {
         Engine<HeaderInfo, ListWithSqlResult<HeaderInfo>> engine =
-                EngineBuilder.headers(NorthwindDuckdb.<ListWithSqlResult<HeaderInfo>>northwind(modelZone),
-                                TemporalService.resolver(), new SqlQueryRenderer(modelZone))
-                        .valueFormat(new StableFormat(Locale.ROOT)).build();
+                EngineBuilder.headers(
+                                NorthwindDuckdb.<ListWithSqlResult<HeaderInfo>>northwind(modelZone),
+                                TemporalService.resolver(),
+                                new SqlQueryRenderer(modelZone))
+                        .valueFormat(new StableFormat(Locale.ROOT))
+                        .build();
         return engine.executeKQL(QUERY, ListWithSqlResult::new).toSortedCSV();
     }
 
     @Test
     void instantDisplaysInTheModelZone() throws IOException {
         // default UTC: the canonical wall-clock
-        assertTrue(readInstant(ZoneId.of("UTC")).contains("2024-04-12 12:14:40"),
+        assertTrue(
+                readInstant(ZoneId.of("UTC")).contains("2024-04-12 12:14:40"),
                 "UTC model zone must show the UTC wall-clock");
         // 2024-04-12 12:14:40Z is 08:14:40 in America/New_York (EDT, -04:00 in April)
-        assertTrue(readInstant(ZoneId.of("America/New_York")).contains("2024-04-12 08:14:40"),
+        assertTrue(
+                readInstant(ZoneId.of("America/New_York")).contains("2024-04-12 08:14:40"),
                 "a non-UTC model zone must shift the displayed instant accordingly");
     }
 }

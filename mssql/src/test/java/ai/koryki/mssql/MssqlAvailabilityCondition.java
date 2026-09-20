@@ -16,19 +16,20 @@
  */
 package ai.koryki.mssql;
 
+import static org.junit.platform.commons.util.AnnotationUtils.findAnnotation;
+
 import ai.koryki.mssql.northwind.NorthwindMssql;
+import java.util.Optional;
 import org.junit.jupiter.api.extension.ConditionEvaluationResult;
 import org.junit.jupiter.api.extension.ExecutionCondition;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import static org.junit.platform.commons.util.AnnotationUtils.findAnnotation;
-
-import java.util.Optional;
 
 public class MssqlAvailabilityCondition implements ExecutionCondition {
 
     @Override
     public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext context) {
-        final Optional<MssqlUnavailable> optional = findAnnotation(context.getElement(), MssqlUnavailable.class);
+        final Optional<MssqlUnavailable> optional =
+                findAnnotation(context.getElement(), MssqlUnavailable.class);
         if (optional.isPresent()) {
             final MssqlUnavailable annotation = optional.get();
             try {
@@ -41,4 +42,3 @@ public class MssqlAvailabilityCondition implements ExecutionCondition {
         return ConditionEvaluationResult.enabled("No assumptions, moving on...");
     }
 }
-

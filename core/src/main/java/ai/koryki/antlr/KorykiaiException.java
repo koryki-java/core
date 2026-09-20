@@ -38,5 +38,4 @@ public class KorykiaiException extends RuntimeException {
 
         super(msg, cause);
     }
-
 }

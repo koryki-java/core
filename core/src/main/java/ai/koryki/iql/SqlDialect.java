@@ -26,13 +26,11 @@ import ai.koryki.iql.functions.StandardFunctions;
 import ai.koryki.iql.query.Duration;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
-import ai.koryki.iql.validate.Violation;
-import org.antlr.v4.runtime.RuleContext;
 import ai.koryki.iql.typing.EpochEncodings;
 import ai.koryki.iql.typing.InstantEncodings;
 import ai.koryki.iql.typing.IntervalEncodings;
 import ai.koryki.iql.typing.TimeEncodings;
-
+import ai.koryki.iql.validate.Violation;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -61,11 +59,11 @@ public interface SqlDialect {
      *
      * <p><b>A quoted name is rendered unfolded</b>, and the reasoning took a wrong turn before it
      * landed here. The tempting argument is: Oracle and Snowflake fold unquoted names up, so a
-     * quoted name must be written upper-cased. It is wrong, and Snowflake said so -
-     * {@code Object '"KORYKI TEST UMSATZ 2026"' does not exist}. What the argument misses is that
-     * folding only ever applies to a name written <em>without</em> quotes. A name that could not
-     * have been written bare was created quoted and is stored exactly as typed, so rendering it
-     * unchanged is the only thing that can match.
+     * quoted name must be written upper-cased. It is wrong, and Snowflake said so - {@code Object
+     * '"KORYKI TEST UMSATZ 2026"' does not exist}. What the argument misses is that folding only
+     * ever applies to a name written <em>without</em> quotes. A name that could not have been
+     * written bare was created quoted and is stored exactly as typed, so rendering it unchanged is
+     * the only thing that can match.
      *
      * <p>That holds outright for a name carrying a space or a special character. For one that is
      * merely mixed case it is a contract rather than a deduction - {@code CREATE TABLE Betrag}
@@ -74,9 +72,9 @@ public interface SqlDialect {
      * contract is stated where the value is authored: an entity's {@code table} and an attribute's
      * {@code column} carry the <em>exact stored spelling</em>.
      *
-     * <p>Qualified names never arrive here as one string; the callers build them as
-     * {@code renderIdentifier(alias) + "." + renderIdentifier(column)}, so
-     * {@code "Umsatz 2026"."Order Date"} comes out correctly rather than as one quoted blob.
+     * <p>Qualified names never arrive here as one string; the callers build them as {@code
+     * renderIdentifier(alias) + "." + renderIdentifier(column)}, so {@code "Umsatz 2026"."Order
+     * Date"} comes out correctly rather than as one quoted blob.
      *
      * @param mode the caller's forced form, or {@link Identifier#lowercase} for the usual path
      */
@@ -127,17 +125,95 @@ public interface SqlDialect {
         return name != null && RESERVED.contains(name.toLowerCase(Locale.ROOT));
     }
 
-    static final Set<String> RESERVED = Set.of(
-            "all", "and", "any", "as", "asc", "between", "both", "by", "case", "cast", "check",
-            "collate", "column", "constraint", "create", "cross", "current_date", "current_time",
-            "current_timestamp", "current_user", "default", "deferrable", "desc", "distinct", "do",
-            "else", "end", "except", "exists", "false", "fetch", "filter", "for", "foreign", "from",
-            "full", "grant", "group", "having", "in", "initially", "inner", "intersect", "into",
-            "is", "join", "lateral", "leading", "left", "like", "limit", "natural", "not", "null",
-            "offset", "on", "only", "or", "order", "outer", "over", "overlaps", "partition",
-            "placing", "primary", "qualify", "references", "returning", "right", "select",
-            "similar", "some", "symmetric", "table", "then", "to", "trailing", "true", "union",
-            "unique", "user", "using", "values", "when", "where", "window", "with");
+    static final Set<String> RESERVED =
+            Set.of(
+                    "all",
+                    "and",
+                    "any",
+                    "as",
+                    "asc",
+                    "between",
+                    "both",
+                    "by",
+                    "case",
+                    "cast",
+                    "check",
+                    "collate",
+                    "column",
+                    "constraint",
+                    "create",
+                    "cross",
+                    "current_date",
+                    "current_time",
+                    "current_timestamp",
+                    "current_user",
+                    "default",
+                    "deferrable",
+                    "desc",
+                    "distinct",
+                    "do",
+                    "else",
+                    "end",
+                    "except",
+                    "exists",
+                    "false",
+                    "fetch",
+                    "filter",
+                    "for",
+                    "foreign",
+                    "from",
+                    "full",
+                    "grant",
+                    "group",
+                    "having",
+                    "in",
+                    "initially",
+                    "inner",
+                    "intersect",
+                    "into",
+                    "is",
+                    "join",
+                    "lateral",
+                    "leading",
+                    "left",
+                    "like",
+                    "limit",
+                    "natural",
+                    "not",
+                    "null",
+                    "offset",
+                    "on",
+                    "only",
+                    "or",
+                    "order",
+                    "outer",
+                    "over",
+                    "overlaps",
+                    "partition",
+                    "placing",
+                    "primary",
+                    "qualify",
+                    "references",
+                    "returning",
+                    "right",
+                    "select",
+                    "similar",
+                    "some",
+                    "symmetric",
+                    "table",
+                    "then",
+                    "to",
+                    "trailing",
+                    "true",
+                    "union",
+                    "unique",
+                    "user",
+                    "using",
+                    "values",
+                    "when",
+                    "where",
+                    "window",
+                    "with");
 
     /**
      * Wraps an identifier in this dialect's quotes.
@@ -152,46 +228,46 @@ public interface SqlDialect {
     }
 
     /**
-     * The function renderer for this dialect. The default is the shared, dialect-neutral
-     * canonical set; dialects that add or replace functions override this to return their
-     * own {@code static final} renderer (assembled once at class load).
+     * The function renderer for this dialect. The default is the shared, dialect-neutral canonical
+     * set; dialects that add or replace functions override this to return their own {@code static
+     * final} renderer (assembled once at class load).
      */
     default FunctionRenderer getFunctionRenderer() {
         return StandardFunctions.canonical();
     }
 
     /**
-     * Validators for constructs this dialect cannot express — the counterpart to
-     * {@link #getFunctionRenderer()} for everything that is not a function.
+     * Validators for constructs this dialect cannot express — the counterpart to {@link
+     * #getFunctionRenderer()} for everything that is not a function.
      *
-     * <p>A dialect declares an unsupported <em>function</em> through its renderer, and
-     * {@code FunctionValidator} turns that into a {@link ai.koryki.iql.validate.Violation} with
-     * category {@link ai.koryki.iql.validate.Violation#UNSUPPORTED}. Language constructs have no
-     * such declaration: {@code GROUP BY ROLLUP} is emitted by the shared renderer for every
-     * dialect, so a dialect that lacks it fails only when the driver rejects the finished SQL —
-     * with the server's message and no position in the query.
+     * <p>A dialect declares an unsupported <em>function</em> through its renderer, and {@code
+     * FunctionValidator} turns that into a {@link ai.koryki.iql.validate.Violation} with category
+     * {@link ai.koryki.iql.validate.Violation#UNSUPPORTED}. Language constructs have no such
+     * declaration: {@code GROUP BY ROLLUP} is emitted by the shared renderer for every dialect, so
+     * a dialect that lacks it fails only when the driver rejects the finished SQL — with the
+     * server's message and no position in the query.
      *
      * <p>Validators returned here run in the analysis stage alongside the core ones, so the query
-     * fails before execution with a located violation. They must use category
-     * {@code UNSUPPORTED}: that is what marks a failure as "this dialect cannot express this
-     * query" rather than "this query is wrong", and it is what lets a shared test fixture be
-     * skipped for this dialect instead of failing (see
-     * {@code ValidateException#isOnlyUnsupported}).
+     * fails before execution with a located violation. They must use category {@code UNSUPPORTED}:
+     * that is what marks a failure as "this dialect cannot express this query" rather than "this
+     * query is wrong", and it is what lets a shared test fixture be skipped for this dialect
+     * instead of failing (see {@code ValidateException#isOnlyUnsupported}).
      *
-     * @param context schema, alias scopes, catalog and source positions — see
-     *                {@link ai.koryki.iql.validate.ValidationContext}
+     * @param context schema, alias scopes, catalog and source positions — see {@link
+     *     ai.koryki.iql.validate.ValidationContext}
      * @return the dialect's validators; empty by default
      */
-    default List<Collector<List<Violation>>> validators(ai.koryki.iql.validate.ValidationContext context) {
+    default List<Collector<List<Violation>>> validators(
+            ai.koryki.iql.validate.ValidationContext context) {
         return List.of();
     }
 
     /**
      * {@code TIME 'HH:mm:ss[.SSS]'} — via {@link #plainTime}, not {@code LocalTime.toString()}.
      * That form omits the seconds when they are zero ({@code TIME '12:00'}), which is a shape a
-     * database is free to reject: SQL Server does, which is why {@code MssqlDialect} had to override
-     * this in the first place. Four dialects still take the default, and it held only because those
-     * four happen to accept it.
+     * database is free to reject: SQL Server does, which is why {@code MssqlDialect} had to
+     * override this in the first place. Four dialects still take the default, and it held only
+     * because those four happen to accept it.
      */
     default String timeLiteral(LocalTime time) {
         return "TIME '" + plainTime(time) + "'";
@@ -201,17 +277,20 @@ public interface SqlDialect {
         return "DATE '" + date + "'";
     }
 
-    /** {@code TIMESTAMP 'yyyy-MM-dd HH:mm:ss[.SSS]'} — see {@link #timeLiteral} for why not toString(). */
+    /**
+     * {@code TIMESTAMP 'yyyy-MM-dd HH:mm:ss[.SSS]'} — see {@link #timeLiteral} for why not
+     * toString().
+     */
     default String timestampLiteral(LocalDateTime dateTime) {
         return "TIMESTAMP '" + plainTimestamp(dateTime) + "'";
     }
 
     /**
-     * Renders {@code instant} as this dialect's instant literal, for an {@code INSTANT} ({@code timestamptz})
-     * column compared against a literal (docs/TEMPORAL.md). The default presents it as the model-zone
-     * wall-clock value (correct where the session zone is pinned to the model zone, or where the INSTANT
-     * column surfaces naive); dialects whose instant columns need an explicit offset (e.g. SQL Server
-     * {@code DATETIMEOFFSET}) override it.
+     * Renders {@code instant} as this dialect's instant literal, for an {@code INSTANT} ({@code
+     * timestamptz}) column compared against a literal (docs/TEMPORAL.md). The default presents it
+     * as the model-zone wall-clock value (correct where the session zone is pinned to the model
+     * zone, or where the INSTANT column surfaces naive); dialects whose instant columns need an
+     * explicit offset (e.g. SQL Server {@code DATETIMEOFFSET}) override it.
      */
     default String instantLiteral(java.time.Instant instant, java.time.ZoneId modelZone) {
         return timestampLiteral(java.time.LocalDateTime.ofInstant(instant, modelZone));
@@ -222,19 +301,27 @@ public interface SqlDialect {
      * arithmetic, where no interval is ever built.
      *
      * <p>Declared rather than discovered, so the violation is positioned and appears in the
-     * documentation, instead of the database rejecting the finished statement. See
-     * {@link ai.koryki.iql.validate.DurationValueValidator}.
+     * documentation, instead of the database rejecting the finished statement. See {@link
+     * ai.koryki.iql.validate.DurationValueValidator}.
      */
     enum IntervalSupport {
         /** One interval type spanning all units — DuckDB, PostgreSQL, Snowflake. */
         FULL,
-        /** {@code YEAR TO MONTH} and {@code DAY TO SECOND}, with no type spanning both — Oracle, Trino. */
+        /**
+         * {@code YEAR TO MONTH} and {@code DAY TO SECOND}, with no type spanning both — Oracle,
+         * Trino.
+         */
         SPLIT,
-        /** No interval type; {@code INTERVAL} exists only inside date arithmetic — MariaDB, SQL Server, SQLite. */
+        /**
+         * No interval type; {@code INTERVAL} exists only inside date arithmetic — MariaDB, SQL
+         * Server, SQLite.
+         */
         NONE
     }
 
-    /** @see IntervalSupport */
+    /**
+     * @see IntervalSupport
+     */
     default IntervalSupport intervalSupport() {
         return IntervalSupport.FULL;
     }
@@ -264,10 +351,10 @@ public interface SqlDialect {
         List<Duration.Component> rest = new java.util.ArrayList<>();
         for (Duration.Component c : duration.getComponents()) {
             switch (c.unit()) {
-                case YEAR    -> months += c.value() * 12;
+                case YEAR -> months += c.value() * 12;
                 case QUARTAL -> months += c.value() * 3;
-                case MONTH   -> months += c.value();
-                default      -> rest.add(c);
+                case MONTH -> months += c.value();
+                default -> rest.add(c);
             }
         }
         if (months != 0) {
@@ -278,40 +365,46 @@ public interface SqlDialect {
 
     default String durationLiteral(Duration duration) {
         return duration.getComponents().stream()
-                .map(c -> {
-                    String unit = switch (c.unit()) {
-                        case MILLISECOND -> "MILLISECOND";
-                        case SECOND      -> "SECOND";
-                        case MINUTE      -> "MINUTE";
-                        case HOUR        -> "HOUR";
-                        case DAY         -> "DAY";
-                        case WEEK        -> "WEEK";
-                        case MONTH       -> "MONTH";
-                        case QUARTAL     -> "QUARTER";
-                        case YEAR        -> "YEAR";
-                    };
-                    return "INTERVAL '" + c.value() + "' " + unit;
-                })
+                .map(
+                        c -> {
+                            String unit =
+                                    switch (c.unit()) {
+                                        case MILLISECOND -> "MILLISECOND";
+                                        case SECOND -> "SECOND";
+                                        case MINUTE -> "MINUTE";
+                                        case HOUR -> "HOUR";
+                                        case DAY -> "DAY";
+                                        case WEEK -> "WEEK";
+                                        case MONTH -> "MONTH";
+                                        case QUARTAL -> "QUARTER";
+                                        case YEAR -> "YEAR";
+                                    };
+                            return "INTERVAL '" + c.value() + "' " + unit;
+                        })
                 .collect(Collectors.joining(" + "));
     }
 
     java.time.format.DateTimeFormatter PLAIN_TIMESTAMP =
-            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withLocale(java.util.Locale.ROOT);
+            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                    .withLocale(java.util.Locale.ROOT);
     java.time.format.DateTimeFormatter PLAIN_TIMESTAMP_MS =
-            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS").withLocale(java.util.Locale.ROOT);
+            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
+                    .withLocale(java.util.Locale.ROOT);
     java.time.format.DateTimeFormatter PLAIN_TIME =
-            java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").withLocale(java.util.Locale.ROOT);
+            java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")
+                    .withLocale(java.util.Locale.ROOT);
     java.time.format.DateTimeFormatter PLAIN_TIME_MS =
-            java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss.SSS").withLocale(java.util.Locale.ROOT);
+            java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
+                    .withLocale(java.util.Locale.ROOT);
 
     /**
      * {@code yyyy-MM-dd HH:mm:ss}, with {@code .SSS} appended only when the value carries
      * milliseconds — the space-separated form nearly every engine wants for a timestamp literal.
      *
      * <p>Each dialect used to hold its own {@code ofPattern("yyyy-MM-dd HH:mm:ss")}, which has no
-     * fractional part, so a literal written with milliseconds lost them on the way to SQL:
-     * {@code "1996-12-31 17:00:00.500"} arrived as {@code TIMESTAMP '1996-12-31 17:00:00'}, half a
-     * second early and without a word. The grammar admits them ({@code TIMESTAMP_STRING} ends in an
+     * fractional part, so a literal written with milliseconds lost them on the way to SQL: {@code
+     * "1996-12-31 17:00:00.500"} arrived as {@code TIMESTAMP '1996-12-31 17:00:00'}, half a second
+     * early and without a word. The grammar admits them ({@code TIMESTAMP_STRING} ends in an
      * optional {@code '.' DIGIT DIGIT DIGIT}) and both mappers parse them, so the value was there
      * and only the rendering dropped it.
      *
@@ -346,37 +439,40 @@ public interface SqlDialect {
      * and as 2025-03-29 everywhere else.
      */
     static String combinedInterval(List<Duration.Component> components, String separator) {
-        String parts = components.stream()
-                .map(c -> switch (c.unit()) {
-                    case YEAR        -> c.value() + " year";
-                    case QUARTAL     -> (c.value() * 3) + " month";
-                    case MONTH       -> c.value() + " month";
-                    case WEEK        -> (c.value() * 7) + " day";
-                    case DAY         -> c.value() + " day";
-                    case HOUR        -> c.value() + " hour";
-                    case MINUTE      -> c.value() + " minute";
-                    case SECOND      -> c.value() + " second";
-                    case MILLISECOND -> c.value() + " millisecond";
-                })
-                .collect(Collectors.joining(separator));
+        String parts =
+                components.stream()
+                        .map(
+                                c ->
+                                        switch (c.unit()) {
+                                            case YEAR -> c.value() + " year";
+                                            case QUARTAL -> (c.value() * 3) + " month";
+                                            case MONTH -> c.value() + " month";
+                                            case WEEK -> (c.value() * 7) + " day";
+                                            case DAY -> c.value() + " day";
+                                            case HOUR -> c.value() + " hour";
+                                            case MINUTE -> c.value() + " minute";
+                                            case SECOND -> c.value() + " second";
+                                            case MILLISECOND -> c.value() + " millisecond";
+                                        })
+                        .collect(Collectors.joining(separator));
         return "INTERVAL '" + parts + "'";
     }
 
     /**
-     * SQL standard: INTERSECT binds tighter than UNION/EXCEPT. SQLite deviates — all
-     * compound operators share one precedence level, associate left, and parenthesized
-     * compound operands are a syntax error — so its renderer must emit left-deep chains
-     * flat instead of parenthesizing lower-precedence children.
+     * SQL standard: INTERSECT binds tighter than UNION/EXCEPT. SQLite deviates — all compound
+     * operators share one precedence level, associate left, and parenthesized compound operands are
+     * a syntax error — so its renderer must emit left-deep chains flat instead of parenthesizing
+     * lower-precedence children.
      */
     default boolean uniformSetOperatorPrecedence() {
         return false;
     }
 
     /**
-     * Final form of a text literal; {@code quoted} arrives already SQL-quoted ({@code 'x'}).
-     * SQL Server prefixes non-ASCII literals with {@code N} — a bare {@code '...'} takes the
-     * session database's (possibly single-byte) collation, which truncates or mis-counts on
-     * the way into UTF-8 collated columns.
+     * Final form of a text literal; {@code quoted} arrives already SQL-quoted ({@code 'x'}). SQL
+     * Server prefixes non-ASCII literals with {@code N} — a bare {@code '...'} takes the session
+     * database's (possibly single-byte) collation, which truncates or mis-counts on the way into
+     * UTF-8 collated columns.
      */
     default String textLiteral(String quoted) {
         return quoted;
@@ -401,23 +497,23 @@ public interface SqlDialect {
     }
 
     /**
-     * Renders the row-limit clause (a full line incl. indentation and line separator).
-     * Default is ANSI {@code FETCH FIRST n ROWS ONLY}; {@code hasOrderBy} lets dialects
-     * that require an ORDER BY for paging (e.g. T-SQL OFFSET/FETCH) react accordingly.
+     * Renders the row-limit clause (a full line incl. indentation and line separator). Default is
+     * ANSI {@code FETCH FIRST n ROWS ONLY}; {@code hasOrderBy} lets dialects that require an ORDER
+     * BY for paging (e.g. T-SQL OFFSET/FETCH) react accordingly.
      */
     default String limitClause(int limit, boolean hasOrderBy, int indent) {
         return Identifier.indent(indent) + "FETCH FIRST " + limit + " ROWS ONLY" + SqlRenderer.NL;
     }
 
     /**
-     * Renders a column type for DDL (CREATE TABLE) — the write-side dual of
-     * {@link TypeDescriptorParser}.
+     * Renders a column type for DDL (CREATE TABLE) — the write-side dual of {@link
+     * TypeDescriptorParser}.
      *
-     * <p>The default echoes the parsed physical type verbatim (a faithful round-trip
-     * for the same dialect). Dialects override to map a canonical {@link TypeDescriptor}
-     * (family + precision/scale + encoding) onto their own physical type — e.g.
-     * TEXT-&gt;VARCHAR2 (Oracle), BOOLEAN-&gt;BIT and TIMESTAMP-&gt;DATETIME2 (T-SQL),
-     * or the TIME_SECONDS_FROM_MIDNIGHT encoding -&gt; INTEGER.
+     * <p>The default echoes the parsed physical type verbatim (a faithful round-trip for the same
+     * dialect). Dialects override to map a canonical {@link TypeDescriptor} (family +
+     * precision/scale + encoding) onto their own physical type — e.g. TEXT-&gt;VARCHAR2 (Oracle),
+     * BOOLEAN-&gt;BIT and TIMESTAMP-&gt;DATETIME2 (T-SQL), or the TIME_SECONDS_FROM_MIDNIGHT
+     * encoding -&gt; INTEGER.
      */
     default String renderType(TypeDescriptor type) {
         return type.getPhysicalTypeName();
@@ -427,51 +523,71 @@ public interface SqlDialect {
         return null;
     }
 
-    default String renderEncodedArithmetic(SqlSelectRenderer renderer, String operator,
-            Expression left, TypeDescriptor leftType,
-            Expression right, TypeDescriptor rightType,
+    default String renderEncodedArithmetic(
+            SqlSelectRenderer renderer,
+            String operator,
+            Expression left,
+            TypeDescriptor leftType,
+            Expression right,
+            TypeDescriptor rightType,
             int indent) {
-        return renderEncodedArithmetic(renderer, operator, renderer.toSql(left, indent), leftType, right, rightType, indent);
+        return renderEncodedArithmetic(
+                renderer,
+                operator,
+                renderer.toSql(left, indent),
+                leftType,
+                right,
+                rightType,
+                indent);
     }
 
     /**
      * SQL converting a wall-clock(zone) column from its declared storage zone to the model zone
-     * (docs/TEMPORAL.md). Applied at <em>every</em> reference to such a column — bare, in arithmetic, in
-     * a comparison — so the value is a model-zone wall-clock value before any operation. The conversion
-     * must precede arithmetic: a stored wall-clock value is naive/local, so add-then-convert would be
-     * wrong across a DST transition (a clock unit must not absorb the offset shift).
+     * (docs/TEMPORAL.md). Applied at <em>every</em> reference to such a column — bare, in
+     * arithmetic, in a comparison — so the value is a model-zone wall-clock value before any
+     * operation. The conversion must precede arithmetic: a stored wall-clock value is naive/local,
+     * so add-then-convert would be wrong across a DST transition (a clock unit must not absorb the
+     * offset shift).
      *
      * <p>The default rejects: a dialect that has not wired named-zone conversion does not support
-     * wall-clock(zone) storage. Wall-clock columns therefore appear only in fixtures that {@code ignore}
-     * such dialects (e.g. SQLite, which has no time-zone database at all). See docs/TEMPORAL.md.
+     * wall-clock(zone) storage. Wall-clock columns therefore appear only in fixtures that {@code
+     * ignore} such dialects (e.g. SQLite, which has no time-zone database at all). See
+     * docs/TEMPORAL.md.
      */
-    default String wallClockToModelZone(String columnSql,
-                                        WallClockEncoding enc, java.time.ZoneId modelZone) {
+    default String wallClockToModelZone(
+            String columnSql, WallClockEncoding enc, java.time.ZoneId modelZone) {
         throw new ai.koryki.antlr.KorykiaiException(
                 "wall-clock(zone) storage (" + enc.name() + ") is not supported by this dialect");
     }
 
     /**
-     * The ANSI {@code AT TIME ZONE} two-step, for engines whose operator flips a naive timestamp to an
-     * instant and back (DuckDB, PostgreSQL): read the stored value as declared-zone local, then render it
-     * as model-zone local. A {@code DATE_WALLCLOCK} converts at start-of-day and is taken back to a date.
+     * The ANSI {@code AT TIME ZONE} two-step, for engines whose operator flips a naive timestamp to
+     * an instant and back (DuckDB, PostgreSQL): read the stored value as declared-zone local, then
+     * render it as model-zone local. A {@code DATE_WALLCLOCK} converts at start-of-day and is taken
+     * back to a date.
      */
-    static String atTimeZoneToModelZone(String columnSql,
-                                        WallClockEncoding enc, java.time.ZoneId modelZone) {
+    static String atTimeZoneToModelZone(
+            String columnSql, WallClockEncoding enc, java.time.ZoneId modelZone) {
         String declared = enc.getZone().getId();
         String model = modelZone.getId();
         if (CoreTypeFamily.DATE.equals(enc.family())) {
-            return "CAST(((CAST(" + columnSql + " AS TIMESTAMP) AT TIME ZONE '" + declared
-                    + "') AT TIME ZONE '" + model + "') AS DATE)";
+            return "CAST(((CAST("
+                    + columnSql
+                    + " AS TIMESTAMP) AT TIME ZONE '"
+                    + declared
+                    + "') AT TIME ZONE '"
+                    + model
+                    + "') AS DATE)";
         }
         return "((" + columnSql + " AT TIME ZONE '" + declared + "') AT TIME ZONE '" + model + "')";
     }
 
     /**
-     * SQL shifting a TIMESTAMP value — read as a wall-clock in {@code fromZoneSql} — to its wall-clock in
-     * {@code toZoneSql} (both already SQL-quoted, e.g. {@code 'UTC'}). Backs the explicit {@code at_zone()}
-     * / {@code to_utc()} functions (docs/TEMPORAL.md). The default rejects — a dialect without named-zone
-     * conversion does not support explicit zone crossing (the same engines that reject wall-clock(zone)).
+     * SQL shifting a TIMESTAMP value — read as a wall-clock in {@code fromZoneSql} — to its
+     * wall-clock in {@code toZoneSql} (both already SQL-quoted, e.g. {@code 'UTC'}). Backs the
+     * explicit {@code at_zone()} / {@code to_utc()} functions (docs/TEMPORAL.md). The default
+     * rejects — a dialect without named-zone conversion does not support explicit zone crossing
+     * (the same engines that reject wall-clock(zone)).
      */
     default String zoneShiftTimestamp(String valueSql, String fromZoneSql, String toZoneSql) {
         throw new ai.koryki.antlr.KorykiaiException(
@@ -480,28 +596,44 @@ public interface SqlDialect {
 
     /** The ANSI {@code AT TIME ZONE} two-step shift, shared by DuckDB and PostgreSQL. */
     static String atTimeZoneShift(String valueSql, String fromZoneSql, String toZoneSql) {
-        return "((" + valueSql + " AT TIME ZONE " + fromZoneSql + ") AT TIME ZONE " + toZoneSql + ")";
+        return "(("
+                + valueSql
+                + " AT TIME ZONE "
+                + fromZoneSql
+                + ") AT TIME ZONE "
+                + toZoneSql
+                + ")";
     }
 
-    default String renderEncodedArithmetic(SqlSelectRenderer renderer, String operator,
-            String leftSql, TypeDescriptor leftType,
-            Expression right, TypeDescriptor rightType,
+    default String renderEncodedArithmetic(
+            SqlSelectRenderer renderer,
+            String operator,
+            String leftSql,
+            TypeDescriptor leftType,
+            Expression right,
+            TypeDescriptor rightType,
             int indent) {
-        String diff = renderTemporalDiff(renderer, operator, leftSql, leftType, right, rightType, indent);
+        String diff =
+                renderTemporalDiff(renderer, operator, leftSql, leftType, right, rightType, indent);
         if (diff != null) {
             return diff;
         }
-        return TimeEncodings
-                .secondsArithmetic(renderer, leftSql, leftType, operator, right, indent)
-                .orElseGet(() -> materializeTemporalLeft(leftSql, leftType)
-                        + " " + operator + " " + parenthesizeDuration(renderer, operator, right, indent));
+        return TimeEncodings.secondsArithmetic(renderer, leftSql, leftType, operator, right, indent)
+                .orElseGet(
+                        () ->
+                                materializeTemporalLeft(leftSql, leftType)
+                                        + " "
+                                        + operator
+                                        + " "
+                                        + parenthesizeDuration(renderer, operator, right, indent));
     }
 
     /**
      * Materialize an integer-encoded temporal column to a real DATE/TIMESTAMP before a duration is
-     * applied: a {@code DATE_FROM_EPOCH_DAY} becomes a DATE, an {@code EPOCH:<unit>} timestamp becomes a
-     * TIMESTAMP (via {@link #epochToTimestamp}). Other columns pass through unchanged. Dialects that
-     * override {@link #renderEncodedArithmetic} call this (or their own equivalent) for the same reason.
+     * applied: a {@code DATE_FROM_EPOCH_DAY} becomes a DATE, an {@code EPOCH:<unit>} timestamp
+     * becomes a TIMESTAMP (via {@link #epochToTimestamp}). Other columns pass through unchanged.
+     * Dialects that override {@link #renderEncodedArithmetic} call this (or their own equivalent)
+     * for the same reason.
      */
     default String materializeTemporalLeft(String leftSql, TypeDescriptor leftType) {
         if (leftType != null
@@ -512,9 +644,10 @@ public interface SqlDialect {
     }
 
     /**
-     * Materialize an {@code EPOCH:<unit>} timestamp column to a TIMESTAMP via {@link #epochToTimestamp}
-     * (else pass through). The dialects that override {@link #renderEncodedArithmetic} call this for the
-     * epoch case — they keep their own DATE_FROM_EPOCH_DAY handling.
+     * Materialize an {@code EPOCH:<unit>} timestamp column to a TIMESTAMP via {@link
+     * #epochToTimestamp} (else pass through). The dialects that override {@link
+     * #renderEncodedArithmetic} call this for the epoch case — they keep their own
+     * DATE_FROM_EPOCH_DAY handling.
      */
     default String materializeEpochTimestampLeft(String leftSql, TypeDescriptor leftType) {
         if (leftType != null && leftType.getTypeEncoding() instanceof EpochTypeEncoding e) {
@@ -524,51 +657,64 @@ public interface SqlDialect {
     }
 
     /**
-     * Inverse of {@link #timestampToEpochSeconds}: an epoch count (in {@code unit}) → a TIMESTAMP, so an
-     * EPOCH-encoded column can be shifted by a duration. Default is DuckDB {@code make_timestamp}
-     * (microseconds); dialects without it override.
+     * Inverse of {@link #timestampToEpochSeconds}: an epoch count (in {@code unit}) → a TIMESTAMP,
+     * so an EPOCH-encoded column can be shifted by a duration. Default is DuckDB {@code
+     * make_timestamp} (microseconds); dialects without it override.
      */
     default String epochToTimestamp(String expr, java.time.temporal.ChronoUnit unit) {
-        String micros = switch (unit) {
-            case MILLIS -> "(" + expr + " * 1000)";
-            case MICROS -> expr;
-            case NANOS  -> "(" + expr + " / 1000)";
-            default     -> "(" + expr + " * 1000000)";   // SECONDS
-        };
+        String micros =
+                switch (unit) {
+                    case MILLIS -> "(" + expr + " * 1000)";
+                    case MICROS -> expr;
+                    case NANOS -> "(" + expr + " / 1000)";
+                    default -> "(" + expr + " * 1000000)"; // SECONDS
+                };
         return "make_timestamp(" + micros + ")";
     }
 
-    /** An epoch count in {@code unit} → an integer-seconds expression — a helper for the seconds-based
-     *  {@link #epochToTimestamp} overrides (whole-second epochs; sub-second is not preserved). */
+    /**
+     * An epoch count in {@code unit} → an integer-seconds expression — a helper for the
+     * seconds-based {@link #epochToTimestamp} overrides (whole-second epochs; sub-second is not
+     * preserved).
+     */
     static String secondsFromEpoch(String expr, java.time.temporal.ChronoUnit unit) {
         return switch (unit) {
             case MILLIS -> "(" + expr + " / 1000)";
             case MICROS -> "(" + expr + " / 1000000)";
-            case NANOS  -> "(" + expr + " / 1000000000)";
-            default     -> expr;   // SECONDS
+            case NANOS -> "(" + expr + " / 1000000000)";
+            default -> expr; // SECONDS
         };
     }
 
     /**
      * TIMESTAMP − TIMESTAMP → the exact elapsed span as integer epoch-seconds (decoded as a fixed
-     * INTERVAL:SECONDS, so a span over 24h renders 50:00:00, never calendar days); {@code null} when the
-     * operands are not a timestamp difference. Each side reduces to epoch-seconds per its own encoding,
-     * which also reconciles mixed encodings: the same instant stored as INSTANT, EPOCH:SECONDS or
-     * EPOCH:MILLIS yields the same seconds, so their difference is zero.
+     * INTERVAL:SECONDS, so a span over 24h renders 50:00:00, never calendar days); {@code null}
+     * when the operands are not a timestamp difference. Each side reduces to epoch-seconds per its
+     * own encoding, which also reconciles mixed encodings: the same instant stored as INSTANT,
+     * EPOCH:SECONDS or EPOCH:MILLIS yields the same seconds, so their difference is zero.
      *
-     * <p>Shared so the semantics stay uniform across dialects: dialects that override
-     * {@link #renderEncodedArithmetic} call this first, and only vary {@link #epochSeconds}.
+     * <p>Shared so the semantics stay uniform across dialects: dialects that override {@link
+     * #renderEncodedArithmetic} call this first, and only vary {@link #epochSeconds}.
      */
-    default String renderTemporalDiff(SqlSelectRenderer renderer, String operator,
-            String leftSql, TypeDescriptor leftType, Expression right, TypeDescriptor rightType, int indent) {
+    default String renderTemporalDiff(
+            SqlSelectRenderer renderer,
+            String operator,
+            String leftSql,
+            TypeDescriptor leftType,
+            Expression right,
+            TypeDescriptor rightType,
+            int indent) {
         if (!"-".equals(operator)) {
             return null;
         }
         if (isTimestamp(leftType) && isTimestamp(rightType)) {
-            return epochSeconds(leftSql, leftType) + " - " + epochSeconds(renderer.toSql(right, indent), rightType);
+            return epochSeconds(leftSql, leftType)
+                    + " - "
+                    + epochSeconds(renderer.toSql(right, indent), rightType);
         }
         if (isDate(leftType) && isDate(rightType)) {
-            return dateDiffDays(materializeTemporalLeft(leftSql, leftType),
+            return dateDiffDays(
+                    materializeTemporalLeft(leftSql, leftType),
                     materializeTemporalLeft(renderer.toSql(right, indent), rightType));
         }
         return null;
@@ -577,22 +723,27 @@ public interface SqlDialect {
     /**
      * Numeric division, where two things need normalising before the engines agree.
      *
-     * <p><b>Integer division.</b> {@code ReturnTypes.DECIMAL_DIVIDE} says the result is decimal, and
-     * measured, {@code 7 / 2} honoured that on Oracle, MariaDB and DuckDB but truncated to {@code 3}
-     * on PostgreSQL, SQL Server, Trino and SQLite. The dividend is therefore cast when <em>both</em>
-     * operands are integers — an already-decimal operand needs nothing, so the cast stays out of the
-     * SQL in the common case.
+     * <p><b>Integer division.</b> {@code ReturnTypes.DECIMAL_DIVIDE} says the result is decimal,
+     * and measured, {@code 7 / 2} honoured that on Oracle, MariaDB and DuckDB but truncated to
+     * {@code 3} on PostgreSQL, SQL Server, Trino and SQLite. The dividend is therefore cast when
+     * <em>both</em> operands are integers — an already-decimal operand needs nothing, so the cast
+     * stays out of the SQL in the common case.
      *
      * <p><b>Division by zero.</b> Left alone the engines answer three different ways: an error on
      * PostgreSQL, SQL Server, Oracle and Trino, NULL on MariaDB and SQLite, and {@code Infinity} on
-     * DuckDB. A {@code NULLIF(divisor, 0)} makes it NULL everywhere (measured on all seven reachable
-     * engines, and it composes into SUM). The guard is skipped when the divisor is a non-zero
-     * literal, where it could not fire; a literal {@code / 0} never reaches rendering because
-     * {@code FunctionValidator} rejects it outright.
+     * DuckDB. A {@code NULLIF(divisor, 0)} makes it NULL everywhere (measured on all seven
+     * reachable engines, and it composes into SUM). The guard is skipped when the divisor is a
+     * non-zero literal, where it could not fire; a literal {@code / 0} never reaches rendering
+     * because {@code FunctionValidator} rejects it outright.
      */
-    default String renderDivision(String leftSql, TypeDescriptor leftType,
-            String rightSql, TypeDescriptor rightType, boolean guardZero) {
-        String dividend = isInteger(leftType) && isInteger(rightType) ? castToDecimal(leftSql) : leftSql;
+    default String renderDivision(
+            String leftSql,
+            TypeDescriptor leftType,
+            String rightSql,
+            TypeDescriptor rightType,
+            boolean guardZero) {
+        String dividend =
+                isInteger(leftType) && isInteger(rightType) ? castToDecimal(leftSql) : leftSql;
         return dividend + " / " + divisor(rightSql, guardZero);
     }
 
@@ -602,8 +753,9 @@ public interface SqlDialect {
     }
 
     /**
-     * Cast an integer dividend so that division yields a decimal rather than truncating. The default
-     * is a no-op, for the engines whose {@code /} already promotes; the four that truncate override.
+     * Cast an integer dividend so that division yields a decimal rather than truncating. The
+     * default is a no-op, for the engines whose {@code /} already promotes; the four that truncate
+     * override.
      */
     default String castToDecimal(String sql) {
         return sql;
@@ -637,11 +789,11 @@ public interface SqlDialect {
     }
 
     /**
-     * Reduce a TIMESTAMP-family expression to integer epoch-seconds, honoring its storage encoding so
-     * that a difference is exact regardless of how each operand happens to be stored: an EPOCH:SECONDS
-     * column is already seconds, EPOCH:MILLIS is divided by 1000, and an INSTANT / wall-clock TIMESTAMP
-     * goes through {@code EXTRACT(EPOCH ...)}. Dialects without {@code EXTRACT(EPOCH ...)} override the
-     * timestamp branch via {@link #timestampToEpochSeconds}.
+     * Reduce a TIMESTAMP-family expression to integer epoch-seconds, honoring its storage encoding
+     * so that a difference is exact regardless of how each operand happens to be stored: an
+     * EPOCH:SECONDS column is already seconds, EPOCH:MILLIS is divided by 1000, and an INSTANT /
+     * wall-clock TIMESTAMP goes through {@code EXTRACT(EPOCH ...)}. Dialects without {@code
+     * EXTRACT(EPOCH ...)} override the timestamp branch via {@link #timestampToEpochSeconds}.
      */
     default String epochSeconds(String expr, TypeDescriptor type) {
         var enc = type != null ? type.getTypeEncoding() : null;
@@ -649,8 +801,8 @@ public interface SqlDialect {
             return switch (e.getUnit()) {
                 case MILLIS -> "(" + expr + " / 1000)";
                 case MICROS -> "(" + expr + " / 1000000)";
-                case NANOS  -> "(" + expr + " / 1000000000)";
-                default     -> expr;   // SECONDS: already epoch-seconds
+                case NANOS -> "(" + expr + " / 1000000000)";
+                default -> expr; // SECONDS: already epoch-seconds
             };
         }
         return timestampToEpochSeconds(unwrapOuterParens(expr), isInstant(enc));
@@ -676,10 +828,11 @@ public interface SqlDialect {
     }
 
     /**
-     * A real timestamp/datetime expression → integer epoch-seconds. {@code instant} is {@code true} for a
-     * zone-aware (INSTANT) operand and {@code false} for a wall-clock TIMESTAMP; dialects whose epoch
-     * conversion differs for the two (e.g. an offset/text suffix needing normalization) use the flag.
-     * Default is the SQL-standard {@code EXTRACT(EPOCH ...)} (duckdb/postgres); others override.
+     * A real timestamp/datetime expression → integer epoch-seconds. {@code instant} is {@code true}
+     * for a zone-aware (INSTANT) operand and {@code false} for a wall-clock TIMESTAMP; dialects
+     * whose epoch conversion differs for the two (e.g. an offset/text suffix needing normalization)
+     * use the flag. Default is the SQL-standard {@code EXTRACT(EPOCH ...)} (duckdb/postgres);
+     * others override.
      */
     default String timestampToEpochSeconds(String expr, boolean instant) {
         String wrapped = expr.startsWith("(") ? expr : "(" + expr + ")";
@@ -687,24 +840,25 @@ public interface SqlDialect {
     }
 
     /**
-     * Combine two numeric expressions into the {@code "a;b"} text pair that {@code calendar_distance}
-     * emits (decoded to a calendar Interval in Java). Default uses ANSI {@code ||} + CAST; dialects whose
-     * concatenation or integer-to-text cast differ (MySQL/T-SQL {@code CONCAT}, Oracle {@code TO_CHAR})
-     * override.
+     * Combine two numeric expressions into the {@code "a;b"} text pair that {@code
+     * calendar_distance} emits (decoded to a calendar Interval in Java). Default uses ANSI {@code
+     * ||} + CAST; dialects whose concatenation or integer-to-text cast differ (MySQL/T-SQL {@code
+     * CONCAT}, Oracle {@code TO_CHAR}) override.
      */
     default String pairText(String a, String b) {
         return "(CAST(" + a + " AS VARCHAR) || ';' || CAST(" + b + " AS VARCHAR))";
     }
 
-
     /**
      * Subtracting a multi-component duration must parenthesize it so the {@code -} negates the
-     * whole amount, not just the first term ({@code d - (a + b)}, not {@code d - a + b}). A
-     * single component or addition needs no parens.
+     * whole amount, not just the first term ({@code d - (a + b)}, not {@code d - a + b}). A single
+     * component or addition needs no parens.
      */
-    private static String parenthesizeDuration(SqlSelectRenderer renderer, String operator, Expression right, int indent) {
+    private static String parenthesizeDuration(
+            SqlSelectRenderer renderer, String operator, Expression right, int indent) {
         String sql = renderer.toSql(right, indent);
-        // Only an additive sum (e.g. a dialect that renders to_days(1) + to_hours(1)) needs wrapping;
+        // Only an additive sum (e.g. a dialect that renders to_days(1) + to_hours(1)) needs
+        // wrapping;
         // a single native INTERVAL literal is already atomic.
         boolean additiveSum = right.getDuration() != null && sql.contains(" + ");
         return "-".equals(operator) && additiveSum ? "(" + sql + ")" : sql;
@@ -713,12 +867,12 @@ public interface SqlDialect {
     /**
      * Render a TIME-encoded column as integer seconds-of-day, for TIME ± duration arithmetic
      * (computed in the seconds domain, then floor-mod-decoded to a LocalTime at the read boundary,
-     * which is how midnight wraps). Only the {@link TimeEncodings#secondsConvertible
-     * convertible} encodings reach here.
+     * which is how midnight wraps). Only the {@link TimeEncodings#secondsConvertible convertible}
+     * encodings reach here.
      *
-     * <p>The default handles {@code TIME_FROM_INTEGER} (HHMMSS packed integer) and
-     * {@code TIME_FROM_STRING} ('HH:MM:SS' text) with portable {@code CAST}/{@code MOD}/{@code EXTRACT};
-     * a seconds-from-midnight column is already the seconds value. Dialects whose integer division,
+     * <p>The default handles {@code TIME_FROM_INTEGER} (HHMMSS packed integer) and {@code
+     * TIME_FROM_STRING} ('HH:MM:SS' text) with portable {@code CAST}/{@code MOD}/{@code EXTRACT}; a
+     * seconds-from-midnight column is already the seconds value. Dialects whose integer division,
      * modulo or time-cast differ (e.g. no {@code EXTRACT(EPOCH ...)}) override this hook.
      */
     default String timeColumnAsSeconds(String columnSql, TypeDescriptor timeType) {
@@ -729,7 +883,8 @@ public interface SqlDialect {
         // One definition, shared with comparison-operand reconciliation: EncodingLattice is where
         // "what does this encoded TIME mean in seconds" lives. TIME_SECONDS_FROM_MIDNIGHT converts
         // to itself, i.e. is returned unchanged.
-        return EncodingLattice.convertSql(columnSql, enc, CoreTypeEncoding.TIME_SECONDS_FROM_MIDNIGHT);
+        return EncodingLattice.convertSql(
+                columnSql, enc, CoreTypeEncoding.TIME_SECONDS_FROM_MIDNIGHT);
     }
 
     /**
@@ -756,9 +911,13 @@ public interface SqlDialect {
         return op;
     }
 
-    default String renderComparison(SqlSelectRenderer renderer,
-            Expression left, TypeDescriptor leftType,
-            String op, List<Expression> right, int indent) {
+    default String renderComparison(
+            SqlSelectRenderer renderer,
+            Expression left,
+            TypeDescriptor leftType,
+            String op,
+            List<Expression> right,
+            int indent) {
         return renderComparison(renderer, left, leftType, op, right, indent, false);
     }
 
@@ -772,9 +931,14 @@ public interface SqlDialect {
      * key anti-join and index decisions off them rather than off {@code NOT (x IN …)}. The two are
      * equivalent in three-valued logic, so this is a rendering choice, not a semantic one.
      */
-    default String renderComparison(SqlSelectRenderer renderer,
-            Expression left, TypeDescriptor leftType,
-            String op, List<Expression> right, int indent, boolean negated) {
+    default String renderComparison(
+            SqlSelectRenderer renderer,
+            Expression left,
+            TypeDescriptor leftType,
+            String op,
+            List<Expression> right,
+            int indent,
+            boolean negated) {
         String leftSql = renderer.toSql(left, indent);
 
         // Catalog-driven: resolve the operator by its surface text and render
@@ -791,12 +955,17 @@ public interface SqlDialect {
             List<String> operands = new ArrayList<>();
             operands.add(convert(renderer, reconciled, 0, leftSql));
             for (int i = 0; i < right.size(); i++) {
-                operands.add(convert(renderer, reconciled, i + 1, operand(renderer, right.get(i), leftType, indent)));
+                operands.add(
+                        convert(
+                                renderer,
+                                reconciled,
+                                i + 1,
+                                operand(renderer, right.get(i), leftType, indent)));
             }
             return template.fill(operands);
         }
         if (negated) {
-            return null;   // no folded form for this operator — caller keeps NOT (…)
+            return null; // no folded form for this operator — caller keeps NOT (…)
         }
         leftSql = convert(renderer, reconciled, 0, leftSql);
 
@@ -805,7 +974,12 @@ public interface SqlDialect {
         String mappedOp = mapOperator(op);
         List<String> rightSql = new ArrayList<>(right.size());
         for (int i = 0; i < right.size(); i++) {
-            rightSql.add(convert(renderer, reconciled, i + 1, operand(renderer, right.get(i), leftType, indent)));
+            rightSql.add(
+                    convert(
+                            renderer,
+                            reconciled,
+                            i + 1,
+                            operand(renderer, right.get(i), leftType, indent)));
         }
         if (SqlSelectRenderer.isInterval(op)) {
             return leftSql + " " + mappedOp + " " + rightSql.get(0) + " AND " + rightSql.get(1);
@@ -824,15 +998,14 @@ public interface SqlDialect {
      * which meet on millis because seconds→millis is exact and the reverse is not.
      *
      * <p>Deliberately narrow. Literal operands are left alone, because encoding a literal to match
-     * a column is already handled — and handled better, at the literal's own precision — by
-     * {@link #renderComparisonOperand} and its dialect overrides. Applying the lattice there too
-     * would convert twice. So this returns {@code null} (no conversion) unless at least two
-     * operands are non-literal and carry a genuine, non-NATIVE encoding, and those encodings
-     * actually differ.
+     * a column is already handled — and handled better, at the literal's own precision — by {@link
+     * #renderComparisonOperand} and its dialect overrides. Applying the lattice there too would
+     * convert twice. So this returns {@code null} (no conversion) unless at least two operands are
+     * non-literal and carry a genuine, non-NATIVE encoding, and those encodings actually differ.
      *
-     * <p>Note that this is the only path that can convert the <em>left</em> operand: the per-operand
-     * hook only ever sees right-hand operands, so on its own it can only coerce right into left's
-     * encoding, never pick the lossless direction.
+     * <p>Note that this is the only path that can convert the <em>left</em> operand: the
+     * per-operand hook only ever sees right-hand operands, so on its own it can only coerce right
+     * into left's encoding, never pick the lossless direction.
      */
     private ConditionalReconciler.Result encodingReconciliation(
             SqlSelectRenderer renderer, Expression left, List<Expression> right) {
@@ -853,25 +1026,37 @@ public interface SqlDialect {
             }
         }
         if (encoded < 2 || distinct.size() < 2) {
-            return null;                       // nothing to reconcile, or not our case
+            return null; // nothing to reconcile, or not our case
         }
         try {
             return ConditionalReconciler.reconcile(types);
         } catch (ConditionalReconciler.ReconcileException unreconcilable) {
-            return null;                       // reported by FunctionValidator; render unchanged
+            return null; // reported by FunctionValidator; render unchanged
         }
     }
 
     /** Operand {@code i}'s SQL, wrapped in its reconciliation conversion when there is one. */
-    private static String convert(SqlSelectRenderer renderer, ConditionalReconciler.Result reconciled,
-            int i, String sql) {
-        return reconciled == null ? sql : ConditionalReconciler.convert(renderer, reconciled, i, sql);
+    private static String convert(
+            SqlSelectRenderer renderer,
+            ConditionalReconciler.Result reconciled,
+            int i,
+            String sql) {
+        return reconciled == null
+                ? sql
+                : ConditionalReconciler.convert(renderer, reconciled, i, sql);
     }
 
-    /** A written-out value rather than something the schema types — see {@link #encodingReconciliation}. */
+    /**
+     * A written-out value rather than something the schema types — see {@link
+     * #encodingReconciliation}.
+     */
     private static boolean isLiteral(Expression e) {
-        return e.getText() != null || e.getNumber() != null || e.getDuration() != null
-                || e.getLocalDate() != null || e.getLocalTime() != null || e.getLocalDateTime() != null
+        return e.getText() != null
+                || e.getNumber() != null
+                || e.getDuration() != null
+                || e.getLocalDate() != null
+                || e.getLocalTime() != null
+                || e.getLocalDateTime() != null
                 || e.isNull();
     }
 
@@ -886,17 +1071,20 @@ public interface SqlDialect {
     /**
      * The template to render {@code op} with: the catalog's, or — when {@code negated} — the
      * operator's negative form. Null means "no template", which for the positive case falls back to
-     * the legacy structural rendering and for the negative case means the negation cannot be folded.
+     * the legacy structural rendering and for the negative case means the negation cannot be
+     * folded.
      *
      * <p>Also the one place that knows a set operand may be a subquery. {@code IN} is declared as
-     * {@code {0} IN ({1*})} for a value list, but a subquery operand renders with parentheses of its
-     * own, so the declared pair would produce {@code IN ((SELECT …))}. A single subquery operand
-     * therefore uses the paren-free variant.
+     * {@code {0} IN ({1*})} for a value list, but a subquery operand renders with parentheses of
+     * its own, so the declared pair would produce {@code IN ((SELECT …))}. A single subquery
+     * operand therefore uses the paren-free variant.
      */
-    private SqlTemplate operatorTemplate(SqlSelectRenderer renderer, String op,
-            List<Expression> right, boolean negated) {
-        boolean subquerySet = SqlSelectRenderer.isSet(op)
-                && right.size() == 1 && right.get(0).getSelect() != null;
+    private SqlTemplate operatorTemplate(
+            SqlSelectRenderer renderer, String op, List<Expression> right, boolean negated) {
+        boolean subquerySet =
+                SqlSelectRenderer.isSet(op)
+                        && right.size() == 1
+                        && right.get(0).getSelect() != null;
         if (negated) {
             String t = negatedOperatorTemplate(op);
             if (t == null) {
@@ -913,25 +1101,25 @@ public interface SqlDialect {
 
     /**
      * The negative form of an operator whose negation folds into a keyword, or null if it has none.
-     * Symbol comparisons are deliberately absent: {@code NOT (a = b)} could render as {@code a <> b},
-     * but that reads as a different query rather than the same one negated, and the structural form
-     * is already clear.
+     * Symbol comparisons are deliberately absent: {@code NOT (a = b)} could render as {@code a <>
+     * b}, but that reads as a different query rather than the same one negated, and the structural
+     * form is already clear.
      */
     default String negatedOperatorTemplate(String op) {
         return switch (op == null ? "" : op.trim().toUpperCase(java.util.Locale.ROOT)) {
             case "DISTINCT" -> "{0} IS NOT DISTINCT FROM {1}";
-            case "ISNULL"  -> "{0} IS NOT NULL";
-            case "IN"      -> "{0} NOT IN ({1*})";
-            case "LIKE"    -> "{0} NOT LIKE {1}";
+            case "ISNULL" -> "{0} IS NOT NULL";
+            case "IN" -> "{0} NOT IN ({1*})";
+            case "LIKE" -> "{0} NOT LIKE {1}";
             case "BETWEEN" -> "{0} NOT BETWEEN {1} AND {2}";
-            default        -> null;
+            default -> null;
         };
     }
 
     /**
-     * The operator definition for {@code op} (resolved by surface text, e.g.
-     * {@code "="}, {@code "BETWEEN"}), or {@code null} for an unregistered or
-     * custom operator. Only operator-fixity entries with a template qualify.
+     * The operator definition for {@code op} (resolved by surface text, e.g. {@code "="}, {@code
+     * "BETWEEN"}), or {@code null} for an unregistered or custom operator. Only operator-fixity
+     * entries with a template qualify.
      */
     private FunctionDefinition operatorDefinition(SqlSelectRenderer renderer, String op) {
         for (FunctionDefinition d : renderer.getFunctionRenderer().overloads(op)) {
@@ -943,11 +1131,13 @@ public interface SqlDialect {
     }
 
     /**
-     * Resolves the operand's own type once and hands both sides to {@link #renderComparisonOperand}.
-     * The type is a best-effort hint for encoding reconciliation, so an operand that can't be typed
-     * (subquery, identity, …) passes {@code null} rather than failing the render.
+     * Resolves the operand's own type once and hands both sides to {@link
+     * #renderComparisonOperand}. The type is a best-effort hint for encoding reconciliation, so an
+     * operand that can't be typed (subquery, identity, …) passes {@code null} rather than failing
+     * the render.
      */
-    private String operand(SqlSelectRenderer renderer, Expression e, TypeDescriptor leftType, int indent) {
+    private String operand(
+            SqlSelectRenderer renderer, Expression e, TypeDescriptor leftType, int indent) {
         TypeDescriptor rightType;
         try {
             rightType = renderer.resolveType(e);
@@ -958,15 +1148,18 @@ public interface SqlDialect {
     }
 
     /**
-     * One operand of a comparison, given the types of <em>both</em> sides. The
-     * ANSI default just renders the expression; dialects whose schemas may carry
-     * encoded columns opt in via {@link TimeEncodings} —
-     * having {@code rightType} lets them reconcile two operands stored under
-     * different encodings (e.g. TIME_FROM_INTEGER vs TIME_FROM_STRING), not just
-     * encode a literal to match the left.
+     * One operand of a comparison, given the types of <em>both</em> sides. The ANSI default just
+     * renders the expression; dialects whose schemas may carry encoded columns opt in via {@link
+     * TimeEncodings} — having {@code rightType} lets them reconcile two operands stored under
+     * different encodings (e.g. TIME_FROM_INTEGER vs TIME_FROM_STRING), not just encode a literal
+     * to match the left.
      */
-    default String renderComparisonOperand(SqlSelectRenderer renderer,
-            Expression expression, TypeDescriptor leftType, TypeDescriptor rightType, int indent) {
+    default String renderComparisonOperand(
+            SqlSelectRenderer renderer,
+            Expression expression,
+            TypeDescriptor leftType,
+            TypeDescriptor rightType,
+            int indent) {
         // INTERVAL column vs duration literal: render the duration in the column's encoding
         // (numeric count / ISO string), so both operands share one physical representation.
         java.util.Optional<String> interval =
@@ -975,14 +1168,17 @@ public interface SqlDialect {
             return interval.get();
         }
         // EPOCH / epoch-day column vs a date/timestamp literal: render the literal as the matching
-        // integer count, so the bare (index-friendly) column compares against an integer, not a literal.
+        // integer count, so the bare (index-friendly) column compares against an integer, not a
+        // literal.
         java.util.Optional<String> epoch =
                 EpochEncodings.literalOperand(leftType, expression, renderer.getModelZone());
         if (epoch.isPresent()) {
             return epoch.get();
         }
-        // INSTANT (timestamptz) column vs a date/timestamp literal: render the literal as the matching
-        // absolute instant (taken in the model zone), so the comparison does not lean on the engine's
+        // INSTANT (timestamptz) column vs a date/timestamp literal: render the literal as the
+        // matching
+        // absolute instant (taken in the model zone), so the comparison does not lean on the
+        // engine's
         // implicit coercion of a bare naive string (which fails on SQL Server / Trino).
         java.util.Optional<java.time.Instant> instant =
                 InstantEncodings.literalInstant(leftType, expression, renderer.getModelZone());

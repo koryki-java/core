@@ -20,7 +20,6 @@ import ai.koryki.catalog.types.CoreTypeEncoding;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeFamily;
-
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
@@ -33,40 +32,44 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 /**
- * Read-layer presentation: turns a JDBC result value into a display string,
- * driven by the column's resolved {@link TypeDescriptor} (from
- * {@code ColumnInfo.getTypeDescriptor()}) and a {@link Locale}.
+ * Read-layer presentation: turns a JDBC result value into a display string, driven by the column's
+ * resolved {@link TypeDescriptor} (from {@code ColumnInfo.getTypeDescriptor()}) and a {@link
+ * Locale}.
  *
- * <p>This is the presentation layer of docs/TEMPORAL.md — it <em>never changes
- * a value</em> (no zone conversion, no rounding beyond display scale); it only
- * chooses how to render the canonical value. SQL generation is unaffected.
+ * <p>This is the presentation layer of docs/TEMPORAL.md — it <em>never changes a value</em> (no
+ * zone conversion, no rounding beyond display scale); it only chooses how to render the canonical
+ * value. SQL generation is unaffected.
  *
- * <p>A {@code null} locale selects canonical, locale-independent output (ISO
- * dates/times, plain decimals) — the deterministic mode for golden tests.
+ * <p>A {@code null} locale selects canonical, locale-independent output (ISO dates/times, plain
+ * decimals) — the deterministic mode for golden tests.
  *
- * <p>Note: currency and percentage are presentation <em>semantics</em>, not
- * base types — they need a presentation hint the {@link TypeDescriptor} does
- * not yet carry, and are intentionally out of scope here.
+ * <p>Note: currency and percentage are presentation <em>semantics</em>, not base types — they need
+ * a presentation hint the {@link TypeDescriptor} does not yet carry, and are intentionally out of
+ * scope here.
  */
 public class LocaleFormat implements ValueFormat {
 
-
-
-//    private static final DateTimeFormatter ISO_DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-//    private static final DateTimeFormatter ISO_TIME = DateTimeFormatter.ofPattern("HH:mm:ss");
-//    private static final DateTimeFormatter ISO_TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    //    private static final DateTimeFormatter ISO_DATE =
+    // DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    //    private static final DateTimeFormatter ISO_TIME = DateTimeFormatter.ofPattern("HH:mm:ss");
+    //    private static final DateTimeFormatter ISO_TIMESTAMP =
+    // DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final DateTimeFormatter ISO_DATE = DateTimeFormatter.ISO_LOCAL_DATE;
     private static final DateTimeFormatter ISO_TIME = DateTimeFormatter.ISO_LOCAL_TIME;
     private static final DateTimeFormatter ISO_TIMESTAMP = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
     private final Locale locale;
 
-    /** @param locale presentation locale, or {@code null} for canonical (ISO) output */
+    /**
+     * @param locale presentation locale, or {@code null} for canonical (ISO) output
+     */
     public LocaleFormat(Locale locale) {
         this.locale = locale;
     }
 
-    /** The presentation locale, for subclasses that render on their own; {@code null} = canonical. */
+    /**
+     * The presentation locale, for subclasses that render on their own; {@code null} = canonical.
+     */
     protected Locale locale() {
         return locale;
     }
@@ -113,31 +116,35 @@ public class LocaleFormat implements ValueFormat {
 
     private String time(LocalTime t) {
 
-//        return locale == null ? t.format(ISO_TIME)
-//                : t.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM).withLocale(locale));
-        return locale == null ? t.format(ISO_TIME)
-                : t.format(ISO_TIME.withLocale(locale));
+        //        return locale == null ? t.format(ISO_TIME)
+        //                :
+        // t.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM).withLocale(locale));
+        return locale == null ? t.format(ISO_TIME) : t.format(ISO_TIME.withLocale(locale));
     }
 
     private String date(LocalDate d) {
-//        return locale == null ? d.format(ISO_DATE)
-//                : d.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale));
-        return locale == null ? d.format(ISO_DATE)
-                : d.format(ISO_DATE.withLocale(locale));
+        //        return locale == null ? d.format(ISO_DATE)
+        //                :
+        // d.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale));
+        return locale == null ? d.format(ISO_DATE) : d.format(ISO_DATE.withLocale(locale));
     }
 
     private String dateTime(LocalDateTime dt) {
-//        return locale == null ? dt.format(ISO_TIMESTAMP)
-//                : dt.format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale));
-        return locale == null ? dt.format(ISO_TIMESTAMP)
-                :dt.format(ISO_TIMESTAMP.withLocale(locale));
+        //        return locale == null ? dt.format(ISO_TIMESTAMP)
+        //                :
+        // dt.format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale));
+        return locale == null
+                ? dt.format(ISO_TIMESTAMP)
+                : dt.format(ISO_TIMESTAMP.withLocale(locale));
     }
 
     private String number(Number n, TypeDescriptor type) {
         BigDecimal bd = n instanceof BigDecimal b ? b : new BigDecimal(n.toString());
         int scale = type != null ? type.getScale() : -1;
         if (locale == null) {
-            return scale >= 0 ? bd.setScale(scale, java.math.RoundingMode.HALF_UP).toPlainString() : bd.toPlainString();
+            return scale >= 0
+                    ? bd.setScale(scale, java.math.RoundingMode.HALF_UP).toPlainString()
+                    : bd.toPlainString();
         }
         NumberFormat nf = NumberFormat.getNumberInstance(locale);
         if (scale >= 0) {
@@ -148,9 +155,10 @@ public class LocaleFormat implements ValueFormat {
     }
 
     /**
-     * Renders an INTERVAL. The default is the canonical koryki notation ({@code 1y2mo3d4h}) — compact,
-     * locale-independent, and the deterministic form golden tests rely on (inherited by StableFormat).
-     * {@link WordedLocaleFormat} overrides this with a business-readable worded/{@code HH:MM:SS} form.
+     * Renders an INTERVAL. The default is the canonical koryki notation ({@code 1y2mo3d4h}) —
+     * compact, locale-independent, and the deterministic form golden tests rely on (inherited by
+     * StableFormat). {@link WordedLocaleFormat} overrides this with a business-readable
+     * worded/{@code HH:MM:SS} form.
      */
     protected String interval(Interval iv) {
         return iv.toKql();
@@ -175,7 +183,8 @@ public class LocaleFormat implements ValueFormat {
     }
 
     private static LocalDateTime asDateTime(Object v) {
-        // Instants/epoch values are already converted to a model-zone wall-clock LocalDateTime at the
+        // Instants/epoch values are already converted to a model-zone wall-clock LocalDateTime at
+        // the
         // read boundary (CoreDecoder, driven by JdbcDatabase's model zone) — the single place that
         // applies the zone. Here we only present the (zone-neutral) wall-clock.
         if (v instanceof LocalDateTime d) return d;

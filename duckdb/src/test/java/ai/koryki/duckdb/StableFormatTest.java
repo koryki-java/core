@@ -1,11 +1,26 @@
+/*
+ * Copyright 2025-2026 Johannes Zemlin
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package ai.koryki.duckdb;
 
-import ai.koryki.databases.cases.StableFormat;
-import org.junit.jupiter.api.Test;
-
-import java.util.Locale;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import ai.koryki.databases.cases.StableFormat;
+import java.util.Locale;
+import org.junit.jupiter.api.Test;
 
 /** Golden tolerance: StableFormat normalizes dialect-specific to_text(...) string output. */
 class StableFormatTest {
@@ -18,30 +33,31 @@ class StableFormatTest {
      */
     @Test
     void decimalStringsKeepTheirValueAndLoseOnlyPaddingAndNoise() {
-        assertEquals("12345.6789", f.format("12345.6789", null));     // precision is kept
-        assertEquals("1.618034",   f.format("1.618033988749", null)); // cut at six decimals
-        assertEquals("39",         f.format("39.00", null));          // trailing zeros dropped
-        assertEquals("830",        f.format("830.0", null));          // a row count, not 830.0
-        assertEquals("0.1",        f.format("0.10000001", null));     // float noise absorbed
-        assertEquals("0.15",       f.format("0.15", null));           // distinct from 0.14
-        assertEquals("0.14",       f.format("0.14", null));
+        assertEquals("12345.6789", f.format("12345.6789", null)); // precision is kept
+        assertEquals("1.618034", f.format("1.618033988749", null)); // cut at six decimals
+        assertEquals("39", f.format("39.00", null)); // trailing zeros dropped
+        assertEquals("830", f.format("830.0", null)); // a row count, not 830.0
+        assertEquals("0.1", f.format("0.10000001", null)); // float noise absorbed
+        assertEquals("0.15", f.format("0.15", null)); // distinct from 0.14
+        assertEquals("0.14", f.format("0.14", null));
     }
 
     @Test
     void integersAndNonNumericTextAreUntouched() {
-        assertEquals("123",           f.format("123", null));            // no '.', not rounded
+        assertEquals("123", f.format("123", null)); // no '.', not rounded
         assertEquals("Hallo VARCHAR", f.format("Hallo VARCHAR", null));
-        assertEquals("550e8400-e29b-41d4-a716-446655440000",
+        assertEquals(
+                "550e8400-e29b-41d4-a716-446655440000",
                 f.format("550e8400-e29b-41d4-a716-446655440000", null)); // UUID, not a date
     }
 
     @Test
     void temporalStringsNormalizeToWholeSecondIso() {
         // MSSQL DATETIME2/TIME add fractional seconds; DuckDB doesn't — normalize both.
-        assertEquals("14:30:45",            f.format("14:30:45.0000000", null));
-        assertEquals("14:30:45",            f.format("14:30:45", null));
+        assertEquals("14:30:45", f.format("14:30:45.0000000", null));
+        assertEquals("14:30:45", f.format("14:30:45", null));
         assertEquals("2026-05-17 14:30:45", f.format("2026-05-17 14:30:45.0000000", null));
         assertEquals("2026-05-17 14:30:45", f.format("2026-05-17 14:30:45", null));
-        assertEquals("2026-05-17",          f.format("2026-05-17", null));
+        assertEquals("2026-05-17", f.format("2026-05-17", null));
     }
 }

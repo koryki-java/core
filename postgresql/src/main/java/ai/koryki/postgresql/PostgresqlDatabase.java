@@ -18,14 +18,13 @@ package ai.koryki.postgresql;
 
 import ai.koryki.jdbc.JdbcDatabase;
 import ai.koryki.jdbc.ResultProcessor;
-
 import java.sql.Connection;
 import java.time.ZoneId;
 
 /**
- * Vendor base for every Postgresql connection: pins session
- * state at construction (see docs/TEMPORAL.md, "Time zones") so that
- * zone-aware reads and {@code now()} never depend on who runs the query.
+ * Vendor base for every Postgresql connection: pins session state at construction (see
+ * docs/TEMPORAL.md, "Time zones") so that zone-aware reads and {@code now()} never depend on who
+ * runs the query.
  */
 public class PostgresqlDatabase<P extends ResultProcessor<?>> extends JdbcDatabase<P> {
 
@@ -35,7 +34,7 @@ public class PostgresqlDatabase<P extends ResultProcessor<?>> extends JdbcDataba
 
     public PostgresqlDatabase(String name, Connection conn, ZoneId modelZone) {
         super(name, conn, modelZone);
-        setDecoder(new PostgresDecoder(modelZone));   // native PGInterval -> Interval
+        setDecoder(new PostgresDecoder(modelZone)); // native PGInterval -> Interval
     }
 
     /** Pin the session so timestamptz reads and now() are reproducible. */

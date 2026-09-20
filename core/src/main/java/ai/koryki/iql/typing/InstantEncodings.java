@@ -19,7 +19,6 @@ package ai.koryki.iql.typing;
 import ai.koryki.catalog.types.CoreTypeEncoding;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.iql.query.Expression;
-
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -27,26 +26,27 @@ import java.time.ZoneId;
 import java.util.Optional;
 
 /**
- * Comparison-operand reconciliation for an {@code INSTANT} ({@code timestamptz}) column compared against a
- * date/timestamp literal. The literal is a model-zone wall-clock value, so its absolute instant is taken by
- * interpreting it in the model zone (docs/TEMPORAL.md: comparisons convert the literal, not the column). The
- * dialect then renders that instant as its own instant literal ({@link ai.koryki.iql.SqlDialect#instantLiteral}),
- * so the comparison does not rely on the engine implicitly coercing a bare naive string — which fails on a
- * {@code timestamptz}/{@code DATETIMEOFFSET} column (SQL Server) or where the literal syntax differs (Trino).
+ * Comparison-operand reconciliation for an {@code INSTANT} ({@code timestamptz}) column compared
+ * against a date/timestamp literal. The literal is a model-zone wall-clock value, so its absolute
+ * instant is taken by interpreting it in the model zone (docs/TEMPORAL.md: comparisons convert the
+ * literal, not the column). The dialect then renders that instant as its own instant literal
+ * ({@link ai.koryki.iql.SqlDialect#instantLiteral}), so the comparison does not rely on the engine
+ * implicitly coercing a bare naive string — which fails on a {@code timestamptz}/{@code
+ * DATETIMEOFFSET} column (SQL Server) or where the literal syntax differs (Trino).
  */
 public final class InstantEncodings {
 
-    private InstantEncodings() {
-    }
+    private InstantEncodings() {}
 
-    public static Optional<Instant> literalInstant(TypeDescriptor columnType, Expression operand, ZoneId modelZone) {
+    public static Optional<Instant> literalInstant(
+            TypeDescriptor columnType, Expression operand, ZoneId modelZone) {
         if (columnType == null || !CoreTypeEncoding.INSTANT.equals(columnType.getTypeEncoding())) {
             return Optional.empty();
         }
         LocalDate date = operand.getLocalDate();
         LocalDateTime dateTime = operand.getLocalDateTime();
         if (date == null && dateTime == null) {
-            return Optional.empty();   // not a date/timestamp literal — nothing to reconcile
+            return Optional.empty(); // not a date/timestamp literal — nothing to reconcile
         }
         LocalDateTime wallClock = dateTime != null ? dateTime : date.atStartOfDay();
         return Optional.of(wallClock.atZone(modelZone).toInstant());

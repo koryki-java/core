@@ -1,16 +1,31 @@
+/*
+ * Copyright 2025-2026 Johannes Zemlin
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package ai.koryki.jdbc;
-
-import ai.koryki.catalog.types.TypeDescriptor;
-import ai.koryki.jdbc.WordedLocaleFormat.Width;
-import org.junit.jupiter.api.Test;
-
-import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import ai.koryki.catalog.types.TypeDescriptor;
+import ai.koryki.jdbc.WordedLocaleFormat.Width;
+import java.util.Locale;
+import org.junit.jupiter.api.Test;
+
 /**
- * Business duration rendering: calendar fields as words (WIDE/SHORT/NARROW) + the fixed clock part as
- * HH:MM:SS, with an optional maxUnits cap. Base {@link LocaleFormat} stays canonical (toKql).
+ * Business duration rendering: calendar fields as words (WIDE/SHORT/NARROW) + the fixed clock part
+ * as HH:MM:SS, with an optional maxUnits cap. Base {@link LocaleFormat} stays canonical (toKql).
  */
 class WordedLocaleFormatTest {
 
@@ -27,12 +42,13 @@ class WordedLocaleFormatTest {
     @Test
     void pureClockIsHHMMSS() {
         assertEquals("01:02:03", wide.format(Interval.ofNanos(clock(1, 2, 3)), IV));
-        assertEquals("25:00:00", wide.format(Interval.ofNanos(clock(25, 0, 0)), IV));   // no 24h rollup
+        assertEquals(
+                "25:00:00", wide.format(Interval.ofNanos(clock(25, 0, 0)), IV)); // no 24h rollup
     }
 
     @Test
     void widthVariants() {
-        Interval iv = Interval.ofMonths(14);   // 1 year 2 months
+        Interval iv = Interval.ofMonths(14); // 1 year 2 months
         assertEquals("1 year 2 months", wide.format(iv, IV));
         assertEquals("1 yr 2 mos", compact.format(iv, IV));
         assertEquals("1y 2mo", narrow.format(iv, IV));
@@ -48,8 +64,12 @@ class WordedLocaleFormatTest {
 
     @Test
     void mixedIsWordsPlusClock() {
-        assertEquals("1 year 2 months 1 day 01:02:03", wide.format(Interval.of(14, 1, clock(1, 2, 3)), IV));
-        assertEquals("1 yr 2 mos 1 day 01:02:03", compact.format(Interval.of(14, 1, clock(1, 2, 3)), IV));
+        assertEquals(
+                "1 year 2 months 1 day 01:02:03",
+                wide.format(Interval.of(14, 1, clock(1, 2, 3)), IV));
+        assertEquals(
+                "1 yr 2 mos 1 day 01:02:03",
+                compact.format(Interval.of(14, 1, clock(1, 2, 3)), IV));
     }
 
     @Test
@@ -60,11 +80,18 @@ class WordedLocaleFormatTest {
 
     @Test
     void maxUnitsCapsToMostSignificant() {
-        Interval full = Interval.of(14, 1, clock(1, 2, 3));   // 1 year 2 months 1 day 01:02:03
-        assertEquals("1 year", new WordedLocaleFormat(Locale.ENGLISH, Width.WIDE, 1).format(full, IV));
-        assertEquals("1 year 2 months", new WordedLocaleFormat(Locale.ENGLISH, Width.WIDE, 2).format(full, IV));
-        assertEquals("1 year 2 months 1 day", new WordedLocaleFormat(Locale.ENGLISH, Width.WIDE, 3).format(full, IV));
-        assertEquals("1 year 2 months 1 day 01:02:03", new WordedLocaleFormat(Locale.ENGLISH, Width.WIDE, 0).format(full, IV));
+        Interval full = Interval.of(14, 1, clock(1, 2, 3)); // 1 year 2 months 1 day 01:02:03
+        assertEquals(
+                "1 year", new WordedLocaleFormat(Locale.ENGLISH, Width.WIDE, 1).format(full, IV));
+        assertEquals(
+                "1 year 2 months",
+                new WordedLocaleFormat(Locale.ENGLISH, Width.WIDE, 2).format(full, IV));
+        assertEquals(
+                "1 year 2 months 1 day",
+                new WordedLocaleFormat(Locale.ENGLISH, Width.WIDE, 3).format(full, IV));
+        assertEquals(
+                "1 year 2 months 1 day 01:02:03",
+                new WordedLocaleFormat(Locale.ENGLISH, Width.WIDE, 0).format(full, IV));
     }
 
     @Test

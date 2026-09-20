@@ -1,3 +1,19 @@
+/*
+ * Copyright 2025-2026 Johannes Zemlin
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package ai.koryki.presentation;
 
 import java.math.BigDecimal;
@@ -6,8 +22,8 @@ import java.text.NumberFormat;
 import java.util.Locale;
 
 /**
- * Values divided by a factor and marked with its symbol: {@code SCALE:1000000:M} renders 57000000 as
- * {@code 57.00 M}.
+ * Values divided by a factor and marked with its symbol: {@code SCALE:1000000:M} renders 57000000
+ * as {@code 57.00 M}.
  *
  * <p>The one presentation that cannot be concluded from the catalog. Whether a column's numbers run
  * into the millions is a property of <em>this result</em>, not of the column — so it is derived
@@ -21,8 +37,8 @@ import java.util.Locale;
  * carrying information at this magnitude.
  *
  * <p><b>This one does change what the reader sees</b> — 57000000 appears as 57. The symbol is what
- * keeps that honest, and it is the reason this presentation belongs to the business-facing formatter
- * only. The canonical path never applies a presentation at all.
+ * keeps that honest, and it is the reason this presentation belongs to the business-facing
+ * formatter only. The canonical path never applies a presentation at all.
  */
 public final class ScalePresentation implements Presentation {
 
@@ -56,9 +72,11 @@ public final class ScalePresentation implements Presentation {
         String body = name.substring(PREFIX.length());
         int sep = body.indexOf(':');
         if (sep < 0) {
-            throw new IllegalArgumentException("expected " + PREFIX + "<factor>:<symbol>, got: " + name);
+            throw new IllegalArgumentException(
+                    "expected " + PREFIX + "<factor>:<symbol>, got: " + name);
         }
-        return new ScalePresentation(Long.parseLong(body.substring(0, sep)), body.substring(sep + 1));
+        return new ScalePresentation(
+                Long.parseLong(body.substring(0, sep)), body.substring(sep + 1));
     }
 
     public long getFactor() {
@@ -94,7 +112,9 @@ public final class ScalePresentation implements Presentation {
 
     @Override
     public boolean equals(Object o) {
-        return o instanceof ScalePresentation other && factor == other.factor && symbol.equals(other.symbol);
+        return o instanceof ScalePresentation other
+                && factor == other.factor
+                && symbol.equals(other.symbol);
     }
 
     @Override

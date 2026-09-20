@@ -16,25 +16,20 @@
  */
 package ai.koryki.snowflake;
 
-import ai.koryki.snowflake.covid19.Covid19Database;
+import static org.junit.platform.commons.util.AnnotationUtils.findAnnotation;
+
 import ai.koryki.snowflake.northwind.NorthwindSnowflake;
+import java.util.Optional;
 import org.junit.jupiter.api.extension.ConditionEvaluationResult;
 import org.junit.jupiter.api.extension.ExecutionCondition;
 import org.junit.jupiter.api.extension.ExtensionContext;
-
-import java.security.PrivateKey;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.Optional;
-import java.util.Properties;
-
-import static org.junit.platform.commons.util.AnnotationUtils.findAnnotation;
 
 public class SnowflakeAvailabilityCondition implements ExecutionCondition {
 
     @Override
     public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext context) {
-        final Optional<SnowflakeUnavailable> optional = findAnnotation(context.getElement(), SnowflakeUnavailable.class);
+        final Optional<SnowflakeUnavailable> optional =
+                findAnnotation(context.getElement(), SnowflakeUnavailable.class);
         if (optional.isPresent()) {
             final SnowflakeUnavailable annotation = optional.get();
             try {
@@ -46,11 +41,12 @@ public class SnowflakeAvailabilityCondition implements ExecutionCondition {
                 // -- cannot be determined afterwards without reproducing the call by hand. Class
                 // and message only, no credentials.
                 return ConditionEvaluationResult.disabled(
-                        "Connection is down: " + e.getClass().getSimpleName()
-                                + ": " + e.getMessage());
+                        "Connection is down: "
+                                + e.getClass().getSimpleName()
+                                + ": "
+                                + e.getMessage());
             }
         }
         return ConditionEvaluationResult.enabled("No assumptions, moving on...");
     }
 }
-

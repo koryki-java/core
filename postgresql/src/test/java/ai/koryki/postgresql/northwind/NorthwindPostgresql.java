@@ -16,9 +16,8 @@
  */
 package ai.koryki.postgresql.northwind;
 
-import ai.koryki.postgresql.PostgresqlDatabase;
 import ai.koryki.jdbc.ResultProcessor;
-
+import ai.koryki.postgresql.PostgresqlDatabase;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -40,7 +39,8 @@ public class NorthwindPostgresql<P extends ResultProcessor<?>> extends Postgresq
         this(name, connection());
     }
 
-    public NorthwindPostgresql(String name, String user, String passwort, String url) throws SQLException {
+    public NorthwindPostgresql(String name, String user, String passwort, String url)
+            throws SQLException {
         this(name, connection(user, passwort, url));
     }
 
@@ -53,12 +53,14 @@ public class NorthwindPostgresql<P extends ResultProcessor<?>> extends Postgresq
     }
 
     public static Connection connection() throws SQLException {
-        return connection(System.getProperty("postgresql.northwind.user"),
-            System.getProperty("postgresql.northwind.password"),
-            System.getProperty("postgresql.northwind.url") );
+        return connection(
+                System.getProperty("postgresql.northwind.user"),
+                System.getProperty("postgresql.northwind.password"),
+                System.getProperty("postgresql.northwind.url"));
     }
 
-    public static Connection connection(String user, String password, String url) throws SQLException {
+    public static Connection connection(String user, String password, String url)
+            throws SQLException {
         Properties props = new Properties();
         props.setProperty("user", user);
         props.setProperty("password", password);

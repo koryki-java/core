@@ -1,12 +1,22 @@
+/*
+ * Copyright 2025-2026 Johannes Zemlin
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package ai.koryki.iql.typing;
 
 import ai.koryki.antlr.KorykiaiException;
-import ai.koryki.iql.IQLVisibilityContext;
-import ai.koryki.iql.LinkResolver;
-import ai.koryki.iql.SqlQueryRenderer;
-import ai.koryki.iql.functions.FunctionBinding;
-import ai.koryki.iql.functions.FunctionCatalog;
-import ai.koryki.iql.query.*;
 import ai.koryki.catalog.domain.Attribute;
 import ai.koryki.catalog.domain.Entity;
 import ai.koryki.catalog.schema.Table;
@@ -15,11 +25,15 @@ import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeFamily;
 import ai.koryki.catalog.types.TypeFamilyRegistry;
 import ai.koryki.catalog.types.TypeNames;
-
+import ai.koryki.iql.IQLVisibilityContext;
+import ai.koryki.iql.LinkResolver;
+import ai.koryki.iql.SqlQueryRenderer;
+import ai.koryki.iql.functions.FunctionBinding;
+import ai.koryki.iql.functions.FunctionCatalog;
+import ai.koryki.iql.query.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
-import java.util.Optional;
 
 public class ExpressionTypeResolver {
 
@@ -29,9 +43,11 @@ public class ExpressionTypeResolver {
 
     // Memo by node identity, scoped to this resolver's visibility context. Per-instance
     // (never shared) so the same Expression can resolve differently in a child scope.
-    private final java.util.Map<Expression, TypeDescriptor> cache = new java.util.IdentityHashMap<>();
+    private final java.util.Map<Expression, TypeDescriptor> cache =
+            new java.util.IdentityHashMap<>();
 
-    public ExpressionTypeResolver(LinkResolver linkResolver, IQLVisibilityContext visibility, FunctionCatalog catalog) {
+    public ExpressionTypeResolver(
+            LinkResolver linkResolver, IQLVisibilityContext visibility, FunctionCatalog catalog) {
         this.linkResolver = linkResolver;
         this.visibility = visibility;
         this.catalog = catalog;
@@ -52,7 +68,7 @@ public class ExpressionTypeResolver {
         } else if (expression.getField() != null) {
             return resolveField(expression.getField());
         } else if (expression.getFunction() != null) {
-           return resolveFunction(expression.getFunction());
+            return resolveFunction(expression.getFunction());
         } else if (expression.getText() != null) {
             return TypeDescriptor.TEXT;
         } else if (expression.getLogical() != null) {
@@ -64,10 +80,15 @@ public class ExpressionTypeResolver {
                 return TypeDescriptor.INTEGER;
             } else if (expression.getNumber() instanceof BigDecimal bd) {
                 // carry the literal's own precision/scale (e.g. 12.34 -> DECIMAL(4,2))
-                return new TypeDescriptor(TypeNames.TYPE_DECIMAL, null, CoreTypeFamily.DECIMAL,
-                        bd.precision(), bd.scale());
+                return new TypeDescriptor(
+                        TypeNames.TYPE_DECIMAL,
+                        null,
+                        CoreTypeFamily.DECIMAL,
+                        bd.precision(),
+                        bd.scale());
             } else {
-                throw new KorykiaiException("unknown number type: " + expression.getNumber().getClass());
+                throw new KorykiaiException(
+                        "unknown number type: " + expression.getNumber().getClass());
             }
         } else if (expression.getLocalDate() != null) {
             return TypeDescriptor.DATE;
@@ -105,47 +126,101 @@ public class ExpressionTypeResolver {
 
         if (block != null) {
             List<Out> outList = SqlQueryRenderer.collectOut(block);
-            Out out = outList.stream()
-                    .filter(o -> field.getName().equals(getHeaderOrColumnname(o)))
-                    .findFirst()
-                    .orElseThrow(() -> new KorykiaiException("Column not found in block: " + field.getName()));
+            Out out =
+                    outList.stream()
+                            .filter(o -> field.getName().equals(getHeaderOrColumnname(o)))
+                            .findFirst()
+                            .orElseThrow(
+                                    () ->
+                                            new KorykiaiException(
+                                                    "Column not found in block: "
+                                                            + field.getName()));
             return child(SqlQueryRenderer.select(block.getSet())).resolve(out.getExpression());
         } else {
             // Every step below used a bare Optional.get(). Any of them could fail, and all of them
-            // failed the same way: NoSuchElementException("No value present"), with no indication of
+            // failed the same way: NoSuchElementException("No value present"), with no indication
+            // of
             // which name could not be resolved. That is the most common error the shared corpus
-            // produces — a fixture written against one dialect's schema meets a dialect whose schema
+            // produces — a fixture written against one dialect's schema meets a dialect whose
+            // schema
             // lacks the column — and it said nothing at all. SchemaValidator now reports the usual
             // case with a position; these messages are the backstop for the paths that skip it.
-            Entity entity = linkResolver.getModel().getEntity(s.getName())
-                    .orElseThrow(() -> new KorykiaiException("unknown table '" + s.getName() + "' in the model"));
+            Entity entity =
+                    linkResolver
+                            .getModel()
+                            .getEntity(s.getName())
+                            .orElseThrow(
+                                    () ->
+                                            new KorykiaiException(
+                                                    "unknown table '"
+                                                            + s.getName()
+                                                            + "' in the model"));
             String tableName = entity.getTable() != null ? entity.getTable() : entity.getName();
-            Table dbtable = linkResolver.getSchema().getTable(tableName)
-                    .orElseThrow(() -> new KorykiaiException(
-                            "table '" + tableName + "' is not in this schema"));
+            Table dbtable =
+                    linkResolver
+                            .getSchema()
+                            .getTable(tableName)
+                            .orElseThrow(
+                                    () ->
+                                            new KorykiaiException(
+                                                    "table '"
+                                                            + tableName
+                                                            + "' is not in this schema"));
 
             if (dbtable.getColumn(field.getName()).isPresent()) {
                 ai.koryki.catalog.schema.Column column = dbtable.getColumn(field.getName()).get();
                 return linkResolver.getTypeDescriptor(column);
             } else {
-                Attribute attr = entity.getAttribute(field.getName())
-                        .orElseThrow(() -> new KorykiaiException("unknown column '" + field.getName()
-                                + "' on " + entity.getName() + " — it is neither a column of table '"
-                                + tableName + "' nor a declared attribute"));
+                Attribute attr =
+                        entity.getAttribute(field.getName())
+                                .orElseThrow(
+                                        () ->
+                                                new KorykiaiException(
+                                                        "unknown column '"
+                                                                + field.getName()
+                                                                + "' on "
+                                                                + entity.getName()
+                                                                + " — it is neither a column of table '"
+                                                                + tableName
+                                                                + "' nor a declared attribute"));
                 String attrCol = attr.getColumn() != null ? attr.getColumn() : attr.getName();
 
-                String col = entity.getAttribute(attrCol)
-                        .map(a -> a.getColumn() != null ? a.getColumn() : a.getName())
-                        .orElseGet(() -> dbtable.getColumn(attrCol)
-                                .orElseThrow(() -> new KorykiaiException("attribute '" + field.getName()
-                                        + "' of " + entity.getName() + " maps to column '" + attrCol
-                                        + "', which table '" + tableName + "' does not have"))
-                                .getName());
+                String col =
+                        entity.getAttribute(attrCol)
+                                .map(a -> a.getColumn() != null ? a.getColumn() : a.getName())
+                                .orElseGet(
+                                        () ->
+                                                dbtable.getColumn(attrCol)
+                                                        .orElseThrow(
+                                                                () ->
+                                                                        new KorykiaiException(
+                                                                                "attribute '"
+                                                                                        + field
+                                                                                                .getName()
+                                                                                        + "' of "
+                                                                                        + entity
+                                                                                                .getName()
+                                                                                        + " maps to column '"
+                                                                                        + attrCol
+                                                                                        + "', which table '"
+                                                                                        + tableName
+                                                                                        + "' does not have"))
+                                                        .getName());
 
-                ai.koryki.catalog.schema.Column column = dbtable.getColumn(col)
-                        .orElseThrow(() -> new KorykiaiException("attribute '" + field.getName()
-                                + "' of " + entity.getName() + " maps to column '" + col
-                                + "', which table '" + tableName + "' does not have"));
+                ai.koryki.catalog.schema.Column column =
+                        dbtable.getColumn(col)
+                                .orElseThrow(
+                                        () ->
+                                                new KorykiaiException(
+                                                        "attribute '"
+                                                                + field.getName()
+                                                                + "' of "
+                                                                + entity.getName()
+                                                                + " maps to column '"
+                                                                + col
+                                                                + "', which table '"
+                                                                + tableName
+                                                                + "' does not have"));
                 return linkResolver.getTypeDescriptor(column);
             }
         }

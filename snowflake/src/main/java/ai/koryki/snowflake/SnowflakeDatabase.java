@@ -18,7 +18,6 @@ package ai.koryki.snowflake;
 
 import ai.koryki.jdbc.JdbcDatabase;
 import ai.koryki.jdbc.ResultProcessor;
-
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.KeyFactory;
@@ -51,10 +50,10 @@ public class SnowflakeDatabase<C extends ResultProcessor<?>> extends JdbcDatabas
     }
 
     /**
-     * The Snowflake driver does not support {@code getObject(.., OffsetDateTime.class)}. A
-     * {@code TIMESTAMP_TZ} comes back as a {@code SnowflakeTimestampWithTimezone} (a
-     * {@link java.sql.Timestamp} whose epoch already holds the absolute instant), so
-     * {@code getTimestamp().toInstant()} yields the correct point in time, JVM-zone-independently.
+     * The Snowflake driver does not support {@code getObject(.., OffsetDateTime.class)}. A {@code
+     * TIMESTAMP_TZ} comes back as a {@code SnowflakeTimestampWithTimezone} (a {@link
+     * java.sql.Timestamp} whose epoch already holds the absolute instant), so {@code
+     * getTimestamp().toInstant()} yields the correct point in time, JVM-zone-independently.
      */
     @Override
     protected Instant readInstant(ResultSet rs, int i, int jdbcType) throws SQLException {
@@ -66,7 +65,8 @@ public class SnowflakeDatabase<C extends ResultProcessor<?>> extends JdbcDatabas
         return connection(user, loadPrivateKey(System.getProperty("snowflake.privatekey")), url);
     }
 
-    public static Connection connection(String user, PrivateKey pk, String url) throws SQLException {
+    public static Connection connection(String user, PrivateKey pk, String url)
+            throws SQLException {
 
         Properties props = new Properties();
         props.setProperty("user", user);
@@ -90,9 +90,10 @@ public class SnowflakeDatabase<C extends ResultProcessor<?>> extends JdbcDatabas
         String key = new String(Files.readAllBytes(Paths.get(filename)));
 
         // remove header and footer
-        key = key.replace("-----BEGIN PRIVATE KEY-----", "")
-                .replace("-----END PRIVATE KEY-----", "")
-                .replaceAll("\\s", "");
+        key =
+                key.replace("-----BEGIN PRIVATE KEY-----", "")
+                        .replace("-----END PRIVATE KEY-----", "")
+                        .replaceAll("\\s", "");
 
         byte[] decoded = Base64.getDecoder().decode(key);
         PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(decoded);

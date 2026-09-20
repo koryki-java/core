@@ -1,6 +1,5 @@
 plugins {
     id 'java'
-    alias(libs.plugins.jacoco)
     alias(libs.plugins.antlr)
     id 'maven-publish'
 }
@@ -57,11 +56,6 @@ tasks.named('sourcesJar').configure {
 test {
 
     useJUnitPlatform()
-    finalizedBy jacocoTestReport
-}
-
-jacocoTestReport {
-    dependsOn test
 }
 
 tasks.named("compileJava") {

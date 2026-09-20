@@ -16,20 +16,19 @@
  */
 package ai.koryki.kql;
 
-import ai.koryki.databases.northwind.duckdb.NorthwindService;
-import ai.koryki.iql.DuckdbBaseDialect;
-import ai.koryki.iql.SqlQueryRenderer;
-import ai.koryki.iql.validate.Violation;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
-import java.time.ZoneId;
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import ai.koryki.databases.northwind.duckdb.NorthwindService;
+import ai.koryki.iql.DuckdbBaseDialect;
+import ai.koryki.iql.SqlQueryRenderer;
+import ai.koryki.iql.validate.Violation;
+import java.time.ZoneId;
+import java.util.List;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 /**
  * The claim of this class: writing and checking work without a database.
@@ -49,9 +48,11 @@ public class GeneratorTest {
     @BeforeAll
     public static void buildWithoutADatabase() {
 
-        generator = new Generator<>(NorthwindService.resolver(),
-                new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, ZoneId.of("UTC")),
-                HeaderInfo::new);
+        generator =
+                new Generator<>(
+                        NorthwindService.resolver(),
+                        new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, ZoneId.of("UTC")),
+                        HeaderInfo::new);
     }
 
     @Test
@@ -72,9 +73,9 @@ public class GeneratorTest {
     /**
      * An unknown function is a warning and not an error.
      *
-     * <p>That difference is the reason {@code validateKQL} returns {@code errors()} and not
-     * {@code violations()}: callers read an empty list as "valid", and a warning must not feel like
-     * a failure.
+     * <p>That difference is the reason {@code validateKQL} returns {@code errors()} and not {@code
+     * violations()}: callers read an empty list as "valid", and a warning must not feel like a
+     * failure.
      */
     @Test
     void anUnknownFunctionOnlyWarns() {

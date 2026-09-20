@@ -16,15 +16,15 @@
  */
 package ai.koryki.trino;
 
-import ai.koryki.trino.northwind.NorthwindTrino;
-import org.junit.jupiter.api.extension.ConditionEvaluationResult;
-import org.junit.jupiter.api.extension.ExecutionCondition;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import static org.junit.platform.commons.util.AnnotationUtils.findAnnotation;
 
+import ai.koryki.trino.northwind.NorthwindTrino;
 import java.sql.Connection;
 import java.sql.Statement;
 import java.util.Optional;
+import org.junit.jupiter.api.extension.ConditionEvaluationResult;
+import org.junit.jupiter.api.extension.ExecutionCondition;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
 public class TrinoAvailabilityCondition implements ExecutionCondition {
 
@@ -33,9 +33,11 @@ public class TrinoAvailabilityCondition implements ExecutionCondition {
 
     @Override
     public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext context) {
-        final Optional<TrinoUnavailable> optional = findAnnotation(context.getElement(), TrinoUnavailable.class);
+        final Optional<TrinoUnavailable> optional =
+                findAnnotation(context.getElement(), TrinoUnavailable.class);
         if (optional.isPresent()) {
-            return available() ? ConditionEvaluationResult.enabled("Connection is up")
+            return available()
+                    ? ConditionEvaluationResult.enabled("Connection is up")
                     : ConditionEvaluationResult.disabled("Connection is down");
         }
         return ConditionEvaluationResult.enabled("No assumptions, moving on...");
@@ -45,7 +47,8 @@ public class TrinoAvailabilityCondition implements ExecutionCondition {
         if (available == null) {
             // the Trino JDBC driver connects lazily — getConnection succeeds without a server,
             // so the probe must execute a statement to actually reach it
-            try (Connection c = NorthwindTrino.connection(); Statement s = c.createStatement()) {
+            try (Connection c = NorthwindTrino.connection();
+                    Statement s = c.createStatement()) {
                 s.executeQuery("SELECT 1").close();
                 available = true;
             } catch (Exception e) {
@@ -55,4 +58,3 @@ public class TrinoAvailabilityCondition implements ExecutionCondition {
         return available;
     }
 }
-

@@ -19,15 +19,13 @@ package ai.koryki.postgresql;
 import ai.koryki.jdbc.ColumnInfo;
 import ai.koryki.jdbc.CoreDecoder;
 import ai.koryki.jdbc.Interval;
-
+import java.time.ZoneId;
 import org.postgresql.util.PGInterval;
 
-import java.time.ZoneId;
-
 /**
- * Postgres returns an {@code interval} column as a {@link PGInterval} (months,
- * days and a fractional-second time component, each independent). Convert it to
- * the canonical {@link Interval}; everything else falls through to {@link CoreDecoder}.
+ * Postgres returns an {@code interval} column as a {@link PGInterval} (months, days and a
+ * fractional-second time component, each independent). Convert it to the canonical {@link
+ * Interval}; everything else falls through to {@link CoreDecoder}.
  */
 public class PostgresDecoder extends CoreDecoder {
 
@@ -38,9 +36,10 @@ public class PostgresDecoder extends CoreDecoder {
     @Override
     public Object decode(Object v, ColumnInfo info) {
         if (v instanceof PGInterval pg) {
-            long nanos = (long) pg.getHours()   * 3_600_000_000_000L
-                       + (long) pg.getMinutes() *     60_000_000_000L
-                       + Math.round(pg.getSeconds() * 1_000_000_000d);
+            long nanos =
+                    (long) pg.getHours() * 3_600_000_000_000L
+                            + (long) pg.getMinutes() * 60_000_000_000L
+                            + Math.round(pg.getSeconds() * 1_000_000_000d);
             return Interval.of(pg.getYears() * 12 + pg.getMonths(), pg.getDays(), nanos);
         }
         return super.decode(v, info);

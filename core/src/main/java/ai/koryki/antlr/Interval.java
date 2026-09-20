@@ -25,12 +25,13 @@ public class Interval {
     public Interval(int start, int stop, String msg) {
 
         if (start > stop) {
-            throw new IllegalArgumentException("invalid interval: "+ start + ": " + stop);
+            throw new IllegalArgumentException("invalid interval: " + start + ": " + stop);
         }
         this.start = start;
         this.stop = stop;
         this.msg = msg;
     }
+
     public boolean contains(int i) {
         return start <= i && i <= stop;
     }
@@ -86,5 +87,4 @@ public class Interval {
     public String toString() {
         return start + ":" + stop + " " + msg;
     }
-
 }

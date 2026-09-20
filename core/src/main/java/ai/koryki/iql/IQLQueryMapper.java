@@ -17,14 +17,10 @@
 package ai.koryki.iql;
 
 import ai.koryki.antlr.KorykiaiException;
+import ai.koryki.iql.functions.MathOp;
 import ai.koryki.iql.logic.Normalizer;
 import ai.koryki.iql.query.*;
-import ai.koryki.iql.functions.MathOp;
 import ai.koryki.iql.time.Time;
-import org.antlr.v4.runtime.RuleContext;
-import org.antlr.v4.runtime.tree.ParseTree;
-import org.antlr.v4.runtime.tree.TerminalNode;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.LocalDate;
@@ -32,28 +28,31 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import org.antlr.v4.runtime.RuleContext;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.TerminalNode;
 
 public class IQLQueryMapper {
 
-    private static final DateTimeFormatter TIMESTAMP_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss[.SSS]").withLocale(Locale.ROOT);
-
+    private static final DateTimeFormatter TIMESTAMP_FMT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss[.SSS]").withLocale(Locale.ROOT);
 
     private final IQLParser.QueryContext script;
     private final String description;
+
     /**
      * Node → parse context, keyed by <em>identity</em>.
      *
-     * <p>An {@code IdentityHashMap} rather than a {@code HashMap}: the key is the model node itself,
-     * and two structurally equal nodes are still two different places in the query. It works today
-     * because no bean overrides {@code equals}/{@code hashCode} — this states that assumption instead
-     * of relying on it, so adding one later cannot silently make two nodes share a position.
+     * <p>An {@code IdentityHashMap} rather than a {@code HashMap}: the key is the model node
+     * itself, and two structurally equal nodes are still two different places in the query. It
+     * works today because no bean overrides {@code equals}/{@code hashCode} — this states that
+     * assumption instead of relying on it, so adding one later cannot silently make two nodes share
+     * a position.
      */
     private final Map<Object, RuleContext> iqlToContext = new java.util.IdentityHashMap<>();
-
 
     public IQLQueryMapper(IQLReader reader) {
         this(reader.getQuery(), reader.getDescription());
@@ -106,10 +105,14 @@ public class IQLQueryMapper {
 
     public Set toSet(IQLParser.SetContext set) {
 
-        String op = set.INTERSECT() != null ? set.INTERSECT().getText() :
-                set.MINUS() != null ? set.MINUS().getText() :
-                set.UNION() != null ? set.UNION().getText() :
-                set.UNIONALL() != null ? set.UNIONALL().getText() : null;
+        String op =
+                set.INTERSECT() != null
+                        ? set.INTERSECT().getText()
+                        : set.MINUS() != null
+                                ? set.MINUS().getText()
+                                : set.UNION() != null
+                                        ? set.UNION().getText()
+                                        : set.UNIONALL() != null ? set.UNIONALL().getText() : null;
 
         if (set.LEFT_PAREN() != null) {
             return toSet(set.set().getFirst());
@@ -179,13 +182,13 @@ public class IQLQueryMapper {
             list.add(toJoin(j));
         }
 
-        return list ;
+        return list;
     }
 
     /**
      * The columns of an explicit join, or {@code null} when the clause names a criterion instead.
-     * The intermediate form knows only the pair spelling — KQL's {@code [a, b]} shorthand is already
-     * expanded by the time a query is written as IQL.
+     * The intermediate form knows only the pair spelling — KQL's {@code [a, b]} shorthand is
+     * already expanded by the time a query is written as IQL.
      */
     private static JoinColumns toJoinColumns(IQLParser.JoincolumnsContext on) {
         if (on == null) {
@@ -304,7 +307,6 @@ public class IQLQueryMapper {
         return expression.stream().map(this::toExpression).toList();
     }
 
-
     public Expression toExpression(IQLParser.ExpressionContext expression) {
 
         if (expression.MINUS_SIGN() != null) {
@@ -314,10 +316,14 @@ public class IQLQueryMapper {
             // differs from the original.
             if (inner.getDuration() != null && !inner.isParenthesized()) {
                 Expression bean = build(expression, Expression::new);
-                bean.setDuration(new ai.koryki.iql.query.Duration(
-                        inner.getDuration().getComponents().stream()
-                                .map(c -> new ai.koryki.iql.query.Duration.Component(-c.value(), c.unit()))
-                                .toList()));
+                bean.setDuration(
+                        new ai.koryki.iql.query.Duration(
+                                inner.getDuration().getComponents().stream()
+                                        .map(
+                                                c ->
+                                                        new ai.koryki.iql.query.Duration.Component(
+                                                                -c.value(), c.unit()))
+                                        .toList()));
                 return bean;
             }
             Expression bean = build(expression, Expression::new);
@@ -450,19 +456,18 @@ public class IQLQueryMapper {
         }
     }
 
-
     public Expression toExpression(IQLParser.ArgumentContext argument) {
-         if (argument.logical_expression() != null) {
-             Expression e = build(argument, Expression::new);
-             e.setLogical(toLogicalNode(argument.logical_expression()));
-             return e;
-         } else if (argument.expression() != null) {
-             return toExpression(argument.expression());
-         } else {
-             Expression e = build(argument, Expression::new);
-             e.setIdentity(argument.identity.getText());
-             return e;
-         }
+        if (argument.logical_expression() != null) {
+            Expression e = build(argument, Expression::new);
+            e.setLogical(toLogicalNode(argument.logical_expression()));
+            return e;
+        } else if (argument.expression() != null) {
+            return toExpression(argument.expression());
+        } else {
+            Expression e = build(argument, Expression::new);
+            e.setIdentity(argument.identity.getText());
+            return e;
+        }
     }
 
     public Expression toExpression(IQLParser.Temporal_literalContext date) {
@@ -471,7 +476,9 @@ public class IQLQueryMapper {
         if (date.TIME_STRING() != null) {
             bean.setLocalTime(LocalTime.parse(unquoteDouble(date.TIME_STRING().getText())));
         } else if (date.TIMESTAMP_STRING() != null) {
-            bean.setLocalDateTime(LocalDateTime.parse(unquoteDouble(date.TIMESTAMP_STRING().getText()), TIMESTAMP_FMT));
+            bean.setLocalDateTime(
+                    LocalDateTime.parse(
+                            unquoteDouble(date.TIMESTAMP_STRING().getText()), TIMESTAMP_FMT));
         } else if (date.DATE_STRING() != null) {
             bean.setLocalDate(LocalDate.parse(unquoteDouble(date.DATE_STRING().getText())));
         } else if (date.DURATION() != null) {
@@ -516,18 +523,20 @@ public class IQLQueryMapper {
         return toLogicalNode(having.logical_expression());
     }
 
-
     public LogicalExpression toLogicalNode(IQLParser.Logical_expressionContext logicalExpression) {
 
         if (logicalExpression.unary_logical_expression() != null) {
-            return LogicalExpression.value(toUnaryLogicalExpression(logicalExpression.unary_logical_expression()));
+            return LogicalExpression.value(
+                    toUnaryLogicalExpression(logicalExpression.unary_logical_expression()));
         } else if (logicalExpression.NOT() != null) {
             LogicalExpression n = toLogicalNode(logicalExpression.negate);
             return LogicalExpression.not(n);
         } else {
             LogicalExpression left = toLogicalNode(logicalExpression.left);
             LogicalExpression right = toLogicalNode(logicalExpression.right);
-            return logicalExpression.AND() != null ? LogicalExpression.and(left, right) :  LogicalExpression.or(left, right);
+            return logicalExpression.AND() != null
+                    ? LogicalExpression.and(left, right)
+                    : LogicalExpression.or(left, right);
         }
     }
 
@@ -535,22 +544,29 @@ public class IQLQueryMapper {
         return tree instanceof TerminalNode && tree.getText().equalsIgnoreCase("AND");
     }
 
-    public UnaryLogicalExpression toUnaryLogicalExpression(IQLParser.Unary_logical_expressionContext unaryLogicalExpressionContext) {
+    public UnaryLogicalExpression toUnaryLogicalExpression(
+            IQLParser.Unary_logical_expressionContext unaryLogicalExpressionContext) {
 
         if (unaryLogicalExpressionContext.PLACEHOLDER() != null) {
             // The context itself, not logical_expression(): this alternative is
             // `expression operator? PLACEHOLDER`, which has no logical_expression, so the copy from
             // the branch below registered the node against null and left it without a position.
-            UnaryLogicalExpression bean = build(unaryLogicalExpressionContext, UnaryLogicalExpression::new);
+            UnaryLogicalExpression bean =
+                    build(unaryLogicalExpressionContext, UnaryLogicalExpression::new);
             bean.setLeft(toExpression(unaryLogicalExpressionContext.expression().getFirst()));
             if (unaryLogicalExpressionContext.operator() != null) {
                 bean.setOp(unaryLogicalExpressionContext.operator().getText());
             }
-            bean.setPlaceholder( unaryLogicalExpressionContext.PLACEHOLDER().getText());
+            bean.setPlaceholder(unaryLogicalExpressionContext.PLACEHOLDER().getText());
             return bean;
         } else if (unaryLogicalExpressionContext.logical_expression() != null) {
-            UnaryLogicalExpression bean = build(unaryLogicalExpressionContext.logical_expression(), UnaryLogicalExpression::new);
-            LogicalExpression f = Normalizer.normalize(toLogicalNode(unaryLogicalExpressionContext.logical_expression()));
+            UnaryLogicalExpression bean =
+                    build(
+                            unaryLogicalExpressionContext.logical_expression(),
+                            UnaryLogicalExpression::new);
+            LogicalExpression f =
+                    Normalizer.normalize(
+                            toLogicalNode(unaryLogicalExpressionContext.logical_expression()));
             bean.setNode(f);
             return bean;
         } else if (unaryLogicalExpressionContext.BETWEEN() != null) {
@@ -558,24 +574,29 @@ public class IQLQueryMapper {
             // own branch — before the bare-predicate one below, or the range would fall through
             // there and lose both operator and bounds. Mirrors KQLQueryMapper, including taking
             // the operator text from the token so the grammar stays its single source.
-            UnaryLogicalExpression bean = build(unaryLogicalExpressionContext, UnaryLogicalExpression::new);
+            UnaryLogicalExpression bean =
+                    build(unaryLogicalExpressionContext, UnaryLogicalExpression::new);
             bean.setOp(unaryLogicalExpressionContext.BETWEEN().getText());
             bean.setLeft(toExpression(unaryLogicalExpressionContext.expression().get(0)));
             bean.getRight().add(toExpression(unaryLogicalExpressionContext.expression().get(1)));
             bean.getRight().add(toExpression(unaryLogicalExpressionContext.expression().get(2)));
             return bean;
         } else if (unaryLogicalExpressionContext.operator() != null) {
-            UnaryLogicalExpression bean = build(unaryLogicalExpressionContext, UnaryLogicalExpression::new);
-            //bean.setNot(unaryLogicalExpressionContext.NOT() != null);
+            UnaryLogicalExpression bean =
+                    build(unaryLogicalExpressionContext, UnaryLogicalExpression::new);
+            // bean.setNot(unaryLogicalExpressionContext.NOT() != null);
             bean.setOp(unaryLogicalExpressionContext.operator().getText());
             bean.setLeft(toExpression(unaryLogicalExpressionContext.expression().getFirst()));
             for (int i = 1; i < unaryLogicalExpressionContext.expression().size(); i++) {
-                bean.getRight().add(toExpression(unaryLogicalExpressionContext.expression().get(i)));
+                bean.getRight()
+                        .add(toExpression(unaryLogicalExpressionContext.expression().get(i)));
             }
             return bean;
-        } if (unaryLogicalExpressionContext.exists() != null) {
-            UnaryLogicalExpression bean = build(unaryLogicalExpressionContext.exists(), UnaryLogicalExpression::new);
-            //bean.setNot(unaryLogicalExpressionContext.NOT() != null);
+        }
+        if (unaryLogicalExpressionContext.exists() != null) {
+            UnaryLogicalExpression bean =
+                    build(unaryLogicalExpressionContext.exists(), UnaryLogicalExpression::new);
+            // bean.setNot(unaryLogicalExpressionContext.NOT() != null);
             if (unaryLogicalExpressionContext.parent != null) {
                 bean.setParent(unaryLogicalExpressionContext.parent.getText());
             }
@@ -583,7 +604,8 @@ public class IQLQueryMapper {
             return bean;
         } else if (!unaryLogicalExpressionContext.expression().isEmpty()) {
             // A boolean-valued expression standing alone as a predicate; see KQLQueryMapper.
-            UnaryLogicalExpression bean = build(unaryLogicalExpressionContext, UnaryLogicalExpression::new);
+            UnaryLogicalExpression bean =
+                    build(unaryLogicalExpressionContext, UnaryLogicalExpression::new);
             bean.setLeft(toExpression(unaryLogicalExpressionContext.expression().getFirst()));
             return bean;
         } else {
@@ -620,24 +642,24 @@ public class IQLQueryMapper {
     /**
      * Creates a node and records where it came from.
      *
-     * <p>A null context is refused here rather than stored. Storing it made the node <em>present</em>
-     * in the map with no position, which {@link ai.koryki.antlr.Range#of} can only report as "never
-     * registered" — the message then blames the caller that never ran instead of the one that passed
-     * the wrong sub-rule. That is how the placeholder branch above passed
-     * {@code logical_expression()} from an alternative that has none, and every violation positioned
-     * on such a node became an exception about a missing rule.
+     * <p>A null context is refused here rather than stored. Storing it made the node
+     * <em>present</em> in the map with no position, which {@link ai.koryki.antlr.Range#of} can only
+     * report as "never registered" — the message then blames the caller that never ran instead of
+     * the one that passed the wrong sub-rule. That is how the placeholder branch above passed
+     * {@code logical_expression()} from an alternative that has none, and every violation
+     * positioned on such a node became an exception about a missing rule.
      */
     private <O> O build(RuleContext ctx, java.util.function.Supplier<O> s) {
         O o = s.get();
         if (ctx == null) {
-            throw new KorykiaiException("no parse context for a " + o.getClass().getSimpleName()
-                    + " — build(...) was given a sub-rule this alternative does not have");
+            throw new KorykiaiException(
+                    "no parse context for a "
+                            + o.getClass().getSimpleName()
+                            + " — build(...) was given a sub-rule this alternative does not have");
         }
         iqlToContext.put(o, ctx);
         return o;
     }
-
-
 
     public Map<Object, RuleContext> getIqlToContext() {
         return iqlToContext;

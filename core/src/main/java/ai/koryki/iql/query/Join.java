@@ -25,22 +25,22 @@ public class Join {
     private String ref;
 
     private Source source;
-        private List<Join> join = new ArrayList<>();
+    private List<Join> join = new ArrayList<>();
 
-        public List<Join> getJoin() {
-            return join;
-        }
+    public List<Join> getJoin() {
+        return join;
+    }
 
-        public void setJoin(List<Join> join) {
-            this.join = join;
-        }
+    public void setJoin(List<Join> join) {
+        this.join = join;
+    }
 
-        public Source getSource() {
-            return source;
-        }
+    public Source getSource() {
+        return source;
+    }
 
-        public void setSource(Source source) {
-            this.source = source;
+    public void setSource(Source source) {
+        this.source = source;
     }
 
     public String getCrit() {
@@ -66,7 +66,6 @@ public class Join {
     public void setOptional(boolean optional) {
         this.optional = optional;
     }
-
 
     /**
      * The columns written out instead of a criterion, or {@code null} when {@link #getCrit()} names

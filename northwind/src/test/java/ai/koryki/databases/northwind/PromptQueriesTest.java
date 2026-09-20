@@ -16,27 +16,26 @@
  */
 package ai.koryki.databases.northwind;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import ai.koryki.databases.northwind.duckdb.NorthwindService;
 import ai.koryki.iql.DuckdbBaseDialect;
 import ai.koryki.iql.SqlQueryRenderer;
 import ai.koryki.iql.validate.Violation;
 import ai.koryki.kql.Generator;
 import ai.koryki.kql.HeaderInfo;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /**
  * The queries inside {@code prompt.md} are queries, and they were never treated as any.
@@ -67,7 +66,8 @@ class PromptQueriesTest {
 
     /** Northwind's own dialect, the same one every consumer of this catalog renders with. */
     private static Generator<HeaderInfo> generator(String language) {
-        return new Generator<>(NorthwindService.resolver(Locale.forLanguageTag(language)),
+        return new Generator<>(
+                NorthwindService.resolver(Locale.forLanguageTag(language)),
                 new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, ZoneId.of("UTC")),
                 HeaderInfo::new);
     }
@@ -120,8 +120,8 @@ class PromptQueriesTest {
      * The guide indents its queries by four spaces instead of fencing them.
      *
      * <p>Only blocks beginning with {@code FIND} or {@code WITH} are taken. The file also shows
-     * fragments -- a single link, a logical expression, a VISUALISE clause with no query above it --
-     * and those are rightly invalid on their own.
+     * fragments -- a single link, a logical expression, a VISUALISE clause with no query above it
+     * -- and those are rightly invalid on their own.
      */
     private static List<String> indentedQueries(String md) {
         List<String> out = new ArrayList<>();
@@ -161,7 +161,8 @@ class PromptQueriesTest {
     @Test
     void theGuideContainsExamples() {
         assertFalse(queriesInTheGuide().isEmpty(), "no queries extracted from prompt.md");
-        assertTrue(indentedQueries(guide("en")).size() >= 10,
+        assertTrue(
+                indentedQueries(guide("en")).size() >= 10,
                 "suspiciously few English examples: " + indentedQueries(guide("en")).size());
     }
 }

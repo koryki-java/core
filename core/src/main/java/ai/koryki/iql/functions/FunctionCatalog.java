@@ -17,15 +17,13 @@
 package ai.koryki.iql.functions;
 
 import ai.koryki.catalog.types.TypeDescriptor;
-
 import java.util.List;
 
 /**
- * The type-facing role of the function catalog: return-type inference and
- * overload lookup, with <em>no</em> dependency on SQL rendering. The
- * type-resolution layer ({@code ExpressionTypeResolver}) and validation
- * ({@code FunctionValidator}) depend only on this, so they stay independent of
- * the renderer. {@link FunctionRenderer} extends this with the rendering role;
+ * The type-facing role of the function catalog: return-type inference and overload lookup, with
+ * <em>no</em> dependency on SQL rendering. The type-resolution layer ({@code
+ * ExpressionTypeResolver}) and validation ({@code FunctionValidator}) depend only on this, so they
+ * stay independent of the renderer. {@link FunctionRenderer} extends this with the rendering role;
  * {@code FunctionRegistry} implements both.
  */
 public interface FunctionCatalog {

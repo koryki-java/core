@@ -16,13 +16,10 @@
  */
 package ai.koryki.mssql;
 
-import org.junit.jupiter.api.extension.ExtendWith;
-
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 @Retention(RetentionPolicy.RUNTIME)
 @ExtendWith(MssqlAvailabilityCondition.class)
-public @interface MssqlUnavailable {
-
-}
+public @interface MssqlUnavailable {}

@@ -17,20 +17,20 @@
 package ai.koryki.iql;
 
 import ai.koryki.antlr.KorykiaiException;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
-/** Literal formatting shared by the SQL renderers and the IQL serializer, so the two never drift. */
+/**
+ * Literal formatting shared by the SQL renderers and the IQL serializer, so the two never drift.
+ */
 final class Literals {
 
-    private Literals() {
-    }
+    private Literals() {}
 
     /**
      * Canonical text form of a numeric literal: integers verbatim, decimals with trailing zeros
-     * dropped (0.0 → 0) but full precision kept. Used by both {@code SqlSelectRenderer} (→ SQL)
-     * and {@code IQLSerializer} (→ IQL); the surrounding quoting/typing differs, this core does not.
+     * dropped (0.0 → 0) but full precision kept. Used by both {@code SqlSelectRenderer} (→ SQL) and
+     * {@code IQLSerializer} (→ IQL); the surrounding quoting/typing differs, this core does not.
      */
     static String number(Number n) {
         if (n instanceof BigInteger bigInteger) {

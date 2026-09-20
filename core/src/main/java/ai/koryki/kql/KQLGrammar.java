@@ -27,17 +27,15 @@ import java.util.regex.Pattern;
 /**
  * Reads the KQL grammar as a classpath resource and assembles it into one document.
  *
- * <p>The grammar was once a single {@code KQL.g4} file. Since the split into
- * {@code koryki-kqlcore} (without VISUALISE) and {@code koryki-kqlvisualise} (with), no archive
- * holds it whole: both artifacts ship several files under the same package path
- * {@code /ai/koryki/kql/} instead. That is why the grammar projects also publish their {@code .g4}
- * as a resource.
+ * <p>The grammar was once a single {@code KQL.g4} file. Since the split into {@code koryki-kqlcore}
+ * (without VISUALISE) and {@code koryki-kqlvisualise} (with), no archive holds it whole: both
+ * artifacts ship several files under the same package path {@code /ai/koryki/kql/} instead. That is
+ * why the grammar projects also publish their {@code .g4} as a resource.
  *
  * <p>Which version applies is decided by the classpath alone. Both artifacts ship a subset of the
- * same six files, so neither list is hard-wired here: every known name is attempted and the
- * present ones are read. Including {@code koryki-kqlvisualise} yields six files,
- * {@code koryki-kqlcore} four — with no change to this class. Gradle rules out having both through
- * the shared capability.
+ * same six files, so neither list is hard-wired here: every known name is attempted and the present
+ * ones are read. Including {@code koryki-kqlvisualise} yields six files, {@code koryki-kqlcore}
+ * four — with no change to this class. Gradle rules out having both through the shared capability.
  *
  * <p>Reading goes exclusively through {@link Class#getResourceAsStream(String)} with a full path,
  * never through a directory listing. That is deliberate: the main consumer is a Spring Boot fat
@@ -61,17 +59,18 @@ public final class KQLGrammar {
      * not silently forgotten, {@code KQLGrammarTest} checks this list against the resources
      * actually shipped.
      */
-    private static final List<String> FILES = List.of(
-            "KQLParser", "KQLRules", "KQLViz",
-            "KQLLexer", "KQLTokens", "KQLVizLexer");
+    private static final List<String> FILES =
+            List.of("KQLParser", "KQLRules", "KQLViz", "KQLLexer", "KQLTokens", "KQLVizLexer");
 
-    /** The Apache header every file repeats — ~1 kB of prompt per file, saying nothing about KQL. */
-    private static final Pattern LICENSE_HEADER = Pattern.compile("\\A\\s*/\\*.*?\\*/\\s*", Pattern.DOTALL);
+    /**
+     * The Apache header every file repeats — ~1 kB of prompt per file, saying nothing about KQL.
+     */
+    private static final Pattern LICENSE_HEADER =
+            Pattern.compile("\\A\\s*/\\*.*?\\*/\\s*", Pattern.DOTALL);
 
     private static volatile String definition;
 
-    private KQLGrammar() {
-    }
+    private KQLGrammar() {}
 
     /**
      * The complete grammar as one document, the files separated by a {@code // <name>.g4} comment.
@@ -116,8 +115,10 @@ public final class KQLGrammar {
         }
 
         if (sb.isEmpty()) {
-            throw new IllegalStateException("no KQL grammar under " + PACKAGE_PATH
-                    + " on the classpath — is the koryki-kqlcore or koryki-kqlvisualise jar missing?");
+            throw new IllegalStateException(
+                    "no KQL grammar under "
+                            + PACKAGE_PATH
+                            + " on the classpath — is the koryki-kqlcore or koryki-kqlvisualise jar missing?");
         }
         return sb.toString();
     }

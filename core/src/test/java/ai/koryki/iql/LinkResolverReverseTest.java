@@ -16,17 +16,16 @@
  */
 package ai.koryki.iql;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import ai.koryki.antlr.Range;
 import ai.koryki.catalog.schema.Relation;
 import ai.koryki.databases.northwind.duckdb.NorthwindService;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
 import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 /**
  * A relation asked for in the opposite of its declared direction.

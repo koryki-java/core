@@ -1,11 +1,23 @@
+/*
+ * Copyright 2025-2026 Johannes Zemlin
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package ai.koryki.jdbc;
 
-import ai.koryki.antlr.Text;
 import ai.koryki.antlr.KorykiaiException;
-
-import javax.xml.stream.XMLOutputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamWriter;
+import ai.koryki.antlr.Text;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -15,6 +27,9 @@ import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.stream.Collectors;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
 
 public class XMLFileResult<C extends ColumnInfo> implements ResultProcessor<C> {
 
@@ -33,21 +48,23 @@ public class XMLFileResult<C extends ColumnInfo> implements ResultProcessor<C> {
         this(file, StandardCharsets.UTF_8);
     }
 
-    public XMLFileResult(File file, Charset cs)  {
+    public XMLFileResult(File file, Charset cs) {
         this(file, cs, false);
     }
 
-    public XMLFileResult(File file, Charset cs, boolean spaces)  {
+    public XMLFileResult(File file, Charset cs, boolean spaces) {
         this.file = file;
         this.spaces = spaces;
 
         try {
-            this.outputStream = new BufferedOutputStream(
-                    Files.newOutputStream(file.toPath(),
-                            StandardOpenOption.CREATE,
-                            StandardOpenOption.TRUNCATE_EXISTING),
-                    64 * 1024  // 64KB Buffer
-            );
+            this.outputStream =
+                    new BufferedOutputStream(
+                            Files.newOutputStream(
+                                    file.toPath(),
+                                    StandardOpenOption.CREATE,
+                                    StandardOpenOption.TRUNCATE_EXISTING),
+                            64 * 1024 // 64KB Buffer
+                            );
             // XML Output Factory konfigurieren
             XMLOutputFactory factory = XMLOutputFactory.newInstance();
 
@@ -60,7 +77,6 @@ public class XMLFileResult<C extends ColumnInfo> implements ResultProcessor<C> {
             writer.writeStartElement(ROOT_TAG);
             writer.writeCharacters(Text.NL);
 
-
         } catch (XMLStreamException | IOException e) {
             throw new KorykiaiException(e);
         }
@@ -68,7 +84,6 @@ public class XMLFileResult<C extends ColumnInfo> implements ResultProcessor<C> {
 
     @Override
     public boolean append(List<Object> row) {
-
 
         writeRow(row.stream().map(o -> o != null ? o.toString() : "").collect(Collectors.toList()));
 
@@ -87,7 +102,6 @@ public class XMLFileResult<C extends ColumnInfo> implements ResultProcessor<C> {
         } catch (XMLStreamException e) {
             throw new KorykiaiException(e);
         }
-
     }
 
     private void writeIndent(int depth) throws XMLStreamException {
@@ -117,7 +131,7 @@ public class XMLFileResult<C extends ColumnInfo> implements ResultProcessor<C> {
 
     @Override
     public void close() {
-        if (writer != null)              {
+        if (writer != null) {
             try {
                 writer.writeEndElement();
                 writer.writeCharacters(Text.NL);

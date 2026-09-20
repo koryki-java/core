@@ -21,11 +21,10 @@ import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Out;
 import ai.koryki.iql.query.Query;
 import ai.koryki.iql.typing.ExpressionTypeResolver;
-import org.antlr.v4.runtime.RuleContext;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.antlr.v4.runtime.RuleContext;
 
 public interface SqlRenderer {
 
@@ -46,16 +45,20 @@ public interface SqlRenderer {
     String NL = ai.koryki.antlr.Text.NL;
 
     /**
-     * A render's SQL text together with its resolved output schema, returned as one value so
-     * the schema can never be read before — or out of sync with — the {@code toSql} that
-     * produced it. (It previously lived in a field set by {@code toSql} and read by a separate
-     * {@code outputSchema()} call.) Outputs are empty for renderers that don't resolve them.
+     * A render's SQL text together with its resolved output schema, returned as one value so the
+     * schema can never be read before — or out of sync with — the {@code toSql} that produced it.
+     * (It previously lived in a field set by {@code toSql} and read by a separate {@code
+     * outputSchema()} call.) Outputs are empty for renderers that don't resolve them.
      */
     record Rendered(String sql, List<OutputColumn> outputs) {}
 
-    Rendered toSql(LinkResolver resolver, IQLVisibilityContext visibilityContext, Query query, Map<Object, RuleContext> iqlToContext);
+    Rendered toSql(
+            LinkResolver resolver,
+            IQLVisibilityContext visibilityContext,
+            Query query,
+            Map<Object, RuleContext> iqlToContext);
 
-     FunctionRenderer getFunctionRenderer();
+    FunctionRenderer getFunctionRenderer();
 
     /**
      * The dialect this renderer emits for, or {@code null} if it has none (renderers that are not
@@ -67,13 +70,17 @@ public interface SqlRenderer {
     }
 
     /**
-     * Resolves the type of every top-level output column once, with this
-     * renderer's catalog and visibility scope. Exceptions propagate (a query
-     * whose output type can't be resolved is not renderable).
+     * Resolves the type of every top-level output column once, with this renderer's catalog and
+     * visibility scope. Exceptions propagate (a query whose output type can't be resolved is not
+     * renderable).
      */
-    default List<OutputColumn> resolveOutputs(LinkResolver resolver, IQLVisibilityContext visibility, Query query) {
-        ExpressionTypeResolver types = new ExpressionTypeResolver(
-                resolver, visibility.child(SqlQueryRenderer.select(query)), getFunctionRenderer());
+    default List<OutputColumn> resolveOutputs(
+            LinkResolver resolver, IQLVisibilityContext visibility, Query query) {
+        ExpressionTypeResolver types =
+                new ExpressionTypeResolver(
+                        resolver,
+                        visibility.child(SqlQueryRenderer.select(query)),
+                        getFunctionRenderer());
         List<OutputColumn> columns = new ArrayList<>();
         for (Out o : SqlQueryRenderer.collectOut(query)) {
             Expression e = o.getExpression();

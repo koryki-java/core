@@ -16,16 +16,17 @@
  */
 package ai.koryki.iql.functions;
 
+import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.iql.SqlSelectRenderer;
 import ai.koryki.iql.query.Function;
-import ai.koryki.catalog.types.TypeDescriptor;
 
 /**
- * One function overload: identity (name + kind), one signature, return type
- * inference, rendering, and documentation metadata.
+ * One function overload: identity (name + kind), one signature, return type inference, rendering,
+ * and documentation metadata.
  *
- * <p>Metadata is attached fluently after construction (works with the anonymous
- * render() subclass pattern):
+ * <p>Metadata is attached fluently after construction (works with the anonymous render() subclass
+ * pattern):
+ *
  * <pre>
  * new FunctionDefinition("substr", ReturnTypes.TEXT)
  *         .args(arg("string", TEXT), arg("start", INTEGER), optionalArg("length", INTEGER))
@@ -34,8 +35,8 @@ import ai.koryki.catalog.types.TypeDescriptor;
  * </pre>
  *
  * <p>Usage examples are not declared here — they come from the function's sample query fixture,
- * which is transpiled to every dialect and executed against every live database. See
- * {@link FunctionDoc}.
+ * which is transpiled to every dialect and executed against every live database. See {@link
+ * FunctionDoc}.
  */
 public class FunctionDefinition {
 
@@ -48,12 +49,14 @@ public class FunctionDefinition {
     private SqlTemplate template;
     private boolean unsupported;
     private boolean windowUnsupported;
+
     /**
      * What the author can do instead, appended to the rejection. Optional, and worth having only
-     * where a real alternative exists: "not supported here" leaves someone stuck, while
-     * {@code count_distinct} on Oracle has a concrete way out that nobody guesses on their own.
+     * where a real alternative exists: "not supported here" leaves someone stuck, while {@code
+     * count_distinct} on Oracle has a concrete way out that nobody guesses on their own.
      */
     private String unsupportedHint;
+
     private Fixity fixity = Fixity.PREFIX;
 
     public FunctionDefinition(String name, ReturnTypeInference returnType) {
@@ -67,12 +70,12 @@ public class FunctionDefinition {
     }
 
     /**
-     * Copy constructor for dialect overlays — carries <em>every</em> value field. Keep it in
-     * sync with the fields above so an overlay (override / overrideAll / unsupported) can never
-     * silently drop one: {@code fixity} and {@code paragraph} used to be lost, which reset an
-     * overridden operator (LIKE / BETWEEN / IN) to {@link Fixity#PREFIX} and dropped it out of
-     * comparison dispatch. Note it does not preserve a {@code render()} override on {@code base}
-     * — an overlay always replaces rendering with a template or marks the call unsupported.
+     * Copy constructor for dialect overlays — carries <em>every</em> value field. Keep it in sync
+     * with the fields above so an overlay (override / overrideAll / unsupported) can never silently
+     * drop one: {@code fixity} and {@code paragraph} used to be lost, which reset an overridden
+     * operator (LIKE / BETWEEN / IN) to {@link Fixity#PREFIX} and dropped it out of comparison
+     * dispatch. Note it does not preserve a {@code render()} override on {@code base} — an overlay
+     * always replaces rendering with a template or marks the call unsupported.
      */
     public FunctionDefinition(FunctionDefinition base) {
         this(base.name, base.returnType, base.kind);
@@ -108,7 +111,9 @@ public class FunctionDefinition {
         return this;
     }
 
-    /** Extra prose for the generated docs — a free-form paragraph after the one-line description. */
+    /**
+     * Extra prose for the generated docs — a free-form paragraph after the one-line description.
+     */
     public FunctionDefinition paragraph(String paragraph) {
         this.documentation = documentation.withParagraph(paragraph);
         return this;
@@ -120,7 +125,10 @@ public class FunctionDefinition {
         return this;
     }
 
-    /** Surface-syntax shape; {@link Fixity#PREFIX} (a function call) unless set to an operator shape. */
+    /**
+     * Surface-syntax shape; {@link Fixity#PREFIX} (a function call) unless set to an operator
+     * shape.
+     */
     public FunctionDefinition fixity(Fixity fixity) {
         this.fixity = fixity;
         return this;
@@ -143,7 +151,9 @@ public class FunctionDefinition {
         return signature;
     }
 
-    /** The documentation metadata (category + generated-docs prose); consumed by the doc generators. */
+    /**
+     * The documentation metadata (category + generated-docs prose); consumed by the doc generators.
+     */
     public FunctionDoc getDoc() {
         return documentation;
     }
@@ -168,7 +178,9 @@ public class FunctionDefinition {
         return template;
     }
 
-    /** Marks the function as rejected by this dialect; rendering fails, validation can report it. */
+    /**
+     * Marks the function as rejected by this dialect; rendering fails, validation can report it.
+     */
     public FunctionDefinition unsupported() {
         this.unsupported = true;
         return this;
@@ -204,12 +216,13 @@ public class FunctionDefinition {
 
     /**
      * Renders a call to this function. The {@code unsupported} guard is applied here and cannot be
-     * bypassed — overrides customise {@link #renderBody}, never this method. Keeping it {@code final}
-     * is the invariant that a dialect-rejected function always throws, however it renders.
+     * bypassed — overrides customise {@link #renderBody}, never this method. Keeping it {@code
+     * final} is the invariant that a dialect-rejected function always throws, however it renders.
      */
     public final String render(SqlSelectRenderer renderer, Function function, int indent) {
         if (unsupported) {
-            throw new UnsupportedOperationException("function '" + name + "' is not supported by this dialect");
+            throw new UnsupportedOperationException(
+                    "function '" + name + "' is not supported by this dialect");
         }
         if (windowUnsupported && function.getWindow() != null) {
             throw new UnsupportedOperationException(
@@ -227,20 +240,24 @@ public class FunctionDefinition {
     }
 
     /**
-     * Produces the SQL for this function, run after the {@code unsupported} guard. The default renders
-     * the declarative {@link SqlTemplate} (arity-checked), or returns {@code null} to fall back to
-     * {@code FunctionRegistry}'s default {@code name(args) + OVER} rendering. Subclasses and dialect
-     * overlays override this — the guard above stays enforced for all of them.
+     * Produces the SQL for this function, run after the {@code unsupported} guard. The default
+     * renders the declarative {@link SqlTemplate} (arity-checked), or returns {@code null} to fall
+     * back to {@code FunctionRegistry}'s default {@code name(args) + OVER} rendering. Subclasses
+     * and dialect overlays override this — the guard above stays enforced for all of them.
      */
     protected String renderBody(SqlSelectRenderer renderer, Function function, int indent) {
         return template != null ? template.render(renderer, function, indent) : null;
     }
 
-    /** Arity guard applied to every render (see {@link #render}): a declared signature must match the call's argument count, variadic-aware. */
+    /**
+     * Arity guard applied to every render (see {@link #render}): a declared signature must match
+     * the call's argument count, variadic-aware.
+     */
     private void checkArity(Function function) {
         int argCount = function.getArguments().size();
         if (signature != null && !signature.matchesArity(argCount)) {
-            throw new IllegalArgumentException(name + " expects " + signature + ", got " + argCount + " arguments");
+            throw new IllegalArgumentException(
+                    name + " expects " + signature + ", got " + argCount + " arguments");
         }
     }
 

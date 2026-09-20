@@ -16,6 +16,9 @@
  */
 package ai.koryki.oracle.iql;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import ai.koryki.catalog.domain.Attribute;
 import ai.koryki.catalog.domain.Entity;
 import ai.koryki.catalog.domain.Model;
@@ -30,11 +33,6 @@ import ai.koryki.kql.HeaderInfo;
 import ai.koryki.oracle.OracleDatabase;
 import ai.koryki.oracle.OracleUnavailable;
 import ai.koryki.oracle.northwind.NorthwindOracle;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -43,9 +41,10 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 
 /**
  * What a mixed-case name is actually stored as, and what the catalog therefore has to say.
@@ -57,10 +56,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>So {@code Betrag} is two different tables depending on how it was created, and nothing in the
  * rendered SQL can tell them apart. Nothing introspects a database here either; the catalogs are
- * hand-maintained JSON. That leaves a contract rather than a deduction, stated on
- * {@link Entity#getTable()} and {@link Attribute#getColumn()}: the value is the exact stored
- * spelling. This test is the contract's evidence - it creates the ambiguous case both ways and
- * shows which spelling each one leaves behind.
+ * hand-maintained JSON. That leaves a contract rather than a deduction, stated on {@link
+ * Entity#getTable()} and {@link Attribute#getColumn()}: the value is the exact stored spelling.
+ * This test is the contract's evidence - it creates the ambiguous case both ways and shows which
+ * spelling each one leaves behind.
  *
  * <p>Both tables are created and dropped by the test, and named so nobody mistakes them for data.
  */
@@ -100,8 +99,8 @@ class MixedCaseNameOracleTest {
     }
 
     private void drop() {
-        for (String ddl : List.of("DROP TABLE " + WRITTEN_BARE,
-                "DROP TABLE \"" + WRITTEN_QUOTED + "\"")) {
+        for (String ddl :
+                List.of("DROP TABLE " + WRITTEN_BARE, "DROP TABLE \"" + WRITTEN_QUOTED + "\"")) {
             try (Statement s = connection.createStatement()) {
                 s.execute(ddl);
             } catch (SQLException ignored) {
@@ -120,22 +119,24 @@ class MixedCaseNameOracleTest {
      */
     @Test
     void oracleFoldsABareNameAndKeepsAQuotedOne() throws Exception {
-        assertTrue(exists(STORED_BARE),
+        assertTrue(
+                exists(STORED_BARE),
                 "a bare mixed-case name should be stored folded up, as " + STORED_BARE);
-        assertTrue(exists(WRITTEN_QUOTED),
-                "a quoted name should be stored exactly as typed");
+        assertTrue(exists(WRITTEN_QUOTED), "a quoted name should be stored exactly as typed");
     }
 
     /**
      * A catalog holding the stored spelling reaches the table; that is the contract working.
      *
      * <p>{@code KORYKI_TEST_BETRAG} is not lower case, so it is quoted - and because the renderer
-     * leaves a quoted name unfolded, {@code "KORYKI_TEST_BETRAG"} is what Oracle is asked for, which
-     * is what Oracle stored.
+     * leaves a quoted name unfolded, {@code "KORYKI_TEST_BETRAG"} is what Oracle is asked for,
+     * which is what Oracle stored.
      */
     @Test
     void theStoredSpellingIsWhatResolves() throws Exception {
-        assertEquals(1, rows(catalog(STORED_BARE, "menge", "MENGE")),
+        assertEquals(
+                1,
+                rows(catalog(STORED_BARE, "menge", "MENGE")),
                 "the catalog carrying the stored spelling should reach the table");
     }
 
@@ -149,7 +150,8 @@ class MixedCaseNameOracleTest {
      */
     @Test
     void theSpellingFromTheCreateStatementDoesNot() {
-        assertTrue(fails(catalog(WRITTEN_BARE, "menge", "menge")),
+        assertTrue(
+                fails(catalog(WRITTEN_BARE, "menge", "menge")),
                 "a catalog holding the unfolded spelling should not reach the folded table");
     }
 
@@ -161,15 +163,20 @@ class MixedCaseNameOracleTest {
 
     private boolean exists(String table) throws SQLException {
         try (Statement s = connection.createStatement();
-             ResultSet rs = s.executeQuery(
-                     "SELECT table_name FROM user_tables WHERE table_name = '" + table + "'")) {
+                ResultSet rs =
+                        s.executeQuery(
+                                "SELECT table_name FROM user_tables WHERE table_name = '"
+                                        + table
+                                        + "'")) {
             return rs.next();
         }
     }
 
     private int rows(LinkResolver resolver) throws Exception {
-        return engine(resolver).executeKQL("FIND t x FETCH x.menge", ListResult::new)
-                .getRows().size();
+        return engine(resolver)
+                .executeKQL("FIND t x FETCH x.menge", ListResult::new)
+                .getRows()
+                .size();
     }
 
     private boolean fails(LinkResolver resolver) {
@@ -181,7 +188,8 @@ class MixedCaseNameOracleTest {
         }
     }
 
-    private Engine<HeaderInfo, ListResult<HeaderInfo>> engine(LinkResolver resolver) throws Exception {
+    private Engine<HeaderInfo, ListResult<HeaderInfo>> engine(LinkResolver resolver)
+            throws Exception {
         OracleDatabase<ListResult<HeaderInfo>> database =
                 new OracleDatabase<>("mixedcase", NorthwindOracle.connection());
         return EngineBuilder.headers(database, resolver, new SqlQueryRenderer(ZoneId.of("UTC")))
@@ -189,7 +197,8 @@ class MixedCaseNameOracleTest {
     }
 
     /** One table, one column, named physically as the arguments say. */
-    private static LinkResolver catalog(String physicalTable, String modelColumn, String physicalColumn) {
+    private static LinkResolver catalog(
+            String physicalTable, String modelColumn, String physicalColumn) {
 
         Column column = new Column(physicalColumn);
         column.setTypeFamily("DECIMAL");

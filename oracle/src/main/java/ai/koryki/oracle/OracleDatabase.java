@@ -18,14 +18,13 @@ package ai.koryki.oracle;
 
 import ai.koryki.jdbc.JdbcDatabase;
 import ai.koryki.jdbc.ResultProcessor;
-
 import java.sql.Connection;
 import java.time.ZoneId;
 
 /**
- * Vendor base for every Oracle connection: pins session
- * state at construction (see docs/TEMPORAL.md, "Time zones") so that
- * zone-aware reads and {@code now()} never depend on who runs the query.
+ * Vendor base for every Oracle connection: pins session state at construction (see
+ * docs/TEMPORAL.md, "Time zones") so that zone-aware reads and {@code now()} never depend on who
+ * runs the query.
  */
 public class OracleDatabase<P extends ResultProcessor<?>> extends JdbcDatabase<P> {
 
@@ -35,10 +34,13 @@ public class OracleDatabase<P extends ResultProcessor<?>> extends JdbcDatabase<P
 
     public OracleDatabase(String name, Connection conn, ZoneId modelZone) {
         super(name, conn, modelZone);
-        setDecoder(new OracleDecoder(modelZone));   // native INTERVALYM / INTERVALDS -> Interval
+        setDecoder(new OracleDecoder(modelZone)); // native INTERVALYM / INTERVALDS -> Interval
     }
 
-    /** Pin the session so TIMESTAMP WITH LOCAL TIME ZONE reads and CURRENT_TIMESTAMP are reproducible. */
+    /**
+     * Pin the session so TIMESTAMP WITH LOCAL TIME ZONE reads and CURRENT_TIMESTAMP are
+     * reproducible.
+     */
     @Override
     protected String sessionTimeZoneStatement(ZoneId zone) {
         return "ALTER SESSION SET TIME_ZONE = '" + zoneLiteral(zone) + "'";

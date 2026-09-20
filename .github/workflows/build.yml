@@ -11,15 +11,41 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      # settings.gradle's centralManualTesting repository needs both to resolve a
+      # koryki-northwind version that is only a pending Central Portal deployment (see
+      # gradle/libs.versions.toml). Authorization is not secret -- only the derived token below
+      # is. Remove this block, and the "Derive..." step, once that version is a real release and
+      # resolves from mavenCentral() like everything else.
+      ORG_GRADLE_PROJECT_centralPortalUsername: ${{ secrets.CENTRAL_PORTAL_USERNAME }}
+      ORG_GRADLE_PROJECT_centralPortalPassword: ${{ secrets.CENTRAL_PORTAL_PASSWORD }}
+      ORG_GRADLE_PROJECT_centralManualTestingAuthHeaderName: Authorization
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: true
 
-      - uses: actions/setup-java@v4
+      # gradle-wrapper.jar is the first thing the build runs: check it against Gradle's published
+      # checksums, so a jar swapped in a pull request is caught before it runs.
+      - uses: gradle/actions/wrapper-validation@v6
+
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 21
+
+      # Same Bearer-token scheme as Central Portal's "manual testing" endpoint expects -- derived
+      # from the credentials above rather than a separate secret, so there is nothing extra to
+      # rotate if that token changes. Masked explicitly: GitHub only auto-masks the secrets it
+      # was given verbatim, not values derived from them.
+      - name: Derive Central Portal manual-testing header
+        run: |
+          token=$(printf '%s:%s' "$ORG_GRADLE_PROJECT_centralPortalUsername" "$ORG_GRADLE_PROJECT_centralPortalPassword" | base64 -w0)
+          echo "::add-mask::$token"
+          echo "ORG_GRADLE_PROJECT_centralManualTestingAuthHeaderValue=Bearer $token" >> "$GITHUB_ENV"
+
+      - name: Check formatting
+        run: ./gradlew spotlessCheck --no-daemon
 
       - name: Test
         run: ./gradlew test --no-daemon
@@ -30,7 +56,17 @@ jobs:
       # (embedded, no server needed) run for real and give actual regression coverage.
       - name: Upload test reports
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-reports
           path: '**/build/reports/tests/'
+
+      # No pass/fail gate on coverage -- this is visibility, not enforcement -- so it uploads
+      # whether the tests passed or not. MariaDB/MSSQL/Oracle/PostgreSQL/Snowflake/Trino report
+      # near-zero coverage here since their engine tests skip without a live server (see above).
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-reports
+          path: '**/build/reports/jacoco/'

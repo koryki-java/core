@@ -21,12 +21,11 @@ import ai.koryki.catalog.types.TypeFamily;
 /**
  * One declared argument of a function signature.
  *
- * @param family      expected type family; {@code null} means any type is accepted
- *                    (also the wildcard for arguments whose type cannot be resolved,
- *                    such as NULL literals)
- * @param optional    whether the argument may be omitted (optionals must be trailing)
- * @param description optional per-argument prose for the generated docs; {@code null}
- *                    when only the name and type are documented
+ * @param family expected type family; {@code null} means any type is accepted (also the wildcard
+ *     for arguments whose type cannot be resolved, such as NULL literals)
+ * @param optional whether the argument may be omitted (optionals must be trailing)
+ * @param description optional per-argument prose for the generated docs; {@code null} when only the
+ *     name and type are documented
  */
 public record FunctionArg(String name, TypeFamily family, boolean optional, String description) {
 

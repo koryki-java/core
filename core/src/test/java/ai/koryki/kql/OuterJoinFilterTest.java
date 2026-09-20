@@ -1,30 +1,46 @@
+/*
+ * Copyright 2025-2026 Johannes Zemlin
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package ai.koryki.kql;
-
-import ai.koryki.antlr.RangeException;
-import ai.koryki.databases.northwind.duckdb.NorthwindService;
-import ai.koryki.iql.DuckdbBaseDialect;
-import ai.koryki.iql.LinkResolver;
-import ai.koryki.iql.SqlQueryRenderer;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-import java.time.ZoneId;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import ai.koryki.antlr.RangeException;
+import ai.koryki.databases.northwind.duckdb.NorthwindService;
+import ai.koryki.iql.DuckdbBaseDialect;
+import ai.koryki.iql.LinkResolver;
+import ai.koryki.iql.SqlQueryRenderer;
+import java.io.IOException;
+import java.time.ZoneId;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
 /**
  * {@code CheckOuterJoinFilterRule} — the guard that keeps an optional join optional.
  *
- * <p>A filter naming exactly one source is moved into the join's ON clause by
- * {@code PushLogicalExpressionRule}. One spanning two sources has no single table to move to, so it
- * would stay in the WHERE, where a predicate on the null-extended side of a LEFT JOIN silently
- * discards the unmatched rows — turning the optional join into a required one. That is refused.
+ * <p>A filter naming exactly one source is moved into the join's ON clause by {@code
+ * PushLogicalExpressionRule}. One spanning two sources has no single table to move to, so it would
+ * stay in the WHERE, where a predicate on the null-extended side of a LEFT JOIN silently discards
+ * the unmatched rows — turning the optional join into a required one. That is refused.
  *
- * <p>The rule had no test before this one; only its message was ever observed, and only by hitting it.
+ * <p>The rule had no test before this one; only its message was ever observed, and only by hitting
+ * it.
  */
 public class OuterJoinFilterTest {
 
@@ -36,13 +52,15 @@ public class OuterJoinFilterTest {
     }
 
     private static String sql(String kql) {
-        return KQLTranspiler.builder(kql, resolver).build()
+        return KQLTranspiler.builder(kql, resolver)
+                .build()
                 .getSql(new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, ZoneId.of("UTC")));
     }
 
     @Test
     void crossEntityPredicateOnAnOptionalJoinIsRejected() {
-        String kql = "FIND customers c, c+orders o FILTER c.city = o.ship_city FETCH c.company_name";
+        String kql =
+                "FIND customers c, c+orders o FILTER c.city = o.ship_city FETCH c.company_name";
         RangeException e = assertThrows(RangeException.class, () -> sql(kql));
 
         // names the offending condition, not just the alias
@@ -58,32 +76,46 @@ public class OuterJoinFilterTest {
         assertEquals(kql.indexOf("c.city") + 1, e.getRange().getStart().getPos());
     }
 
-    /** With several conjuncts, the position must be the offending one — not the first, nor the whole filter. */
+    /**
+     * With several conjuncts, the position must be the offending one — not the first, nor the whole
+     * filter.
+     */
     @Test
     void thePositionIsTheOffendingConjunct() {
-        String kql = "FIND customers c, c+orders o "
-                + "FILTER o.freight > 10 AND c.city = o.ship_city FETCH c.company_name";
+        String kql =
+                "FIND customers c, c+orders o "
+                        + "FILTER o.freight > 10 AND c.city = o.ship_city FETCH c.company_name";
         RangeException e = assertThrows(RangeException.class, () -> sql(kql));
 
         // Position.getPos() is the 1-based column, indexOf the 0-based offset — hence the +1
-        assertEquals(kql.indexOf("c.city = o.ship_city") + 1, e.getRange().getStart().getPos(),
+        assertEquals(
+                kql.indexOf("c.city = o.ship_city") + 1,
+                e.getRange().getStart().getPos(),
                 e.getMessage());
     }
 
-    /** Operands that are function calls are named too, so the quoted condition stays recognisable. */
+    /**
+     * Operands that are function calls are named too, so the quoted condition stays recognisable.
+     */
     @Test
     void functionOperandsAreNamedInTheMessage() {
-        RangeException e = assertThrows(RangeException.class, () -> sql(
-                "FIND customers c, c+orders o FILTER length(o.ship_city) > length(c.city) "
-                        + "FETCH c.company_name"));
+        RangeException e =
+                assertThrows(
+                        RangeException.class,
+                        () ->
+                                sql(
+                                        "FIND customers c, c+orders o FILTER length(o.ship_city) > length(c.city) "
+                                                + "FETCH c.company_name"));
         assertTrue(e.getMessage().contains("length(o.ship_city) > length(c.city)"), e.getMessage());
     }
 
     /** The single-alias case is what the rule protects: it must still reach the ON clause. */
     @Test
     void singleAliasPredicateIsPushedIntoTheJoin() {
-        String sql = sql("FIND customers c, c+orders o FILTER o.freight > 10 "
-                + "FETCH c.company_name, count(o)");
+        String sql =
+                sql(
+                        "FIND customers c, c+orders o FILTER o.freight > 10 "
+                                + "FETCH c.company_name, count(o)");
         assertTrue(sql.contains("LEFT OUTER JOIN"), sql);
         assertTrue(sql.contains("o.freight > 10"), sql);
         assertTrue(!sql.contains("WHERE"), "the filter belongs in ON, not WHERE:\n" + sql);
@@ -92,17 +124,24 @@ public class OuterJoinFilterTest {
     /** A predicate on the required side does not endanger the outer join, and stays in WHERE. */
     @Test
     void predicateOnTheRequiredSideStaysInWhere() {
-        String sql = sql("FIND customers c, c+orders o FILTER c.city = 'Berlin' "
-                + "FETCH c.company_name, count(o)");
+        String sql =
+                sql(
+                        "FIND customers c, c+orders o FILTER c.city = 'Berlin' "
+                                + "FETCH c.company_name, count(o)");
         assertTrue(sql.contains("LEFT OUTER JOIN"), sql);
         assertTrue(sql.contains("WHERE"), sql);
     }
 
-    /** The same cross-entity predicate is perfectly fine on a required join — WHERE and ON agree there. */
+    /**
+     * The same cross-entity predicate is perfectly fine on a required join — WHERE and ON agree
+     * there.
+     */
     @Test
     void crossEntityPredicateOnARequiredJoinIsAccepted() {
-        String sql = sql("FIND customers c, c orders o FILTER c.city = o.ship_city "
-                + "FETCH c.company_name");
+        String sql =
+                sql(
+                        "FIND customers c, c orders o FILTER c.city = o.ship_city "
+                                + "FETCH c.company_name");
         assertTrue(sql.contains("INNER JOIN"), sql);
         assertTrue(sql.contains("c.city = o.ship_city"), sql);
     }

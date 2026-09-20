@@ -1,16 +1,31 @@
+/*
+ * Copyright 2025-2026 Johannes Zemlin
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package ai.koryki.databases.cases;
 
 import ai.koryki.jdbc.ColumnInfo;
 import ai.koryki.kql.Engine;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-
 import java.io.IOException;
 import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class BaseEngineTest<I extends ColumnInfo> {
@@ -37,7 +52,9 @@ public abstract class BaseEngineTest<I extends ColumnInfo> {
         return Fixtures.queries(schema());
     }
 
-    /** The expected result — shared, because the same query must return the same rows everywhere. */
+    /**
+     * The expected result — shared, because the same query must return the same rows everywhere.
+     */
     protected Path expectedCsv() {
         return Fixtures.expectedCsv(schema());
     }
@@ -78,8 +95,7 @@ public abstract class BaseEngineTest<I extends ColumnInfo> {
     }
 
     protected Path localExpectedViolations() {
-        return localExpectedSql() == null ? null
-                : localExpectedSql().resolveSibling("violations");
+        return localExpectedSql() == null ? null : localExpectedSql().resolveSibling("violations");
     }
 
     public BaseEngineTest(String db) {
@@ -98,7 +114,7 @@ public abstract class BaseEngineTest<I extends ColumnInfo> {
 
     private Stream<Path> walk(Path root) throws IOException {
         if (!Files.isDirectory(root)) {
-            return Stream.empty();   // schema without module-owned fixtures
+            return Stream.empty(); // schema without module-owned fixtures
         }
         return Files.walk(root, FileVisitOption.FOLLOW_LINKS)
                 .filter(p -> p.toString().endsWith(suffix()))
@@ -114,12 +130,16 @@ public abstract class BaseEngineTest<I extends ColumnInfo> {
         // Which expectations apply is decided by the root the fixture was found under.
         boolean local = localQueries() != null && kql.startsWith(localQueries());
 
-        TestUtil.test(kql, suffix(), engine,
+        TestUtil.test(
+                kql,
+                suffix(),
+                engine,
                 local ? localQueries() : queriesRoot(),
                 local ? localExpectedCsv() : expectedCsv(),
                 local ? localExpectedSql() : expectedSql(),
                 local ? localExpectedViolations() : expectedViolations(),
-                db, checktype);
+                db,
+                checktype);
     }
 
     public String getDb() {

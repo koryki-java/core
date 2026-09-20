@@ -16,9 +16,8 @@
  */
 package ai.koryki.mssql.northwind;
 
-import ai.koryki.mssql.MssqlDatabase;
 import ai.koryki.jdbc.ResultProcessor;
-
+import ai.koryki.mssql.MssqlDatabase;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -30,12 +29,14 @@ public class NorthwindMssql<P extends ResultProcessor<?>> extends MssqlDatabase<
     public NorthwindMssql(ZoneId modelZone) throws SQLException {
         this("northwind", connection(), modelZone);
     }
+
     public NorthwindMssql(String name, Connection conn, ZoneId modelZone) {
         super(name, conn, modelZone);
     }
 
     @Override
-    public void execute(String sql, java.util.function.Consumer<java.sql.PreparedStatement> statementConsumer) {
+    public void execute(
+            String sql, java.util.function.Consumer<java.sql.PreparedStatement> statementConsumer) {
         try {
             super.execute(sql, statementConsumer);
         } catch (RuntimeException e) {
@@ -58,12 +59,14 @@ public class NorthwindMssql<P extends ResultProcessor<?>> extends MssqlDatabase<
     }
 
     public static Connection connection() throws SQLException {
-        return connection(System.getProperty("mssql.northwind.user"),
-            System.getProperty("mssql.northwind.password"),
-            System.getProperty("mssql.northwind.url") );
+        return connection(
+                System.getProperty("mssql.northwind.user"),
+                System.getProperty("mssql.northwind.password"),
+                System.getProperty("mssql.northwind.url"));
     }
 
-    public static Connection connection(String user, String password, String url) throws SQLException {
+    public static Connection connection(String user, String password, String url)
+            throws SQLException {
         Properties props = new Properties();
         props.setProperty("user", user);
         props.setProperty("password", password);

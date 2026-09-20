@@ -16,6 +16,8 @@
  */
 package ai.koryki.databases;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import ai.koryki.antlr.Text;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -25,8 +27,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 public class FileAsserter {
 
     public static void resourceAssert(String expected, String actual) throws IOException {
@@ -34,7 +34,8 @@ public class FileAsserter {
         scriptAssert(e, actual, expected);
     }
 
-    public static void scriptAssert(InputStream expected, String actual, String msg) throws IOException {
+    public static void scriptAssert(InputStream expected, String actual, String msg)
+            throws IOException {
 
         List<String> expectedLines = convert(expected);
         List<String> actuaLines = Arrays.asList(actual.split(Text.NL));
@@ -43,7 +44,7 @@ public class FileAsserter {
 
     public static void scriptAssert(String expected, String actual, String msg) {
 
-        //List<String> expectedLines = convert(expected);
+        // List<String> expectedLines = convert(expected);
         List<String> expectedLines = Arrays.asList(expected.split(Text.NL));
         List<String> actuaLines = Arrays.asList(actual.split(Text.NL));
         scriptAssert(expectedLines, actuaLines, msg);
@@ -58,7 +59,6 @@ public class FileAsserter {
         }
         return result.toString(StandardCharsets.UTF_8.name());
     }
-
 
     public static List<String> convert(InputStream in) {
         return new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))
@@ -97,7 +97,7 @@ public class FileAsserter {
             a = strip(a);
             e = strip(e);
 
-            assertEquals(e, a, "diff in line " + (line+1) + " " + (msg != null ? msg : ""));
+            assertEquals(e, a, "diff in line " + (line + 1) + " " + (msg != null ? msg : ""));
             line++;
         }
     }
@@ -112,5 +112,4 @@ public class FileAsserter {
     public static Path getSibling(Path file, String ext, String target) {
         return file.resolveSibling(file.getFileName().toString().replace(ext, target));
     }
-
 }

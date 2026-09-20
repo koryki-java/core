@@ -19,13 +19,12 @@ package ai.koryki.catalog.types;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
- * Storage declaration "fixed-point": an exact numeric (typically money) stored
- * as an integer of minor units, with a fixed <em>scale</em> applied on read —
- * e.g. cents stored as BIGINT under {@code SCALED:2}, so {@code 1299} reads as
- * {@code 12.99}.
+ * Storage declaration "fixed-point": an exact numeric (typically money) stored as an integer of
+ * minor units, with a fixed <em>scale</em> applied on read — e.g. cents stored as BIGINT under
+ * {@code SCALED:2}, so {@code 1299} reads as {@code 12.99}.
  *
- * <p>Declared in the schema as {@code "SCALED:<scale>"}; parsed and cached by
- * {@link TypeEncodingRegistry}.
+ * <p>Declared in the schema as {@code "SCALED:<scale>"}; parsed and cached by {@link
+ * TypeEncodingRegistry}.
  */
 public final class ScaledTypeEncoding implements TypeEncoding {
 

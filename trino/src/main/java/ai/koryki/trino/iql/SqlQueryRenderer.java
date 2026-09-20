@@ -16,11 +16,9 @@
  */
 package ai.koryki.trino.iql;
 
-
 public class SqlQueryRenderer extends ai.koryki.iql.SqlQueryRenderer {
 
     public SqlQueryRenderer(java.time.ZoneId modelZone) {
         super(TrinoDialect.INSTANCE, modelZone);
     }
-
 }

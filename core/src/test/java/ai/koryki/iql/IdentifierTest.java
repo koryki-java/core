@@ -16,13 +16,12 @@
  */
 package ai.koryki.iql;
 
-import org.junit.jupiter.api.Test;
-
-import java.util.Locale;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.Locale;
+import org.junit.jupiter.api.Test;
 
 /**
  * The name rules, asked directly.
@@ -91,17 +90,18 @@ class IdentifierTest {
         assertEquals("trailing\"", Identifier.bare(Identifier.quoted, "trailing\""));
         assertEquals("\"leading", Identifier.bare(Identifier.quoted, "\"leading"));
         assertEquals("\"", Identifier.bare(Identifier.quoted, "\""), "one character is not a pair");
-        assertEquals("wrapped", Identifier.bare(Identifier.quoted, "\"wrapped\""), "a real pair goes");
+        assertEquals(
+                "wrapped", Identifier.bare(Identifier.quoted, "\"wrapped\""), "a real pair goes");
     }
 
     /**
      * Case folding does not depend on the JVM's default locale.
      *
      * <p>Turkish is the case that breaks it: {@code "CITY".toLowerCase()} is {@code "cıty"} with a
-     * dotless i. That reaches further than rendering — {@link LinkResolver#findRelation} and
-     * {@link SqlSelectRenderer} fold entity names this way to build <em>lookup keys</em>, so under
-     * a Turkish default the key stopped matching the catalog and the relation was simply not
-     * found. The rest of the codebase already passes {@link Locale#ROOT}; this file did not.
+     * dotless i. That reaches further than rendering — {@link LinkResolver#findRelation} and {@link
+     * SqlSelectRenderer} fold entity names this way to build <em>lookup keys</em>, so under a
+     * Turkish default the key stopped matching the catalog and the relation was simply not found.
+     * The rest of the codebase already passes {@link Locale#ROOT}; this file did not.
      */
     @Test
     void foldingIsIndependentOfTheDefaultLocale() {

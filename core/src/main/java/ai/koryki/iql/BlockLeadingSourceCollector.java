@@ -18,19 +18,18 @@ package ai.koryki.iql;
 
 import ai.koryki.iql.query.Block;
 import ai.koryki.iql.query.Source;
-
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
 
-public class BlockLeadingSourceCollector implements Visitor, Collector<Map<String, Source>>{
+public class BlockLeadingSourceCollector implements Visitor, Collector<Map<String, Source>> {
 
     private Map<String, Source> blockIdToLeadingTableMap = new HashMap<>();
 
     /**
      * A block bound to a placeholder has no set to lead with, and is skipped rather than entered:
-     * {@code getLeading(null)} used to raise an NPE inside {@code SelectScopeCollector} here, before
-     * the analysis reached the validator that has something useful to say about it — see
+     * {@code getLeading(null)} used to raise an NPE inside {@code SelectScopeCollector} here,
+     * before the analysis reached the validator that has something useful to say about it — see
      * {@code PlaceholderValidator}. Leaving the id out of the map is right either way: an unbound
      * block has no leading source, and claiming one would be worse than admitting none.
      */
@@ -39,7 +38,8 @@ public class BlockLeadingSourceCollector implements Visitor, Collector<Map<Strin
         if (block.getSet() == null) {
             return true;
         }
-        blockIdToLeadingTableMap.put(block.getId(), SelectScopeCollector.getLeading(block.getSet()));
+        blockIdToLeadingTableMap.put(
+                block.getId(), SelectScopeCollector.getLeading(block.getSet()));
         return true;
     }
 

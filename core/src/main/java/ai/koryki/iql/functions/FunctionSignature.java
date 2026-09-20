@@ -17,13 +17,11 @@
 package ai.koryki.iql.functions;
 
 import ai.koryki.catalog.types.TypeFamily;
-
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
- * Declared argument list of one function overload. Optional arguments must be
- * trailing; a variadic signature repeats its last argument.
+ * Declared argument list of one function overload. Optional arguments must be trailing; a variadic
+ * signature repeats its last argument.
  */
 public record FunctionSignature(List<FunctionArg> args, boolean variadic) {
 
@@ -38,7 +36,8 @@ public record FunctionSignature(List<FunctionArg> args, boolean variadic) {
             }
         }
         if (variadic && (args.isEmpty() || args.get(args.size() - 1).optional())) {
-            throw new IllegalArgumentException("variadic signature requires a mandatory last argument: " + args);
+            throw new IllegalArgumentException(
+                    "variadic signature requires a mandatory last argument: " + args);
         }
     }
 
@@ -67,7 +66,10 @@ public record FunctionSignature(List<FunctionArg> args, boolean variadic) {
         return minArgs() <= other.maxArgs() && other.minArgs() <= maxArgs();
     }
 
-    /** Declared family expected at call-position {@code i} (a variadic repeats its last arg); null = any. */
+    /**
+     * Declared family expected at call-position {@code i} (a variadic repeats its last arg); null =
+     * any.
+     */
     public TypeFamily familyAt(int i) {
         if (args.isEmpty()) {
             return null;
@@ -76,8 +78,8 @@ public record FunctionSignature(List<FunctionArg> args, boolean variadic) {
     }
 
     /**
-     * Whether a call with these argument families is accepted: arity plus a per-position
-     * family check, where a {@code null} on either side is a wildcard that matches anything.
+     * Whether a call with these argument families is accepted: arity plus a per-position family
+     * check, where a {@code null} on either side is a wildcard that matches anything.
      */
     public boolean matches(List<TypeFamily> callFamilies) {
         if (!matchesArity(callFamilies.size())) {
@@ -94,10 +96,10 @@ public record FunctionSignature(List<FunctionArg> args, boolean variadic) {
     }
 
     /**
-     * Whether some call could satisfy both overloads — i.e. they are ambiguous and cannot
-     * coexist. Arities must overlap and no shared argument position may distinguish them; a
-     * position with two different non-null families lets a call pick one unambiguously, so
-     * such overloads coexist (this is the type-aware generalization of {@link #overlapsArity}).
+     * Whether some call could satisfy both overloads — i.e. they are ambiguous and cannot coexist.
+     * Arities must overlap and no shared argument position may distinguish them; a position with
+     * two different non-null families lets a call pick one unambiguously, so such overloads coexist
+     * (this is the type-aware generalization of {@link #overlapsArity}).
      */
     public boolean overlaps(FunctionSignature other) {
         if (!overlapsArity(other)) {
@@ -132,10 +134,11 @@ public record FunctionSignature(List<FunctionArg> args, boolean variadic) {
      * <p>The comma belongs to the separator, not to the bracket, so a <em>leading</em> optional
      * argument takes none. This used to be written as {@code "[, " + name + "]"} for every optional
      * argument with a fix-up afterwards, which had nothing to fix when the optional argument came
-     * first: {@code count} then read {@code count([, value])}, in the docs and in the
-     * "candidates: …" line of an arity violation.
+     * first: {@code count} then read {@code count([, value])}, in the docs and in the "candidates:
+     * …" line of an arity violation.
      */
-    public static String render(List<FunctionArg> args, java.util.function.Function<FunctionArg, String> token) {
+    public static String render(
+            List<FunctionArg> args, java.util.function.Function<FunctionArg, String> token) {
         StringBuilder b = new StringBuilder();
         for (int i = 0; i < args.size(); i++) {
             FunctionArg a = args.get(i);

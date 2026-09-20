@@ -29,18 +29,16 @@ import ai.koryki.iql.validate.PlaceholderValidator;
 import ai.koryki.iql.validate.ValidateException;
 import ai.koryki.iql.validate.Validator;
 import ai.koryki.iql.validate.Violation;
-import org.antlr.v4.runtime.RuleContext;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.antlr.v4.runtime.RuleContext;
 
 /**
- * Lazy pipeline of memoized pure stages:
- * reader → ctx → mapped (query tree) → analysis (scope maps + validation).
- * Every accessor is idempotent; no stage mutates the output of another.
+ * Lazy pipeline of memoized pure stages: reader → ctx → mapped (query tree) → analysis (scope maps
+ * + validation). Every accessor is idempotent; no stage mutates the output of another.
  */
 public class IQLTranspiler extends AbstractTranspiler<IQLReader, IQLParser.QueryContext> {
 
@@ -65,11 +63,15 @@ public class IQLTranspiler extends AbstractTranspiler<IQLReader, IQLParser.Query
         this(iql, resolver, null);
     }
 
-    public IQLTranspiler(InputStream iql, LinkResolver resolver, FunctionRenderer functions) throws IOException {
+    public IQLTranspiler(InputStream iql, LinkResolver resolver, FunctionRenderer functions)
+            throws IOException {
         this(AbstractReader.readStream(iql), resolver, functions);
     }
 
-    /** @param functions dialect function catalog for arity/unsupported validation; null = skip those checks */
+    /**
+     * @param functions dialect function catalog for arity/unsupported validation; null = skip those
+     *     checks
+     */
     public IQLTranspiler(String iql, LinkResolver resolver, FunctionRenderer functions) {
 
         this.iql = iql;
@@ -83,7 +85,8 @@ public class IQLTranspiler extends AbstractTranspiler<IQLReader, IQLParser.Query
     }
 
     /** Fluent assembly from a stream; the source is read eagerly. */
-    public static IQLTranspilerBuilder builder(InputStream iql, LinkResolver resolver) throws IOException {
+    public static IQLTranspilerBuilder builder(InputStream iql, LinkResolver resolver)
+            throws IOException {
         return new IQLTranspilerBuilder(AbstractReader.readStream(iql), resolver);
     }
 
@@ -103,13 +106,15 @@ public class IQLTranspiler extends AbstractTranspiler<IQLReader, IQLParser.Query
         Mapped m = mapped.get();
         Query q = m.query();
 
-        Map<String, Source> blockIdToLeadingTableMap = Walker.apply(q, new BlockLeadingSourceCollector());
+        Map<String, Source> blockIdToLeadingTableMap =
+                Walker.apply(q, new BlockLeadingSourceCollector());
         Map<String, Block> blockIdToBlockMap = Walker.apply(q, new BlockRegistryCollector());
         // must not execute rules here, IQL has to be valid in text form!
 
         SelectScopeCollector select2Aliases = new SelectScopeCollector(m.iqlToContext());
         Map<Object, Map<String, Source>> s2a = Walker.apply(q, select2Aliases);
-        IQLVisibilityContext visibility = new IQLVisibilityContext(blockIdToBlockMap, blockIdToLeadingTableMap, s2a);
+        IQLVisibilityContext visibility =
+                new IQLVisibilityContext(blockIdToBlockMap, blockIdToLeadingTableMap, s2a);
 
         // See KQLTranspiler.analyze: an unbound placeholder makes the query a template, so nothing
         // downstream can mean anything. Checked before the scope violations for the same reason.
@@ -126,7 +131,15 @@ public class IQLTranspiler extends AbstractTranspiler<IQLReader, IQLParser.Query
         }
 
         List<Violation> v = new ArrayList<>();
-        v.addAll(new Validator(q, resolver, blockIdToLeadingTableMap, m.iqlToContext(), functions, visibility).validate());
+        v.addAll(
+                new Validator(
+                                q,
+                                resolver,
+                                blockIdToLeadingTableMap,
+                                m.iqlToContext(),
+                                functions,
+                                visibility)
+                        .validate());
 
         return new Analysis(visibility, List.copyOf(v));
     }

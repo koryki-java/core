@@ -16,10 +16,9 @@
  */
 package ai.koryki.iql.functions;
 
+import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
-import ai.koryki.catalog.types.TypeDescriptor;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,7 +28,8 @@ public class FunctionBinding {
     private final java.util.function.Function<Expression, TypeDescriptor> resolver;
     private final Map<Integer, TypeDescriptor> cache = new HashMap<>();
 
-    public FunctionBinding(Function function, java.util.function.Function<Expression, TypeDescriptor> resolver) {
+    public FunctionBinding(
+            Function function, java.util.function.Function<Expression, TypeDescriptor> resolver) {
         this.function = function;
         this.resolver = resolver;
     }

@@ -31,17 +31,14 @@ public interface Database<C extends ResultConsumer<?>> extends AutoCloseable {
     default C execute(String sql, Supplier<C> processor) {
 
         try (C p = processor.get()) {
-            execute(sql, s -> {
-
-                execute(s, p);
-            });
+            execute(
+                    sql,
+                    s -> {
+                        execute(s, p);
+                    });
             return p;
         }
     }
 
-     void execute(PreparedStatement statement, C processor) ;
-
-
+    void execute(PreparedStatement statement, C processor);
 }
-
-

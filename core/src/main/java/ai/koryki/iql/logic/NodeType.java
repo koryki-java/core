@@ -17,7 +17,10 @@
 package ai.koryki.iql.logic;
 
 public enum NodeType {
-    AND(true), OR(true), NOT(false), VAR(false);
+    AND(true),
+    OR(true),
+    NOT(false),
+    VAR(false);
 
     private boolean binary;
 
@@ -28,9 +31,11 @@ public enum NodeType {
     public boolean isBinary() {
         return binary;
     }
+
     public boolean isValue() {
         return this.equals(VAR);
     }
+
     public boolean isNot() {
         return this.equals(NOT);
     }

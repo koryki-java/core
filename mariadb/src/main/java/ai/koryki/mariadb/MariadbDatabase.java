@@ -18,7 +18,6 @@ package ai.koryki.mariadb;
 
 import ai.koryki.jdbc.JdbcDatabase;
 import ai.koryki.jdbc.ResultProcessor;
-
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -26,9 +25,9 @@ import java.time.Instant;
 import java.time.ZoneId;
 
 /**
- * Vendor base for every Mariadb connection: pins session
- * state at construction (see docs/TEMPORAL.md, "Time zones") so that
- * zone-aware reads and {@code now()} never depend on who runs the query.
+ * Vendor base for every Mariadb connection: pins session state at construction (see
+ * docs/TEMPORAL.md, "Time zones") so that zone-aware reads and {@code now()} never depend on who
+ * runs the query.
  */
 public class MariadbDatabase<P extends ResultProcessor<?>> extends JdbcDatabase<P> {
 
@@ -51,10 +50,11 @@ public class MariadbDatabase<P extends ResultProcessor<?>> extends JdbcDatabase<
     }
 
     /**
-     * MariaDB stores an INSTANT as a session-converted {@code TIMESTAMP}. Under the model-zone-pinned
-     * session its wall-clock already <em>is</em> the model-zone representation. The base
-     * {@code getObject(OffsetDateTime.class)} would instead stamp that naive wall-clock with the JVM
-     * offset and shift the instant, so read it as a naive model-zone timestamp regardless of {@code jdbcType}.
+     * MariaDB stores an INSTANT as a session-converted {@code TIMESTAMP}. Under the
+     * model-zone-pinned session its wall-clock already <em>is</em> the model-zone representation.
+     * The base {@code getObject(OffsetDateTime.class)} would instead stamp that naive wall-clock
+     * with the JVM offset and shift the instant, so read it as a naive model-zone timestamp
+     * regardless of {@code jdbcType}.
      */
     @Override
     protected Instant readInstant(ResultSet rs, int i, int jdbcType) throws SQLException {

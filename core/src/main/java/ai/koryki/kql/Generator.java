@@ -19,7 +19,6 @@ package ai.koryki.kql;
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.SqlRenderer;
 import ai.koryki.jdbc.ColumnInfo;
-
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -32,11 +31,10 @@ import java.util.function.Supplier;
  * needs exactly this half and no connection: the loop of writing, checking and correcting runs
  * entirely without a database. {@link Engine} adds execution on top.
  *
- * <p><b>Why this is a class of its own.</b> The five methods here never touched the
- * {@code database} field of {@link Engine}, yet were reachable only through a constructor that
- * demanded a {@code Database}. So anyone who merely wanted to check a query needed an open
- * connection they did not use -- and anyone without one had to fake it. That is the whole reason
- * for the split.
+ * <p><b>Why this is a class of its own.</b> The five methods here never touched the {@code
+ * database} field of {@link Engine}, yet were reachable only through a constructor that demanded a
+ * {@code Database}. So anyone who merely wanted to check a query needed an open connection they did
+ * not use -- and anyone without one had to fake it. That is the whole reason for the split.
  *
  * <p><b>Immutable, and therefore shareable.</b> All three fields are final; whoever wants something
  * else builds a second one. That is not cosmetic: until now the engine carried mutable state via
@@ -52,7 +50,8 @@ public class Generator<I extends ColumnInfo> {
 
     private final Function<KQLTranspiler, List<I>> info;
 
-    public static <I extends ColumnInfo> Function<KQLTranspiler, List<I>> getInfo(Supplier<I> supplier) {
+    public static <I extends ColumnInfo> Function<KQLTranspiler, List<I>> getInfo(
+            Supplier<I> supplier) {
         return t -> t.infos(supplier);
     }
 
@@ -61,8 +60,8 @@ public class Generator<I extends ColumnInfo> {
         this(resolver, renderer, getInfo(supplier));
     }
 
-    public Generator(LinkResolver resolver, SqlRenderer renderer,
-                     Function<KQLTranspiler, List<I>> info) {
+    public Generator(
+            LinkResolver resolver, SqlRenderer renderer, Function<KQLTranspiler, List<I>> info) {
         this.resolver = resolver;
         this.renderer = renderer;
         this.info = info;
@@ -71,9 +70,9 @@ public class Generator<I extends ColumnInfo> {
     /**
      * The transpiler for a query, with the renderer's function catalog and dialect.
      *
-     * <p>Stood in the code five times verbatim -- four times here, once in
-     * {@code Engine.executeKQL}. One place, so that validation and execution cannot drift apart:
-     * what {@link #validateKQL} lets through, {@code executeKQL} must also be able to translate.
+     * <p>Stood in the code five times verbatim -- four times here, once in {@code
+     * Engine.executeKQL}. One place, so that validation and execution cannot drift apart: what
+     * {@link #validateKQL} lets through, {@code executeKQL} must also be able to translate.
      *
      * <p>{@link #formatKQL} deliberately does not take this path.
      */
@@ -96,14 +95,17 @@ public class Generator<I extends ColumnInfo> {
     /**
      * Validates without executing; returns the errors (empty = valid). Parse errors still throw.
      *
-     * <p>Deliberately errors only, not {@code violations()}: callers treat an empty list as "valid",
-     * so an advisory warning must not read as a failure. Use {@link #warningsKQL} for those.
+     * <p>Deliberately errors only, not {@code violations()}: callers treat an empty list as
+     * "valid", so an advisory warning must not read as a failure. Use {@link #warningsKQL} for
+     * those.
      */
     public List<ai.koryki.iql.validate.Violation> validateKQL(String kql) {
         return transpiler(kql).errors();
     }
 
-    /** Advisory diagnostics for a query that is otherwise valid — e.g. a function KQL does not know. */
+    /**
+     * Advisory diagnostics for a query that is otherwise valid — e.g. a function KQL does not know.
+     */
     public List<ai.koryki.iql.validate.Violation> warningsKQL(String kql) {
         return transpiler(kql).warnings();
     }
@@ -120,7 +122,9 @@ public class Generator<I extends ColumnInfo> {
         // one wants to see formatted, in order to find the mistake.
         KQLTranspiler transpiler = KQLTranspiler.builder(kql, resolver).build();
 
-        KQLFormatter formatter = new KQLFormatter(transpiler.getCtx(), transpiler.getDescription()).withMaxLineLength(maxlinesize);
+        KQLFormatter formatter =
+                new KQLFormatter(transpiler.getCtx(), transpiler.getDescription())
+                        .withMaxLineLength(maxlinesize);
         return formatter.format();
     }
 
@@ -136,5 +140,4 @@ public class Generator<I extends ColumnInfo> {
     public Function<KQLTranspiler, List<I>> getInfo() {
         return info;
     }
-
 }

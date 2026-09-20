@@ -18,7 +18,6 @@ package ai.koryki.iql.functions;
 
 /** Arithmetic operators (named {@code MathOp} to avoid shadowing {@link java.lang.Math}). */
 public enum MathOp {
-
     add("+"),
     minus("-"),
     multiply("*"),

@@ -19,16 +19,15 @@ package ai.koryki.iql;
 import ai.koryki.antlr.AbstractReader;
 import ai.koryki.antlr.Interval;
 import ai.koryki.antlr.MsgErrorListener;
-import org.antlr.v4.runtime.BufferedTokenStream;
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
-
 import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import org.antlr.v4.runtime.BufferedTokenStream;
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
 
 public class IQLReader extends AbstractReader<IQLLexer, IQLParser, IQLParser.QueryContext> {
 
@@ -43,7 +42,7 @@ public class IQLReader extends AbstractReader<IQLLexer, IQLParser, IQLParser.Que
     private boolean abort;
 
     public static String iqlDefinition() {
-        return readResource( "/ai/koryki/iql/IQL.g4");
+        return readResource("/ai/koryki/iql/IQL.g4");
     }
 
     public IQLReader(String sql) throws IOException {
@@ -75,6 +74,7 @@ public class IQLReader extends AbstractReader<IQLLexer, IQLParser, IQLParser.Que
     public IQLReader(InputStream in, Charset cs) throws IOException {
         this(in, cs, false);
     }
+
     public IQLReader(InputStream in, Charset cs, boolean abort) throws IOException {
 
         this(new InputStreamReader(in, cs), abort);
@@ -83,24 +83,26 @@ public class IQLReader extends AbstractReader<IQLLexer, IQLParser, IQLParser.Que
     public IQLReader(Reader in) throws IOException {
         this(in, false);
     }
+
     public IQLReader(Reader in, boolean abort) throws IOException {
         lnr = new LineNumberReader(in);
         this.cs = CharStreams.fromReader(lnr);
         this.abort = abort;
-        //this.listener.setAbort(abort);
+        // this.listener.setAbort(abort);
     }
 
     public IQLReader(CharStream input, boolean abort) {
 
         cs = input;
         this.abort = abort;
-        //this.listener.setAbort(abort);
+        // this.listener.setAbort(abort);
     }
 
-    public IQLReader(BufferedTokenStream tokens, List<Interval> panic, IQLParser.QueryContext script) {
+    public IQLReader(
+            BufferedTokenStream tokens, List<Interval> panic, IQLParser.QueryContext script) {
 
         this.tokens = tokens;
-        this.panic =  panic;
+        this.panic = panic;
         this.script = script;
     }
 

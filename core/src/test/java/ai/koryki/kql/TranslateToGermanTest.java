@@ -1,19 +1,31 @@
+/*
+ * Copyright 2025-2026 Johannes Zemlin
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package ai.koryki.kql;
 
-import ai.koryki.antlr.Text;
-import ai.koryki.databases.cases.Fixtures;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import ai.koryki.antlr.Text;
 import ai.koryki.databases.FileAsserter;
+import ai.koryki.databases.cases.Fixtures;
 import ai.koryki.databases.cases.TestUtil;
 import ai.koryki.databases.northwind.duckdb.NorthwindService;
 import ai.koryki.iql.DuckdbBaseDialect;
-import ai.koryki.iql.SqlQueryRenderer;
 import ai.koryki.iql.LinkResolver;
-import ai.koryki.catalog.Util;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-
+import ai.koryki.iql.SqlQueryRenderer;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitOption;
@@ -22,34 +34,43 @@ import java.nio.file.Path;
 import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 public class TranslateToGermanTest {
-
 
     public static final Path SHARED = Fixtures.queries("northwind");
     public static final Path LOCAL = Path.of("src/test/resources/ai/koryki/core/kql/northwind");
 
     public static final Path EXPECTED_TXT = Fixtures.expected("kql", "northwind").resolve("de");
-    public static final Path LOCAL_TXT = Path.of("src/test/resources/ai/koryki/core/expected/kql/northwind/de");
+    public static final Path LOCAL_TXT =
+            Path.of("src/test/resources/ai/koryki/core/expected/kql/northwind/de");
     public static final Path EXPECTED_SQL = Fixtures.expected("kql", "northwind").resolve("sql");
-    public static final Path LOCAL_SQL = Path.of("src/test/resources/ai/koryki/core/expected/kql/northwind/sql");
+    public static final Path LOCAL_SQL =
+            Path.of("src/test/resources/ai/koryki/core/expected/kql/northwind/sql");
 
     public static final String SUFFIX = ".kql";
+
     private static Stream<Path> walk(Path root) throws IOException {
         // The local root is absent wherever a schema has no core-owned fixtures.
         return Files.isDirectory(root)
-                ? Files.walk(root, FileVisitOption.FOLLOW_LINKS).filter(p -> p.toString().endsWith(SUFFIX))
+                ? Files.walk(root, FileVisitOption.FOLLOW_LINKS)
+                        .filter(p -> p.toString().endsWith(SUFFIX))
                 : Stream.empty();
     }
 
-    private static Path root(Path kql) { return kql.startsWith(LOCAL) ? LOCAL : SHARED; }
+    private static Path root(Path kql) {
+        return kql.startsWith(LOCAL) ? LOCAL : SHARED;
+    }
 
-    private static Path txtRoot(Path kql) { return kql.startsWith(LOCAL) ? LOCAL_TXT : EXPECTED_TXT; }
+    private static Path txtRoot(Path kql) {
+        return kql.startsWith(LOCAL) ? LOCAL_TXT : EXPECTED_TXT;
+    }
 
-    private static Path sqlRoot(Path kql) { return kql.startsWith(LOCAL) ? LOCAL_SQL : EXPECTED_SQL; }
-
+    private static Path sqlRoot(Path kql) {
+        return kql.startsWith(LOCAL) ? LOCAL_SQL : EXPECTED_SQL;
+    }
 
     static Stream<Path> testFiles() throws IOException {
 
@@ -66,14 +87,14 @@ public class TranslateToGermanTest {
     }
 
     /**
-     * Invariant: block IDs are user-invented names, never vocabulary. The block
-     * is deliberately named like the English entity "customers" — its
-     * definition and its reference must survive translation untouched, while
-     * real entities (orders) are translated.
+     * Invariant: block IDs are user-invented names, never vocabulary. The block is deliberately
+     * named like the English entity "customers" — its definition and its reference must survive
+     * translation untouched, while real entities (orders) are translated.
      */
     @Test
     public void blockIdIsNeverTranslated() throws IOException {
-        String kql = """
+        String kql =
+                """
                 WITH customers AS (
                  FIND orders o
                  FETCH o.order_id id
@@ -84,69 +105,76 @@ public class TranslateToGermanTest {
 
         String kqlDe = translateToGerman(kql);
 
-        org.junit.jupiter.api.Assertions.assertTrue(kqlDe.contains("WITH customers AS"),
+        org.junit.jupiter.api.Assertions.assertTrue(
+                kqlDe.contains("WITH customers AS"),
                 "block definition must keep its ID:\n" + kqlDe);
-        org.junit.jupiter.api.Assertions.assertTrue(kqlDe.contains("FIND customers c"),
-                "block reference must keep its ID:\n" + kqlDe);
-        org.junit.jupiter.api.Assertions.assertTrue(kqlDe.contains("bestellungen"),
+        org.junit.jupiter.api.Assertions.assertTrue(
+                kqlDe.contains("FIND customers c"), "block reference must keep its ID:\n" + kqlDe);
+        org.junit.jupiter.api.Assertions.assertTrue(
+                kqlDe.contains("bestellungen"),
                 "real entities must still be translated:\n" + kqlDe);
 
         assertTranspilesAgainstGermanModel(kqlDe);
     }
 
     /**
-     * Invariant: an output field without a header is a model attribute and
-     * must be translated — otherwise the translated query references a column
-     * that does not exist in the target vocabulary.
+     * Invariant: an output field without a header is a model attribute and must be translated —
+     * otherwise the translated query references a column that does not exist in the target
+     * vocabulary.
      */
     @Test
     public void headerlessOutputAttributeIsTranslated() throws IOException {
-        String kql = """
+        String kql =
+                """
                 FIND customers c
                 FETCH c.company_name
                 """;
 
         String kqlDe = translateToGerman(kql);
 
-        org.junit.jupiter.api.Assertions.assertTrue(kqlDe.contains("c.firma"),
+        org.junit.jupiter.api.Assertions.assertTrue(
+                kqlDe.contains("c.firma"),
                 "header-less output attribute must be translated:\n" + kqlDe);
-        org.junit.jupiter.api.Assertions.assertFalse(kqlDe.contains("company_name"),
+        org.junit.jupiter.api.Assertions.assertFalse(
+                kqlDe.contains("company_name"),
                 "the English attribute name must not survive translation:\n" + kqlDe);
 
         assertTranspilesAgainstGermanModel(kqlDe);
     }
 
     /**
-     * Invariant: function names are catalog vocabulary, not model vocabulary —
-     * they survive translation untouched while their column arguments are
-     * translated.
+     * Invariant: function names are catalog vocabulary, not model vocabulary — they survive
+     * translation untouched while their column arguments are translated.
      */
     @Test
     public void functionNameIsNeverTranslated() throws IOException {
-        String kql = """
+        String kql =
+                """
                 FIND customers c
                 FETCH substr(c.company_name, 1, 3) abbrev
                 """;
 
         String kqlDe = translateToGerman(kql);
 
-        org.junit.jupiter.api.Assertions.assertTrue(kqlDe.contains("substr("),
-                "the function name must survive translation:\n" + kqlDe);
-        org.junit.jupiter.api.Assertions.assertTrue(kqlDe.contains("c.firma"),
-                "the column argument must be translated:\n" + kqlDe);
-        org.junit.jupiter.api.Assertions.assertFalse(kqlDe.contains("company_name"),
+        org.junit.jupiter.api.Assertions.assertTrue(
+                kqlDe.contains("substr("), "the function name must survive translation:\n" + kqlDe);
+        org.junit.jupiter.api.Assertions.assertTrue(
+                kqlDe.contains("c.firma"), "the column argument must be translated:\n" + kqlDe);
+        org.junit.jupiter.api.Assertions.assertFalse(
+                kqlDe.contains("company_name"),
                 "the English attribute name must not survive translation:\n" + kqlDe);
 
         assertTranspilesAgainstGermanModel(kqlDe);
     }
 
     /**
-     * Invariant: operators are syntax, not vocabulary — the operator keyword
-     * survives translation while its operands are translated.
+     * Invariant: operators are syntax, not vocabulary — the operator keyword survives translation
+     * while its operands are translated.
      */
     @Test
     public void operatorIsNeverTranslated() throws IOException {
-        String kql = """
+        String kql =
+                """
                 FIND customers c
                 FILTER c.company_name LIKE 'A%'
                 FETCH c.company_name
@@ -154,21 +182,23 @@ public class TranslateToGermanTest {
 
         String kqlDe = translateToGerman(kql);
 
-        org.junit.jupiter.api.Assertions.assertTrue(kqlDe.contains("LIKE 'A%'"),
+        org.junit.jupiter.api.Assertions.assertTrue(
+                kqlDe.contains("LIKE 'A%'"),
                 "the operator and its literal must survive translation:\n" + kqlDe);
-        org.junit.jupiter.api.Assertions.assertTrue(kqlDe.contains("c.firma"),
-                "the operand column must be translated:\n" + kqlDe);
+        org.junit.jupiter.api.Assertions.assertTrue(
+                kqlDe.contains("c.firma"), "the operand column must be translated:\n" + kqlDe);
 
         assertTranspilesAgainstGermanModel(kqlDe);
     }
 
     /**
-     * Invariant: a string literal is data, never vocabulary — it survives
-     * translation verbatim even when it spells an entity name ("orders").
+     * Invariant: a string literal is data, never vocabulary — it survives translation verbatim even
+     * when it spells an entity name ("orders").
      */
     @Test
     public void stringLiteralIsNeverTranslated() throws IOException {
-        String kql = """
+        String kql =
+                """
                 FIND customers c
                 FILTER c.company_name = 'orders'
                 FETCH c.company_name
@@ -176,33 +206,38 @@ public class TranslateToGermanTest {
 
         String kqlDe = translateToGerman(kql);
 
-        org.junit.jupiter.api.Assertions.assertTrue(kqlDe.contains("'orders'"),
+        org.junit.jupiter.api.Assertions.assertTrue(
+                kqlDe.contains("'orders'"),
                 "the string literal must survive translation verbatim:\n" + kqlDe);
-        org.junit.jupiter.api.Assertions.assertFalse(kqlDe.contains("'bestellungen'"),
+        org.junit.jupiter.api.Assertions.assertFalse(
+                kqlDe.contains("'bestellungen'"),
                 "a literal must not be translated as vocabulary:\n" + kqlDe);
 
         assertTranspilesAgainstGermanModel(kqlDe);
     }
 
     /**
-     * Invariant: an explicit output header is a user-invented name (like a
-     * block ID) and survives translation, while the underlying attribute is
-     * still translated.
+     * Invariant: an explicit output header is a user-invented name (like a block ID) and survives
+     * translation, while the underlying attribute is still translated.
      */
     @Test
     public void explicitOutputHeaderIsNeverTranslated() throws IOException {
-        String kql = """
+        String kql =
+                """
                 FIND customers c
                 FETCH c.company_name shortname
                 """;
 
         String kqlDe = translateToGerman(kql);
 
-        org.junit.jupiter.api.Assertions.assertTrue(kqlDe.contains("shortname"),
+        org.junit.jupiter.api.Assertions.assertTrue(
+                kqlDe.contains("shortname"),
                 "the user-invented output header must survive translation:\n" + kqlDe);
-        org.junit.jupiter.api.Assertions.assertTrue(kqlDe.contains("c.firma"),
+        org.junit.jupiter.api.Assertions.assertTrue(
+                kqlDe.contains("c.firma"),
                 "the underlying attribute must still be translated:\n" + kqlDe);
-        org.junit.jupiter.api.Assertions.assertFalse(kqlDe.contains("company_name"),
+        org.junit.jupiter.api.Assertions.assertFalse(
+                kqlDe.contains("company_name"),
                 "the English attribute name must not survive translation:\n" + kqlDe);
 
         assertTranspilesAgainstGermanModel(kqlDe);
@@ -213,13 +248,24 @@ public class TranslateToGermanTest {
         KQLTranspiler transpilerEn = KQLTranspiler.builder(kql, resolverEn).build();
 
         LinkResolver resolverDe = NorthwindService.resolver(Locale.GERMAN);
-        DictionaryTranslator dictionary = LinkResolver.dictionary(resolverEn.getModel(), resolverDe.getModel());
-        return new KQLFormatter(transpilerEn.getCtx(), transpilerEn.getDescription(), resolverEn, dictionary).format();
+        DictionaryTranslator dictionary =
+                LinkResolver.dictionary(resolverEn.getModel(), resolverDe.getModel());
+        return new KQLFormatter(
+                        transpilerEn.getCtx(),
+                        transpilerEn.getDescription(),
+                        resolverEn,
+                        dictionary)
+                .format();
     }
 
     private static void assertTranspilesAgainstGermanModel(String kqlDe) throws IOException {
         LinkResolver resolverDe = NorthwindService.resolver(Locale.GERMAN);
-        assertNotNull(KQLTranspiler.builder(kqlDe, resolverDe).build().getSql(new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, java.time.ZoneId.of("UTC"))));
+        assertNotNull(
+                KQLTranspiler.builder(kqlDe, resolverDe)
+                        .build()
+                        .getSql(
+                                new SqlQueryRenderer(
+                                        DuckdbBaseDialect.INSTANCE, java.time.ZoneId.of("UTC"))));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -236,12 +282,15 @@ public class TranslateToGermanTest {
         }
 
         LinkResolver resolverEn = NorthwindService.resolver(Locale.ENGLISH);
-        ai.koryki.kql.KQLTranspiler transpilerEn = new ai.koryki.kql.KQLTranspiler(Files.readString(kql), resolverEn);
+        ai.koryki.kql.KQLTranspiler transpilerEn =
+                new ai.koryki.kql.KQLTranspiler(Files.readString(kql), resolverEn);
 
         KQLParser.QueryContext ctx = transpilerEn.getCtx();
         LinkResolver resolverDe = NorthwindService.resolver(Locale.GERMAN);
-        DictionaryTranslator dictionary = LinkResolver.dictionary(resolverEn.getModel(), resolverDe.getModel()) ;
-        KQLFormatter formatter2de = new KQLFormatter(ctx, transpilerEn.getDescription(), resolverEn, dictionary);
+        DictionaryTranslator dictionary =
+                LinkResolver.dictionary(resolverEn.getModel(), resolverDe.getModel());
+        KQLFormatter formatter2de =
+                new KQLFormatter(ctx, transpilerEn.getDescription(), resolverEn, dictionary);
         String kqlDe = formatter2de.format();
 
         kqlDe = ignoreSkip(kqlDe);
@@ -250,7 +299,10 @@ public class TranslateToGermanTest {
 
         String sql;
         try {
-            sql = transpilerDe.getSql(new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, java.time.ZoneId.of("UTC")));
+            sql =
+                    transpilerDe.getSql(
+                            new SqlQueryRenderer(
+                                    DuckdbBaseDialect.INSTANCE, java.time.ZoneId.of("UTC")));
         } catch (RuntimeException e) {
             if (ai.koryki.databases.cases.TestUtil.cannotRunOnThisDialect(e)) {
                 return;
@@ -277,9 +329,10 @@ public class TranslateToGermanTest {
 
     private static String ignoreSkip(String kqlDe) {
         // skip ignore-lines
-        kqlDe = kqlDe.lines()
-                .filter(line -> !line.startsWith("// ignore="))
-                .collect(Collectors.joining(Text.NL));
+        kqlDe =
+                kqlDe.lines()
+                        .filter(line -> !line.startsWith("// ignore="))
+                        .collect(Collectors.joining(Text.NL));
         return kqlDe;
     }
 }

@@ -19,9 +19,8 @@ package ai.koryki.iql.rules;
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.query.Query;
 import ai.koryki.iql.query.Source;
-import org.antlr.v4.runtime.RuleContext;
-
 import java.util.Map;
+import org.antlr.v4.runtime.RuleContext;
 
 public class Rules {
 
@@ -30,17 +29,21 @@ public class Rules {
     private Map<String, Source> blockIdToLeadingTableMap;
     private Map<Object, RuleContext> iqlToContext;
 
-    public Rules(LinkResolver resolver, Map<String, Source> blockIdToLeadingTableMap, Query query,
-                 Map<Object, RuleContext> iqlToContext) {
+    public Rules(
+            LinkResolver resolver,
+            Map<String, Source> blockIdToLeadingTableMap,
+            Query query,
+            Map<Object, RuleContext> iqlToContext) {
         this.resolver = resolver;
         this.query = query;
         this.blockIdToLeadingTableMap = blockIdToLeadingTableMap;
         this.iqlToContext = iqlToContext;
     }
-    
+
     public Map<String, Source> apply() {
         new PushOutRule().apply(query);
-        new InferJoinColumnsToBlockRule(query, resolver, blockIdToLeadingTableMap, iqlToContext).apply();
+        new InferJoinColumnsToBlockRule(query, resolver, blockIdToLeadingTableMap, iqlToContext)
+                .apply();
         new HavingRule(query).apply();
         new GroupRule(query, iqlToContext).apply();
         new IdentityRule(blockIdToLeadingTableMap, resolver, iqlToContext).apply(query);
@@ -59,8 +62,8 @@ public class Rules {
      * node either, and the previous behaviour stands.
      *
      * @param iqlToContext the model node to parser context mapping; may be {@code null}
-     * @param origin       the node the new ones came into being for
-     * @param created      the newly created nodes
+     * @param origin the node the new ones came into being for
+     * @param created the newly created nodes
      */
     static void inherit(Map<Object, RuleContext> iqlToContext, Object origin, Object... created) {
 
@@ -79,5 +82,4 @@ public class Rules {
             }
         }
     }
-
 }

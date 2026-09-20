@@ -25,10 +25,10 @@ import ai.koryki.catalog.types.IntervalUnitClass;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeEncoding;
 import ai.koryki.catalog.types.TypeFamily;
+import ai.koryki.iql.Collector;
 import ai.koryki.iql.IQLVisibilityContext;
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.SqlQueryRenderer;
-import ai.koryki.iql.Collector;
 import ai.koryki.iql.Visitor;
 import ai.koryki.iql.functions.BranchedConditional;
 import ai.koryki.iql.functions.CaseFunctionDefinition;
@@ -42,14 +42,13 @@ import ai.koryki.iql.functions.MathOp;
 import ai.koryki.iql.functions.StandardFunctions;
 import ai.koryki.iql.query.*;
 import ai.koryki.iql.typing.ExpressionTypeResolver;
-import org.antlr.v4.runtime.RuleContext;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import org.antlr.v4.runtime.RuleContext;
 
 public class FunctionValidator implements Visitor, Collector<List<Violation>> {
 
@@ -74,12 +73,15 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
      * spent eleven cases asserting almost nothing. Callers now have to supply all four, or say
      * explicitly with a null argument which checks they are giving up.
      *
-     * @param functions  dialect function catalog for arity/unsupported checks; null = skip those
-     * @param resolver   schema resolver for typing operands; null = skip family checks
+     * @param functions dialect function catalog for arity/unsupported checks; null = skip those
+     * @param resolver schema resolver for typing operands; null = skip family checks
      * @param visibility root scope; child contexts are derived per Select during the walk
      */
-    public FunctionValidator(Map<Object, RuleContext> iqlToContext, FunctionCatalog functions,
-            LinkResolver resolver, IQLVisibilityContext visibility) {
+    public FunctionValidator(
+            Map<Object, RuleContext> iqlToContext,
+            FunctionCatalog functions,
+            LinkResolver resolver,
+            IQLVisibilityContext visibility) {
         this.iqlToContext = iqlToContext;
         this.functions = functions;
         this.resolver = resolver;
@@ -129,16 +131,30 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
             return;
         }
         if (function.getWindow() == null) {
-            violations.add(new Violation("function", function, Range.of(iqlToContext, function),
-                    "'" + function.getFunc() + "' needs an OVER clause saying which rows it looks at — "
-                            + "e.g. " + function.getFunc() + "(...) OVER (PARTITION BY ... ORDER BY ...)"));
+            violations.add(
+                    new Violation(
+                            "function",
+                            function,
+                            Range.of(iqlToContext, function),
+                            "'"
+                                    + function.getFunc()
+                                    + "' needs an OVER clause saying which rows it looks at — "
+                                    + "e.g. "
+                                    + function.getFunc()
+                                    + "(...) OVER (PARTITION BY ... ORDER BY ...)"));
             return;
         }
         if (NEEDS_ORDER.contains(function.getFunc().toLowerCase(Locale.ROOT))
                 && function.getWindow().getOrder().isEmpty()) {
-            violations.add(new Violation("function", function, Range.of(iqlToContext, function),
-                    "'" + function.getFunc() + "' needs an ORDER inside its OVER clause — without one "
-                            + "there is nothing to order by, so the result would be arbitrary"));
+            violations.add(
+                    new Violation(
+                            "function",
+                            function,
+                            Range.of(iqlToContext, function),
+                            "'"
+                                    + function.getFunc()
+                                    + "' needs an ORDER inside its OVER clause — without one "
+                                    + "there is nothing to order by, so the result would be arbitrary"));
         }
         // A ranking or navigation function reads the whole partition by definition, so a frame has
         // nothing to narrow and the SQL standard bars the combination. Only aggregates used with
@@ -151,47 +167,59 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         // last is the reason this is an error rather than a warning — a query that answers
         // differently on one engine, with nothing to indicate it, is worse than one that fails.
         if (function.getWindow().getUpper() != null || function.getWindow().getLower() != null) {
-            violations.add(new Violation("function", function, Range.of(iqlToContext, function),
-                    "'" + function.getFunc() + "' cannot take a frame (ROWS BETWEEN …) — it looks at "
-                            + "the whole partition by definition. Frames belong to aggregates used "
-                            + "with OVER, such as sum(...) or avg(...)"));
+            violations.add(
+                    new Violation(
+                            "function",
+                            function,
+                            Range.of(iqlToContext, function),
+                            "'"
+                                    + function.getFunc()
+                                    + "' cannot take a frame (ROWS BETWEEN …) — it looks at "
+                                    + "the whole partition by definition. Frames belong to aggregates used "
+                                    + "with OVER, such as sum(...) or avg(...)"));
         }
     }
 
     /**
-     * {@code calendar_distance} is <strong>projection-only</strong>. Its SQL value is a decode-only wire
-     * form — the two instants as epoch-seconds, reassembled into a calendar {@link
-     * ai.koryki.jdbc.Interval} by the reader — so it is meaningless to any SQL operation. It may therefore
-     * appear only as a {@code FETCH} output expression, never in {@code FILTER}, a comparison, {@code
-     * ORDER}, {@code GROUP}, or as an argument to another function. A valid projection's first
-     * non-{@link Expression} ancestor is its {@link Out}; anything else is a positioned error here.
-     * Use {@code TIMESTAMP − TIMESTAMP} for an elapsed span that can be filtered or sorted.
+     * {@code calendar_distance} is <strong>projection-only</strong>. Its SQL value is a decode-only
+     * wire form — the two instants as epoch-seconds, reassembled into a calendar {@link
+     * ai.koryki.jdbc.Interval} by the reader — so it is meaningless to any SQL operation. It may
+     * therefore appear only as a {@code FETCH} output expression, never in {@code FILTER}, a
+     * comparison, {@code ORDER}, {@code GROUP}, or as an argument to another function. A valid
+     * projection's first non-{@link Expression} ancestor is its {@link Out}; anything else is a
+     * positioned error here. Use {@code TIMESTAMP − TIMESTAMP} for an elapsed span that can be
+     * filtered or sorted.
      */
     private void checkProjectionOnly(Deque<Object> deque, Function function) {
         if (!"calendar_distance".equalsIgnoreCase(function.getFunc())) {
             return;
         }
-        for (Object ancestor : deque) {          // nearest first; the function itself is not yet on the deque
+        for (Object ancestor :
+                deque) { // nearest first; the function itself is not yet on the deque
             if (ancestor instanceof Expression) {
-                continue;                        // pass-through wrapper
+                continue; // pass-through wrapper
             }
             if (!(ancestor instanceof Out)) {
-                violations.add(new Violation("type", function, Range.of(iqlToContext, function),
-                        "calendar_distance(...) is projection-only — it may only be a FETCH output, not used "
-                                + "in FILTER, a comparison, ORDER, GROUP or as an argument to another function "
-                                + "(its value is a decode-only form). Use TIMESTAMP − TIMESTAMP for an elapsed "
-                                + "span you can filter or sort."));
+                violations.add(
+                        new Violation(
+                                "type",
+                                function,
+                                Range.of(iqlToContext, function),
+                                "calendar_distance(...) is projection-only — it may only be a FETCH output, not used "
+                                        + "in FILTER, a comparison, ORDER, GROUP or as an argument to another function "
+                                        + "(its value is a decode-only form). Use TIMESTAMP − TIMESTAMP for an elapsed "
+                                        + "span you can filter or sort."));
             }
-            return;                              // decided at the first structural ancestor
+            return; // decided at the first structural ancestor
         }
     }
 
     /**
-     * A logical (boolean) expression is only valid as a <em>condition</em> of {@code case} — there it
-     * renders into a {@code CASE WHEN <pred>} (a predicate position, portable across dialects). Used
-     * anywhere else (a value argument, or a non-condition position) a standalone boolean value is not
-     * portable, so it is a positioned error — mirroring how a bare identity argument is rejected
-     * outside its slot.
+     * A logical (boolean) expression is only valid as a <em>condition</em> of {@code case} — there
+     * it renders into a {@code CASE WHEN <pred>} (a predicate position, portable across dialects).
+     * Used anywhere else (a value argument, or a non-condition position) a standalone boolean value
+     * is not portable, so it is a positioned error — mirroring how a bare identity argument is
+     * rejected outside its slot.
      */
     private void checkLogicalArguments(Function function) {
         List<Expression> args = function.getArguments();
@@ -202,29 +230,40 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
                 continue;
             }
             if (!(isCase && CaseFunctionDefinition.isCondition(i, n))) {
-                violations.add(new Violation("type", function, Range.of(iqlToContext, function),
-                        "a boolean condition (logical expression) is only valid as a condition of case, "
-                                + "not as argument " + (i + 1) + " of '" + function.getFunc() + "'"));
+                violations.add(
+                        new Violation(
+                                "type",
+                                function,
+                                Range.of(iqlToContext, function),
+                                "a boolean condition (logical expression) is only valid as a condition of case, "
+                                        + "not as argument "
+                                        + (i + 1)
+                                        + " of '"
+                                        + function.getFunc()
+                                        + "'"));
             }
         }
     }
 
     /**
      * Conditional branch reconciliation (if / iff / coalesce / nvl / …): the value branches must
-     * reconcile to one output type — a shared family-group with a lossless common encoding — else it
-     * is a positioned error here rather than the raw {@link ConditionalReconciler.ReconcileException}
-     * thrown later at resolve/render time. A branch that cannot be typed is passed as untyped
-     * (reconciliation skips it), so this never fires on a call it cannot fully type.
+     * reconcile to one output type — a shared family-group with a lossless common encoding — else
+     * it is a positioned error here rather than the raw {@link
+     * ConditionalReconciler.ReconcileException} thrown later at resolve/render time. A branch that
+     * cannot be typed is passed as untyped (reconciliation skips it), so this never fires on a call
+     * it cannot fully type.
      */
     private void checkConditionalReconciliation(Function function) {
         if (!typeChecks() || scopes.isEmpty()) {
             return;
         }
-        BranchedConditional def = branchedConditional(function.getFunc(), function.getArguments().size());
+        BranchedConditional def =
+                branchedConditional(function.getFunc(), function.getArguments().size());
         if (def == null) {
             return;
         }
-        ExpressionTypeResolver types = new ExpressionTypeResolver(resolver, scopes.peek(), functions);
+        ExpressionTypeResolver types =
+                new ExpressionTypeResolver(resolver, scopes.peek(), functions);
         List<Expression> args = function.getArguments();
         List<TypeDescriptor> branches = new ArrayList<>();
         for (int i : def.branchIndices(args.size())) {
@@ -233,7 +272,9 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         try {
             ConditionalReconciler.reconcile(branches);
         } catch (ConditionalReconciler.ReconcileException e) {
-            violations.add(new Violation("type", function, Range.of(iqlToContext, function), e.getMessage()));
+            violations.add(
+                    new Violation(
+                            "type", function, Range.of(iqlToContext, function), e.getMessage()));
         }
     }
 
@@ -245,7 +286,9 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         }
     }
 
-    /** The {@link BranchedConditional} for {@code name}/{@code argCount}, or null if it is not one. */
+    /**
+     * The {@link BranchedConditional} for {@code name}/{@code argCount}, or null if it is not one.
+     */
     private BranchedConditional branchedConditional(String name, int argCount) {
         for (FunctionDefinition d : functions.overloads(name)) {
             if (d instanceof BranchedConditional bc
@@ -257,10 +300,10 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
     }
 
     /**
-     * TIME ± DURATION admits only fixed clock units (h, m, s, ms): a time-of-day has
-     * no calendar context, so a day / week / month / quarter / year component is a
-     * validation error (docs/TEMPORAL.md, "Applying a duration → TIME"). Day and week
-     * are calendar (variable-length) units, rejected here as much as month/year.
+     * TIME ± DURATION admits only fixed clock units (h, m, s, ms): a time-of-day has no calendar
+     * context, so a day / week / month / quarter / year component is a validation error
+     * (docs/TEMPORAL.md, "Applying a duration → TIME"). Day and week are calendar (variable-length)
+     * units, rejected here as much as month/year.
      */
     private void checkTimeArithmetic(Function function) {
         if (!typeChecks() || scopes.isEmpty()) {
@@ -274,7 +317,8 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         if (args.size() < 2) {
             return;
         }
-        ExpressionTypeResolver types = new ExpressionTypeResolver(resolver, scopes.peek(), functions);
+        ExpressionTypeResolver types =
+                new ExpressionTypeResolver(resolver, scopes.peek(), functions);
         if (args.stream().noneMatch(a -> isTime(a, types))) {
             return;
         }
@@ -285,9 +329,15 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
             }
             for (Duration.Component c : dur.getComponents()) {
                 if (isCalendarUnit(c.unit())) {
-                    violations.add(new Violation("type", function, Range.of(iqlToContext, function),
-                            "cannot add " + c.unit() + " to a TIME value — only fixed clock units "
-                                    + "(h, m, s, ms) apply to a time-of-day"));
+                    violations.add(
+                            new Violation(
+                                    "type",
+                                    function,
+                                    Range.of(iqlToContext, function),
+                                    "cannot add "
+                                            + c.unit()
+                                            + " to a TIME value — only fixed clock units "
+                                            + "(h, m, s, ms) apply to a time-of-day"));
                     return;
                 }
             }
@@ -295,11 +345,10 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
     }
 
     /**
-     * The temporal anchor (DATE or TIMESTAMP) must be the left operand of + and −.
-     * INTERVAL + DATE and INTERVAL − DATE are both rejected: a duration has no
-     * calendar context of its own and cannot act as the base of temporal arithmetic.
-     * Natural language always puts the anchor first: "3 months after DATE",
-     * never "3 months ??? DATE".
+     * The temporal anchor (DATE or TIMESTAMP) must be the left operand of + and −. INTERVAL + DATE
+     * and INTERVAL − DATE are both rejected: a duration has no calendar context of its own and
+     * cannot act as the base of temporal arithmetic. Natural language always puts the anchor first:
+     * "3 months after DATE", never "3 months ??? DATE".
      */
     private void checkAnchorFirst(Function function) {
         if (!typeChecks() || scopes.isEmpty()) {
@@ -313,15 +362,25 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         if (args.size() < 2) {
             return;
         }
-        ExpressionTypeResolver types = new ExpressionTypeResolver(resolver, scopes.peek(), functions);
+        ExpressionTypeResolver types =
+                new ExpressionTypeResolver(resolver, scopes.peek(), functions);
         TypeDescriptor left = resolveOrNull(types, args.get(0));
         TypeDescriptor right = resolveOrNull(types, args.get(1));
         if (left == null || right == null) {
             return;
         }
-        if (CoreTypeFamily.INTERVAL.equals(left.getTypeFamily()) && isAnchor(right.getTypeFamily())) {
-            violations.add(new Violation("type", function, Range.of(iqlToContext, function),
-                    "INTERVAL " + fn + " DATE/TIMESTAMP is not valid — write DATE/TIMESTAMP " + fn + " INTERVAL"));
+        if (CoreTypeFamily.INTERVAL.equals(left.getTypeFamily())
+                && isAnchor(right.getTypeFamily())) {
+            violations.add(
+                    new Violation(
+                            "type",
+                            function,
+                            Range.of(iqlToContext, function),
+                            "INTERVAL "
+                                    + fn
+                                    + " DATE/TIMESTAMP is not valid — write DATE/TIMESTAMP "
+                                    + fn
+                                    + " INTERVAL"));
         }
     }
 
@@ -352,10 +411,16 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
             // Unknown names render as-is by design (FunctionRegistry.defaultRender), which is a
             // deliberate escape hatch — but a silent one: the query works on the dialect it was
             // written against and fails elsewhere with a raw SQL error. Advisory, not fatal.
-            violations.add(Violation.warning("function", function, Range.of(iqlToContext, function),
-                    "'" + function.getFunc() + "' is not a KQL function; it is passed through to SQL "
-                            + "unchanged and may not exist on other dialects")
-                    .suggesting(Suggest.closest(function.getFunc(), functions.names())));
+            violations.add(
+                    Violation.warning(
+                                    "function",
+                                    function,
+                                    Range.of(iqlToContext, function),
+                                    "'"
+                                            + function.getFunc()
+                                            + "' is not a KQL function; it is passed through to SQL "
+                                            + "unchanged and may not exist on other dialects")
+                            .suggesting(Suggest.closest(function.getFunc(), functions.names())));
             return;
         }
         // The overload the call actually selects, not simply the first: a dialect can declare one
@@ -364,22 +429,35 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         // Falls back to the first entry when no arity matches — the arity violation below then
         // names the real problem.
         int arity = function.getArguments().size();
-        FunctionDefinition selected = set.stream()
-                .filter(d -> d.getSignature() != null && d.getSignature().matchesArity(arity))
-                .findFirst()
-                .orElse(set.get(0));
+        FunctionDefinition selected =
+                set.stream()
+                        .filter(
+                                d ->
+                                        d.getSignature() != null
+                                                && d.getSignature().matchesArity(arity))
+                        .findFirst()
+                        .orElse(set.get(0));
         if (selected.isUnsupported()) {
             // Category UNSUPPORTED, not "function": this is the one violation a caller may want to
             // treat as "this dialect cannot express the query" rather than "the query is wrong".
             // The test harnesses use it to skip a shared fixture on the dialects that declared the
             // function unsupported, instead of each fixture carrying a hand-written ignore= marker.
-            violations.add(new Violation(Violation.UNSUPPORTED, function, Range.of(iqlToContext, function),
-                    "function '" + function.getFunc() + "' is not supported by this dialect"
-                            + (set.size() > 1 ? " with " + arity + " argument(s)" : "")
-                            // A rejection that names a way out is worth more than one that does not;
-                            // most have none, so the hint is optional rather than a required field.
-                            + (selected.getUnsupportedHint() != null
-                                    ? " — " + selected.getUnsupportedHint() : "")));
+            violations.add(
+                    new Violation(
+                            Violation.UNSUPPORTED,
+                            function,
+                            Range.of(iqlToContext, function),
+                            "function '"
+                                    + function.getFunc()
+                                    + "' is not supported by this dialect"
+                                    + (set.size() > 1 ? " with " + arity + " argument(s)" : "")
+                                    // A rejection that names a way out is worth more than one that
+                                    // does not;
+                                    // most have none, so the hint is optional rather than a
+                                    // required field.
+                                    + (selected.getUnsupportedHint() != null
+                                            ? " — " + selected.getUnsupportedHint()
+                                            : "")));
             return;
         }
         if (function.getWindow() != null && selected.isWindowUnsupported()) {
@@ -390,22 +468,34 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
             // reached {@code ValidateException.isOnlyUnsupported}, so the shared fixture could not
             // be skipped automatically and needed a hand-written ignore= marker instead, which then
             // suppressed the SQL check as well. Same category, so both declarations behave alike.
-            violations.add(new Violation(Violation.UNSUPPORTED, function, Range.of(iqlToContext, function),
-                    "function '" + function.getFunc()
-                            + "' does not support an OVER clause in this dialect"));
+            violations.add(
+                    new Violation(
+                            Violation.UNSUPPORTED,
+                            function,
+                            Range.of(iqlToContext, function),
+                            "function '"
+                                    + function.getFunc()
+                                    + "' does not support an OVER clause in this dialect"));
             return;
         }
         if (set.stream().anyMatch(d -> d.getSignature() == null)) {
             return; // definitions without arity metadata are unchecked
         }
         int argCount = arity;
-        List<FunctionDefinition> arityMatches = set.stream()
-                .filter(d -> d.getSignature().matchesArity(argCount))
-                .toList();
+        List<FunctionDefinition> arityMatches =
+                set.stream().filter(d -> d.getSignature().matchesArity(argCount)).toList();
         if (arityMatches.isEmpty()) {
-            violations.add(new Violation("function", function, Range.of(iqlToContext, function),
-                    "no overload of '" + function.getFunc() + "' matches " + argCount
-                            + " argument(s) — candidates: " + candidates(set)));
+            violations.add(
+                    new Violation(
+                            "function",
+                            function,
+                            Range.of(iqlToContext, function),
+                            "no overload of '"
+                                    + function.getFunc()
+                                    + "' matches "
+                                    + argCount
+                                    + " argument(s) — candidates: "
+                                    + candidates(set)));
             return;
         }
         // Type-overload ambiguity: registration (collides) guarantees same-arity overloads are
@@ -416,10 +506,17 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
             List<Expression> args = function.getArguments();
             for (int i = 0; i < argCount; i++) {
                 if (args.get(i).isNull() && distinguishes(arityMatches, i)) {
-                    violations.add(new Violation("function", function, Range.of(iqlToContext, function),
-                            "ambiguous call to '" + function.getFunc() + "': argument " + (i + 1)
-                                    + " is untyped (NULL) but its overloads differ by type — candidates: "
-                                    + candidates(arityMatches)));
+                    violations.add(
+                            new Violation(
+                                    "function",
+                                    function,
+                                    Range.of(iqlToContext, function),
+                                    "ambiguous call to '"
+                                            + function.getFunc()
+                                            + "': argument "
+                                            + (i + 1)
+                                            + " is untyped (NULL) but its overloads differ by type — candidates: "
+                                            + candidates(arityMatches)));
                     return;
                 }
             }
@@ -428,16 +525,16 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
     }
 
     /**
-     * Rejects a call whose typed operands no candidate overload accepts (e.g.
-     * {@code round} on a TEXT value), via the family-aware {@link FunctionSignature#matches}.
-     * An untyped operand (NULL or unresolvable) is a wildcard, so this never fires
-     * on a call it cannot fully type.
+     * Rejects a call whose typed operands no candidate overload accepts (e.g. {@code round} on a
+     * TEXT value), via the family-aware {@link FunctionSignature#matches}. An untyped operand (NULL
+     * or unresolvable) is a wildcard, so this never fires on a call it cannot fully type.
      */
     private void checkArgumentFamilies(Function function, List<FunctionDefinition> arityMatches) {
         if (!typeChecks() || scopes.isEmpty()) {
             return;
         }
-        ExpressionTypeResolver types = new ExpressionTypeResolver(resolver, scopes.peek(), functions);
+        ExpressionTypeResolver types =
+                new ExpressionTypeResolver(resolver, scopes.peek(), functions);
         List<TypeFamily> callFamilies = new ArrayList<>();
         for (Expression arg : function.getArguments()) {
             TypeFamily family = null;
@@ -450,18 +547,29 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
             callFamilies.add(family);
         }
         if (arityMatches.stream().noneMatch(d -> d.getSignature().matches(callFamilies))) {
-            violations.add(new Violation("type", function, Range.of(iqlToContext, function),
-                    "no overload of '" + function.getFunc() + "' accepts argument types "
-                            + describe(callFamilies) + " — candidates: " + candidates(arityMatches)));
+            violations.add(
+                    new Violation(
+                            "type",
+                            function,
+                            Range.of(iqlToContext, function),
+                            "no overload of '"
+                                    + function.getFunc()
+                                    + "' accepts argument types "
+                                    + describe(callFamilies)
+                                    + " — candidates: "
+                                    + candidates(arityMatches)));
         }
     }
 
     private static String describe(List<TypeFamily> families) {
-        return families.stream().map(f -> f == null ? "?" : f.name())
+        return families.stream()
+                .map(f -> f == null ? "?" : f.name())
                 .collect(java.util.stream.Collectors.joining(", ", "(", ")"));
     }
 
-    /** Whether the overloads declare more than one distinct family at argument position {@code i}. */
+    /**
+     * Whether the overloads declare more than one distinct family at argument position {@code i}.
+     */
     private static boolean distinguishes(List<FunctionDefinition> overloads, int i) {
         return overloads.stream().map(d -> d.getSignature().familyAt(i)).distinct().count() > 1;
     }
@@ -471,19 +579,26 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
                 .map(d -> d.getName() + d.getSignature())
                 .collect(java.util.stream.Collectors.joining(", "));
     }
+
     @Override
     public boolean visit(Deque<Object> deque, Select select) {
 
-        SqlQueryRenderer.collectOut(select).stream().forEach(o -> {
+        SqlQueryRenderer.collectOut(select).stream()
+                .forEach(
+                        o -> {
+                            Expression e = o.getExpression();
 
-            Expression e = o.getExpression();
-
-            boolean a = isAggregateOfColumnOrIdentity(e);
-            boolean scalar = isScalarOfColumn(e);
-            if (a && scalar) {
-                violations.add(new Violation("function", e, Range.of(iqlToContext, e), "invalid aggregation"));
-            }
-        });
+                            boolean a = isAggregateOfColumnOrIdentity(e);
+                            boolean scalar = isScalarOfColumn(e);
+                            if (a && scalar) {
+                                violations.add(
+                                        new Violation(
+                                                "function",
+                                                e,
+                                                Range.of(iqlToContext, e),
+                                                "invalid aggregation"));
+                            }
+                        });
         if (typeChecks()) {
             scopes.push((scopes.isEmpty() ? rootVisibility : scopes.peek()).child(select));
         }
@@ -500,19 +615,24 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
     @Override
     public boolean visit(Deque<Object> deque, UnaryLogicalExpression logicalExpression) {
 
-            boolean aggregat = isAggregate(logicalExpression);
-            boolean scalar = isScalar(logicalExpression);
-            if (aggregat && scalar) {
-                violations.add(new Violation("function", logicalExpression, Range.of(iqlToContext, logicalExpression), "invalid aggregation"));
-            }
-            checkOperatorArity(logicalExpression);
-            checkOperandFamilies(logicalExpression);
-            checkIntervalComparison(logicalExpression);
-            checkKnownOperator(logicalExpression);
-            checkComparisonReconciliation(logicalExpression);
-            checkBarePredicate(logicalExpression);
-            return true;
+        boolean aggregat = isAggregate(logicalExpression);
+        boolean scalar = isScalar(logicalExpression);
+        if (aggregat && scalar) {
+            violations.add(
+                    new Violation(
+                            "function",
+                            logicalExpression,
+                            Range.of(iqlToContext, logicalExpression),
+                            "invalid aggregation"));
         }
+        checkOperatorArity(logicalExpression);
+        checkOperandFamilies(logicalExpression);
+        checkIntervalComparison(logicalExpression);
+        checkKnownOperator(logicalExpression);
+        checkComparisonReconciliation(logicalExpression);
+        checkBarePredicate(logicalExpression);
+        return true;
+    }
 
     /**
      * A literal zero divisor. Unlike a column that merely happens to contain a zero — which the
@@ -532,8 +652,12 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         for (int i = 1; i < args.size(); i++) {
             Number divisor = args.get(i).getNumber();
             if (divisor != null && divisor.doubleValue() == 0) {
-                violations.add(new Violation("type", function, Range.of(iqlToContext, function),
-                        "division by zero"));
+                violations.add(
+                        new Violation(
+                                "type",
+                                function,
+                                Range.of(iqlToContext, function),
+                                "division by zero"));
                 return;
             }
         }
@@ -550,12 +674,12 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
      * {@code find} is already a parse error — and {@code DISTINCT} in the {@code operator} rule is
      * one of them. A lower-case {@code distinct} therefore does not reach that alternative at all;
      * it becomes a <em>custom</em> operator that happens to share the name. What followed was worse
-     * than the escape hatch it looked like: the pass-through never happened, because
-     * {@code negatedOperatorTemplate} normalises its argument and handed back the ANSI
-     * {@code IS NOT DISTINCT FROM} — while the MariaDB and Oracle overrides, which compare exactly,
-     * did not fire. Both engines reject that form (ERROR 1064, ORA-00908), and the warning that
-     * would have hinted at it was suppressed by the same upper-case retry. Nobody writes a custom
-     * operator whose name collides with a built-in one; they mistyped the built-in.
+     * than the escape hatch it looked like: the pass-through never happened, because {@code
+     * negatedOperatorTemplate} normalises its argument and handed back the ANSI {@code IS NOT
+     * DISTINCT FROM} — while the MariaDB and Oracle overrides, which compare exactly, did not fire.
+     * Both engines reject that form (ERROR 1064, ORA-00908), and the warning that would have hinted
+     * at it was suppressed by the same upper-case retry. Nobody writes a custom operator whose name
+     * collides with a built-in one; they mistyped the built-in.
      */
     private void checkKnownOperator(UnaryLogicalExpression node) {
         String op = node.getOp();
@@ -567,14 +691,27 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         }
         String canonical = op.toUpperCase(Locale.ROOT);
         if (!canonical.equals(op) && isOperatorName(canonical)) {
-            violations.add(new Violation("function", node, Range.of(iqlToContext, node),
-                    "'" + op + "' is not a KQL operator — write it as '" + canonical
-                            + "'; KQL keywords are upper case"));
+            violations.add(
+                    new Violation(
+                            "function",
+                            node,
+                            Range.of(iqlToContext, node),
+                            "'"
+                                    + op
+                                    + "' is not a KQL operator — write it as '"
+                                    + canonical
+                                    + "'; KQL keywords are upper case"));
             return;
         }
-        violations.add(Violation.warning("function", node, Range.of(iqlToContext, node),
-                "'" + op + "' is not a KQL operator; it is passed through to SQL "
-                        + "unchanged and may not exist on other dialects"));
+        violations.add(
+                Violation.warning(
+                        "function",
+                        node,
+                        Range.of(iqlToContext, node),
+                        "'"
+                                + op
+                                + "' is not a KQL operator; it is passed through to SQL "
+                                + "unchanged and may not exist on other dialects"));
     }
 
     /** True if {@code name} is registered as an operator (any fixity other than a plain call). */
@@ -582,19 +719,23 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         return functions.overloads(name).stream().anyMatch(d -> d.getFixity() != Fixity.PREFIX);
     }
 
-    /** Ordered relational operators (a total order is required); the rest are equality/membership. */
-    private static final java.util.Set<String> ORDERED = java.util.Set.of("<", "<=", ">", ">=", "BETWEEN");
-
+    /**
+     * Ordered relational operators (a total order is required); the rest are equality/membership.
+     */
+    private static final java.util.Set<String> ORDERED =
+            java.util.Set.of("<", "<=", ">", ">=", "BETWEEN");
 
     /**
      * Ordered comparison of INTERVAL operands (docs/TEMPORAL.md, "Comparisons"):
+     *
      * <ul>
-     *   <li>a string-encoded interval (INTERVAL_FROM_STRING) is not SQL-orderable — reject;</li>
-     *   <li>operands must reduce to the <em>same</em> unit class (clock / days / months);
-     *       a mixed-unit duration or two different classes have no anchor-independent order.</li>
+     *   <li>a string-encoded interval (INTERVAL_FROM_STRING) is not SQL-orderable — reject;
+     *   <li>operands must reduce to the <em>same</em> unit class (clock / days / months); a
+     *       mixed-unit duration or two different classes have no anchor-independent order.
      * </ul>
-     * Native interval columns carry a DB-defined order, so they are left unconstrained.
-     * Only ordered operators are restricted; {@code =}/{@code !=} compare component-wise.
+     *
+     * Native interval columns carry a DB-defined order, so they are left unconstrained. Only
+     * ordered operators are restricted; {@code =}/{@code !=} compare component-wise.
      */
     private void checkIntervalComparison(UnaryLogicalExpression node) {
         if (!typeChecks() || scopes.isEmpty() || node.getOp() == null || node.getLeft() == null) {
@@ -603,21 +744,27 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         if (!ORDERED.contains(node.getOp().trim().toUpperCase(Locale.ROOT))) {
             return;
         }
-        ExpressionTypeResolver types = new ExpressionTypeResolver(resolver, scopes.peek(), functions);
+        ExpressionTypeResolver types =
+                new ExpressionTypeResolver(resolver, scopes.peek(), functions);
         List<Expression> operands = new ArrayList<>();
         operands.add(node.getLeft());
         operands.addAll(node.getRight());
 
         boolean anyInterval = false;
-        java.util.EnumSet<IntervalUnitClass> classes = java.util.EnumSet.noneOf(IntervalUnitClass.class);
+        java.util.EnumSet<IntervalUnitClass> classes =
+                java.util.EnumSet.noneOf(IntervalUnitClass.class);
         for (Expression e : operands) {
             Duration dur = e.getDuration();
             if (dur != null) {
                 anyInterval = true;
                 java.util.EnumSet<IntervalUnitClass> dc = durationClasses(dur);
                 if (dc.size() > 1) {
-                    intervalViolation(node, "a mixed-unit DURATION '" + dur + "' has no anchor-independent order — "
-                            + "order is defined only within one unit class (clock / days / months)");
+                    intervalViolation(
+                            node,
+                            "a mixed-unit DURATION '"
+                                    + dur
+                                    + "' has no anchor-independent order — "
+                                    + "order is defined only within one unit class (clock / days / months)");
                     return;
                 }
                 classes.addAll(dc);
@@ -634,20 +781,27 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
             }
             anyInterval = true;
             TypeEncoding enc = t.getTypeEncoding();
-            if (enc instanceof IntervalStringEncoding || CoreTypeEncoding.INTERVAL_FROM_STRING.equals(enc)) {
-                intervalViolation(node, "ordered comparison (<, >, BETWEEN) is not supported on a string-encoded "
-                        + "INTERVAL (INTERVAL_FROM_STRING) — store it as a numeric INTERVAL:<unit> or a native "
-                        + "interval, or compare with = / !=");
+            if (enc instanceof IntervalStringEncoding
+                    || CoreTypeEncoding.INTERVAL_FROM_STRING.equals(enc)) {
+                intervalViolation(
+                        node,
+                        "ordered comparison (<, >, BETWEEN) is not supported on a string-encoded "
+                                + "INTERVAL (INTERVAL_FROM_STRING) — store it as a numeric INTERVAL:<unit> or a native "
+                                + "interval, or compare with = / !=");
                 return;
             }
             if (enc instanceof IntervalTypeEncoding it) {
                 classes.add(IntervalUnitClass.of(it.getUnit()));
             }
-            // native interval (CoreTypeEncoding.INTERVAL_* or no encoding): DB-defined order — unconstrained
+            // native interval (CoreTypeEncoding.INTERVAL_* or no encoding): DB-defined order —
+            // unconstrained
         }
         if (anyInterval && classes.size() > 1) {
-            intervalViolation(node, "cannot order DURATIONs of different unit classes " + classes
-                    + " — clock, day and month amounts have no anchor-independent common order");
+            intervalViolation(
+                    node,
+                    "cannot order DURATIONs of different unit classes "
+                            + classes
+                            + " — clock, day and month amounts have no anchor-independent common order");
         }
     }
 
@@ -658,23 +812,22 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
     private static java.util.EnumSet<IntervalUnitClass> durationClasses(Duration dur) {
         java.util.EnumSet<IntervalUnitClass> s = java.util.EnumSet.noneOf(IntervalUnitClass.class);
         for (Duration.Component c : dur.getComponents()) {
-            s.add(switch (c.unit()) {
-                case MILLISECOND, SECOND, MINUTE, HOUR -> IntervalUnitClass.CLOCK;
-                case DAY, WEEK -> IntervalUnitClass.DAY;
-                case MONTH, QUARTAL, YEAR -> IntervalUnitClass.MONTH;
-            });
+            s.add(
+                    switch (c.unit()) {
+                        case MILLISECOND, SECOND, MINUTE, HOUR -> IntervalUnitClass.CLOCK;
+                        case DAY, WEEK -> IntervalUnitClass.DAY;
+                        case MONTH, QUARTAL, YEAR -> IntervalUnitClass.MONTH;
+                    });
         }
         return s;
     }
 
-
     /**
-     * Enforces an operator's declared argument families against the resolved
-     * operand types (e.g. LIKE requires TEXT on both sides). The operator is
-     * resolved by surface text, case-insensitively, so the constraint holds for
-     * {@code LIKE} and {@code like} alike; a {@code null} declared or resolved
-     * family is a wildcard, and an operand that cannot be typed is skipped (no
-     * false positive).
+     * Enforces an operator's declared argument families against the resolved operand types (e.g.
+     * LIKE requires TEXT on both sides). The operator is resolved by surface text,
+     * case-insensitively, so the constraint holds for {@code LIKE} and {@code like} alike; a {@code
+     * null} declared or resolved family is a wildcard, and an operand that cannot be typed is
+     * skipped (no false positive).
      */
     /**
      * An operator's arity against its signature.
@@ -686,8 +839,8 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
      * exception from SqlTemplate that shows the author a template instead of a place in their
      * query.
      *
-     * <p>Reports a positioned violation instead. An unknown operator (the grammar's open
-     * {@code custom=ID}) has no signature and is skipped.
+     * <p>Reports a positioned violation instead. An unknown operator (the grammar's open {@code
+     * custom=ID}) has no signature and is skipped.
      */
     private void checkOperatorArity(UnaryLogicalExpression node) {
         if (!typeChecks() || node.getOp() == null || node.getLeft() == null) {
@@ -699,14 +852,24 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         }
         int arity = 1 + node.getRight().size();
         if (!signature.matchesArity(arity)) {
-            violations.add(new Violation("function", node, Range.of(iqlToContext, node),
-                    "operator '" + node.getOp() + "' takes "
-                            + (signature.maxArgs() == Integer.MAX_VALUE
-                                    ? "at least " + signature.minArgs() + " operand(s)"
-                                    : signature.minArgs() == signature.maxArgs()
-                                            ? signature.minArgs() + " operand(s)"
-                                            : signature.minArgs() + " to " + signature.maxArgs() + " operands")
-                            + " but got " + arity));
+            violations.add(
+                    new Violation(
+                            "function",
+                            node,
+                            Range.of(iqlToContext, node),
+                            "operator '"
+                                    + node.getOp()
+                                    + "' takes "
+                                    + (signature.maxArgs() == Integer.MAX_VALUE
+                                            ? "at least " + signature.minArgs() + " operand(s)"
+                                            : signature.minArgs() == signature.maxArgs()
+                                                    ? signature.minArgs() + " operand(s)"
+                                                    : signature.minArgs()
+                                                            + " to "
+                                                            + signature.maxArgs()
+                                                            + " operands")
+                                    + " but got "
+                                    + arity));
         }
     }
 
@@ -718,7 +881,8 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         if (signature == null) {
             return;
         }
-        ExpressionTypeResolver types = new ExpressionTypeResolver(resolver, scopes.peek(), functions);
+        ExpressionTypeResolver types =
+                new ExpressionTypeResolver(resolver, scopes.peek(), functions);
         requireFamily(node, signature, 0, node.getLeft(), types);
         List<Expression> right = node.getRight();
         for (int i = 0; i < right.size(); i++) {
@@ -728,9 +892,9 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
 
     /**
      * A bare predicate — a boolean expression standing alone, with no operator — must actually be
-     * BOOLEAN. The grammar cannot tell {@code FILTER starts_with(c.name, 'A')} from
-     * {@code FILTER c.company_name}; only the type can, and without this the second would render as
-     * a non-boolean WHERE clause and fail at the database with a message pointing nowhere useful.
+     * BOOLEAN. The grammar cannot tell {@code FILTER starts_with(c.name, 'A')} from {@code FILTER
+     * c.company_name}; only the type can, and without this the second would render as a non-boolean
+     * WHERE clause and fail at the database with a message pointing nowhere useful.
      *
      * <p>An operand that cannot be typed is skipped, as everywhere else in this class.
      */
@@ -738,48 +902,66 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         if (!typeChecks() || scopes.isEmpty() || node.getLeft() == null) {
             return;
         }
-        boolean bare = node.getOp() == null && node.getRight().isEmpty()
-                && node.getPlaceholder() == null && node.getExists() == null && node.getNode() == null;
+        boolean bare =
+                node.getOp() == null
+                        && node.getRight().isEmpty()
+                        && node.getPlaceholder() == null
+                        && node.getExists() == null
+                        && node.getNode() == null;
         if (!bare) {
             return;
         }
-        TypeDescriptor t = resolveOrNull(new ExpressionTypeResolver(resolver, scopes.peek(), functions), node.getLeft());
-        if (t == null || t.getTypeFamily() == null || CoreTypeFamily.BOOLEAN.equals(t.getTypeFamily())) {
+        TypeDescriptor t =
+                resolveOrNull(
+                        new ExpressionTypeResolver(resolver, scopes.peek(), functions),
+                        node.getLeft());
+        if (t == null
+                || t.getTypeFamily() == null
+                || CoreTypeFamily.BOOLEAN.equals(t.getTypeFamily())) {
             return;
         }
-        violations.add(new Violation("type", node, Range.of(iqlToContext, node),
-                "a filter condition must be a yes/no test, but this is "
-                        + t.getTypeFamily().name() + " — compare it with an operator, e.g. `= 'x'` or `> 0`"));
+        violations.add(
+                new Violation(
+                        "type",
+                        node,
+                        Range.of(iqlToContext, node),
+                        "a filter condition must be a yes/no test, but this is "
+                                + t.getTypeFamily().name()
+                                + " — compare it with an operator, e.g. `= 'x'` or `> 0`"));
     }
 
-    /** Comparison operators whose operands must meet in one type; all declare {@code Families.ANY}. */
+    /**
+     * Comparison operators whose operands must meet in one type; all declare {@code Families.ANY}.
+     */
     private static final java.util.Set<String> COMPARABLE =
             java.util.Set.of("=", "<>", "<", "<=", ">", ">=", "BETWEEN", "IN", "DISTINCT");
 
     /**
      * Cross-operand type compatibility for the comparison operators.
      *
-     * <p>{@link #checkOperandFamilies} only tests each operand against its <em>declared</em> family,
-     * and every operator here declares {@code Families.ANY} — so nothing checked that the two sides
-     * can meet at all, and {@code o.order_date = 'foo'} validated silently. The question is exactly
-     * the one {@link ConditionalReconciler} already answers for {@code case}/{@code coalesce}
-     * branches (see {@link #checkConditionalReconciliation}): do these types reconcile to one type,
-     * with numeric widening and a lossless common encoding?
+     * <p>{@link #checkOperandFamilies} only tests each operand against its <em>declared</em>
+     * family, and every operator here declares {@code Families.ANY} — so nothing checked that the
+     * two sides can meet at all, and {@code o.order_date = 'foo'} validated silently. The question
+     * is exactly the one {@link ConditionalReconciler} already answers for {@code case}/{@code
+     * coalesce} branches (see {@link #checkConditionalReconciliation}): do these types reconcile to
+     * one type, with numeric widening and a lossless common encoding?
      *
      * <p>The two failure modes are not equally serious, so they are not reported alike:
+     *
      * <ul>
      *   <li>{@code FAMILY_GROUP} — comparing a DATE to TEXT, a number to TEXT, a TIME to a
      *       TIMESTAMP — is an <b>error</b>. There is no reading of the query under which it was
      *       intended, and letting it through is how {@code BETWEEN '1997-01-01' AND '1997-12-31'}
-     *       reached the docs comparing a DATE against two strings.</li>
+     *       reached the docs comparing a DATE against two strings.
      *   <li>{@code ENCODING} — one family, two storage representations with no lossless meeting
-     *       point — is a <b>warning</b>. The representations that <em>do</em> have one are converted
-     *       by the renderer (see {@code SqlDialect.renderComparison}), so what is left here really
-     *       is "nothing can be done", not "not implemented yet".</li>
+     *       point — is a <b>warning</b>. The representations that <em>do</em> have one are
+     *       converted by the renderer (see {@code SqlDialect.renderComparison}), so what is left
+     *       here really is "nothing can be done", not "not implemented yet".
      * </ul>
      *
-     * <p>{@code ISNULL} (one operand) and {@code LIKE} (already family-checked) are excluded, and an
-     * operand that cannot be typed — a NULL literal included — is skipped rather than guessed at.
+     * <p>{@code ISNULL} (one operand) and {@code LIKE} (already family-checked) are excluded, and
+     * an operand that cannot be typed — a NULL literal included — is skipped rather than guessed
+     * at.
      */
     private void checkComparisonReconciliation(UnaryLogicalExpression node) {
         if (!typeChecks() || scopes.isEmpty() || node.getOp() == null || node.getLeft() == null) {
@@ -788,7 +970,8 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         if (!COMPARABLE.contains(node.getOp().trim().toUpperCase(Locale.ROOT))) {
             return;
         }
-        ExpressionTypeResolver types = new ExpressionTypeResolver(resolver, scopes.peek(), functions);
+        ExpressionTypeResolver types =
+                new ExpressionTypeResolver(resolver, scopes.peek(), functions);
         List<TypeDescriptor> operands = new ArrayList<>();
         operands.add(resolveOrNull(types, node.getLeft()));
         for (Expression e : node.getRight()) {
@@ -801,11 +984,16 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         try {
             ConditionalReconciler.reconcile(operands);
         } catch (ConditionalReconciler.ReconcileException e) {
-            String message = "operands of '" + node.getOp() + "' do not share a common type: " + e.getMessage();
+            String message =
+                    "operands of '"
+                            + node.getOp()
+                            + "' do not share a common type: "
+                            + e.getMessage();
             Range range = Range.of(iqlToContext, node);
-            violations.add(e.getKind() == ConditionalReconciler.ReconcileException.Kind.FAMILY_GROUP
-                    ? new Violation("type", node, range, message)
-                    : Violation.warning("type", node, range, message));
+            violations.add(
+                    e.getKind() == ConditionalReconciler.ReconcileException.Kind.FAMILY_GROUP
+                            ? new Violation("type", node, range, message)
+                            : Violation.warning("type", node, range, message));
         }
     }
 
@@ -820,8 +1008,12 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         return null;
     }
 
-    private void requireFamily(UnaryLogicalExpression node, FunctionSignature signature,
-            int position, Expression operand, ExpressionTypeResolver types) {
+    private void requireFamily(
+            UnaryLogicalExpression node,
+            FunctionSignature signature,
+            int position,
+            Expression operand,
+            ExpressionTypeResolver types) {
         TypeFamily declared = signature.familyAt(position);
         if (declared == null) {
             return;
@@ -834,9 +1026,19 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
             got = null;
         }
         if (got != null && !declared.accepts(got)) {
-            violations.add(new Violation("type", node, Range.of(iqlToContext, node),
-                    "operator '" + node.getOp() + "' requires " + declared.name()
-                            + " at argument " + (position + 1) + " but got " + got.name()));
+            violations.add(
+                    new Violation(
+                            "type",
+                            node,
+                            Range.of(iqlToContext, node),
+                            "operator '"
+                                    + node.getOp()
+                                    + "' requires "
+                                    + declared.name()
+                                    + " at argument "
+                                    + (position + 1)
+                                    + " but got "
+                                    + got.name()));
         }
     }
 
@@ -853,7 +1055,9 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
             return false;
         }
 
-        boolean rightAggregat = logicalExpression.getRight().stream().anyMatch(r -> isAggregateOfColumnOrIdentity(r));
+        boolean rightAggregat =
+                logicalExpression.getRight().stream()
+                        .anyMatch(r -> isAggregateOfColumnOrIdentity(r));
         if (rightAggregat) {
             return true;
         }
@@ -876,7 +1080,8 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         }
         // TODO exists
 
-        boolean rightScalar = logicalExpression.getRight().stream().anyMatch(r -> isScalarOfColumn(r));
+        boolean rightScalar =
+                logicalExpression.getRight().stream().anyMatch(r -> isScalarOfColumn(r));
         if (rightScalar) {
             return true;
         }
@@ -914,24 +1119,24 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         return logicalExpression.getChildren().stream().anyMatch(l -> isScalar(l));
     }
 
-//    public boolean isAggregate(Join join) {
-//
-//        if (isAggregate(join.getSource())) {
-//            return true;
-//        }
-//        return join.getJoin().stream().anyMatch(j -> isAggregate(j));
-//    }
+    //    public boolean isAggregate(Join join) {
+    //
+    //        if (isAggregate(join.getSource())) {
+    //            return true;
+    //        }
+    //        return join.getJoin().stream().anyMatch(j -> isAggregate(j));
+    //    }
 
-//    public boolean isAggregate(Source table) {
-//        if (table.getFilter() != null && isAggregate(table.getFilter())) {
-//            return true;
-//        }
-//        if (table.getHaving() != null && isAggregate(table.getHaving())) {
-//            return true;
-//        }
-//
-//        return false;
-//    }
+    //    public boolean isAggregate(Source table) {
+    //        if (table.getFilter() != null && isAggregate(table.getFilter())) {
+    //            return true;
+    //        }
+    //        if (table.getHaving() != null && isAggregate(table.getHaving())) {
+    //            return true;
+    //        }
+    //
+    //        return false;
+    //    }
 
     public boolean isScalar(Exists exists) {
 
@@ -980,14 +1185,16 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
             return f.getArguments().stream().anyMatch(FunctionValidator::containsWindow);
         }
         if (expression.getLogical() != null) {
-            return logicalOperands(expression.getLogical()).stream().anyMatch(FunctionValidator::containsWindow);
+            return logicalOperands(expression.getLogical()).stream()
+                    .anyMatch(FunctionValidator::containsWindow);
         }
         return false;
     }
 
     public static boolean isAggregateOfColumnOrIdentity(Expression expression) {
 
-        if (expression.getFunction() != null && isAggregateOfColumnOrIdentity(expression.getFunction())) {
+        if (expression.getFunction() != null
+                && isAggregateOfColumnOrIdentity(expression.getFunction())) {
             return true;
         }
         if (expression.getLogical() != null) {
@@ -1011,7 +1218,8 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         } else if (expression.getFunction() != null) {
             return isScalarOfColumn(expression.getFunction());
         } else if (expression.getLogical() != null) {
-            return logicalOperands(expression.getLogical()).stream().anyMatch(this::isScalarOfColumn);
+            return logicalOperands(expression.getLogical()).stream()
+                    .anyMatch(this::isScalarOfColumn);
         } else {
             return false;
         }
@@ -1020,14 +1228,15 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
     private boolean isScalarOfColumn(Function function) {
 
         if (hasColumnOrIdentity(function, false)) {
-            return !isAggregate(function) ;
+            return !isAggregate(function);
         }
 
-        boolean result = function.getArguments().stream()
-                .filter(e -> e.getFunction() != null)
-                .map(e -> e.getFunction())
-                .filter(f -> !isAggregate(f))
-                .anyMatch(f -> isScalarOfColumn(f));
+        boolean result =
+                function.getArguments().stream()
+                        .filter(e -> e.getFunction() != null)
+                        .map(e -> e.getFunction())
+                        .filter(f -> !isAggregate(f))
+                        .anyMatch(f -> isScalarOfColumn(f));
         return result;
     }
 
@@ -1035,7 +1244,10 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         return function.getArguments().stream().anyMatch(e -> hasColumnOrIdentity(e, aggregate));
     }
 
-    /** Whether an argument (incl. a logical-expression condition's operands) carries a column or identity. */
+    /**
+     * Whether an argument (incl. a logical-expression condition's operands) carries a column or
+     * identity.
+     */
     private static boolean hasColumnOrIdentity(Expression e, boolean aggregate) {
         if (e.getField() != null || e.getIdentity() != null) {
             return true;
@@ -1044,12 +1256,16 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
             return hasColumnOrIdentity(e.getFunction(), aggregate);
         }
         if (e.getLogical() != null) {
-            return logicalOperands(e.getLogical()).stream().anyMatch(op -> hasColumnOrIdentity(op, aggregate));
+            return logicalOperands(e.getLogical()).stream()
+                    .anyMatch(op -> hasColumnOrIdentity(op, aggregate));
         }
         return false;
     }
 
-    /** All operand expressions inside a logical (boolean) condition — the left/right of each comparison. */
+    /**
+     * All operand expressions inside a logical (boolean) condition — the left/right of each
+     * comparison.
+     */
     private static List<Expression> logicalOperands(LogicalExpression logical) {
         List<Expression> operands = new ArrayList<>();
         collectLogicalOperands(logical, operands);
@@ -1067,7 +1283,7 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
                     out.add(unary.getLeft());
                 }
                 out.addAll(unary.getRight());
-                collectLogicalOperands(unary.getNode(), out);   // parenthesized nested logical
+                collectLogicalOperands(unary.getNode(), out); // parenthesized nested logical
             }
         } else {
             for (LogicalExpression child : logical.getChildren()) {

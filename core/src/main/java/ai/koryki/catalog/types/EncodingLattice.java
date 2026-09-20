@@ -21,9 +21,9 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
- * Lossless conversion lattice over the {@link TypeEncoding}s of a <em>single</em> {@link TypeFamily}.
- * Reconciling the branches of a conditional (CASE / COALESCE / IF) picks one common encoding that
- * every branch reaches without loss; this lattice answers which targets are reachable
+ * Lossless conversion lattice over the {@link TypeEncoding}s of a <em>single</em> {@link
+ * TypeFamily}. Reconciling the branches of a conditional (CASE / COALESCE / IF) picks one common
+ * encoding that every branch reaches without loss; this lattice answers which targets are reachable
  * ({@link #losslessTargets}), how expensive each is ({@link #cost}), and how to render the
  * conversion ({@link #convertSql}).
  *
@@ -34,11 +34,11 @@ import java.util.Set;
  *
  * <p><b>TIME:</b> the three second-resolution encodings — {@code TIME_SECONDS_FROM_MIDNIGHT},
  * {@code TIME_FROM_INTEGER} (HHMMSS) and {@code TIME_FROM_STRING} ('HH:MM:SS') — all convert
- * losslessly to seconds-of-day, so that is their common target. The set matches
- * {@code TimeEncodings.secondsConvertible}, which the arithmetic path already keys off: seconds is
- * where TIME arithmetic happens, so comparison and arithmetic meet in the same domain. A
- * <em>native</em> TIME column is deliberately excluded (it keeps the dialect-native path), as are
- * {@code TIME_FROM_DATE} and {@code TIME_FROM_TIMESTAMP}, which carry a date part.
+ * losslessly to seconds-of-day, so that is their common target. The set matches {@code
+ * TimeEncodings.secondsConvertible}, which the arithmetic path already keys off: seconds is where
+ * TIME arithmetic happens, so comparison and arithmetic meet in the same domain. A <em>native</em>
+ * TIME column is deliberately excluded (it keeps the dialect-native path), as are {@code
+ * TIME_FROM_DATE} and {@code TIME_FROM_TIMESTAMP}, which carry a date part.
  *
  * <p>Every other encoding is a lattice singleton — only itself — so unlike encodings in those
  * families have no common target and reconciliation hard-errors until their conversions are added
@@ -48,8 +48,9 @@ import java.util.Set;
 public final class EncodingLattice {
 
     /** The epoch units koryki decodes (see {@code CoreDecoder}); all powers of ten apart. */
-    private static final ChronoUnit[] EPOCH_UNITS =
-            { ChronoUnit.SECONDS, ChronoUnit.MILLIS, ChronoUnit.MICROS, ChronoUnit.NANOS };
+    private static final ChronoUnit[] EPOCH_UNITS = {
+        ChronoUnit.SECONDS, ChronoUnit.MILLIS, ChronoUnit.MICROS, ChronoUnit.NANOS
+    };
 
     /**
      * Largest {@code SCALED:n} considered as a conversion target. A bound is needed because the
@@ -69,18 +70,25 @@ public final class EncodingLattice {
 
     /** Interval units worth scaling between, grouped by {@link IntervalUnitClass}. */
     private static final ChronoUnit[] INTERVAL_UNITS = {
-            ChronoUnit.NANOS, ChronoUnit.MICROS, ChronoUnit.MILLIS, ChronoUnit.SECONDS,
-            ChronoUnit.MINUTES, ChronoUnit.HOURS,
-            ChronoUnit.DAYS, ChronoUnit.WEEKS,
-            ChronoUnit.MONTHS, ChronoUnit.YEARS };
+        ChronoUnit.NANOS,
+        ChronoUnit.MICROS,
+        ChronoUnit.MILLIS,
+        ChronoUnit.SECONDS,
+        ChronoUnit.MINUTES,
+        ChronoUnit.HOURS,
+        ChronoUnit.DAYS,
+        ChronoUnit.WEEKS,
+        ChronoUnit.MONTHS,
+        ChronoUnit.YEARS
+    };
 
     /**
      * The encodings {@code enc} converts to without loss, including {@code enc} itself.
      *
      * <p>An encoding not listed here is an island, reachable only from itself — which is what
-     * decides whether a comparison of two differently-encoded columns can be reconciled (see
-     * {@code SqlDialect.renderComparison}) or has to be reported instead. Adding a pair is the
-     * extension point; it serves conditional branches and comparisons alike.
+     * decides whether a comparison of two differently-encoded columns can be reconciled (see {@code
+     * SqlDialect.renderComparison}) or has to be reported instead. Adding a pair is the extension
+     * point; it serves conditional branches and comparisons alike.
      */
     public static Set<TypeEncoding> losslessTargets(TypeEncoding enc) {
         Set<TypeEncoding> targets = new LinkedHashSet<>();
@@ -115,23 +123,26 @@ public final class EncodingLattice {
         return targets;
     }
 
-    /** Conversion cost {@code from -> to}; {@code to} must be a {@link #losslessTargets} of {@code from}. */
+    /**
+     * Conversion cost {@code from -> to}; {@code to} must be a {@link #losslessTargets} of {@code
+     * from}.
+     */
     public static int cost(TypeEncoding from, TypeEncoding to) {
         if (from.equals(to)) return 0;
         if (from instanceof EpochTypeEncoding && to instanceof EpochTypeEncoding) {
-            return 1;   // a single scalar multiply
+            return 1; // a single scalar multiply
         }
         if (from instanceof IntervalTypeEncoding && to instanceof IntervalTypeEncoding) {
-            return 1;   // likewise
+            return 1; // likewise
         }
         if (from instanceof ScaledTypeEncoding && to instanceof ScaledTypeEncoding) {
-            return 1;   // likewise
+            return 1; // likewise
         }
         if (CoreTypeEncoding.TIME_FROM_INTEGER.equals(from) && isSecondOfDay(to)) {
-            return 2;   // integer div/mod arithmetic
+            return 2; // integer div/mod arithmetic
         }
         if (CoreTypeEncoding.TIME_FROM_STRING.equals(from) && isSecondOfDay(to)) {
-            return 3;   // parse the text, then extract
+            return 3; // parse the text, then extract
         }
         throw new IllegalArgumentException("no lossless conversion " + from + " -> " + to);
     }
@@ -145,13 +156,17 @@ public final class EncodingLattice {
     public static String convertSql(String expr, TypeEncoding from, TypeEncoding to) {
         if (from.equals(to)) return expr;
         if (from instanceof EpochTypeEncoding ef && to instanceof EpochTypeEncoding et) {
-            long factor = ratio(ef.getUnit(), et.getUnit());   // to is finer => factor >= 1
+            long factor = ratio(ef.getUnit(), et.getUnit()); // to is finer => factor >= 1
             return factor == 1 ? expr : "(" + expr + ") * " + factor;
         }
         if (from instanceof IntervalTypeEncoding fi && to instanceof IntervalTypeEncoding ti) {
             if (IntervalUnitClass.of(fi.getUnit()) != IntervalUnitClass.of(ti.getUnit())) {
-                throw new IllegalArgumentException("no anchor-independent conversion across interval "
-                        + "unit classes: " + from + " -> " + to);
+                throw new IllegalArgumentException(
+                        "no anchor-independent conversion across interval "
+                                + "unit classes: "
+                                + from
+                                + " -> "
+                                + to);
             }
             long factor = ratio(fi.getUnit(), ti.getUnit());
             return factor == 1 ? expr : "(" + expr + ") * " + factor;
@@ -168,9 +183,15 @@ public final class EncodingLattice {
                 // HHMMSS -> seconds: hh*3600 + mm*60 + ss. FLOOR before CAST: a bare
                 // CAST(<fraction> AS INTEGER) rounds rather than truncates in some dialects
                 // (DuckDB: 23.5959 -> 24).
-                return "CAST(FLOOR(" + expr + " / 10000.0) AS INTEGER) * 3600"
-                     + " + MOD(CAST(FLOOR(" + expr + " / 100.0) AS INTEGER), 100) * 60"
-                     + " + MOD(" + expr + ", 100)";
+                return "CAST(FLOOR("
+                        + expr
+                        + " / 10000.0) AS INTEGER) * 3600"
+                        + " + MOD(CAST(FLOOR("
+                        + expr
+                        + " / 100.0) AS INTEGER), 100) * 60"
+                        + " + MOD("
+                        + expr
+                        + ", 100)";
             }
             if (CoreTypeEncoding.TIME_FROM_STRING.equals(from)) {
                 return "CAST(EXTRACT(EPOCH FROM CAST(" + expr + " AS TIME)) AS INTEGER)";
@@ -179,7 +200,10 @@ public final class EncodingLattice {
         throw new IllegalArgumentException("no lossless conversion " + from + " -> " + to);
     }
 
-    /** {@code to} is the same or a finer unit than {@code from} (so from-&gt;to is an exact integer scale). */
+    /**
+     * {@code to} is the same or a finer unit than {@code from} (so from-&gt;to is an exact integer
+     * scale).
+     */
     private static boolean isFinerOrEqual(ChronoUnit from, ChronoUnit to) {
         long f = from.getDuration().toNanos();
         long t = to.getDuration().toNanos();

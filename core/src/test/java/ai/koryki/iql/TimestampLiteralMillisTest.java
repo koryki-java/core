@@ -1,30 +1,45 @@
+/*
+ * Copyright 2025-2026 Johannes Zemlin
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package ai.koryki.iql;
-
-import org.junit.jupiter.api.Test;
-
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import org.junit.jupiter.api.Test;
+
 /**
- * A timestamp literal keeps its milliseconds. {@code TIMESTAMP_STRING} ends in an optional
- * {@code '.' DIGIT DIGIT DIGIT} and both mappers parse it, but every dialect held its own
- * {@code ofPattern("yyyy-MM-dd HH:mm:ss")} — no fractional part — so the value was parsed, carried,
- * and then dropped at the last step: {@code "…17:00:00.500"} reached the database as
- * {@code '…17:00:00'}, half a second early and silently.
+ * A timestamp literal keeps its milliseconds. {@code TIMESTAMP_STRING} ends in an optional {@code
+ * '.' DIGIT DIGIT DIGIT} and both mappers parse it, but every dialect held its own {@code
+ * ofPattern("yyyy-MM-dd HH:mm:ss")} — no fractional part — so the value was parsed, carried, and
+ * then dropped at the last step: {@code "…17:00:00.500"} reached the database as {@code
+ * '…17:00:00'}, half a second early and silently.
  */
 class TimestampLiteralMillisTest {
 
     private static final LocalDateTime WITH_MS = LocalDateTime.parse("1996-12-31T17:00:00.500");
-    private static final LocalDateTime WHOLE   = LocalDateTime.parse("1996-12-31T17:00:00");
+    private static final LocalDateTime WHOLE = LocalDateTime.parse("1996-12-31T17:00:00");
 
     @Test
     void millisecondsSurviveAndWholeSecondsGainNoFraction() {
         assertEquals("1996-12-31 17:00:00.500", SqlDialect.plainTimestamp(WITH_MS));
-        assertEquals("1996-12-31 17:00:00",     SqlDialect.plainTimestamp(WHOLE));
+        assertEquals("1996-12-31 17:00:00", SqlDialect.plainTimestamp(WHOLE));
         assertEquals("17:00:00.500", SqlDialect.plainTime(LocalTime.parse("17:00:00.500")));
-        assertEquals("17:00:00",     SqlDialect.plainTime(LocalTime.parse("17:00:00")));
+        assertEquals("17:00:00", SqlDialect.plainTime(LocalTime.parse("17:00:00")));
     }
 
     /**
@@ -33,20 +48,25 @@ class TimestampLiteralMillisTest {
      */
     @Test
     void theFractionIsAlwaysThreeDigits() {
-        assertEquals("1996-12-31 17:00:00.500", SqlDialect.plainTimestamp(
-                LocalDateTime.parse("1996-12-31T17:00:00.5")));
-        assertEquals("1996-12-31 17:00:00.050", SqlDialect.plainTimestamp(
-                LocalDateTime.parse("1996-12-31T17:00:00.05")));
-        assertEquals("1996-12-31 17:00:00.007", SqlDialect.plainTimestamp(
-                LocalDateTime.parse("1996-12-31T17:00:00.007")));
+        assertEquals(
+                "1996-12-31 17:00:00.500",
+                SqlDialect.plainTimestamp(LocalDateTime.parse("1996-12-31T17:00:00.5")));
+        assertEquals(
+                "1996-12-31 17:00:00.050",
+                SqlDialect.plainTimestamp(LocalDateTime.parse("1996-12-31T17:00:00.05")));
+        assertEquals(
+                "1996-12-31 17:00:00.007",
+                SqlDialect.plainTimestamp(LocalDateTime.parse("1996-12-31T17:00:00.007")));
     }
 
     /** Every dialect that renders its own timestamp literal now carries the fraction through. */
     @Test
     void everyDialectKeepsTheFraction() {
-        assertEquals("TIMESTAMP '1996-12-31 17:00:00.500'",
+        assertEquals(
+                "TIMESTAMP '1996-12-31 17:00:00.500'",
                 DuckdbBaseDialect.INSTANCE.timestampLiteral(WITH_MS));
-        assertEquals("TIME '17:00:00.500'",
+        assertEquals(
+                "TIME '17:00:00.500'",
                 DuckdbBaseDialect.INSTANCE.timeLiteral(LocalTime.parse("17:00:00.500")));
     }
 }

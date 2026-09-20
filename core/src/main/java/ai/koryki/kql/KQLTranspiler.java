@@ -20,34 +20,32 @@ import ai.koryki.antlr.AbstractReader;
 import ai.koryki.antlr.AbstractTranspiler;
 import ai.koryki.antlr.Bag;
 import ai.koryki.antlr.Lazy;
+import ai.koryki.catalog.domain.Model;
+import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.iql.BlockLeadingSourceCollector;
 import ai.koryki.iql.BlockRegistryCollector;
 import ai.koryki.iql.IQLVisibilityContext;
 import ai.koryki.iql.LinkResolver;
+import ai.koryki.iql.OutputColumn;
 import ai.koryki.iql.SelectScopeCollector;
 import ai.koryki.iql.SqlQueryRenderer;
 import ai.koryki.iql.SqlRenderer;
-import ai.koryki.iql.OutputColumn;
-import ai.koryki.iql.functions.FunctionCatalog;
-import ai.koryki.iql.typing.ExpressionTypeResolver;
 import ai.koryki.iql.Walker;
+import ai.koryki.iql.functions.FunctionCatalog;
 import ai.koryki.iql.query.Block;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Out;
 import ai.koryki.iql.query.Query;
-import ai.koryki.iql.rewrite.DateBetweenRewriter;
 import ai.koryki.iql.query.Source;
-import ai.koryki.catalog.types.TypeDescriptor;
+import ai.koryki.iql.rewrite.DateBetweenRewriter;
 import ai.koryki.iql.rules.Rules;
-import ai.koryki.iql.validate.PlaceholderValidator;
+import ai.koryki.iql.typing.ExpressionTypeResolver;
 import ai.koryki.iql.validate.IdentityUseValidator;
+import ai.koryki.iql.validate.PlaceholderValidator;
 import ai.koryki.iql.validate.ValidateException;
 import ai.koryki.iql.validate.Validator;
 import ai.koryki.iql.validate.Violation;
 import ai.koryki.jdbc.ColumnInfo;
-import ai.koryki.catalog.domain.Model;
-import org.antlr.v4.runtime.RuleContext;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -55,13 +53,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.antlr.v4.runtime.RuleContext;
 
 /**
- * Lazy pipeline of memoized pure stages: reader → ctx → analysis.
- * The analysis stage maps the tree, derives the visibility maps from the
- * pre-rules tree, applies the rewrite rules, and validates — all in one atomic
- * step, so the tree is never observable in its pre-rules state. Every accessor
- * is idempotent.
+ * Lazy pipeline of memoized pure stages: reader → ctx → analysis. The analysis stage maps the tree,
+ * derives the visibility maps from the pre-rules tree, applies the rewrite rules, and validates —
+ * all in one atomic step, so the tree is never observable in its pre-rules state. Every accessor is
+ * idempotent.
  */
 public class KQLTranspiler extends AbstractTranspiler<KQLReader, KQLParser.QueryContext> {
 
@@ -73,14 +71,15 @@ public class KQLTranspiler extends AbstractTranspiler<KQLReader, KQLParser.Query
     private final Lazy<Analysis> analysis = Lazy.of(this::analyze);
 
     /**
-     * Output of the single analysis stage. The rules mutate the query tree
-     * inside this stage only; {@code iqlToContext} is keyed by node identity,
-     * which is why the tree is rewritten in place rather than copied.
+     * Output of the single analysis stage. The rules mutate the query tree inside this stage only;
+     * {@code iqlToContext} is keyed by node identity, which is why the tree is rewritten in place
+     * rather than copied.
      */
-    private record Analysis(Query query,
-                            IQLVisibilityContext visibility,
-                            Map<Object, RuleContext> iqlToContext,
-                            List<Violation> violations) {}
+    private record Analysis(
+            Query query,
+            IQLVisibilityContext visibility,
+            Map<Object, RuleContext> iqlToContext,
+            List<Violation> violations) {}
 
     public KQLTranspiler(InputStream kql, LinkResolver resolver) throws IOException {
         this(AbstractReader.readStream(kql), resolver);
@@ -90,18 +89,27 @@ public class KQLTranspiler extends AbstractTranspiler<KQLReader, KQLParser.Query
         this(kql, resolver, null);
     }
 
-    public KQLTranspiler(InputStream kql, LinkResolver resolver, FunctionCatalog functions) throws IOException {
+    public KQLTranspiler(InputStream kql, LinkResolver resolver, FunctionCatalog functions)
+            throws IOException {
         this(AbstractReader.readStream(kql), resolver, functions);
     }
 
-    /** @param functions dialect function catalog for arity/unsupported validation; null = skip those checks */
+    /**
+     * @param functions dialect function catalog for arity/unsupported validation; null = skip those
+     *     checks
+     */
     public KQLTranspiler(String kql, LinkResolver resolver, FunctionCatalog functions) {
         this(kql, resolver, functions, null);
     }
 
-    /** @param dialect contributes validators for constructs it cannot express; null = skip those */
-    public KQLTranspiler(String kql, LinkResolver resolver, FunctionCatalog functions,
-                         ai.koryki.iql.SqlDialect dialect) {
+    /**
+     * @param dialect contributes validators for constructs it cannot express; null = skip those
+     */
+    public KQLTranspiler(
+            String kql,
+            LinkResolver resolver,
+            FunctionCatalog functions,
+            ai.koryki.iql.SqlDialect dialect) {
 
         this.kql = kql;
         this.resolver = resolver;
@@ -115,7 +123,8 @@ public class KQLTranspiler extends AbstractTranspiler<KQLReader, KQLParser.Query
     }
 
     /** Fluent assembly from a stream; the source is read eagerly. */
-    public static KQLTranspilerBuilder builder(InputStream kql, LinkResolver resolver) throws IOException {
+    public static KQLTranspilerBuilder builder(InputStream kql, LinkResolver resolver)
+            throws IOException {
         return new KQLTranspilerBuilder(AbstractReader.readStream(kql), resolver);
     }
 
@@ -133,9 +142,11 @@ public class KQLTranspiler extends AbstractTranspiler<KQLReader, KQLParser.Query
         // scope and visibility maps are derived from the pre-rules tree
         SelectScopeCollector select2Aliases = new SelectScopeCollector(iqlToContext);
         Map<Object, Map<String, Source>> s2a = Walker.apply(q, select2Aliases);
-        Map<String, Source> blockIdToLeadingSourceMap = Walker.apply(q, new BlockLeadingSourceCollector());
+        Map<String, Source> blockIdToLeadingSourceMap =
+                Walker.apply(q, new BlockLeadingSourceCollector());
         Map<String, Block> blockIdToBlockMap = Walker.apply(q, new BlockRegistryCollector());
-        IQLVisibilityContext visibility = new IQLVisibilityContext(blockIdToBlockMap, blockIdToLeadingSourceMap, s2a);
+        IQLVisibilityContext visibility =
+                new IQLVisibilityContext(blockIdToBlockMap, blockIdToLeadingSourceMap, s2a);
 
         // An unbound placeholder stops the pipeline for the same reason a broken scope does, and
         // before it: the query is a template, so every later stage would work on a hole. Checked
@@ -152,11 +163,14 @@ public class KQLTranspiler extends AbstractTranspiler<KQLReader, KQLParser.Query
         // rather than throw, so violations() stays a value (see its javadoc) and Engine.validateKQL
         // can hand these back instead of raising. validAnalysis() still makes them fatal.
         if (!select2Aliases.violations().isEmpty()) {
-            return new Analysis(q, visibility, iqlToContext, List.copyOf(select2Aliases.violations()));
+            return new Analysis(
+                    q, visibility, iqlToContext, List.copyOf(select2Aliases.violations()));
         }
 
-        // Before the rules, not with the other function checks: IdentityRule replaces an entity with
-        // its primary key, so by the time FunctionValidator runs there is no identity left to object
+        // Before the rules, not with the other function checks: IdentityRule replaces an entity
+        // with
+        // its primary key, so by the time FunctionValidator runs there is no identity left to
+        // object
         // to. min(od) would already read min(od.order_id) and look perfectly ordinary.
         List<Violation> identities = Walker.apply(q, new IdentityUseValidator(iqlToContext));
         if (!identities.isEmpty()) {
@@ -166,8 +180,16 @@ public class KQLTranspiler extends AbstractTranspiler<KQLReader, KQLParser.Query
         new Rules(resolver, blockIdToLeadingSourceMap, q, iqlToContext).apply();
 
         List<Violation> v = new ArrayList<>();
-        v.addAll(new Validator(q, resolver, blockIdToLeadingSourceMap, iqlToContext, functions, visibility,
-                dialect).validate());
+        v.addAll(
+                new Validator(
+                                q,
+                                resolver,
+                                blockIdToLeadingSourceMap,
+                                iqlToContext,
+                                functions,
+                                visibility,
+                                dialect)
+                        .validate());
 
         return new Analysis(q, visibility, iqlToContext, List.copyOf(v));
     }
@@ -178,7 +200,8 @@ public class KQLTranspiler extends AbstractTranspiler<KQLReader, KQLParser.Query
         Query q = a.query();
         Runnable restore = DateBetweenRewriter.rewrite(q);
         try {
-            SqlRenderer.Rendered rendered = renderer.toSql(resolver, a.visibility(), q, a.iqlToContext());
+            SqlRenderer.Rendered rendered =
+                    renderer.toSql(resolver, a.visibility(), q, a.iqlToContext());
             // capture the schema the renderer resolved, so infos() reuses it instead of recomputing
             this.renderedSchema = rendered.outputs();
             return rendered.sql();
@@ -194,7 +217,10 @@ public class KQLTranspiler extends AbstractTranspiler<KQLReader, KQLParser.Query
         return analysis.get().violations();
     }
 
-    /** Only the violations that make the query invalid — what {@code isEmpty()} should be asked about. */
+    /**
+     * Only the violations that make the query invalid — what {@code isEmpty()} should be asked
+     * about.
+     */
     public List<Violation> errors() {
         return violations().stream().filter(Violation::isError).toList();
     }
@@ -240,27 +266,40 @@ public class KQLTranspiler extends AbstractTranspiler<KQLReader, KQLParser.Query
         IQLVisibilityContext visibility = visibility().child(SqlQueryRenderer.select(query));
 
         // reuse the schema the renderer resolved (single source of truth); else resolve self
-        List<OutputColumn> schema = renderedSchema != null ? renderedSchema : resolveOutputsSelf(visibility);
+        List<OutputColumn> schema =
+                renderedSchema != null ? renderedSchema : resolveOutputsSelf(visibility);
 
-        List<C> infos = schema.stream().map(col -> {
-            C i = infoSupplier.get();
-            i.setHeader(info(getResolver().getModel(), visibility, col.out()));
-            i.setTypeDescriptor(col.type());
-            return i;
-        }).collect(Collectors.toList());
+        List<C> infos =
+                schema.stream()
+                        .map(
+                                col -> {
+                                    C i = infoSupplier.get();
+                                    i.setHeader(
+                                            info(getResolver().getModel(), visibility, col.out()));
+                                    i.setTypeDescriptor(col.type());
+                                    return i;
+                                })
+                        .collect(Collectors.toList());
         return infos;
     }
 
-    /** Fallback when infos() is called without a prior getSql(): resolve with this transpiler's catalog. */
+    /**
+     * Fallback when infos() is called without a prior getSql(): resolve with this transpiler's
+     * catalog.
+     */
     private List<OutputColumn> resolveOutputsSelf(IQLVisibilityContext visibility) {
-        ExpressionTypeResolver types = new ExpressionTypeResolver(getResolver(), visibility, functions);
+        ExpressionTypeResolver types =
+                new ExpressionTypeResolver(getResolver(), visibility, functions);
         return getOut().stream()
                 .map(o -> new OutputColumn(o, resolveOutType(types, o.getExpression())))
                 .collect(Collectors.toList());
     }
 
-    /** Resolved output type, or {@code null} if it can't be determined (e.g. no dialect catalog). */
-    private static TypeDescriptor resolveOutType(ExpressionTypeResolver types, Expression expression) {
+    /**
+     * Resolved output type, or {@code null} if it can't be determined (e.g. no dialect catalog).
+     */
+    private static TypeDescriptor resolveOutType(
+            ExpressionTypeResolver types, Expression expression) {
         try {
             return types.resolve(expression);
         } catch (RuntimeException e) {
@@ -269,7 +308,12 @@ public class KQLTranspiler extends AbstractTranspiler<KQLReader, KQLParser.Query
     }
 
     private static String info(Model schema, IQLVisibilityContext visibility, Out out) {
-        String l = out.getLabel() != null ? out.getLabel() : out.getHeader() != null ? out.getHeader() : defaultLabel(schema, visibility, out);
+        String l =
+                out.getLabel() != null
+                        ? out.getLabel()
+                        : out.getHeader() != null
+                                ? out.getHeader()
+                                : defaultLabel(schema, visibility, out);
         return l;
     }
 
@@ -281,10 +325,22 @@ public class KQLTranspiler extends AbstractTranspiler<KQLReader, KQLParser.Query
 
             Source t = visibility.getSource(out.getExpression().getField().getAlias());
             if (t == null) {
-                throw new ai.koryki.antlr.KorykiaiException("unknown source alias for output field "
-                        + out.getExpression().getField().getAlias() + "." + out.getExpression().getField().getName());
+                throw new ai.koryki.antlr.KorykiaiException(
+                        "unknown source alias for output field "
+                                + out.getExpression().getField().getAlias()
+                                + "."
+                                + out.getExpression().getField().getName());
             }
-            schema.getEntity(t.getName()).ifPresent(x -> x.getAttribute(out.getExpression().getField().getName()).ifPresent(c -> label.setItem(c.getLabel() != null ? c.getLabel() : c.getName())));
+            schema.getEntity(t.getName())
+                    .ifPresent(
+                            x ->
+                                    x.getAttribute(out.getExpression().getField().getName())
+                                            .ifPresent(
+                                                    c ->
+                                                            label.setItem(
+                                                                    c.getLabel() != null
+                                                                            ? c.getLabel()
+                                                                            : c.getName())));
             return label.getItem();
         } else {
             // Just Field-Index

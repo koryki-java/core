@@ -18,7 +18,6 @@ package ai.koryki.sqlite.northwind;
 
 import ai.koryki.jdbc.ResultProcessor;
 import ai.koryki.sqlite.SqliteDatabase;
-
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.time.ZoneId;
@@ -37,6 +36,7 @@ public class NorthwindSqlite {
     }
 
     public static Connection fromResource(String resource, boolean case_sensitive_like) {
-        return SqliteDatabase.fromResource(resource, Path.of("/tmp/korykiai.sqlite"), case_sensitive_like);
+        return SqliteDatabase.fromResource(
+                resource, Path.of("/tmp/korykiai.sqlite"), case_sensitive_like);
     }
 }

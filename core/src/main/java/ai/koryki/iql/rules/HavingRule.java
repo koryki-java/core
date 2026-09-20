@@ -24,15 +24,12 @@ import ai.koryki.iql.query.LogicalExpression;
 import ai.koryki.iql.query.Query;
 import ai.koryki.iql.query.Select;
 import ai.koryki.iql.validate.FunctionValidator;
-
 import java.util.Deque;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-/**
- * Move LogicalExpressions from filter to having, if aggregats are present.
- */
+/** Move LogicalExpressions from filter to having, if aggregats are present. */
 public class HavingRule {
 
     private final Query query;
@@ -50,9 +47,7 @@ public class HavingRule {
 
     private static class HavingVisitor implements Visitor {
 
-        public HavingVisitor() {
-
-        }
+        public HavingVisitor() {}
 
         @Override
         public boolean visit(Deque<Object> deque, Select select) {
@@ -74,8 +69,11 @@ public class HavingRule {
             apply(exists.getFilter(), exists::setFilter, exists.getHaving(), exists::setHaving);
         }
 
-        private void apply(LogicalExpression filter, Consumer<LogicalExpression> setFilter,
-                           LogicalExpression having, Consumer<LogicalExpression> setHaving) {
+        private void apply(
+                LogicalExpression filter,
+                Consumer<LogicalExpression> setFilter,
+                LogicalExpression having,
+                Consumer<LogicalExpression> setHaving) {
 
             if (filter == null) {
                 return;
@@ -85,7 +83,6 @@ public class HavingRule {
 
             if (t.equals(NodeType.VAR)) {
 
-
                 if (isHaving(filter)) {
                     setFilter.accept(null);
                     setHaving.accept(filter);
@@ -93,7 +90,8 @@ public class HavingRule {
             } else if (t.equals(NodeType.AND)) {
                 List<LogicalExpression> c = filter.getChildren();
 
-                List<LogicalExpression> havings = c.stream().filter(this::isHaving).collect(Collectors.toList());
+                List<LogicalExpression> havings =
+                        c.stream().filter(this::isHaving).collect(Collectors.toList());
 
                 c.removeIf(this::isHaving);
                 if (c.isEmpty()) {
@@ -107,17 +105,17 @@ public class HavingRule {
             }
         }
 
-
         private boolean isHaving(LogicalExpression logical) {
             boolean h =
-                    logical.isValue() &&
-                            logical.getUnaryRelationalExpression().getOp() != null &&
-                            isAggregate(logical);
+                    logical.isValue()
+                            && logical.getUnaryRelationalExpression().getOp() != null
+                            && isAggregate(logical);
             return h;
         }
     }
 
     private static boolean isAggregate(LogicalExpression logical) {
-        return FunctionValidator.isAggregateOfColumnOrIdentity(logical.getUnaryRelationalExpression().getLeft());
+        return FunctionValidator.isAggregateOfColumnOrIdentity(
+                logical.getUnaryRelationalExpression().getLeft());
     }
 }

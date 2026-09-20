@@ -17,7 +17,6 @@
 package ai.koryki.kql;
 
 import ai.koryki.iql.query.Source;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,15 +27,17 @@ public class KQLVisibilityContext {
     private final Map<String, KQLParser.SourceContext> aliasToSourceMap;
     private final Map<Object, Map<String, KQLParser.SourceContext>> childToAliasesMap;
 
-    public KQLVisibilityContext(Map<String, Source> blockIdToLeadingSourceMap,
-                                Map<Object, Map<String, KQLParser.SourceContext>> childToAliasesMap) {
+    public KQLVisibilityContext(
+            Map<String, Source> blockIdToLeadingSourceMap,
+            Map<Object, Map<String, KQLParser.SourceContext>> childToAliasesMap) {
 
         this(blockIdToLeadingSourceMap, childToAliasesMap, Collections.emptyMap());
     }
 
-    public KQLVisibilityContext(Map<String, Source> blockIdToLeadingSourceMap,
-                                Map<Object, Map<String, KQLParser.SourceContext>> childToAliasesMap,
-                                Map<String, KQLParser.SourceContext> aliasToSourceMap) {
+    public KQLVisibilityContext(
+            Map<String, Source> blockIdToLeadingSourceMap,
+            Map<Object, Map<String, KQLParser.SourceContext>> childToAliasesMap,
+            Map<String, KQLParser.SourceContext> aliasToSourceMap) {
         this.blockIdToLeadingSourceMap = blockIdToLeadingSourceMap;
         this.childToAliasesMap = childToAliasesMap;
         this.aliasToSourceMap = aliasToSourceMap;

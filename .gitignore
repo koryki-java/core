@@ -44,16 +44,16 @@ bin/
 /.idea_bak/
 /snowflake/src/data/
 /oracle/src/data/
-# DuckDB legt das Write-Ahead-Log neben der Datenbank an, wo immer die gerade liegt.
+# DuckDB writes the write-ahead log next to the database file, wherever that happens to be.
 *.duckdb.wal
 
 # local untracked working copy — not part of the repo
 /import/
 
-# --- ANTLR-Generate ---
-# Musterbasiert statt als Pfadliste: die frueheren ~65 Einzeleintraege zeigten auf das laengst
-# entfernte Modul /antlr und konnten neue Namen oder Orte nicht abdecken -- deshalb landeten
-# zuletzt 15 generierte Dateien doch im Repository. Diese Muster greifen ueberall im Baum.
+# --- ANTLR generated ---
+# Patterns rather than a list of paths: the earlier ~65 single entries pointed at the long-removed
+# /antlr module and could not cover new names or places -- which is how 15 generated files ended up
+# in the repository. These patterns match anywhere in the tree.
 *.tokens
 *.interp
 **/gen/

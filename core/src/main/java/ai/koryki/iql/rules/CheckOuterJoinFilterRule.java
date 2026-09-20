@@ -28,15 +28,13 @@ import ai.koryki.iql.query.LogicalExpression;
 import ai.koryki.iql.query.Query;
 import ai.koryki.iql.query.Select;
 import ai.koryki.iql.query.UnaryLogicalExpression;
-
-import org.antlr.v4.runtime.RuleContext;
-
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.antlr.v4.runtime.RuleContext;
 
 /**
  * The last line of defence for optional joins.
@@ -60,7 +58,7 @@ public class CheckOuterJoinFilterRule {
 
     /**
      * @param iqlToContext model node → parser context, so the failure can point at the offending
-     *                     predicate instead of only naming the alias.
+     *     predicate instead of only naming the alias.
      */
     public CheckOuterJoinFilterRule(Map<Object, RuleContext> iqlToContext) {
         this.iqlToContext = iqlToContext != null ? iqlToContext : Map.of();
@@ -94,9 +92,9 @@ public class CheckOuterJoinFilterRule {
         }
 
         /**
-         * The filter of the join's own scope: an optional join inside an EXISTS is
-         * checked against that exists' filter, not the enclosing select's (whose
-         * filter contains the whole exists subtree and produced false positives).
+         * The filter of the join's own scope: an optional join inside an EXISTS is checked against
+         * that exists' filter, not the enclosing select's (whose filter contains the whole exists
+         * subtree and produced false positives).
          */
         private static LogicalExpression scopeFilter(Deque<Object> deque) {
             for (Object o : deque) {
@@ -163,9 +161,10 @@ public class CheckOuterJoinFilterRule {
          * and called the WHERE the "all-filter", which appears nowhere in KQL.
          */
         private String message(UnaryLogicalExpression predicate) {
-            String table = join.getSource() != null && join.getSource().getName() != null
-                    ? join.getSource().getName() + " " + alias
-                    : alias;
+            String table =
+                    join.getSource() != null && join.getSource().getName() != null
+                            ? join.getSource().getName() + " " + alias
+                            : alias;
             String condition = describe(predicate);
 
             StringBuilder sb = new StringBuilder();
@@ -173,15 +172,24 @@ public class CheckOuterJoinFilterRule {
             if (condition != null) {
                 sb.append('`').append(condition).append("` ");
             }
-            sb.append("filters the optional table `").append(table)
-                    .append("`, which would drop the rows that have no match and make the join a "
-                            + "required one. ");
-            sb.append("Either compare only columns of `").append(alias)
+            sb.append("filters the optional table `")
+                    .append(table)
+                    .append(
+                            "`, which would drop the rows that have no match and make the join a "
+                                    + "required one. ");
+            sb.append("Either compare only columns of `")
+                    .append(alias)
                     .append("` so the condition can move into the join, or make the join required");
             if (join.getSource() != null && join.getSource().getName() != null) {
-                sb.append(" (write `").append(join.getSource().getName()).append(' ').append(alias)
-                        .append("` instead of `+").append(join.getSource().getName()).append(' ')
-                        .append(alias).append("`)");
+                sb.append(" (write `")
+                        .append(join.getSource().getName())
+                        .append(' ')
+                        .append(alias)
+                        .append("` instead of `+")
+                        .append(join.getSource().getName())
+                        .append(' ')
+                        .append(alias)
+                        .append("`)");
             }
             sb.append('.');
             return sb.toString();
@@ -225,7 +233,7 @@ public class CheckOuterJoinFilterRule {
                 }
                 return e.getFunction().getFunc() + "(" + String.join(", ", aliases) + ")";
             }
-            return null;   // a literal or something we cannot name — the message drops the quote
+            return null; // a literal or something we cannot name — the message drops the quote
         }
     }
 }

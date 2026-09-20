@@ -19,21 +19,22 @@ package ai.koryki.iql;
 import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.iql.logic.NodeType;
 import ai.koryki.iql.query.*;
-
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Locale;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 public class IQLSerializer {
 
-    private static final DateTimeFormatter TIMESTAMP_FMT     = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withLocale(Locale.ROOT);
-    private static final DateTimeFormatter TIMESTAMP_FMT_MS  = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS").withLocale(Locale.ROOT);
-    private static final DateTimeFormatter TIME_FMT           = DateTimeFormatter.ofPattern("HH:mm:ss").withLocale(Locale.ROOT);
-    private static final DateTimeFormatter TIME_FMT_MS        = DateTimeFormatter.ofPattern("HH:mm:ss.SSS").withLocale(Locale.ROOT);
+    private static final DateTimeFormatter TIMESTAMP_FMT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withLocale(Locale.ROOT);
+    private static final DateTimeFormatter TIMESTAMP_FMT_MS =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS").withLocale(Locale.ROOT);
+    private static final DateTimeFormatter TIME_FMT =
+            DateTimeFormatter.ofPattern("HH:mm:ss").withLocale(Locale.ROOT);
+    private static final DateTimeFormatter TIME_FMT_MS =
+            DateTimeFormatter.ofPattern("HH:mm:ss.SSS").withLocale(Locale.ROOT);
 
     private Query query;
 
@@ -73,7 +74,7 @@ public class IQLSerializer {
             StringBuilder b = new StringBuilder();
 
             b.append(indent(indent) + setOperand(set, set.getLeft(), false, indent));
-            //b.append(SqlRenderer.NL);
+            // b.append(SqlRenderer.NL);
             b.append(indent(indent) + set.getOperator());
             b.append(SqlRenderer.NL);
             b.append(indent(indent) + setOperand(set, set.getRight(), true, indent));
@@ -102,7 +103,11 @@ public class IQLSerializer {
         b.append(toString(select.getStart(), indent + 1, false));
         b.append(toJoin(select.getStart(), select.getJoin(), indent));
 
-        if (select.getFilter() != null || select.getHaving() != null || !select.getOut().isEmpty() || !select.getGroup().isEmpty() || !select.getOrder().isEmpty()) {
+        if (select.getFilter() != null
+                || select.getHaving() != null
+                || !select.getOut().isEmpty()
+                || !select.getGroup().isEmpty()
+                || !select.getOrder().isEmpty()) {
             b.append(indent(indent) + "ALL" + SqlRenderer.NL);
             b.append(toFilter(select.getFilter(), "FILTER", indent + 1));
             b.append(toHaving(select.getHaving(), "HAVING", indent + 1));
@@ -110,8 +115,6 @@ public class IQLSerializer {
             b.append(toOut(select.getOut(), indent + 1));
             b.append(toGroup(select.getGroup(), indent + 1));
             b.append(toOrder(select.getOrder(), indent + 1));
-
-
         }
 
         if (select.isRollup()) {
@@ -130,7 +133,10 @@ public class IQLSerializer {
     private String toJoin(Source left, List<Join> join, int indent) {
 
         StringBuilder b = new StringBuilder();
-        b.append(join.stream().map(j -> toString(left, j, indent + 2)).collect(Collectors.joining()));
+        b.append(
+                join.stream()
+                        .map(j -> toString(left, j, indent + 2))
+                        .collect(Collectors.joining()));
         return b.toString();
     }
 
@@ -180,7 +186,10 @@ public class IQLSerializer {
         StringBuilder b = new StringBuilder();
 
         b.append(indent(indent));
-        b.append(out.stream().map(o -> toOut(o, indent + 1)).collect(Collectors.joining( SqlRenderer.NL + indent(indent))));
+        b.append(
+                out.stream()
+                        .map(o -> toOut(o, indent + 1))
+                        .collect(Collectors.joining(SqlRenderer.NL + indent(indent))));
         b.append(SqlRenderer.NL);
         return b.toString();
     }
@@ -192,7 +201,10 @@ public class IQLSerializer {
         StringBuilder b = new StringBuilder();
 
         b.append(indent(indent));
-        b.append(group.stream().map(o -> toGroup(o, indent + 1)).collect(Collectors.joining(SqlRenderer.NL + indent(indent))));
+        b.append(
+                group.stream()
+                        .map(o -> toGroup(o, indent + 1))
+                        .collect(Collectors.joining(SqlRenderer.NL + indent(indent))));
         b.append(SqlRenderer.NL);
 
         return b.toString();
@@ -205,7 +217,10 @@ public class IQLSerializer {
         StringBuilder b = new StringBuilder();
 
         b.append(indent(indent));
-        b.append(order.stream().map(o -> toOrder(o, indent + 1)).collect(Collectors.joining(SqlRenderer.NL + indent(indent))));
+        b.append(
+                order.stream()
+                        .map(o -> toOrder(o, indent + 1))
+                        .collect(Collectors.joining(SqlRenderer.NL + indent(indent))));
         b.append(SqlRenderer.NL);
 
         return b.toString();
@@ -238,7 +253,7 @@ public class IQLSerializer {
         }
         StringBuilder b = new StringBuilder();
         b.append(indent(indent));
-        b.append(keyword + " " );
+        b.append(keyword + " ");
         b.append(SqlRenderer.NL);
         b.append(toString(expression, indent, true));
         b.append(SqlRenderer.NL);
@@ -284,13 +299,21 @@ public class IQLSerializer {
             // safety net for models built through the API rather than parsed.
             return prefix + "NOT " + (negated.isBinary() ? "(" + s + ")" : s);
         } else if (expression.isValue()) {
-            return prefix + toString( expression.getUnaryRelationalExpression(), indent);
+            return prefix + toString(expression.getUnaryRelationalExpression(), indent);
         } else {
             StringBuilder b = new StringBuilder();
 
-            String delim = SqlRenderer.NL + indent(indent) +  expression.getType().name() + SqlRenderer.NL + indent(indent + 1);
+            String delim =
+                    SqlRenderer.NL
+                            + indent(indent)
+                            + expression.getType().name()
+                            + SqlRenderer.NL
+                            + indent(indent + 1);
 
-            b.append(expression.getChildren().stream().map(e -> toStringChild(expression, e, indent)).collect(Collectors.joining(delim)));
+            b.append(
+                    expression.getChildren().stream()
+                            .map(e -> toStringChild(expression, e, indent))
+                            .collect(Collectors.joining(delim)));
 
             return prefix + b.toString();
         }
@@ -304,7 +327,9 @@ public class IQLSerializer {
      */
     private String toStringChild(LogicalExpression node, LogicalExpression child, int indent) {
         String s = toString(child, indent, false);
-        if (node.getType() == NodeType.AND && child.effectiveType() == NodeType.OR && node.getChildren().size() > 1) {
+        if (node.getType() == NodeType.AND
+                && child.effectiveType() == NodeType.OR
+                && node.getChildren().size() > 1) {
             return "(" + s + ")";
         }
         return s;
@@ -343,7 +368,11 @@ public class IQLSerializer {
                 b.append(toString(expression.getRight(), indent));
                 b.append(")");
             } else if (SqlSelectRenderer.isInterval(expression.getOp())) {
-                b.append(toString(expression.getRight().get(0), expression.getRight().get(1), indent));
+                b.append(
+                        toString(
+                                expression.getRight().get(0),
+                                expression.getRight().get(1),
+                                indent));
             } else {
                 b.append(toString(expression.getRight(), indent));
             }
@@ -391,7 +420,12 @@ public class IQLSerializer {
         } else if (expression.getLogical() != null) {
             return toString(expression.getLogical(), indent, false);
         } else if (expression.getSelect() != null) {
-            b.append("(" + SqlRenderer.NL + toString(expression.getSelect(), indent + 1) + indent(indent) + ")");
+            b.append(
+                    "("
+                            + SqlRenderer.NL
+                            + toString(expression.getSelect(), indent + 1)
+                            + indent(indent)
+                            + ")");
         } else if (expression.getIdentity() != null) {
             b.append(expression.getIdentity());
         } else if (expression.getDuration() != null) {
@@ -402,14 +436,17 @@ public class IQLSerializer {
             throw new KorykiaiException();
         }
 
-         return b.toString();
+        return b.toString();
     }
+
     private String toString(Function function, int indent) {
         StringBuilder b = new StringBuilder();
         b.append(function.getFunc());
         b.append("(");
-        b.append(function.getArguments().stream().map(
-                a -> toString(a, indent)).collect(Collectors.joining(", ")));
+        b.append(
+                function.getArguments().stream()
+                        .map(a -> toString(a, indent))
+                        .collect(Collectors.joining(", ")));
         b.append(")");
 
         if (function.getWindow() != null) {
@@ -456,7 +493,6 @@ public class IQLSerializer {
         return (limit.isCounted() ? limit.getNum() + " " : "") + limit.getName();
     }
 
-
     private String toString(Field column, int indent) {
 
         StringBuilder b = new StringBuilder();
@@ -470,7 +506,10 @@ public class IQLSerializer {
 
     private String toString(List<Expression> expression, int indent) {
         StringBuilder b = new StringBuilder();
-        b.append(expression.stream().map(e -> toString(e, indent)).collect(Collectors.joining(", ")));
+        b.append(
+                expression.stream()
+                        .map(e -> toString(e, indent))
+                        .collect(Collectors.joining(", ")));
         return b.toString();
     }
 
@@ -479,8 +518,11 @@ public class IQLSerializer {
 
         b.append("EXISTS (");
 
-        b.append(exists.getParent() + " " + critOrColumns(exists.getCrit(), exists.getColumns())
-                + toString(exists.getStart(), indent, true));
+        b.append(
+                exists.getParent()
+                        + " "
+                        + critOrColumns(exists.getCrit(), exists.getColumns())
+                        + toString(exists.getStart(), indent, true));
         b.append(toJoin(exists.getStart(), exists.getJoin(), indent + 1));
 
         // residual clauses the push rules could not move onto a single source
@@ -496,7 +538,7 @@ public class IQLSerializer {
         StringBuilder b = new StringBuilder();
         b.append("ORDER ");
         b.append(toString(order.getExpression(), indent));
-        //b.append(indent(indent) + " ");
+        // b.append(indent(indent) + " ");
         if (order.getSort() != null) {
             b.append(" " + (order.getSort().equals(Order.SORT.ASC) ? "ASC" : "DESC"));
         }
@@ -519,10 +561,13 @@ public class IQLSerializer {
 
     private String toBlock(List<Block> list, int indent) {
         StringBuilder b = new StringBuilder();
-            b.append( list.stream().map(block -> toBlock(indent, block)).collect(Collectors.joining("," + SqlRenderer.NL)));
-            if (b.length() > 0) {
-                b.append(SqlRenderer.NL);
-            }
+        b.append(
+                list.stream()
+                        .map(block -> toBlock(indent, block))
+                        .collect(Collectors.joining("," + SqlRenderer.NL)));
+        if (b.length() > 0) {
+            b.append(SqlRenderer.NL);
+        }
 
         return b.toString();
     }
@@ -532,9 +577,12 @@ public class IQLSerializer {
         if (block.getPlaceholder() != null) {
             return block.getId() + " " + block.getPlaceholder();
         } else {
-            return block.getId() + " AS ("
-                    + SqlRenderer.NL +
-                    toString(block.getSet(), indent + 1) + indent(indent) + ")";
+            return block.getId()
+                    + " AS ("
+                    + SqlRenderer.NL
+                    + toString(block.getSet(), indent + 1)
+                    + indent(indent)
+                    + ")";
         }
     }
 
@@ -565,7 +613,10 @@ public class IQLSerializer {
         }
         StringBuilder b = new StringBuilder("[");
         for (int i = 0; i < columns.left().size(); i++) {
-            b.append(i > 0 ? ", " : "").append(columns.left().get(i)).append("=").append(columns.right().get(i));
+            b.append(i > 0 ? ", " : "")
+                    .append(columns.left().get(i))
+                    .append("=")
+                    .append(columns.right().get(i));
         }
         return b.append("]").toString();
     }

@@ -19,19 +19,18 @@ package ai.koryki.iql;
 import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.antlr.Range;
 import ai.koryki.antlr.RangeException;
-import ai.koryki.kql.DictionaryTranslator;
-import ai.koryki.kql.TableDictionary;
 import ai.koryki.catalog.domain.Attribute;
 import ai.koryki.catalog.domain.Entity;
 import ai.koryki.catalog.domain.Link;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Relation;
-import ai.koryki.iql.query.JoinColumns;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeDescriptorParser;
-
+import ai.koryki.iql.query.JoinColumns;
+import ai.koryki.kql.DictionaryTranslator;
+import ai.koryki.kql.TableDictionary;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -43,7 +42,6 @@ public class LinkResolver {
     private final Model model;
 
     private Map<Column, TypeDescriptor> columnToTypedescriptor = new HashMap<>();
-
 
     private final Map<String, Link> linkMap;
     private final boolean alignedOnly;
@@ -58,34 +56,51 @@ public class LinkResolver {
         this(locale, db, model, false, false, strict);
     }
 
-    public LinkResolver(Locale locale, Schema db, Model model, boolean alignedOnly, boolean qualifiedOnly) {
+    public LinkResolver(
+            Locale locale, Schema db, Model model, boolean alignedOnly, boolean qualifiedOnly) {
         this(locale, db, model, alignedOnly, qualifiedOnly, false);
     }
 
-    public LinkResolver(Locale locale, Schema db, Model model, boolean alignedOnly, boolean qualifiedOnly, boolean strict) {
+    public LinkResolver(
+            Locale locale,
+            Schema db,
+            Model model,
+            boolean alignedOnly,
+            boolean qualifiedOnly,
+            boolean strict) {
         this.locale = locale;
         this.db = db;
         this.model = model;
-        this.linkMap = model.getLinks().stream().collect(Collectors.toMap(Link::getName, Function.identity()));
+        this.linkMap =
+                model.getLinks().stream()
+                        .collect(Collectors.toMap(Link::getName, Function.identity()));
         this.alignedOnly = alignedOnly;
         this.qualifiedOnly = qualifiedOnly;
         this.strict = strict;
 
-         TypeDescriptorParser parser = new TypeDescriptorParser() {
-        };
+        TypeDescriptorParser parser = new TypeDescriptorParser() {};
 
-        db.getTables().forEach(t -> {
-            t.getColumns().forEach(c -> {
-                TypeDescriptor d = parser.parse(c);
-                columnToTypedescriptor.put(c, d);
-            });
-        });
+        db.getTables()
+                .forEach(
+                        t -> {
+                            t.getColumns()
+                                    .forEach(
+                                            c -> {
+                                                TypeDescriptor d = parser.parse(c);
+                                                columnToTypedescriptor.put(c, d);
+                                            });
+                        });
     }
 
-    private List<Relation> listRelations(String crit, String start, String end, boolean typed, boolean reverse) {
+    private List<Relation> listRelations(
+            String crit, String start, String end, boolean typed, boolean reverse) {
 
-        String startTable = getDialectTable(start).orElseThrow(() -> new KorykiaiException("unknown start entity: " + start));
-        String endTable = getDialectTable(end).orElseThrow(() -> new KorykiaiException("unknown end entity: " + end));
+        String startTable =
+                getDialectTable(start)
+                        .orElseThrow(() -> new KorykiaiException("unknown start entity: " + start));
+        String endTable =
+                getDialectTable(end)
+                        .orElseThrow(() -> new KorykiaiException("unknown end entity: " + end));
         String first = reverse ? endTable : startTable;
         String second = reverse ? startTable : endTable;
 
@@ -97,13 +112,21 @@ public class LinkResolver {
     }
 
     private boolean compareStart(String start, Relation relation) {
-        return relation.getStartTable().equals(
-                getDialectTable(start).orElseThrow(() -> new KorykiaiException("unknown start entity: " + start)));
+        return relation.getStartTable()
+                .equals(
+                        getDialectTable(start)
+                                .orElseThrow(
+                                        () ->
+                                                new KorykiaiException(
+                                                        "unknown start entity: " + start)));
     }
 
     private boolean compareEnd(String end, Relation relation) {
-        return relation.getEndTable().equals(
-                getDialectTable(end).orElseThrow(() -> new KorykiaiException("unknown end entity: " + end)));
+        return relation.getEndTable()
+                .equals(
+                        getDialectTable(end)
+                                .orElseThrow(
+                                        () -> new KorykiaiException("unknown end entity: " + end)));
     }
 
     public boolean isEntity(String entity) {
@@ -119,9 +142,10 @@ public class LinkResolver {
         return isInverse(l);
     }
 
-
     private String relation(String link) {
-        Link l = model.getLink(link).orElseThrow(() -> new KorykiaiException("unknown link: " + link));
+        Link l =
+                model.getLink(link)
+                        .orElseThrow(() -> new KorykiaiException("unknown link: " + link));
         return getLink(l);
     }
 
@@ -141,14 +165,15 @@ public class LinkResolver {
 
         Link link1 = model.getLink(link).orElse(null);
         if (link1 == null) {
-            throw new RangeException(range, "cant resolve link " + link + " " + startTable + " " + endTable);
+            throw new RangeException(
+                    range, "cant resolve link " + link + " " + startTable + " " + endTable);
         }
         String ll = getLink(link1);
         Link v = linkMap.get(ll);
         if (v == null) {
-            throw new RangeException(range, "cant resolve link " + link + " " + startTable + " " + endTable);
+            throw new RangeException(
+                    range, "cant resolve link " + link + " " + startTable + " " + endTable);
         }
-
 
         List<String> list = v.getRelations();
 
@@ -159,22 +184,29 @@ public class LinkResolver {
             return link;
         }
 
+        String foreignKey =
+                list.stream()
+                        .filter(
+                                l -> {
+                                    Relation r = db.getRelation(l).get();
 
-        String foreignKey = list.stream().filter(l -> {
-
-            Relation r = db.getRelation(l).get();
-
-            if (compareStart(startTable, r) && compareEnd(endTable, r)) {
-                return true;
-            } else if (isSymmetric(r) && compareStart(endTable, r) && compareEnd(startTable, r)) {
-                return true;
-            } else {
-                return false;
-            }
-        }).map(l -> db.getRelation(l).get().getName()).findFirst().orElse(null);
+                                    if (compareStart(startTable, r) && compareEnd(endTable, r)) {
+                                        return true;
+                                    } else if (isSymmetric(r)
+                                            && compareStart(endTable, r)
+                                            && compareEnd(startTable, r)) {
+                                        return true;
+                                    } else {
+                                        return false;
+                                    }
+                                })
+                        .map(l -> db.getRelation(l).get().getName())
+                        .findFirst()
+                        .orElse(null);
 
         if (strict && foreignKey == null) {
-            throw new RangeException(range, "cant resolve link " + link + " " + startTable + " " + endTable);
+            throw new RangeException(
+                    range, "cant resolve link " + link + " " + startTable + " " + endTable);
         }
         return foreignKey;
     }
@@ -188,8 +220,8 @@ public class LinkResolver {
         return findLink(range, startTable, endTable, null);
     }
 
-
-    public Optional<String> findLink(Range range, String startTable, String endTable, String relation) {
+    public Optional<String> findLink(
+            Range range, String startTable, String endTable, String relation) {
 
         return findRelation(range, startTable, endTable, relation).map(x -> toLink(x.getName()));
     }
@@ -197,26 +229,43 @@ public class LinkResolver {
     /**
      * The relation joining two tables, oriented the way it was asked for.
      *
-     * <p>The search runs in both directions, but what comes back always describes {@code startTable}
-     * with its {@code startColumns} — callers can attach them to the alias they named first without
-     * checking which way the relation is declared. See {@link #oriented}. The one case table names
-     * cannot decide is a self-join, where direction comes from the link's declared nature instead.
+     * <p>The search runs in both directions, but what comes back always describes {@code
+     * startTable} with its {@code startColumns} — callers can attach them to the alias they named
+     * first without checking which way the relation is declared. See {@link #oriented}. The one
+     * case table names cannot decide is a self-join, where direction comes from the link's declared
+     * nature instead.
      */
-    public Optional<Relation> findRelation(Range range, String startTable, String endTable, String link) {
+    public Optional<Relation> findRelation(
+            Range range, String startTable, String endTable, String link) {
 
         String start = Identifier.normal(Identifier.lowercase, startTable);
         String end = Identifier.normal(Identifier.lowercase, endTable);
 
         String foreignKey = resolveForeignKey(range, startTable, endTable, link);
 
-
-        Relation d = checkSingleR(range, start, end, foreignKey, listRelations(foreignKey, start, end, true, false), true, false);
+        Relation d =
+                checkSingleR(
+                        range,
+                        start,
+                        end,
+                        foreignKey,
+                        listRelations(foreignKey, start, end, true, false),
+                        true,
+                        false);
         if (d != null) {
             return Optional.of(d);
         }
 
         if (!alignedOnly) {
-            d = checkSingleR(range, start, end, foreignKey, listRelations(foreignKey, start, end, true, true), true, true);
+            d =
+                    checkSingleR(
+                            range,
+                            start,
+                            end,
+                            foreignKey,
+                            listRelations(foreignKey, start, end, true, true),
+                            true,
+                            true);
             if (d != null) {
                 return Optional.of(oriented(d, start));
             }
@@ -224,21 +273,36 @@ public class LinkResolver {
 
         if (!qualifiedOnly) {
 
-            d = checkSingleR(range, start, end, foreignKey, listRelations(foreignKey, start, end, false, false), false, false);
+            d =
+                    checkSingleR(
+                            range,
+                            start,
+                            end,
+                            foreignKey,
+                            listRelations(foreignKey, start, end, false, false),
+                            false,
+                            false);
             if (d != null) {
                 return Optional.of(d);
             }
 
             if (!alignedOnly) {
-                d = checkSingleR(range, start, end, foreignKey, listRelations(foreignKey, start, end, false, true), false, true);
+                d =
+                        checkSingleR(
+                                range,
+                                start,
+                                end,
+                                foreignKey,
+                                listRelations(foreignKey, start, end, false, true),
+                                false,
+                                true);
                 if (d != null) {
 
-                    //toLink(d);
+                    // toLink(d);
                     return Optional.of(oriented(d, start));
                 }
             }
         }
-
 
         return Optional.empty();
     }
@@ -255,9 +319,8 @@ public class LinkResolver {
      * <p>Invisible almost everywhere, because a foreign key usually carries the name of the column
      * it points at: 26 of Northwind's 34 relations have identical column lists on both sides, and
      * for those a swap and no swap render the same SQL. {@code fk_orders_shippers} does not —
-     * {@code orders.ship_via} points at {@code shippers.shipper_id} — and asking for
-     * {@code shippers → orders} produced {@code <shippers>.ship_via}, which is not a column of that
-     * table.
+     * {@code orders.ship_via} points at {@code shippers.shipper_id} — and asking for {@code
+     * shippers → orders} produced {@code <shippers>.ship_via}, which is not a column of that table.
      *
      * <p>Turning it here rather than at each caller is what makes the result independent of how it
      * was found: ask for {@code (A, B)} and the start columns belong to {@code A}, whatever
@@ -290,7 +353,14 @@ public class LinkResolver {
                 .orElseThrow(() -> new KorykiaiException("no link references foreign key: " + fk));
     }
 
-    private Relation checkSingleR(Range range, String startTable, String endTable, String foreignKey, List<Relation> check, boolean strict, boolean symmetricOnly) {
+    private Relation checkSingleR(
+            Range range,
+            String startTable,
+            String endTable,
+            String foreignKey,
+            List<Relation> check,
+            boolean strict,
+            boolean symmetricOnly) {
 
         Relation d = check.size() == 1 ? check.get(0) : null;
         if (d != null) {
@@ -298,7 +368,14 @@ public class LinkResolver {
                 return d;
             }
         } else if (strict && check.size() > 1) {
-            throw new RangeException(range, "must not find more than one foreignKey: " + startTable + " " + endTable + " " + foreignKey);
+            throw new RangeException(
+                    range,
+                    "must not find more than one foreignKey: "
+                            + startTable
+                            + " "
+                            + endTable
+                            + " "
+                            + foreignKey);
         }
         return null;
     }
@@ -317,14 +394,21 @@ public class LinkResolver {
      * ON clause needs the physical columns.
      *
      * @throws RangeException when a column does not exist on the entity of its own side, which is
-     *                        also how {@code [a=x]} written the wrong way round surfaces
+     *     also how {@code [a=x]} written the wrong way round surfaces
      */
-    public Relation relationFor(Range range, String startEntity, String endEntity, JoinColumns columns) {
+    public Relation relationFor(
+            Range range, String startEntity, String endEntity, JoinColumns columns) {
         Relation r = new Relation();
-        r.setStartTable(getDialectTable(startEntity)
-                .orElseThrow(() -> new KorykiaiException("unknown start entity: " + startEntity)));
-        r.setEndTable(getDialectTable(endEntity)
-                .orElseThrow(() -> new KorykiaiException("unknown end entity: " + endEntity)));
+        r.setStartTable(
+                getDialectTable(startEntity)
+                        .orElseThrow(
+                                () ->
+                                        new KorykiaiException(
+                                                "unknown start entity: " + startEntity)));
+        r.setEndTable(
+                getDialectTable(endEntity)
+                        .orElseThrow(
+                                () -> new KorykiaiException("unknown end entity: " + endEntity)));
         r.setStartColumns(dialectColumns(range, startEntity, columns.left()));
         r.setEndColumns(dialectColumns(range, endEntity, columns.right()));
         return r;
@@ -333,16 +417,14 @@ public class LinkResolver {
     /**
      * Model attribute names translated to their dialect columns.
      *
-     * <p>An unknown name is passed through rather than raising: {@code SchemaValidator} reports it as
-     * a positioned {@code schema.unknown-column} violation, together with every other one in the
+     * <p>An unknown name is passed through rather than raising: {@code SchemaValidator} reports it
+     * as a positioned {@code schema.unknown-column} violation, together with every other one in the
      * query, and a query carrying such a violation never reaches a database. Raising here happened
      * during rule application, before the violations were collected, so the first bad column ended
      * the run and hid the rest.
      */
     private List<String> dialectColumns(Range range, String entity, List<String> attributes) {
-        return attributes.stream()
-                .map(a -> getDialectColumn(entity, a).orElse(a))
-                .toList();
+        return attributes.stream().map(a -> getDialectColumn(entity, a).orElse(a)).toList();
     }
 
     public boolean isStrict() {
@@ -370,63 +452,121 @@ public class LinkResolver {
     }
 
     public Optional<String> getDialectColumn(String entity, String attribute) {
-        return model.getEntity(entity).
-                flatMap(e -> e.getAttributes().stream().filter(a -> a.getName().equals(attribute)).findFirst())
+        return model.getEntity(entity)
+                .flatMap(
+                        e ->
+                                e.getAttributes().stream()
+                                        .filter(a -> a.getName().equals(attribute))
+                                        .findFirst())
                 .map(LinkResolver::getDialectColumn);
     }
 
     /**
-     * The model's name for a physical column of an entity — the inverse of
-     * {@link #getDialectColumn(String, String)}.
+     * The model's name for a physical column of an entity — the inverse of {@link
+     * #getDialectColumn(String, String)}.
      *
      * <p>Needed wherever a rewrite rule reads a name from the <em>schema</em> and puts it into the
-     * <em>query</em>: a primary key read off {@code Table}, a foreign key read off
-     * {@code Relation}. The two vocabularies coincide only while an attribute declares no
-     * {@code column} override, which is why this went unnoticed — under the German northwind model
-     * every attribute declares one, and a rule that wrote {@code order_id} where the model says
-     * {@code bestell_id} produced a field the query language does not have.
+     * <em>query</em>: a primary key read off {@code Table}, a foreign key read off {@code
+     * Relation}. The two vocabularies coincide only while an attribute declares no {@code column}
+     * override, which is why this went unnoticed — under the German northwind model every attribute
+     * declares one, and a rule that wrote {@code order_id} where the model says {@code bestell_id}
+     * produced a field the query language does not have.
      *
      * <p>Empty when the entity or the column is unknown here; callers keep the column name, which
      * is the best name available and what they used throughout before.
      */
     public Optional<String> getModelAttribute(String entity, String column) {
         return model.getEntity(entity)
-                .flatMap(e -> e.getAttributes().stream()
-                        .filter(a -> getDialectColumn(a).equals(column)).findFirst())
+                .flatMap(
+                        e ->
+                                e.getAttributes().stream()
+                                        .filter(a -> getDialectColumn(a).equals(column))
+                                        .findFirst())
                 .map(Attribute::getName);
     }
 
     public static DictionaryTranslator dictionary(Model from, Model to) {
 
-        Map<String, TableDictionary> toSchema = from.getEntities().stream().collect(Collectors.toMap(Entity::getName, (e) -> {
+        Map<String, TableDictionary> toSchema =
+                from.getEntities().stream()
+                        .collect(
+                                Collectors.toMap(
+                                        Entity::getName,
+                                        (e) -> {
+                                            TableDictionary dictionary = new TableDictionary();
 
-            TableDictionary dictionary = new TableDictionary();
+                                            String dialectTable = getDialectTable(e);
 
-            String dialectTable = getDialectTable(e);
+                                            Entity te =
+                                                    to.getEntities().stream()
+                                                            .filter(
+                                                                    t ->
+                                                                            getDialectTable(t)
+                                                                                    .equals(
+                                                                                            dialectTable))
+                                                            .findFirst()
+                                                            .orElseThrow(
+                                                                    () ->
+                                                                            new RuntimeException(
+                                                                                    "No value present "
+                                                                                            + dialectTable));
+                                            dictionary.setName(te.getName());
 
-            Entity te = to.getEntities().stream()
-                    .filter(t -> getDialectTable(t).equals(dialectTable)).findFirst()
-                    .orElseThrow(() -> new RuntimeException("No value present " + dialectTable));
-            dictionary.setName(te.getName());
-
-            dictionary.setColumns(e.getAttributes().stream().collect(Collectors.toMap(Attribute::getName, a -> {
-                String dialectColumn = getDialectColumn(a);
-                return te.getAttributes().stream()
-                        .filter(aa -> getDialectColumn(aa).equals(dialectColumn)).findFirst()
-                        .orElseThrow(() -> new RuntimeException("No value present " + dialectColumn))
-                        .getName();
-            })));
-            return dictionary;
-        }));
-        Map<String, String> toLink = from.getLinks().stream().collect(Collectors.toMap(Link::getName, (l) -> {
-            String canonical = l.getCanonical() != null ? l.getCanonical() : l.getName();
-            return to.getLinks().stream()
-                    .filter(tl -> (tl.getCanonical() != null ? tl.getCanonical() : tl.getName()).equals(canonical))
-                    .findFirst()
-                    .orElseThrow(() -> new RuntimeException("No value present " + canonical))
-                    .getName();
-
-        }));
+                                            dictionary.setColumns(
+                                                    e.getAttributes().stream()
+                                                            .collect(
+                                                                    Collectors.toMap(
+                                                                            Attribute::getName,
+                                                                            a -> {
+                                                                                String
+                                                                                        dialectColumn =
+                                                                                                getDialectColumn(
+                                                                                                        a);
+                                                                                return te
+                                                                                        .getAttributes()
+                                                                                        .stream()
+                                                                                        .filter(
+                                                                                                aa ->
+                                                                                                        getDialectColumn(
+                                                                                                                        aa)
+                                                                                                                .equals(
+                                                                                                                        dialectColumn))
+                                                                                        .findFirst()
+                                                                                        .orElseThrow(
+                                                                                                () ->
+                                                                                                        new RuntimeException(
+                                                                                                                "No value present "
+                                                                                                                        + dialectColumn))
+                                                                                        .getName();
+                                                                            })));
+                                            return dictionary;
+                                        }));
+        Map<String, String> toLink =
+                from.getLinks().stream()
+                        .collect(
+                                Collectors.toMap(
+                                        Link::getName,
+                                        (l) -> {
+                                            String canonical =
+                                                    l.getCanonical() != null
+                                                            ? l.getCanonical()
+                                                            : l.getName();
+                                            return to.getLinks().stream()
+                                                    .filter(
+                                                            tl ->
+                                                                    (tl.getCanonical() != null
+                                                                                    ? tl
+                                                                                            .getCanonical()
+                                                                                    : tl.getName())
+                                                                            .equals(canonical))
+                                                    .findFirst()
+                                                    .orElseThrow(
+                                                            () ->
+                                                                    new RuntimeException(
+                                                                            "No value present "
+                                                                                    + canonical))
+                                                    .getName();
+                                        }));
         return new DictionaryTranslator(toLink, toSchema);
     }
 
@@ -440,8 +580,8 @@ public class LinkResolver {
 
     /**
      * Returns all link names that are reachable from {@code entity} as the source side.
-     * <p>
-     * A link is included when at least one of its canonical FK relations has the entity's
+     *
+     * <p>A link is included when at least one of its canonical FK relations has the entity's
      * dialect table as {@code startTable} (forward link) or {@code endTable} (inverse link).
      * Symmetric relations count in both directions.
      *
@@ -449,8 +589,9 @@ public class LinkResolver {
      * @return sorted list of link names valid for the given entity
      */
     public List<String> linksFrom(String entity) {
-        String dialectTable = getDialectTable(entity)
-                .orElseThrow(() -> new KorykiaiException("unknown entity: " + entity));
+        String dialectTable =
+                getDialectTable(entity)
+                        .orElseThrow(() -> new KorykiaiException("unknown entity: " + entity));
         return linkMap.values().stream()
                 .filter(link -> isLinkEndpoint(dialectTable, link, true))
                 .map(Link::getName)
@@ -459,15 +600,16 @@ public class LinkResolver {
     }
 
     /**
-     * Returns all link names that can reach {@code entity} as the target side -
-     * the mirror of {@link #linksFrom(String)}.
+     * Returns all link names that can reach {@code entity} as the target side - the mirror of
+     * {@link #linksFrom(String)}.
      *
      * @param entity model-level entity name (as used in KQL FIND clauses)
      * @return sorted list of link names valid toward the given entity
      */
     public List<String> linksTo(String entity) {
-        String dialectTable = getDialectTable(entity)
-                .orElseThrow(() -> new KorykiaiException("unknown entity: " + entity));
+        String dialectTable =
+                getDialectTable(entity)
+                        .orElseThrow(() -> new KorykiaiException("unknown entity: " + entity));
         return linkMap.values().stream()
                 .filter(link -> isLinkEndpoint(dialectTable, link, false))
                 .map(Link::getName)
@@ -477,15 +619,15 @@ public class LinkResolver {
 
     /**
      * Returns all link names that connect {@code startEntity} to {@code endEntity}.
-     * <p>
-     * Each candidate link is tested with the same {@link #findRelation} resolution the
-     * query engine uses at execution time, so a link is listed here exactly when a
-     * {@code startEntity VIA link endEntity} clause would resolve - suggestions can
-     * never drift from executor behavior. Links whose resolution is ambiguous (more
-     * than one matching foreign key) are excluded, matching the executor's rejection.
+     *
+     * <p>Each candidate link is tested with the same {@link #findRelation} resolution the query
+     * engine uses at execution time, so a link is listed here exactly when a {@code startEntity VIA
+     * link endEntity} clause would resolve - suggestions can never drift from executor behavior.
+     * Links whose resolution is ambiguous (more than one matching foreign key) are excluded,
+     * matching the executor's rejection.
      *
      * @param startEntity model-level entity name of the source side
-     * @param endEntity   model-level entity name of the target side
+     * @param endEntity model-level entity name of the target side
      * @return sorted list of link names valid between the two entities
      */
     public List<String> linksBetween(String startEntity, String endEntity) {
@@ -493,34 +635,39 @@ public class LinkResolver {
                 .orElseThrow(() -> new KorykiaiException("unknown entity: " + startEntity));
         getDialectTable(endEntity)
                 .orElseThrow(() -> new KorykiaiException("unknown entity: " + endEntity));
-        // findRelation reports its diagnostics against a range; this lookup has no query text behind
-        // it, so it passes the smallest legal one. Positions are 1-based, hence (1,1) and not (0,0).
+        // findRelation reports its diagnostics against a range; this lookup has no query text
+        // behind
+        // it, so it passes the smallest legal one. Positions are 1-based, hence (1,1) and not
+        // (0,0).
         Range range = new Range(1, 1, 1, 1);
         return linkMap.keySet().stream()
-                .filter(name -> {
-                    try {
-                        return findRelation(range, startEntity, endEntity, name).isPresent();
-                    } catch (RuntimeException e) {
-                        return false;
-                    }
-                })
+                .filter(
+                        name -> {
+                            try {
+                                return findRelation(range, startEntity, endEntity, name)
+                                        .isPresent();
+                            } catch (RuntimeException e) {
+                                return false;
+                            }
+                        })
                 .sorted()
                 .collect(Collectors.toList());
     }
 
     /**
-     * Returns the names of all entities reachable from {@code entity} via any link -
-     * the candidate targets for a join. An entity is included when at least one link's
-     * canonical FK relation leads from {@code entity}'s dialect table to that entity's
-     * table (inverse links read their relations in the opposite direction, symmetric
-     * relations count both ways). Self-links include the entity itself.
+     * Returns the names of all entities reachable from {@code entity} via any link - the candidate
+     * targets for a join. An entity is included when at least one link's canonical FK relation
+     * leads from {@code entity}'s dialect table to that entity's table (inverse links read their
+     * relations in the opposite direction, symmetric relations count both ways). Self-links include
+     * the entity itself.
      *
      * @param entity model-level entity name (as used in KQL FIND clauses)
      * @return sorted distinct list of reachable entity names
      */
     public List<String> linkedEntities(String entity) {
-        String dialectTable = getDialectTable(entity)
-                .orElseThrow(() -> new KorykiaiException("unknown entity: " + entity));
+        String dialectTable =
+                getDialectTable(entity)
+                        .orElseThrow(() -> new KorykiaiException("unknown entity: " + entity));
         Set<String> result = new TreeSet<>();
         for (Link link : linkMap.values()) {
             collectLinkTargets(link, dialectTable, result);
@@ -529,11 +676,11 @@ public class LinkResolver {
     }
 
     /**
-     * Returns the names of all entities reachable via the given link criterion,
-     * optionally restricted to journeys starting at {@code fromEntity} - the
-     * candidate sources after {@code from? VIA criterion} in a KQL link clause.
+     * Returns the names of all entities reachable via the given link criterion, optionally
+     * restricted to journeys starting at {@code fromEntity} - the candidate sources after {@code
+     * from? VIA criterion} in a KQL link clause.
      *
-     * @param linkName   model-level (localized) link criterion name
+     * @param linkName model-level (localized) link criterion name
      * @param fromEntity optional entity name of the from side; {@code null} for any
      * @return sorted distinct list of reachable entity names
      */
@@ -542,24 +689,35 @@ public class LinkResolver {
         if (link == null) {
             throw new KorykiaiException("unknown link: " + linkName);
         }
-        String fromTable = fromEntity == null ? null : getDialectTable(fromEntity)
-                .orElseThrow(() -> new KorykiaiException("unknown entity: " + fromEntity));
+        String fromTable =
+                fromEntity == null
+                        ? null
+                        : getDialectTable(fromEntity)
+                                .orElseThrow(
+                                        () ->
+                                                new KorykiaiException(
+                                                        "unknown entity: " + fromEntity));
         Set<String> result = new TreeSet<>();
         collectLinkTargets(link, fromTable, result);
         return new ArrayList<>(result);
     }
 
     /**
-     * Adds the entity names reachable over {@code link} to {@code result}. With a
-     * non-null {@code fromTable}, only relations whose from side (inverse-aware)
-     * matches it contribute; with {@code null}, every relation of the link does.
+     * Adds the entity names reachable over {@code link} to {@code result}. With a non-null {@code
+     * fromTable}, only relations whose from side (inverse-aware) matches it contribute; with {@code
+     * null}, every relation of the link does.
      */
     private void collectLinkTargets(Link link, String fromTable, Set<String> result) {
         String canonical = getLink(link);
         Link canonicalLink = linkMap.get(canonical);
         if (canonicalLink == null || canonicalLink.getRelations() == null) return;
-        Map<String, String> tableToEntity = model.getEntities().stream()
-                .collect(Collectors.toMap(LinkResolver::getDialectTable, Entity::getName, (a, b) -> a));
+        Map<String, String> tableToEntity =
+                model.getEntities().stream()
+                        .collect(
+                                Collectors.toMap(
+                                        LinkResolver::getDialectTable,
+                                        Entity::getName,
+                                        (a, b) -> a));
         boolean inverse = isInverse(link);
         for (String relationName : canonicalLink.getRelations()) {
             Relation relation = db.getRelation(relationName).orElse(null);
@@ -589,9 +747,16 @@ public class LinkResolver {
                 .map(name -> db.getRelation(name))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .anyMatch(rel -> fromStartSide
-                        ? rel.getStartTable().equals(dialectTable) || (rel.isSymmetric() && rel.getEndTable().equals(dialectTable))
-                        : rel.getEndTable().equals(dialectTable) || (rel.isSymmetric() && rel.getStartTable().equals(dialectTable)));
+                .anyMatch(
+                        rel ->
+                                fromStartSide
+                                        ? rel.getStartTable().equals(dialectTable)
+                                                || (rel.isSymmetric()
+                                                        && rel.getEndTable().equals(dialectTable))
+                                        : rel.getEndTable().equals(dialectTable)
+                                                || (rel.isSymmetric()
+                                                        && rel.getStartTable()
+                                                                .equals(dialectTable)));
     }
 
     public TypeDescriptor getTypeDescriptor(Column column) {

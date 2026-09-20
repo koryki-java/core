@@ -16,7 +16,6 @@
  */
 package ai.koryki.catalog.domain;
 
-
 public class Attribute {
 
     private String name;
@@ -25,9 +24,7 @@ public class Attribute {
     private String description;
     private String column;
 
-    public Attribute() {
-
-    }
+    public Attribute() {}
 
     public Attribute(String name) {
         this.name = name;
@@ -77,8 +74,9 @@ public class Attribute {
      * <p><b>The exact stored spelling.</b> Not a logical name and not a convenience spelling: this
      * value is what the renderer will put between quotes the moment the name cannot go bare, and a
      * quoted name is matched literally. Nothing here introspects a database, so the renderer has no
-     * second source to check it against - if the catalog says {@code Betrag} and the attribute's column was
-     * created unquoted on Oracle, it is stored {@code BETRAG} and the query finds nothing.
+     * second source to check it against - if the catalog says {@code Betrag} and the attribute's
+     * column was created unquoted on Oracle, it is stored {@code BETRAG} and the query finds
+     * nothing.
      *
      * <p>The distinction is invisible for the ordinary case and only bites at the edges. An
      * all-lowercase name goes unquoted, and every engine either folds an unquoted name or ignores

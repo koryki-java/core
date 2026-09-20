@@ -1,10 +1,20 @@
+/*
+ * Copyright 2025-2026 Johannes Zemlin
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package ai.koryki.iql.functions;
-
-import ai.koryki.antlr.KorykiaiException;
-import ai.koryki.catalog.types.CoreTypeFamily;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
 
 import static ai.koryki.iql.functions.FunctionArg.arg;
 import static ai.koryki.iql.functions.FunctionArg.optionalArg;
@@ -14,6 +24,11 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import ai.koryki.antlr.KorykiaiException;
+import ai.koryki.catalog.types.CoreTypeFamily;
+import java.util.List;
+import org.junit.jupiter.api.Test;
 
 class FunctionRegistryTest {
 
@@ -31,10 +46,11 @@ class FunctionRegistryTest {
     @Test
     void overloadsWithDisjointArityCoexistAndResolveByArgCount() {
         FunctionRegistry r = new FunctionRegistry();
-        FunctionDefinition epoch = new FunctionDefinition("to_timestamp", ReturnTypes.TIMESTAMP)
-                .args(arg("epoch"));
-        FunctionDefinition text = new FunctionDefinition("to_timestamp", ReturnTypes.TIMESTAMP)
-                .args(arg("text"), arg("format"));
+        FunctionDefinition epoch =
+                new FunctionDefinition("to_timestamp", ReturnTypes.TIMESTAMP).args(arg("epoch"));
+        FunctionDefinition text =
+                new FunctionDefinition("to_timestamp", ReturnTypes.TIMESTAMP)
+                        .args(arg("text"), arg("format"));
         r.register(epoch).register(text);
 
         assertEquals(2, r.overloads("to_timestamp").size());
@@ -45,10 +61,12 @@ class FunctionRegistryTest {
     @Test
     void overlappingAritySupersedesExistingOverload() {
         FunctionRegistry r = new FunctionRegistry();
-        FunctionDefinition twoArg = new FunctionDefinition("substr", ReturnTypes.TEXT)
-                .args(arg("string"), arg("start"));
-        FunctionDefinition twoOrThree = new FunctionDefinition("substr", ReturnTypes.TEXT)
-                .args(arg("string"), arg("start"), optionalArg("length"));
+        FunctionDefinition twoArg =
+                new FunctionDefinition("substr", ReturnTypes.TEXT)
+                        .args(arg("string"), arg("start"));
+        FunctionDefinition twoOrThree =
+                new FunctionDefinition("substr", ReturnTypes.TEXT)
+                        .args(arg("string"), arg("start"), optionalArg("length"));
         r.register(twoArg).register(twoOrThree);
 
         assertEquals(1, r.overloads("substr").size());
@@ -58,27 +76,32 @@ class FunctionRegistryTest {
     @Test
     void sameArityOverloadsWithDistinctFamiliesCoexistAndResolveByFamily() {
         FunctionRegistry r = new FunctionRegistry();
-        FunctionDefinition fromInt = new FunctionDefinition("to_text", ReturnTypes.TEXT)
-                .args(arg("value", CoreTypeFamily.INTEGER));
-        FunctionDefinition fromDouble = new FunctionDefinition("to_text", ReturnTypes.TEXT)
-                .args(arg("value", CoreTypeFamily.FLOAT));
+        FunctionDefinition fromInt =
+                new FunctionDefinition("to_text", ReturnTypes.TEXT)
+                        .args(arg("value", CoreTypeFamily.INTEGER));
+        FunctionDefinition fromDouble =
+                new FunctionDefinition("to_text", ReturnTypes.TEXT)
+                        .args(arg("value", CoreTypeFamily.FLOAT));
         r.register(fromInt).register(fromDouble);
 
         // type-aware collides: same arity, disjoint families -> both survive
         assertEquals(2, r.overloads("to_text").size());
 
         // resolution picks the overload whose declared family matches the call's argument family
-        assertSame(fromInt,    r.lookup("to_text", 1, () -> List.of(CoreTypeFamily.INTEGER)));
+        assertSame(fromInt, r.lookup("to_text", 1, () -> List.of(CoreTypeFamily.INTEGER)));
         assertSame(fromDouble, r.lookup("to_text", 1, () -> List.of(CoreTypeFamily.FLOAT)));
     }
 
     @Test
     void mixedKindOverloadsAreRejected() {
         FunctionRegistry r = new FunctionRegistry();
-        r.register(new FunctionDefinition("f", ReturnTypes.TEXT, FunctionKind.AGGREGATE).args(arg("a")));
+        r.register(
+                new FunctionDefinition("f", ReturnTypes.TEXT, FunctionKind.AGGREGATE)
+                        .args(arg("a")));
 
-        FunctionDefinition scalar = new FunctionDefinition("f", ReturnTypes.TEXT, FunctionKind.SCALAR)
-                .args(arg("a"), arg("b"));
+        FunctionDefinition scalar =
+                new FunctionDefinition("f", ReturnTypes.TEXT, FunctionKind.SCALAR)
+                        .args(arg("a"), arg("b"));
         assertThrows(KorykiaiException.class, () -> r.register(scalar));
     }
 
@@ -101,7 +124,8 @@ class FunctionRegistryTest {
 
     @Test
     void signatureArity() {
-        FunctionSignature s = FunctionSignature.of(arg("string"), arg("start"), optionalArg("length"));
+        FunctionSignature s =
+                FunctionSignature.of(arg("string"), arg("start"), optionalArg("length"));
         assertEquals(2, s.minArgs());
         assertEquals(3, s.maxArgs());
         assertTrue(s.matchesArity(2));
@@ -117,27 +141,30 @@ class FunctionRegistryTest {
 
     @Test
     void signatureValidation() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> FunctionSignature.of(optionalArg("a"), arg("b")));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> FunctionSignature.ofVariadic(arg("a"), optionalArg("b")));
-        assertThrows(IllegalArgumentException.class,
-                () -> FunctionSignature.ofVariadic());
+        assertThrows(IllegalArgumentException.class, () -> FunctionSignature.ofVariadic());
     }
 
     @Test
     void signatureToString() {
-        assertEquals("(string, start [, length])",
-                FunctionSignature.of(arg("string"), arg("start"), optionalArg("length")).toString());
-        assertEquals("(value, ...)",
-                FunctionSignature.ofVariadic(arg("value")).toString());
+        assertEquals(
+                "(string, start [, length])",
+                FunctionSignature.of(arg("string"), arg("start"), optionalArg("length"))
+                        .toString());
+        assertEquals("(value, ...)", FunctionSignature.ofVariadic(arg("value")).toString());
     }
 
     @Test
     void overrideInheritsKindAndSignatureFromBase() {
         FunctionRegistry r = new FunctionRegistry();
-        r.register(new FunctionDefinition("string_agg", ReturnTypes.TEXT, FunctionKind.AGGREGATE)
-                .args(arg("value"), arg("separator")));
+        r.register(
+                new FunctionDefinition("string_agg", ReturnTypes.TEXT, FunctionKind.AGGREGATE)
+                        .args(arg("value"), arg("separator")));
 
         r.override("string_agg", "LISTAGG({0}, {1})");
 
@@ -157,13 +184,17 @@ class FunctionRegistryTest {
     @Test
     void overrideOfOverloadedNameRequiresArity() {
         FunctionRegistry r = new FunctionRegistry();
-        r.register(new FunctionDefinition("to_timestamp", ReturnTypes.TIMESTAMP).args(arg("value")));
-        r.register(new FunctionDefinition("to_timestamp", ReturnTypes.TIMESTAMP).args(arg("value"), arg("format")));
+        r.register(
+                new FunctionDefinition("to_timestamp", ReturnTypes.TIMESTAMP).args(arg("value")));
+        r.register(
+                new FunctionDefinition("to_timestamp", ReturnTypes.TIMESTAMP)
+                        .args(arg("value"), arg("format")));
 
         assertThrows(KorykiaiException.class, () -> r.override("to_timestamp", "TS({*})"));
 
         r.override("to_timestamp", 2, "TO_TIMESTAMP_TZ({0}, {1})");
-        assertEquals("TO_TIMESTAMP_TZ({0}, {1})", r.lookup("to_timestamp", 2).getTemplate().toString());
+        assertEquals(
+                "TO_TIMESTAMP_TZ({0}, {1})", r.lookup("to_timestamp", 2).getTemplate().toString());
         assertNull(r.lookup("to_timestamp", 1).getTemplate());
     }
 
@@ -196,10 +227,11 @@ class FunctionRegistryTest {
         // reset it to PREFIX (fixity's default) and it fell out of comparison dispatch, and
         // the extended doc paragraph was lost.
         FunctionRegistry r = new FunctionRegistry();
-        r.register(new FunctionDefinition("LIKE", ReturnTypes.TEXT)
-                .args(arg("value"), arg("pattern"))
-                .fixity(Fixity.INFIX)
-                .paragraph("Case-sensitive pattern match."));
+        r.register(
+                new FunctionDefinition("LIKE", ReturnTypes.TEXT)
+                        .args(arg("value"), arg("pattern"))
+                        .fixity(Fixity.INFIX)
+                        .paragraph("Case-sensitive pattern match."));
 
         r.override("LIKE", "{0} ILIKE {1}");
 
@@ -212,9 +244,10 @@ class FunctionRegistryTest {
     @Test
     void unsupportedOverlayCarriesFixity() {
         FunctionRegistry r = new FunctionRegistry();
-        r.register(new FunctionDefinition("BETWEEN", ReturnTypes.TEXT)
-                .args(arg("value"), arg("low"), arg("high"))
-                .fixity(Fixity.RANGE));
+        r.register(
+                new FunctionDefinition("BETWEEN", ReturnTypes.TEXT)
+                        .args(arg("value"), arg("low"), arg("high"))
+                        .fixity(Fixity.RANGE));
 
         r.unsupported("BETWEEN");
 

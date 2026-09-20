@@ -17,20 +17,18 @@
 package ai.koryki.catalog.types;
 
 import com.fasterxml.jackson.annotation.JsonValue;
-
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 
 /**
- * Storage declaration "instant as epoch integer": the column holds a point in
- * time as a count of <em>unit</em>s since 1970-01-01T00:00:00Z — Unix epoch
- * seconds, Java epoch millis, BigQuery/Arrow micros, Spark/Arrow nanos.
- * Combines the <em>instant</em> semantics with an integer representation, so
- * reads are normalized to the model zone at the boundary like {@code INSTANT}.
+ * Storage declaration "instant as epoch integer": the column holds a point in time as a count of
+ * <em>unit</em>s since 1970-01-01T00:00:00Z — Unix epoch seconds, Java epoch millis, BigQuery/Arrow
+ * micros, Spark/Arrow nanos. Combines the <em>instant</em> semantics with an integer
+ * representation, so reads are normalized to the model zone at the boundary like {@code INSTANT}.
  *
- * <p>Declared in the schema as {@code "EPOCH:<unit>"}, e.g. {@code "EPOCH:MILLIS"}
- * ({@link ChronoUnit#SECONDS}, {@code MILLIS}, {@code MICROS}, {@code NANOS});
- * parsed and cached by {@link TypeEncodingRegistry}.
+ * <p>Declared in the schema as {@code "EPOCH:<unit>"}, e.g. {@code "EPOCH:MILLIS"} ({@link
+ * ChronoUnit#SECONDS}, {@code MILLIS}, {@code MICROS}, {@code NANOS}); parsed and cached by {@link
+ * TypeEncodingRegistry}.
  */
 public final class EpochTypeEncoding implements TypeEncoding {
 

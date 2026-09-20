@@ -30,7 +30,6 @@ public class PanicException extends KorykiaiException {
         this.panic = Collections.unmodifiableList(panic);
     }
 
-
     @Override
     public String getMessage() {
         return panic.stream().map(v -> v.toString()).collect(Collectors.joining(Text.NL));

@@ -16,7 +16,6 @@
  */
 package ai.koryki.iql.query;
 
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,7 +24,6 @@ public class Query {
     private List<Block> block = new ArrayList<>();
     private Set set;
     private String description;
-
 
     public Set getSet() {
         return set;
@@ -50,6 +48,4 @@ public class Query {
     public void setBlock(List<Block> block) {
         this.block = block;
     }
-
-
 }

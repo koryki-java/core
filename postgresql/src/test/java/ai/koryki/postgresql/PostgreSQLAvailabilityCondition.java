@@ -16,23 +16,22 @@
  */
 package ai.koryki.postgresql;
 
-import org.junit.jupiter.api.extension.ConditionEvaluationResult;
-import org.junit.jupiter.api.extension.ExecutionCondition;
-import org.junit.jupiter.api.extension.ExtensionContext;
+import static org.junit.platform.commons.util.AnnotationUtils.findAnnotation;
 
-import java.nio.file.Path;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Optional;
 import java.util.Properties;
-
-import static org.junit.platform.commons.util.AnnotationUtils.findAnnotation;
+import org.junit.jupiter.api.extension.ConditionEvaluationResult;
+import org.junit.jupiter.api.extension.ExecutionCondition;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
 public class PostgreSQLAvailabilityCondition implements ExecutionCondition {
 
     @Override
     public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext context) {
-        final Optional<PostgreSQLUnavailable> optional = findAnnotation(context.getElement(), PostgreSQLUnavailable.class);
+        final Optional<PostgreSQLUnavailable> optional =
+                findAnnotation(context.getElement(), PostgreSQLUnavailable.class);
         if (optional.isPresent()) {
             final PostgreSQLUnavailable annotation = optional.get();
             try {
@@ -54,4 +53,3 @@ public class PostgreSQLAvailabilityCondition implements ExecutionCondition {
         return ConditionEvaluationResult.enabled("No assumptions, moving on...");
     }
 }
-

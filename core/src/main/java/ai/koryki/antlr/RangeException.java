@@ -46,7 +46,6 @@ public class RangeException extends KorykiaiException {
         this.range = range;
     }
 
-
     public RangeException(Range range, String msg, Throwable cause) {
 
         super(msg, cause);
@@ -61,5 +60,4 @@ public class RangeException extends KorykiaiException {
     public String toString() {
         return super.toString() + (range != null ? " " + range.toString() : "");
     }
-
 }

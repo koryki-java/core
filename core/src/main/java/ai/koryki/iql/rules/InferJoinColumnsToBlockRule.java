@@ -18,19 +18,16 @@ package ai.koryki.iql.rules;
 
 import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.antlr.Range;
+import ai.koryki.catalog.schema.Relation;
 import ai.koryki.iql.Identifier;
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.query.*;
-import ai.koryki.catalog.schema.Relation;
-import org.antlr.v4.runtime.RuleContext;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.antlr.v4.runtime.RuleContext;
 
-/**
- * Add OUT-Expressions for Join-Columns, references by other queries.
- */
+/** Add OUT-Expressions for Join-Columns, references by other queries. */
 public class InferJoinColumnsToBlockRule {
 
     private final LinkResolver resolver;
@@ -38,8 +35,11 @@ public class InferJoinColumnsToBlockRule {
     private final Map<String, Source> blockIdToLeadingTableMap;
     private final Map<Object, RuleContext> iqlToContext;
 
-    public InferJoinColumnsToBlockRule(Query query, LinkResolver resolver, Map<String, Source> blockIdToLeadingTableMap,
-                                       Map<Object, RuleContext> iqlToContext) {
+    public InferJoinColumnsToBlockRule(
+            Query query,
+            LinkResolver resolver,
+            Map<String, Source> blockIdToLeadingTableMap,
+            Map<Object, RuleContext> iqlToContext) {
         this.query = query;
         this.resolver = resolver;
         this.blockIdToLeadingTableMap = blockIdToLeadingTableMap;
@@ -88,7 +88,7 @@ public class InferJoinColumnsToBlockRule {
         String crit = join.getCrit();
         Source right = join.getSource();
         if (right != null) {
-            //boolean invers = join.isInvers();
+            // boolean invers = join.isInvers();
             // An explicit join carries no criterion, and its direction is fixed by what the
             // author wrote -- there is nothing to invert.
             boolean invers = join.getColumns() == null && resolver.isInverse(join.getCrit());
@@ -100,7 +100,14 @@ public class InferJoinColumnsToBlockRule {
         }
     }
 
-    private void joinColumns(Block block, Source start, Source end, String crit, String msg, Source right, ai.koryki.iql.query.JoinColumns explicit) {
+    private void joinColumns(
+            Block block,
+            Source start,
+            Source end,
+            String crit,
+            String msg,
+            Source right,
+            ai.koryki.iql.query.JoinColumns explicit) {
         String startTable = start.getName();
         String endTable = end.getName();
 
@@ -114,15 +121,16 @@ public class InferJoinColumnsToBlockRule {
 
         endTable = Identifier.normal(Identifier.lowercase, e.getName());
 
-
         Relation r;
         if (explicit != null) {
             // Written-out columns are the criterion; nothing to look up.
             r = resolver.relationFor(Range.of(iqlToContext, start), startTable, endTable, explicit);
         } else {
-            Optional<Relation> o = resolver.findRelation(Range.of(iqlToContext, start), startTable, endTable, crit);
+            Optional<Relation> o =
+                    resolver.findRelation(
+                            Range.of(iqlToContext, start), startTable, endTable, crit);
             if (o.isEmpty()) {
-                throw new KorykiaiException(msg +  " " + crit + " " + right.getName());
+                throw new KorykiaiException(msg + " " + crit + " " + right.getName());
             }
             // no need to extend out from previous set.
             r = o.get();
@@ -162,7 +170,11 @@ public class InferJoinColumnsToBlockRule {
                 Out out = createOut(table, name);
                 // The join column exists because of this source -- it inherits its position, so a
                 // validator can point at the written text instead of at nothing.
-                Rules.inherit(iqlToContext, table, out, out.getExpression(),
+                Rules.inherit(
+                        iqlToContext,
+                        table,
+                        out,
+                        out.getExpression(),
                         out.getExpression().getField());
                 table.getOut().add(out);
             }
@@ -185,16 +197,16 @@ public class InferJoinColumnsToBlockRule {
      *
      * <p>A {@link Relation} names physical columns, a query names model attributes, and the two
      * part company wherever an attribute declares a {@code column} override -- which is every
-     * attribute of the German northwind model. Comparing the two directly made {@link #hasOut}
-     * miss a column the block already projects, so the block projected it a second time: the
-     * German rendering of {@code block_join} grew a bare {@code o.customer_id} beside the
-     * {@code o.customer_id AS i} that was already there. It also made {@link #createOut}
-     * synthesize a field under a name the model does not carry, which the schema validator is
-     * right to reject once only model names count.
+     * attribute of the German northwind model. Comparing the two directly made {@link #hasOut} miss
+     * a column the block already projects, so the block projected it a second time: the German
+     * rendering of {@code block_join} grew a bare {@code o.customer_id} beside the {@code
+     * o.customer_id AS i} that was already there. It also made {@link #createOut} synthesize a
+     * field under a name the model does not carry, which the schema validator is right to reject
+     * once only model names count.
      *
-     * <p>Falls back to the column itself when the source is not an entity (a block) or no
-     * attribute maps to it -- there the column name is the best name available, and it is what
-     * this rule used throughout before.
+     * <p>Falls back to the column itself when the source is not an entity (a block) or no attribute
+     * maps to it -- there the column name is the best name available, and it is what this rule used
+     * throughout before.
      */
     private String attributeName(Source table, String column) {
         return resolver.getModelAttribute(table.getName(), column).orElse(column);
@@ -202,7 +214,8 @@ public class InferJoinColumnsToBlockRule {
 
     private boolean hasOut(Source t, String column) {
 
-        return t.getOut().stream().filter(c -> c.getExpression().getField() != null)
+        return t.getOut().stream()
+                .filter(c -> c.getExpression().getField() != null)
                 .map(o -> o.getExpression().getField())
                 .anyMatch(c -> c.getName().equals(column));
     }

@@ -24,22 +24,20 @@ import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Relation;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.schema.Table;
-
 import java.util.stream.Collectors;
 
 /**
- * Derives a default semantic {@link Model} from a physical {@link Schema} when no explicit model
- * is supplied: Table → Entity, Column → Attribute, Relation → Link (name/label/comment/description
+ * Derives a default semantic {@link Model} from a physical {@link Schema} when no explicit model is
+ * supplied: Table → Entity, Column → Attribute, Relation → Link (name/label/comment/description
  * carried over).
  *
- * <p>Lives at the catalog root as the sole bridge between the two layers, so
- * {@code catalog.domain} (semantic) and {@code catalog.schema} (physical) stay independent DTO
- * packages that don't reference each other.
+ * <p>Lives at the catalog root as the sole bridge between the two layers, so {@code catalog.domain}
+ * (semantic) and {@code catalog.schema} (physical) stay independent DTO packages that don't
+ * reference each other.
  */
 public final class SchemaToModel {
 
-    private SchemaToModel() {
-    }
+    private SchemaToModel() {}
 
     public static Model convert(Schema schema) {
         Model model = new Model();
@@ -47,8 +45,14 @@ public final class SchemaToModel {
         model.setLabel(schema.getLabel());
         model.setComment(schema.getComment());
         model.setDescription(schema.getDescription());
-        model.setEntities(schema.getTables().stream().map(SchemaToModel::convert).collect(Collectors.toList()));
-        model.setLinks(schema.getRelations().stream().map(SchemaToModel::convert).collect(Collectors.toList()));
+        model.setEntities(
+                schema.getTables().stream()
+                        .map(SchemaToModel::convert)
+                        .collect(Collectors.toList()));
+        model.setLinks(
+                schema.getRelations().stream()
+                        .map(SchemaToModel::convert)
+                        .collect(Collectors.toList()));
         return model;
     }
 
@@ -58,7 +62,10 @@ public final class SchemaToModel {
         entity.setLabel(table.getLabel());
         entity.setComment(table.getComment());
         entity.setDescription(table.getDescription());
-        entity.setAttributes(table.getColumns().stream().map(SchemaToModel::convert).collect(Collectors.toList()));
+        entity.setAttributes(
+                table.getColumns().stream()
+                        .map(SchemaToModel::convert)
+                        .collect(Collectors.toList()));
         return entity;
     }
 

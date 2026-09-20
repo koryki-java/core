@@ -16,16 +16,14 @@
  */
 package ai.koryki.antlr;
 
-import org.antlr.v4.runtime.tree.ParseTree;
-
 import java.io.IOException;
 import java.util.List;
+import org.antlr.v4.runtime.tree.ParseTree;
 
 /**
- * Shared parse plumbing for the IQL/KQL transpilers: a chain of memoized pure
- * stages (see {@link Lazy}). {@link PanicException} is raised by the stage that
- * detects it and replayed identically on every later access — never stored and
- * re-thrown from unrelated call sites.
+ * Shared parse plumbing for the IQL/KQL transpilers: a chain of memoized pure stages (see {@link
+ * Lazy}). {@link PanicException} is raised by the stage that detects it and replayed identically on
+ * every later access — never stored and re-thrown from unrelated call sites.
  */
 public abstract class AbstractTranspiler<R extends AbstractReader<?, ?, C>, C extends ParseTree> {
 

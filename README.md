@@ -26,8 +26,7 @@ The purpose of **koryki** is:
 - Shift control to human-centric queries
 - Simplify data analysis
 - Enhance workflows with AI while keeping full control
-- Visualise results with a declarative `VISUALISE` clause (grammar of graphics) — a separate,
-  optional extension, see [koryki-visualise](#visualisation) below
+
 
 [Read more](./docs/PURPOSE.md "purpose of the koryki.ai platform"), 
 see  [sample query](./docs/SAMPLE_QUERY.md "sample query"),
@@ -75,7 +74,6 @@ dependencies {
 ## Sub Projects
 
 - **core**: the koryki core library
-- **kqlcore**: the KQL grammar (ANTLR4) — without the `VISUALISE` clause, see [Visualisation](#visualisation)
 - **duckdb**: DuckDB dialect
 - **mariadb**: MariaDB dialect
 - **mssql**: Microsoft SQL Server dialect
@@ -115,6 +113,17 @@ git submodule update --init
 `~/.gradle/gradle.properties`) when developing against unreleased fixture changes; it defaults to
 the submodule when unset. See [`northwind`'s `SPEC.md`](https://github.com/koryki-java/northwind/blob/main/SPEC.md)
 for the corpus's format contract.
+
+Enable the pre-push hook once per clone, so a key or password is caught before it reaches GitHub:
+
+```
+git config core.hooksPath githooks
+```
+
+It scans the commits being pushed and rejects the push if it finds a credential — with
+[gitleaks](https://github.com/gitleaks/gitleaks) when installed, otherwise with a few built-in
+patterns. `git push --no-verify` overrides it for a false positive. The `Secret scan` workflow
+checks the full history on every push as well.
 
 ## Contribution
 

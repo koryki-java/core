@@ -20,11 +20,10 @@ import java.util.Objects;
 import java.util.function.Supplier;
 
 /**
- * Memoizing supplier for side-effect-free lazy pipelines: the supplier runs at
- * most once, and every subsequent {@link #get()} replays the same outcome —
- * the cached value or the same {@link RuntimeException}. This makes lazy
- * accessors idempotent: a stage that failed on first access fails identically
- * on every later access instead of silently changing behavior.
+ * Memoizing supplier for side-effect-free lazy pipelines: the supplier runs at most once, and every
+ * subsequent {@link #get()} replays the same outcome — the cached value or the same {@link
+ * RuntimeException}. This makes lazy accessors idempotent: a stage that failed on first access
+ * fails identically on every later access instead of silently changing behavior.
  */
 public final class Lazy<T> implements Supplier<T> {
 

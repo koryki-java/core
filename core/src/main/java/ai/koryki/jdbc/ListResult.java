@@ -1,5 +1,20 @@
+/*
+ * Copyright 2025-2026 Johannes Zemlin
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package ai.koryki.jdbc;
-
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -11,9 +26,7 @@ public class ListResult<C extends ColumnInfo> implements ResultProcessor<C> {
     private ValueFormat format;
     private final List<List<Object>> rows = new ArrayList<>();
 
-    public ListResult() {
-
-    }
+    public ListResult() {}
 
     @Override
     public boolean append(List<Object> row) {
@@ -21,9 +34,7 @@ public class ListResult<C extends ColumnInfo> implements ResultProcessor<C> {
     }
 
     @Override
-    public void close() {
-
-    }
+    public void close() {}
 
     public List<List<Object>> getRows() {
         return rows;
@@ -36,10 +47,10 @@ public class ListResult<C extends ColumnInfo> implements ResultProcessor<C> {
             b.append(CSVFileResult.toCSV(formatHeader(getInfos(), getInfos())));
         }
 
-        rows.forEach(l -> {
-
-            b.append(CSVFileResult.toCSV(formatRow(l, getInfos())));
-        });
+        rows.forEach(
+                l -> {
+                    b.append(CSVFileResult.toCSV(formatRow(l, getInfos())));
+                });
 
         return b.toString();
     }
@@ -51,7 +62,11 @@ public class ListResult<C extends ColumnInfo> implements ResultProcessor<C> {
             b.append(CSVFileResult.toCSV(formatHeader(getInfos(), getInfos())));
         }
 
-        List<String> rl = new ArrayList<>(rows.stream().map(r -> CSVFileResult.toCSV(formatRow(r, getInfos()))).toList());
+        List<String> rl =
+                new ArrayList<>(
+                        rows.stream()
+                                .map(r -> CSVFileResult.toCSV(formatRow(r, getInfos())))
+                                .toList());
         Collections.sort(rl);
 
         rl.forEach(b::append);

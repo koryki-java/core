@@ -19,9 +19,9 @@ package ai.koryki.antlr;
 /**
  * Text constants that apply across the whole project.
  *
- * <p>Lives in {@code ai.koryki.antlr} because that package imports from no other koryki package
- * and is therefore reachable from everywhere — {@code catalog}, {@code jdbc}, {@code iql},
- * {@code kql} and {@code result} all point here. The other way round would be a package cycle.
+ * <p>Lives in {@code ai.koryki.antlr} because that package imports from no other koryki package and
+ * is therefore reachable from everywhere — {@code catalog}, {@code jdbc}, {@code iql}, {@code kql}
+ * and {@code result} all point here. The other way round would be a package cycle.
  */
 public final class Text {
 
@@ -36,13 +36,12 @@ public final class Text {
      * <p>The comparing side assumed {@code \n} anyway: {@code FileAsserter} splits goldens hard on
      * it. Generation and comparison were therefore never in agreement — here they are.
      *
-     * <p>The places that <em>look for</em> line breaks belong to this too: {@code KQLFormatter} uses
-     * it to tell whether a fragment it produced is multi-line, and {@code IQLSerializer} prefixes
-     * every line of a description with {@code //}. Were they looking for something other than what
-     * generation writes, they would silently decide wrongly.
+     * <p>The places that <em>look for</em> line breaks belong to this too: {@code KQLFormatter}
+     * uses it to tell whether a fragment it produced is multi-line, and {@code IQLSerializer}
+     * prefixes every line of a description with {@code //}. Were they looking for something other
+     * than what generation writes, they would silently decide wrongly.
      */
     public static final String NL = "\n";
 
-    private Text() {
-    }
+    private Text() {}
 }

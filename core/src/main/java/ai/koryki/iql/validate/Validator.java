@@ -21,14 +21,13 @@ import ai.koryki.iql.IQLVisibilityContext;
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.SqlDialect;
 import ai.koryki.iql.Walker;
+import ai.koryki.iql.functions.FunctionCatalog;
 import ai.koryki.iql.query.Query;
 import ai.koryki.iql.query.Source;
-import ai.koryki.iql.functions.FunctionCatalog;
-import org.antlr.v4.runtime.RuleContext;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.antlr.v4.runtime.RuleContext;
 
 public class Validator {
 
@@ -41,25 +40,51 @@ public class Validator {
     private final IQLVisibilityContext visibility;
     private final SqlDialect dialect;
 
-    public Validator(Query bean, LinkResolver resolver, Map<String, Source> blockIdToLeadingTableMap, Map<Object, RuleContext> iqlToContext) {
+    public Validator(
+            Query bean,
+            LinkResolver resolver,
+            Map<String, Source> blockIdToLeadingTableMap,
+            Map<Object, RuleContext> iqlToContext) {
         this(bean, resolver, blockIdToLeadingTableMap, iqlToContext, null, null);
     }
 
-    /** @param functions dialect function catalog for arity/unsupported checks; null = skip those checks */
-    public Validator(Query bean, LinkResolver resolver, Map<String, Source> blockIdToLeadingTableMap, Map<Object, RuleContext> iqlToContext,
-                     FunctionCatalog functions) {
+    /**
+     * @param functions dialect function catalog for arity/unsupported checks; null = skip those
+     *     checks
+     */
+    public Validator(
+            Query bean,
+            LinkResolver resolver,
+            Map<String, Source> blockIdToLeadingTableMap,
+            Map<Object, RuleContext> iqlToContext,
+            FunctionCatalog functions) {
         this(bean, resolver, blockIdToLeadingTableMap, iqlToContext, functions, null);
     }
 
-    /** @param visibility root scope for typing operator operands; null = skip operand-family checks */
-    public Validator(Query bean, LinkResolver resolver, Map<String, Source> blockIdToLeadingTableMap, Map<Object, RuleContext> iqlToContext,
-                     FunctionCatalog functions, IQLVisibilityContext visibility) {
+    /**
+     * @param visibility root scope for typing operator operands; null = skip operand-family checks
+     */
+    public Validator(
+            Query bean,
+            LinkResolver resolver,
+            Map<String, Source> blockIdToLeadingTableMap,
+            Map<Object, RuleContext> iqlToContext,
+            FunctionCatalog functions,
+            IQLVisibilityContext visibility) {
         this(bean, resolver, blockIdToLeadingTableMap, iqlToContext, functions, visibility, null);
     }
 
-    /** @param dialect contributes validators for constructs it cannot express; null = none */
-    public Validator(Query bean, LinkResolver resolver, Map<String, Source> blockIdToLeadingTableMap, Map<Object, RuleContext> iqlToContext,
-                     FunctionCatalog functions, IQLVisibilityContext visibility, SqlDialect dialect) {
+    /**
+     * @param dialect contributes validators for constructs it cannot express; null = none
+     */
+    public Validator(
+            Query bean,
+            LinkResolver resolver,
+            Map<String, Source> blockIdToLeadingTableMap,
+            Map<Object, RuleContext> iqlToContext,
+            FunctionCatalog functions,
+            IQLVisibilityContext visibility,
+            SqlDialect dialect) {
 
         this.dialect = dialect;
         this.bean = bean;
@@ -74,14 +99,22 @@ public class Validator {
 
         if (violations == null) {
             violations = new ArrayList<>();
-            violations.addAll(Walker.apply(bean, new FunctionValidator(iqlToContext, functions, resolver, visibility)));
-            violations.addAll(Walker.apply(bean, new SchemaValidator(resolver, blockIdToLeadingTableMap, iqlToContext, visibility)));
+            violations.addAll(
+                    Walker.apply(
+                            bean,
+                            new FunctionValidator(iqlToContext, functions, resolver, visibility)));
+            violations.addAll(
+                    Walker.apply(
+                            bean,
+                            new SchemaValidator(
+                                    resolver, blockIdToLeadingTableMap, iqlToContext, visibility)));
             violations.addAll(Walker.apply(bean, new DurationValidator(iqlToContext)));
 
             // The dialect last: what it cannot express is only interesting once the query itself
             // is in order.
             if (dialect != null) {
-                ValidationContext context = new ValidationContext(iqlToContext, resolver, visibility, functions);
+                ValidationContext context =
+                        new ValidationContext(iqlToContext, resolver, visibility, functions);
                 // Derived from the declaration rather than wired per dialect: the dialect states
                 // what it can do in intervalSupport() and contributes nothing else here.
                 violations.addAll(Walker.apply(bean, new DurationValueValidator(context, dialect)));

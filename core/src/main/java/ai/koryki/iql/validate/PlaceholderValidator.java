@@ -21,20 +21,19 @@ import ai.koryki.iql.Collector;
 import ai.koryki.iql.Visitor;
 import ai.koryki.iql.query.Block;
 import ai.koryki.iql.query.UnaryLogicalExpression;
-import org.antlr.v4.runtime.RuleContext;
-
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
+import org.antlr.v4.runtime.RuleContext;
 
 /**
  * A placeholder that is still a placeholder when the query is analysed.
  *
  * <p>A placeholder marks a position the caller fills before the query runs — a value in a
- * comparison ({@code FILTER o.freight > #x}) or a whole sub-query bound to a block
- * ({@code WITH ord #p}). Filling it is the caller's job; a query that still carries one is a
- * template, not a query, and there is nothing to render.
+ * comparison ({@code FILTER o.freight > #x}) or a whole sub-query bound to a block ({@code WITH ord
+ * #p}). Filling it is the caller's job; a query that still carries one is a template, not a query,
+ * and there is nothing to render.
  *
  * <p>Rendering it anyway is what this rule prevents, and the reason it exists: without it the four
  * grammatical positions produced four different wrong answers, two of them silent. Measured against
@@ -73,9 +72,15 @@ public class PlaceholderValidator implements Visitor, Collector<List<Violation>>
     @Override
     public boolean visit(Deque<Object> deque, UnaryLogicalExpression expression) {
         if (expression.getPlaceholder() != null) {
-            violations.add(new Violation(PLACEHOLDER, expression, Range.of(iqlToContext, expression),
-                    "placeholder '" + expression.getPlaceholder() + "' is not bound — supply a value"
-                            + " for it before the query is rendered"));
+            violations.add(
+                    new Violation(
+                            PLACEHOLDER,
+                            expression,
+                            Range.of(iqlToContext, expression),
+                            "placeholder '"
+                                    + expression.getPlaceholder()
+                                    + "' is not bound — supply a value"
+                                    + " for it before the query is rendered"));
         }
         return true;
     }
@@ -83,9 +88,16 @@ public class PlaceholderValidator implements Visitor, Collector<List<Violation>>
     @Override
     public boolean visit(Deque<Object> deque, Block block) {
         if (block.getPlaceholder() != null) {
-            violations.add(new Violation(PLACEHOLDER, block, Range.of(iqlToContext, block),
-                    "block '" + block.getId() + "' is bound to placeholder '" + block.getPlaceholder()
-                            + "' — supply the sub-query for it before the query is rendered"));
+            violations.add(
+                    new Violation(
+                            PLACEHOLDER,
+                            block,
+                            Range.of(iqlToContext, block),
+                            "block '"
+                                    + block.getId()
+                                    + "' is bound to placeholder '"
+                                    + block.getPlaceholder()
+                                    + "' — supply the sub-query for it before the query is rendered"));
         }
         return true;
     }

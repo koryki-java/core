@@ -35,7 +35,7 @@ public class Schema {
         this(null);
     }
 
-    public Schema(String name)  {
+    public Schema(String name) {
         this(name, null, null);
     }
 
@@ -43,7 +43,12 @@ public class Schema {
         this(name, comment, description, new ArrayList<>(), new ArrayList<>());
     }
 
-    public Schema(String name, String comment, String description, List<Table> tables, List<Relation> relations)  {
+    public Schema(
+            String name,
+            String comment,
+            String description,
+            List<Table> tables,
+            List<Relation> relations) {
         this.name = name;
         this.comment = comment;
         this.description = description;
@@ -115,12 +120,14 @@ public class Schema {
         return relations.stream().filter(r -> r.getName().equals(name)).findFirst();
     }
 
-
     public List<Relation> linkRelations(String startTable, String endTable, String foreignKey) {
-        Predicate<Relation> predicate = (r) -> r.getStartTable().equals(startTable) && r.getEndTable().equals(endTable) && (foreignKey == null || r.getName().equals(foreignKey));
+        Predicate<Relation> predicate =
+                (r) ->
+                        r.getStartTable().equals(startTable)
+                                && r.getEndTable().equals(endTable)
+                                && (foreignKey == null || r.getName().equals(foreignKey));
 
-        return getRelations().stream().filter(predicate)
-                .collect(Collectors.toList());
+        return getRelations().stream().filter(predicate).collect(Collectors.toList());
     }
 
     public static Schema deepCopy(Schema schema) {
@@ -131,8 +138,10 @@ public class Schema {
         copy.setDescription(schema.getDescription());
         copy.setName(schema.getName());
 
-        copy.setTables(schema.getTables().stream().map(t -> deepCopy(t)).collect(Collectors.toList()));
-        copy.setRelations(schema.getRelations().stream().map(r -> deepCopy(r)).collect(Collectors.toList()));
+        copy.setTables(
+                schema.getTables().stream().map(t -> deepCopy(t)).collect(Collectors.toList()));
+        copy.setRelations(
+                schema.getRelations().stream().map(r -> deepCopy(r)).collect(Collectors.toList()));
 
         return copy;
     }
@@ -144,7 +153,8 @@ public class Schema {
         copy.setLabel(tabpe.getLabel());
         copy.setComment(tabpe.getComment());
         copy.setDescription(tabpe.getDescription());
-        copy.setColumns(tabpe.getColumns().stream().map(c -> deepCopy(c)).collect(Collectors.toList()));
+        copy.setColumns(
+                tabpe.getColumns().stream().map(c -> deepCopy(c)).collect(Collectors.toList()));
 
         return copy;
     }
@@ -195,5 +205,4 @@ public class Schema {
     public List<Relation> linkRelations(String startTable, String endTable) {
         return linkRelations(startTable, endTable, null);
     }
-
 }

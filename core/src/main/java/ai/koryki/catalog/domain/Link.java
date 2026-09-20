@@ -25,15 +25,18 @@ public class Link {
     private String comment;
     private String description;
     private String nature;
+
     /**
      * Language-stable canonical identifier used to align this link with its counterpart in another
      * locale's model when translating link names. Unlike name/label/comment/description (which are
      * translated per locale), this value is identical across all locale models; null means the
-     * link's own {@code name} is the canonical key. Distinct from {@link #relations} (the FK-relation
-     * name list).
+     * link's own {@code name} is the canonical key. Distinct from {@link #relations} (the
+     * FK-relation name list).
      */
     private String canonical;
-    private List<String> relations = new ArrayList<>();;
+
+    private List<String> relations = new ArrayList<>();
+    ;
 
     public String getName() {
         return name;
@@ -82,7 +85,6 @@ public class Link {
     public void setNature(String inverse) {
         this.nature = inverse;
     }
-
 
     public String toString() {
         return name;

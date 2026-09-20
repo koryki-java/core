@@ -17,12 +17,11 @@
 package ai.koryki.iql;
 
 import java.util.Locale;
-import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * TODO add strict/lenient handling for whitespace
- * may add a flag, see {@link #normal(Identifier, String)}
+ * TODO add strict/lenient handling for whitespace may add a flag, see {@link #normal(Identifier,
+ * String)}
  */
 public enum Identifier {
     /** save identifiers in neutral form */
@@ -55,31 +54,29 @@ public enum Identifier {
     /**
      * What SQL will not take as a bare name, on syntax alone.
      *
-     * <p>Two kinds. Anything outside {@code [A-Za-z_][A-Za-z0-9_]*} - a space, a hyphen, an
-     * umlaut, a leading digit - is the visible kind: {@code FROM Umsatz 2026} is a syntax error
-     * anyone can see coming.
+     * <p>Two kinds. Anything outside {@code [A-Za-z_][A-Za-z0-9_]*} - a space, a hyphen, an umlaut,
+     * a leading digit - is the visible kind: {@code FROM Umsatz 2026} is a syntax error anyone can
+     * see coming.
      *
      * <p>The other cost a round trip to Snowflake to find: a name that is not all lower case.
      * {@code Betrag} breaks no syntax rule and is no keyword, so nothing about it asks for quotes -
-     * but written bare it is folded, to {@code BETRAG} on Snowflake and Oracle and to
-     * {@code betrag} on PostgreSQL, and the column it was meant to reach is stored {@code Betrag}.
-     * Quoting pins it. Lower case stays unquoted, which is what every existing catalog holds and
-     * why no golden moved.
+     * but written bare it is folded, to {@code BETRAG} on Snowflake and Oracle and to {@code
+     * betrag} on PostgreSQL, and the column it was meant to reach is stored {@code Betrag}. Quoting
+     * pins it. Lower case stays unquoted, which is what every existing catalog holds and why no
+     * golden moved.
      *
      * <p>Keywords are <em>not</em> judged here. Which words an engine refuses is the engine's
-     * property and no two of the eight agree, so it belongs on the dialect - see
-     * {@link SqlDialect#isReserved(String)}.
+     * property and no two of the eight agree, so it belongs on the dialect - see {@link
+     * SqlDialect#isReserved(String)}.
      */
     public static boolean needsQuoting(String name) {
         if (name == null || name.isEmpty()) {
             return true;
         }
-        return !PLAIN.matcher(name).matches()
-                || !name.equals(name.toLowerCase(Locale.ROOT));
+        return !PLAIN.matcher(name).matches() || !name.equals(name.toLowerCase(Locale.ROOT));
     }
 
     private static final Pattern PLAIN = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
-
 
     /**
      * The bare name this form asks for: surrounding double quotes removed, case folded.
@@ -143,7 +140,8 @@ public enum Identifier {
             if (!n.equals(n.trim())) {
 
                 // TODO add strict / lenient handling for whitespace, see IdentifierEnum
-                //throw new IllegalArgumentException("can't normalize id with whitespace: '" + n + "'");
+                // throw new IllegalArgumentException("can't normalize id with whitespace: '" + n +
+                // "'");
             }
             return n.toUpperCase(Locale.ROOT);
         }
@@ -168,10 +166,9 @@ public enum Identifier {
 
     public static String indent(int l) {
         StringBuffer p = new StringBuffer();
-        for (int i =  0; i < l; i++) {
+        for (int i = 0; i < l; i++) {
             p.append(' ');
         }
         return p.toString();
     }
-
 }

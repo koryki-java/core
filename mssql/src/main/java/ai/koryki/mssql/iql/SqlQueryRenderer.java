@@ -16,11 +16,9 @@
  */
 package ai.koryki.mssql.iql;
 
-
 public class SqlQueryRenderer extends ai.koryki.iql.SqlQueryRenderer {
 
     public SqlQueryRenderer(java.time.ZoneId modelZone) {
         super(MssqlDialect.INSTANCE, modelZone);
     }
-
 }
