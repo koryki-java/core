@@ -26,8 +26,7 @@ The purpose of **koryki** is:
 - Shift control to human-centric queries
 - Simplify data analysis
 - Enhance workflows with AI while keeping full control
-- Visualise results with a declarative `VISUALISE` clause (grammar of graphics) — a separate,
-  optional extension, see [koryki-visualise](#visualisation) below
+
 
 [Read more](./docs/PURPOSE.md "purpose of the koryki.ai platform"), 
 see  [sample query](./docs/SAMPLE_QUERY.md "sample query"),
@@ -75,7 +74,6 @@ dependencies {
 ## Sub Projects
 
 - **core**: the koryki core library
-- **kqlcore**: the KQL grammar (ANTLR4) — without the `VISUALISE` clause, see [Visualisation](#visualisation)
 - **duckdb**: DuckDB dialect
 - **mariadb**: MariaDB dialect
 - **mssql**: Microsoft SQL Server dialect
