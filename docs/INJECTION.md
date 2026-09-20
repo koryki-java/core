@@ -368,15 +368,37 @@ unescaped copy leaks out elsewhere. The skeleton catches both that and the oppos
 unterminated literal, which is the classic injection signature — and it does not move when a
 renderer change keeps the meaning and shifts the text, so it reads as a policy rather than a golden.
 
-Current coverage, 34 cases:
+Current coverage:
 
-| Test | Path |
-|---|---|
-| `security/LiteralInjectionTest` | 1 — `=`, `IN`, `LIKE`, projection, the backslash-before-escape shape, and B1's refusals |
-| `security/CatalogIdentifierInjectionTest` | 2 — hostile table and column names in all four positions; `quote` and `needsQuoting` as rules |
-| `security/FunctionArgumentInjectionTest` | 3 — `to_interval`, format masks, `SqlTemplate`, the custom-operator alphabet |
-| `security/CommentInjectionTest` | 4 — CR, LF, CRLF, and `lineComment` itself |
-| `duckdb/SqlInjectionEngineTest` | all four, against a running engine |
+| Test | Module | Path |
+|---|---|---|
+| `security/LiteralInjectionTest` | core | 1 — `=`, `IN`, `LIKE`, projection, the backslash-before-escape shape, and B1's refusals |
+| `security/CatalogIdentifierInjectionTest` | core | 2 — hostile names in all four positions; `quote` and `needsQuoting` as rules |
+| `security/FunctionArgumentInjectionTest` | core | 3 — `to_interval`, format masks, `SqlTemplate`, the custom-operator alphabet |
+| `security/CommentInjectionTest` | core | 4 — CR, LF, CRLF, and `lineComment` itself |
+| `HostileLiteralTest` | tools | 1 and 3, **for all eight dialects**, each read with its own literal syntax |
+| `HostileIdentifierTest` | tools | 2, for all eight dialects — spaces, keywords, embedded quotes, the CTE list |
+| `SqlInjectionEngineTest` | duckdb | all four, against a running engine |
+| `HostileNameSnowflakeTest`, `MixedCaseNameOracleTest` | snowflake, oracle | 2, against live engines |
+
+The two `tools` tests are the cross-dialect layer, and they are there because `core` cannot see the
+dialect modules — it is their dependency, not the other way round. `tools` already depends on
+seven of the eight for its documentation generators, which makes it the one place a per-dialect
+invariant can be stated once instead of eight times.
+
+`HostileLiteralTest` deserves a note on how it asserts. Doubling the quote is the escape all eight
+engines accept, but they do not agree on what *else* is an escape inside a literal, so one shared
+expectation would be meaningless: the same rendered bytes are one literal on six engines and two on
+MariaDB and Snowflake. The test therefore carries a per-dialect reading of the literal syntax and
+empties the statement using *that*. Verified to bite: with `MariadbDialect.textLiteral` and
+`SnowflakeDialect.textLiteral` reduced to returning their argument, it fails with
+
+```
+snowflake: unterminated string literal from offset 75 — this SQL does not parse:
+  c.company_name = 'x\'' OR 1=1 -- '
+```
+
+which is the injection itself, not a proxy for it.
 
 The engine test is what closes the argument. `core` asserts what the transpiler *writes*, which
 takes on faith that a database reads it the way the test does. `SqlInjectionEngineTest` runs the
@@ -403,7 +425,7 @@ merging:
 
 | | Work | Why |
 |---|---|---|
-| 1 | Extend the `security` suite across the remaining seven dialects | The tests cover `core`, `kqlcore` and `duckdb`. MariaDB's and Snowflake's backslash doubling and SQL Server's bracket escaping were checked by rendering the payloads by hand during the review — nothing would catch a regression in them. |
+| 1 | ~~Extend the suite across the remaining seven dialects~~ — **done**, by `tools/HostileLiteralTest` alongside the `HostileIdentifierTest` that already covered identifiers | — |
 | 2 | Validate the catalog at load time | `CatalogLoader` accepts any name. Quoting makes a hostile name harmless, but a name that could never have been created in the database is more likely a sign of tampering than a real column, and `LinkResolver` is the place to say so. |
 | 3 | Fuzz the front doors | The lexer's literal rule and the description path are both `.*?` over arbitrary text. A generative pass over KQL and IQL, asserting the skeleton property, would cover what enumerated payloads do not. |
 | 4 | Consider emitting bind parameters | The largest structural change available, and not obviously the right one: it would remove path 1 outright, and cost the readable, diffable, golden-able SQL the project is built around. If it is ever taken, it is taken as a rendering *mode*, so the goldens keep their literals. |
