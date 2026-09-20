@@ -13,11 +13,6 @@
  * KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations
  * under the License.
- *
- * koryki.ai's KQL-parser was inspired by and partially derived from the excellent ggsql
- * project by Posit (https://github.com/posit-dev/ggsql).
- * The visualiseClause and its Grammar-of-Graphics concepts are not part of this grammar;
- * they live in the separate kqlvisualise project.
  */
 
 lexer grammar KQLLexer;
