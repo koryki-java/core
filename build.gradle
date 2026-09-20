@@ -4,6 +4,11 @@ rootProject.allprojects {
 
     group = rootProject.group
 
+    // The Java level, stated once: the toolchain below compiles against it and the manifest reports
+    // it as Build-Jdk-Spec. Two literals would drift apart at the next raise, and the manifest would
+    // then name a level nothing was built with.
+    def javaVersion = 21
+
     tasks.withType(Javadoc).configureEach {
         options.addStringOption('Xdoclint:-missing', '-quiet')
     }
@@ -75,22 +80,53 @@ rootProject.allprojects {
     pluginManager.withPlugin('java-base') {
         java {
             toolchain {
-                languageVersion = JavaLanguageVersion.of(21)
+                languageVersion = JavaLanguageVersion.of(javaVersion)
             }
         }
     }
 
-    // Without this, a consumer on the module path gets an "automatic module" named from the jar
-    // FILE NAME (koryki.core, hyphens and version stripped) -- unstable across any artifact rename
-    // and not something we chose. group+name is unique across every module in this build already,
-    // so it costs nothing to state explicitly here rather than leave it to that guess.
+    // Without Automatic-Module-Name, a consumer on the module path gets an "automatic module" named
+    // from the jar FILE NAME (koryki.core, hyphens and version stripped) -- unstable across any
+    // artifact rename and not something we chose. group+name is unique across every module in this
+    // build already, so it costs nothing to state explicitly here rather than leave it to that guess.
+    //
+    // The rest is the JAR specification's package versioning. Implementation-Version is what
+    // Package.getImplementationVersion() hands back for a class loaded from this jar, and the first
+    // thing to ask for in a bug report -- until now a jar lying loose on a disk said nothing about
+    // which release it was. Title and vendor repeat the POM's artifactId and owner for the same
+    // reason: the jar has to identify itself without its POM next to it.
+    //
+    // That read works from the CLASSPATH. On the module path the JVM defines the packages of a named
+    // module without the manifest's versioning attributes, and getImplementationVersion() there is
+    // null -- measured. Such a consumer reads the version from the module descriptor instead, where
+    // it comes from the jar's file name (core-0.1.0.jar -> rawVersion 0.1.0). Nothing to fix here,
+    // but it is why the attribute alone is not a version API.
+    //
+    // Specification-Version is major.minor and nothing more. Package.isCompatibleWith parses it as a
+    // dotted number sequence and throws NumberFormatException on anything else -- and the snapshot
+    // publish appends '-SNAPSHOT' to the version (see .github/workflows/release.yml). The full
+    // string, suffix and all, is in Implementation-Version, which is free-form by spec.
+    //
+    // Nothing here comes from the machine that builds: no Built-By, no host, no build timestamp.
+    // Those three are what usually makes two builds of the same commit differ byte for byte, and
+    // the first of them would put a user name into every jar on Central.
     //
     // LICENSE and NOTICE go into every jar, sources and javadoc included: Apache 2.0 section 4 asks
     // that whoever redistributes a work passes both on, and a jar on Central is such a copy.
     pluginManager.withPlugin('java-base') {
         tasks.withType(Jar).configureEach {
             manifest {
-                attributes('Automatic-Module-Name': "${project.group}.${project.name}".toString())
+                attributes(
+                        'Automatic-Module-Name': "${project.group}.${project.name}".toString(),
+                        'Implementation-Title': "koryki-${project.name}".toString(),
+                        'Implementation-Version': project.version.toString(),
+                        'Implementation-Vendor': 'koryki',
+                        'Specification-Title': "koryki-${project.name}".toString(),
+                        'Specification-Version': project.version.toString()
+                                .replaceFirst('[-+].*$', '').split('\\.').take(2).join('.'),
+                        'Specification-Vendor': 'koryki',
+                        'Build-Jdk-Spec': javaVersion.toString(),
+                        'Created-By': "Gradle ${gradle.gradleVersion}".toString())
             }
             from(rootProject.file('LICENSE')) { into 'META-INF' }
             from(rootProject.file('NOTICE')) { into 'META-INF' }
