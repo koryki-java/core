@@ -17,6 +17,7 @@
 package ai.koryki.iql;
 
 import ai.koryki.antlr.KorykiaiException;
+import ai.koryki.antlr.Text;
 import ai.koryki.iql.query.*;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -111,7 +112,7 @@ public class SqlQueryRenderer implements SqlRenderer {
         StringBuilder b = new StringBuilder();
 
         if (query.getDescription() != null) {
-            b.append("--").append(query.getDescription().replace(NL, NL + "--"));
+            b.append(Text.lineComment("--", query.getDescription()));
             b.append(NL);
         }
 

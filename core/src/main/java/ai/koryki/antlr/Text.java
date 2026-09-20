@@ -43,5 +43,27 @@ public final class Text {
      */
     public static final String NL = "\n";
 
+    /**
+     * A free-text description rewritten as a line comment — every line of it, including the ones a
+     * naive {@code replace(NL, NL + marker)} would miss.
+     *
+     * <p><b>Why this is not a {@code replace}.</b> The description of a query is its leading
+     * comment, so it is author-controlled text — a KQL block comment on the way in, a SQL or IQL
+     * line comment on the way out. A block comment holds any character the lexer's {@code .*?}
+     * accepts, and that includes a bare carriage return. Prefixing only after {@code \n} therefore
+     * left a CR sitting inside the emitted comment — and a CR ends a line comment on every engine
+     * here. Measured on DuckDB: a comment line broken by a CR and continued with {@code SELECT 42
+     * AS injected} answers a column named {@code injected}. Everything the author wrote after that
+     * CR was SQL, standing in front of the generated query.
+     *
+     * <p>{@code \R} is therefore the splitting rule and not {@code \n}: it is every line boundary
+     * Java knows — CR, LF, CRLF, NEL, the two Unicode separators, and the vertical whitespace. A
+     * couple of those no SQL engine treats as a line end; commenting them out anyway costs a
+     * description a line break it did not ask for, which is the cheap side of the trade.
+     */
+    public static String lineComment(String marker, String description) {
+        return marker + description.replaceAll("\\R", NL + marker);
+    }
+
     private Text() {}
 }

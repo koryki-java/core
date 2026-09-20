@@ -921,9 +921,7 @@ public class SqlSelectRenderer {
         } else if (expression.getFunction() != null) {
             return toSql(expression.getFunction(), indent);
         } else if (expression.getText() != null) {
-            String text = expression.getText();
-            text = text.replace("\\'", "''");
-            return dialect.textLiteral(text);
+            return dialect.textLiteral(Literals.text(expression.getText()));
         } else if (expression.getNumber() != null) {
             return Literals.number(expression.getNumber());
         } else if (expression.getLocalDate() != null) {

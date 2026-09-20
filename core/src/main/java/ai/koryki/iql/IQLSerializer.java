@@ -17,6 +17,7 @@
 package ai.koryki.iql;
 
 import ai.koryki.antlr.KorykiaiException;
+import ai.koryki.antlr.Text;
 import ai.koryki.iql.logic.NodeType;
 import ai.koryki.iql.query.*;
 import java.time.LocalDateTime;
@@ -53,7 +54,7 @@ public class IQLSerializer {
         StringBuilder b = new StringBuilder();
 
         if (query.getDescription() != null) {
-            b.append("//" + query.getDescription().replace(SqlRenderer.NL, SqlRenderer.NL + "//"));
+            b.append(Text.lineComment("//", query.getDescription()));
             b.append(SqlRenderer.NL);
             b.append(SqlRenderer.NL);
         }
