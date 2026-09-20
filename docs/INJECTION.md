@@ -300,6 +300,32 @@ was measured; see B6 for why the other seven do not need to be.)
 **Shape:** a defence written against one spelling of a concept that has several. The fix is
 `Text.lineComment`, shared by the SQL renderer and the IQL serializer so the two cannot drift.
 
+### A trailing backslash — a literal the renderer left open
+
+The lexer and the renderer disagreed about one character. `SQ_STRING` prefers the escape reading of
+`\'`, but only where that reading yields a token at all; where it does not, the backslash is an
+ordinary character and the quote after it closes the literal. So the KQL `'a\'` is a literal whose
+value is `a\`. The renderer, which ran `replace("\\'", "''")` over the token *including its
+delimiters*, read the same two characters as an escape and emitted
+
+```sql
+WHERE c.company_name = 'a''
+```
+
+— a literal with no terminator, which swallows whatever was rendered after it.
+
+**Shape:** two readings of one escape, in two places, neither aware of the other. The fix is
+`Literals.text`: strip the delimiters first, unescape the body, escape it again for SQL, put the
+delimiters back — so neither step can mistake a delimiter for content.
+
+No exploit was demonstrated for it. The shapes that would place attacker text after the open
+literal do not survive KQL lexing, because the same backtracking that creates the bug consumes the
+second literal differently. It is recorded as a defect rather than a vulnerability: a valid query
+rendering SQL that does not parse is wrong on its own, and an unterminated literal is the shape an
+escaped-wrongly value takes before it is anything worse.
+
+**Found by generated input**, not by a case anyone wrote — see R4.
+
 ### Still open, and not an injection
 
 `MssqlDialect.compileMask` re-escapes a literal run that `FormatMask.body` already returned escaped,
@@ -427,7 +453,7 @@ merging:
 |---|---|---|
 | 1 | ~~Extend the suite across the remaining seven dialects~~ — **done**, by `tools/HostileLiteralTest` alongside the `HostileIdentifierTest` that already covered identifiers | — |
 | 2 | Validate the catalog at load time | `CatalogLoader` accepts any name. Quoting makes a hostile name harmless, but a name that could never have been created in the database is more likely a sign of tampering than a real column, and `LinkResolver` is the place to say so. |
-| 3 | Fuzz the front doors | The lexer's literal rule and the description path are both `.*?` over arbitrary text. A generative pass over KQL and IQL, asserting the skeleton property, would cover what enumerated payloads do not. |
+| 3 | ~~Fuzz the front doors~~ — **done** for the literal and description paths (`HostileLiteralTest`), and it found the trailing-backslash defect above on its first run | IQL's front door is still only covered through the shapes KQL can express. |
 | 4 | Consider emitting bind parameters | The largest structural change available, and not obviously the right one: it would remove path 1 outright, and cost the readable, diffable, golden-able SQL the project is built around. If it is ever taken, it is taken as a rendering *mode*, so the goldens keep their literals. |
 | 5 | Keep the read-back census current (R3) | It is a table in a document, which is the weakest kind of guarantee. A test that fails when a new read-back site appears would be better. |
 

@@ -17,6 +17,7 @@
 package ai.koryki.tools;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import ai.koryki.antlr.KorykiaiException;
@@ -35,6 +36,7 @@ import ai.koryki.sqlite.iql.SqliteDialect;
 import ai.koryki.trino.iql.TrinoDialect;
 import java.time.ZoneId;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -277,6 +279,148 @@ class HostileLiteralTest {
                     sql(d.sql(), "FIND orders o FETCH to_interval(30, 'DAY') due");
                     sql(d.sql(), "FIND orders o FETCH date_trunc('month', o.order_date) m");
                 });
+    }
+
+    // ------------------------------------------------------------------------ generated input
+
+    /**
+     * The alphabet a payload is built from, plus the characters that decide where a token ends.
+     * Ordinary letters are in it so that the interesting characters land in the middle of text as
+     * well as alone.
+     */
+    private static final char[] NASTY =
+            ("'\"`\\/*-;()[]{}|%_$#@!=<>,. \t\r\n\u0000\u0085\u2028\u2029abcXY01".toCharArray());
+
+    /**
+     * Iterations per dialect. Enough to explore the alphabet; short enough to stay in the build.
+     */
+    private static final int ROUNDS = 400;
+
+    /**
+     * Override with {@code -Dfuzz.seed=...} to re-run a specific sequence; the default is fixed so
+     * that a red build is the same red build for everyone looking at it.
+     */
+    private static long seed() {
+        return Long.getLong("fuzz.seed", 20260921L);
+    }
+
+    /**
+     * Whatever parses must render contained — for text nobody chose.
+     *
+     * <p>Every other case in this file asserts against a payload someone thought of, which is the
+     * one thing generated input is better at: it does not share the author's idea of what an
+     * interesting character is. The property is the same one the enumerated cases check, and the
+     * cheapness of checking it is the point — a rendering whose literal does not close, or that
+     * lets a generated fragment out of one, fails regardless of what the fragment says.
+     *
+     * <p>Input that does not parse is not a failure but the lexer doing its job (barrier B1), so it
+     * is skipped and counted; the count is asserted, because a generator that produced nothing
+     * parseable would pass this test while testing nothing.
+     */
+    @Test
+    void anyLiteralThatParsesRendersContained() {
+        // One dialect per distinct literal syntax: the readings are what differ, and transpiling
+        // all eight would buy repetition rather than coverage.
+        for (String name : List.of("duckdb", "mariadb", "snowflake")) {
+            Dialect d = DIALECTS.get(name);
+            java.util.Random random = new java.util.Random(seed());
+            int parsed = 0;
+            for (int i = 0; i < ROUNDS; i++) {
+                String body = randomText(random, 12);
+                String kql = "FIND customers c FILTER c.company_name = '" + body + "' FETCH c.city";
+                String sql;
+                try {
+                    sql = sql(d.sql(), kql);
+                } catch (RuntimeException notAQuery) {
+                    continue; // never parsed, never rendered — nothing reached any statement
+                }
+                parsed++;
+                // skeleton() fails on its own if a literal never closes, which is the shape an
+                // escaped-wrongly value takes before it is anything else.
+                String skeleton =
+                        skeleton(
+                                name + " [seed " + seed() + ", round " + i + "]", sql, d.literal());
+                assertTrue(
+                        skeleton.contains("c.company_name = ''"),
+                        name
+                                + ": the value stopped being one literal [seed "
+                                + seed()
+                                + ", round "
+                                + i
+                                + "]\n"
+                                + skeleton
+                                + "\n\nfull SQL:\n"
+                                + sql);
+            }
+            assertTrue(
+                    parsed > ROUNDS / 10,
+                    name
+                            + ": only "
+                            + parsed
+                            + " of "
+                            + ROUNDS
+                            + " generated literals parsed — the generator is testing nothing");
+        }
+    }
+
+    /**
+     * A description may add comment lines to the rendered SQL and nothing else.
+     *
+     * <p>Exactly the invariant, and it needs no payload: render the query with the generated
+     * leading comment and again without it, and require the non-comment lines to be identical. A
+     * description that ends its comment early adds a line that is not a comment, and the counts
+     * part company whatever the text says.
+     */
+    @Test
+    void anyDescriptionThatParsesAddsOnlyCommentLines() {
+        Dialect d = DIALECTS.get("duckdb");
+        String plain = "FIND customers c FETCH c.city";
+        List<String> bare = statementLines(sql(d.sql(), plain));
+
+        java.util.Random random = new java.util.Random(seed());
+        int parsed = 0;
+        for (int i = 0; i < ROUNDS; i++) {
+            String note = randomText(random, 12);
+            String sql;
+            try {
+                sql = sql(d.sql(), "/*" + note + "*/ " + plain);
+            } catch (RuntimeException notAQuery) {
+                continue;
+            }
+            parsed++;
+            assertEquals(
+                    bare,
+                    statementLines(sql),
+                    "a description added a line that is not a comment [seed "
+                            + seed()
+                            + ", round "
+                            + i
+                            + "]\n"
+                            + sql);
+        }
+        assertTrue(
+                parsed > ROUNDS / 10,
+                "only "
+                        + parsed
+                        + " of "
+                        + ROUNDS
+                        + " generated descriptions parsed — the generator is testing nothing");
+    }
+
+    /** The lines of {@code sql} that are not line comments, split the way an engine splits them. */
+    private static List<String> statementLines(String sql) {
+        return java.util.Arrays.stream(sql.split("\\R", -1))
+                .filter(l -> !l.startsWith("--"))
+                .toList();
+    }
+
+    private static String randomText(java.util.Random random, int maxLength) {
+        int n = random.nextInt(maxLength + 1);
+        StringBuilder b = new StringBuilder(n);
+        for (int i = 0; i < n; i++) {
+            b.append(NASTY[random.nextInt(NASTY.length)]);
+        }
+        return b.toString();
     }
 
     @Test
