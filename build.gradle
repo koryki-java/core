@@ -106,6 +106,21 @@ rootProject.allprojects {
                 googleJavaFormat(libs.versions.google.java.format.get()).aosp()
             }
         }
+
+        // xml, for tooling (SonarQube, Codecov) that might read it later; html, to look at
+        // locally. No coverage gate: a report is not the same decision as a minimum to enforce.
+        // Was applied only to :core before this; centralized here so every module gets one.
+        apply plugin: 'jacoco'
+        test {
+            finalizedBy jacocoTestReport
+        }
+        jacocoTestReport {
+            dependsOn test
+            reports {
+                xml.required = true
+                html.required = true
+            }
+        }
     }
 
     // Without Automatic-Module-Name, a consumer on the module path gets an "automatic module" named

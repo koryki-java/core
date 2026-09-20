@@ -24,8 +24,6 @@ spotless = "8.10.2"
 google-java-format = "1.36.1"
 
 [plugins]
-jacoco = { id = "jacoco" }
-
 antlr = { id = "org.gradle.antlr"}
 
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }

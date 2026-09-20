@@ -41,3 +41,13 @@ jobs:
         with:
           name: test-reports
           path: '**/build/reports/tests/'
+
+      # No pass/fail gate on coverage -- this is visibility, not enforcement -- so it uploads
+      # whether the tests passed or not. MariaDB/MSSQL/Oracle/PostgreSQL/Snowflake/Trino report
+      # near-zero coverage here since their engine tests skip without a live server (see above).
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-reports
+          path: '**/build/reports/jacoco/'
