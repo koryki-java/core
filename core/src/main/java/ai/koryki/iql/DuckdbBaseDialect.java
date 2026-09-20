@@ -16,6 +16,7 @@
  */
 package ai.koryki.iql;
 
+import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.Families;
 import ai.koryki.catalog.types.FamilyGroup;
@@ -32,6 +33,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /** Default-Dialect is DuckdbDialect. */
 public class DuckdbBaseDialect implements SqlDialect {
@@ -88,6 +90,23 @@ public class DuckdbBaseDialect implements SqlDialect {
         return FormatMask.translate(rendered, FormatMask.STRFTIME);
     }
 
+    /**
+     * What may stand after {@code INTERVAL (n)} as a bare unit keyword: letters, nothing else.
+     *
+     * <p>The check is the security boundary of {@link #toIntervalUnit}, not a spelling aid. The
+     * unit arrives as a <em>rendered</em> SQL string literal and the fall-through branch strips its
+     * quotes and writes the body into the SQL <em>unquoted</em> — so without this, every character
+     * of a KQL string literal was SQL. {@code to_interval(1, 'DAY, (SELECT company_name FROM
+     * customers LIMIT 1) AS leaked')} put a second output column into the SELECT list, filled from
+     * a table the query never named, and DuckDB answered it.
+     *
+     * <p>A word cannot do that: it carries no quote, paren, comma, semicolon or comment marker, so
+     * whatever DuckDB makes of an unknown unit it stays one token in the position the renderer put
+     * it. That keeps the pass-through for units DuckDB knows and this list does not (DECADE,
+     * CENTURY, …) while closing the hole.
+     */
+    private static final Pattern INTERVAL_UNIT = Pattern.compile("[A-Za-z]+");
+
     private static String toIntervalUnit(String value, String unit) {
         // unit may be a string literal like 'DAY' or a runtime expression
         String bare =
@@ -105,7 +124,13 @@ public class DuckdbBaseDialect implements SqlDialect {
                 case "SECOND", "SECONDS" -> "to_seconds(" + value + ")";
                 case "MILLISECOND", "MILLISECONDS" -> "to_milliseconds(" + value + ")";
                 case "MICROSECOND", "MICROSECONDS" -> "to_microseconds(" + value + ")";
-                default -> "INTERVAL (" + value + ") " + bare;
+                default -> {
+                    if (!INTERVAL_UNIT.matcher(bare).matches()) {
+                        throw new KorykiaiException(
+                                "to_interval unit must be a single word, not " + unit);
+                    }
+                    yield "INTERVAL (" + value + ") " + bare;
+                }
             };
         }
         // runtime unit — fall back to INTERVAL expr cast
