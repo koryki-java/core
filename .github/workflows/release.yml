@@ -55,6 +55,33 @@ jobs:
       - name: Test
         run: ./gradlew test --no-daemon
 
+      # An upload with a missing or malformed credential fails as "HTTP error 401: ''" at the very
+      # end, after the build and the signing, and the value is masked in the log -- so say here
+      # what is wrong with it while it can still be read.
+      - name: Check Central Portal credentials
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_PORTAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PORTAL_PASSWORD }}
+        run: |
+          if [ -z "$CENTRAL_USERNAME" ] || [ -z "$CENTRAL_PASSWORD" ]; then
+            echo "::error::CENTRAL_PORTAL_USERNAME or CENTRAL_PORTAL_PASSWORD is not set in this repository"
+            exit 1
+          fi
+          # Both halves come from Account -> Generate User Token on central.sonatype.com. The
+          # portal login itself is rejected with the same 401, and an email address as the user
+          # name is the usual sign of it.
+          case "$CENTRAL_USERNAME" in
+            *@*) echo "::error::CENTRAL_PORTAL_USERNAME is an email address; it must be the user token's name"; exit 1 ;;
+          esac
+          # By length, not by grep: a trailing newline is a line terminator, so grep would not see
+          # the very whitespace that is easiest to paste in by accident.
+          both="$CENTRAL_USERNAME$CENTRAL_PASSWORD"
+          stripped=$(printf '%s' "$both" | tr -d '[:space:]')
+          if [ "${#stripped}" -ne "${#both}" ]; then
+            echo "::error::CENTRAL_PORTAL_USERNAME or CENTRAL_PORTAL_PASSWORD contains whitespace; a pasted space or newline breaks the Basic auth header"
+            exit 1
+          fi
+
       - name: Publish to playground (snapshot)
         if: github.event_name == 'workflow_dispatch' && inputs.target == 'snapshot'
         run: |
