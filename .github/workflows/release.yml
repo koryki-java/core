@@ -24,10 +24,6 @@ jobs:
       SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
       ORG_GRADLE_PROJECT_centralPortalUsername: ${{ secrets.CENTRAL_PORTAL_USERNAME }}
       ORG_GRADLE_PROJECT_centralPortalPassword: ${{ secrets.CENTRAL_PORTAL_PASSWORD }}
-      # Authorization is not secret -- only the derived token below is. settings.gradle's
-      # centralManualTesting repository needs both to resolve a koryki-northwind version that is
-      # only a pending Central Portal deployment (see gradle/libs.versions.toml).
-      ORG_GRADLE_PROJECT_centralManualTestingAuthHeaderName: Authorization
     steps:
       - uses: actions/checkout@v7
         with:
@@ -55,16 +51,6 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-
-      # Same Bearer-token scheme as Central Portal's "manual testing" endpoint expects -- derived
-      # from CENTRAL_PORTAL_USERNAME/PASSWORD above rather than a separate secret, so there is
-      # nothing extra to rotate if that token changes. Masked explicitly: GitHub only auto-masks
-      # the secrets it was given verbatim, not values derived from them.
-      - name: Derive Central Portal manual-testing header
-        run: |
-          token=$(printf '%s:%s' "$ORG_GRADLE_PROJECT_centralPortalUsername" "$ORG_GRADLE_PROJECT_centralPortalPassword" | base64 -w0)
-          echo "::add-mask::$token"
-          echo "ORG_GRADLE_PROJECT_centralManualTestingAuthHeaderValue=Bearer $token" >> "$GITHUB_ENV"
 
       - name: Test
         run: ./gradlew test --no-daemon

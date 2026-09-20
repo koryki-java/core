@@ -18,33 +18,19 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
 
     repositories {
-        // Only koryki's own artifacts may come from the local repository, for building against an
-        // unreleased northwind; everything else comes from Central, never from a stale local copy.
+        // Only koryki's own artifacts may come from the local repository: for developing against a
+        // northwind or koryki change before it is published. Everything else comes from Central,
+        // never from a stale local copy.
+        //
+        // It is listed first, so a local copy WINS over the released artifact of the same version.
+        // That is what makes it useful and also the one way it bites: a `publishToMavenLocal` of a
+        // version that later ships for real leaves a private artifact shadowing the public one, and
+        // the build goes on passing on that machine alone. `rm -rf ~/.m2/repository/ai/koryki` when
+        // a build succeeds locally and nowhere else.
         mavenLocal {
             content { includeGroupByRegex 'ai\\.koryki(\\..+)?' }
         }
 
-        // Central Portal's "manual testing" endpoint: serves files from any of this account's
-        // VALIDATED-but-not-yet-published deployments (USER_MANAGED, before the Publish click in
-        // the portal UI) -- for testing a real release build before it goes public. Scoped the
-        // same as mavenLocal above, for the same reason.
-        //
-        // Needs centralManualTestingAuthHeaderName/Value as Gradle properties (a Bearer token,
-        // base64 of centralPortalUsername:centralPortalPassword) or every request to this repo
-        // fails -- which is also every :core/:testkit build once a koryki-northwind version here
-        // only exists as a pending deployment. Locally that means adding them to
-        // ~/.gradle/gradle.properties yourself; build.yml and release.yml derive them from the
-        // existing CENTRAL_PORTAL_USERNAME/PASSWORD secrets instead of storing a third one.
-        //
-        // Remove this repository, and that CI wiring, once koryki-northwind below is a real
-        // release again and resolves from mavenCentral() like everything else.
-        maven {
-            name = 'centralManualTesting'
-            url = 'https://central.sonatype.com/api/v1/publisher/deployments/download/'
-            content { includeGroupByRegex 'ai\\.koryki(\\..+)?' }
-            credentials(HttpHeaderCredentials)
-            authentication { header(HttpHeaderAuthentication) }
-        }
         mavenCentral()
     }
 }
