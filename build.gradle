@@ -155,11 +155,26 @@ rootProject.allprojects {
         apply plugin: 'signing'
         def signingKey = providers.environmentVariable('SIGNING_KEY').orNull
         if (signingKey) {
+            // Gradle wants the short key ID: eight hex digits. What one has at hand is the
+            // fingerprint the way gpg prints it -- forty digits, in spaced groups, sometimes with
+            // an 0x in front -- and handing that over fails the release in the signing task with
+            // "The key ID must be in a valid form". Its last eight digits ARE the short ID, so
+            // reduce it here rather than let the format of a pasted secret stop a release.
+            def keyId = providers.environmentVariable('SIGNING_KEY_ID').orNull
+                    ?.replaceAll('\\s', '')
+                    ?.replaceFirst('(?i)^0x', '')
+            if (keyId && keyId.length() > 8) {
+                keyId = keyId.substring(keyId.length() - 8)
+            }
+            def signingPassword = providers.environmentVariable('SIGNING_PASSWORD').orNull
             signing {
-                useInMemoryPgpKeys(
-                        providers.environmentVariable('SIGNING_KEY_ID').orNull,
-                        signingKey,
-                        providers.environmentVariable('SIGNING_PASSWORD').orNull)
+                if (keyId) {
+                    useInMemoryPgpKeys(keyId, signingKey, signingPassword)
+                } else {
+                    // No ID given: the key signs with its primary key, which is what this
+                    // overload assumes. An unset secret arrives as an empty string, not as null.
+                    useInMemoryPgpKeys(signingKey, signingPassword)
+                }
                 sign publishing.publications.mavenJava
             }
         }
