@@ -1,9 +1,11 @@
 plugins {
-    id 'java'
+    id 'java-library'
     id 'maven-publish'
 }
 
-description = 'koryki tools'
+description = 'Build-time tooling for koryki: the shared list of documented dialects and '  +
+        'samples that every documentation generator works from, and an audit over the '  +
+        'function catalog for arguments with no declared type family. Not needed at runtime.'
 
 dependencies {
 
@@ -12,7 +14,10 @@ dependencies {
     implementation project(':northwind')
     // DocDialects reads the fixture corpus through Fixtures.
     implementation project(':testkit')
-    implementation project(':core')
+    // api: DocDialects.Doc carries a SqlDialect and resolvers() hands out LinkResolvers, both
+    // core types. The dialect modules below stay implementation -- they are read to build that
+    // list, but what leaves this module is always the core interface, never their own classes.
+    api project(':core')
 
     // Main scope, not test: DocDialects (below) lives in this sourceset now, so incubator::tools
     // can reuse it via the published koryki-tools jar instead of carrying its own copy.
@@ -43,13 +48,21 @@ test {
 }
 
 // FunctionDocGenerator, FunctionDocCoverage and FunctionDocsTest (the golden test that generated
-// and verified docs/functions/*.md and docs/dialects/*.md here) moved to incubator's koryki-tools.
-// This repo cannot depend on that module even at test scope -- it already depends on this repo's
-// published jars, and the other direction would be a cycle. docs/functions/*.md and
-// docs/dialects/*.md are therefore no longer self-verified by this repo's own build; that
-// verification, plus the coverageReport worklist and publishing to the web project, now live
-// entirely in incubator: ./gradlew :tools:test / :tools:coverageReport / :tools:publishFunctionDocs,
-// run from there.
+// and verified docs/functions/*.md and docs/dialects/*.md here) moved to incubator's tools module,
+// published as ai.koryki.incubator:koryki-incubator-tools. This repo cannot depend on that module
+// even at test scope -- it already depends on this repo's published jars, and the other direction
+// would be a cycle. docs/functions/*.md and docs/dialects/*.md are therefore no longer
+// self-verified by this repo's own build; that verification, plus the coverageReport worklist and
+// publishing to the web project, live entirely in incubator, run from there:
+//
+//   ./gradlew :tools:test              -PcoreDocsDir=/path/to/koryki-java/core/docs
+//   ./gradlew :tools:coverageReport -q
+//   ./gradlew :tools:publishFunctionDocs -PcoreDocsDir=/path/to/koryki-java/core/docs
+//
+// coreDocsDir is not optional and has no default, by design -- but note that leaving it unset does
+// NOT fail the publish: the Copy tasks then read from a path that does not exist, which Gradle
+// treats as a no-op, so publishFunctionDocs reports success and copies nothing. Set it once in
+// ~/.gradle/gradle.properties.
 
 // Argument-type coverage audit (all overloads): ./gradlew :tools:argTypeAudit -q
 tasks.register('argTypeAudit', JavaExec) {

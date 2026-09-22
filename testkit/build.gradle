@@ -3,7 +3,10 @@ plugins {
     id 'maven-publish'
 }
 
-description = 'Test harness for the shared koryki fixture corpus: golden files, engine test base and stable value formats'
+description = 'Test harness for koryki\'s shared KQL/IQL fixture corpus: golden-file '  +
+        'comparison, the per-dialect engine test base and stable value formatting. A '  +
+        'test-scope artifact, kept out of koryki-northwind so applications using the sample '  +
+        'database do not get JUnit on their runtime path.'
 
 dependencies {
     // Part of the API: BaseEngineTest exposes Engine and ColumnInfo to its subclasses, and they

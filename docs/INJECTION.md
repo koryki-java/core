@@ -74,8 +74,9 @@ SQ_STRING : SINGLE_QUOTE ('\\\'' | .)*? SINGLE_QUOTE ;   // KQLTokens.g4 and IQL
 ```
 
 The mapper keeps the token **with its delimiters** (`KQLQueryMapper.toExpression`,
-`IQLQueryMapper.toExpression`), and `SqlSelectRenderer.toSqlUnparenthesized` converts KQL's
-backslash escape into SQL's doubled quote before handing the result to `SqlDialect.textLiteral`.
+`IQLQueryMapper.toExpression`), and `Literals.text` converts it: strip the delimiters, unescape
+KQL's `\'` to a quote, escape that quote again as SQL's `''`, put the delimiters back. The renderer
+then hands the result to `SqlDialect.textLiteral` for whatever the engine needs on top (B2).
 
 **Barrier:** the lexer (B1) and the literal escaping (B2), in that order. Both matter — see below.
 
@@ -185,7 +186,10 @@ than it does is worse than no barrier.
 
 ### B1 — the lexer refuses, it does not escape
 
-`SQ_STRING` is non-greedy and ends at the first quote that is not `\'`. A payload written as
+`SQ_STRING` is non-greedy: it prefers the escape reading of `\'`, and ends at the first quote that
+reading leaves over. (Only *prefers* — where treating `\'` as an escape would leave the token
+unterminated, the backslash is an ordinary character and the quote after it closes the literal. That
+second reading is what the trailing-backslash case below turns on.) A payload written as
 `'x' OR 1=1 --'` is therefore not a literal with a quote in it — it is a literal, then junk, and the
 parser rejects the query. **Refusing is better than escaping**: an author who wrote a stray quote
 gets a syntax error pointing at it, and the renderer never has to be clever.
@@ -195,9 +199,10 @@ renderer, which is where the translation is made once.
 
 ### B2 — one escape, applied once, adjusted per dialect
 
-`SqlSelectRenderer` turns `\'` into `''`, the one escape all eight engines share. Doubling alone is
-not enough everywhere, though, and that is why `SqlDialect.textLiteral` exists. Three dialects
-override it:
+`Literals.text` produces the doubled quote `''`, the one escape all eight engines share — working on
+the literal's *body*, never on the delimited token, for the reason the trailing-backslash case below
+records. Doubling alone is not enough everywhere, though, and that is why `SqlDialect.textLiteral`
+exists. Three dialects override it:
 
 - **MariaDB / MySQL** and **Snowflake** read `\` as an escape *inside a string literal*, so
   `MariadbDialect.textLiteral` and `SnowflakeDialect.textLiteral` double every backslash. Without
@@ -394,6 +399,13 @@ unescaped copy leaks out elsewhere. The skeleton catches both that and the oppos
 unterminated literal, which is the classic injection signature — and it does not move when a
 renderer change keeps the meaning and shifts the text, so it reads as a policy rather than a golden.
 
+Two of those cases are generated rather than written. `HostileLiteralTest` fuzzes the literal and
+the description paths — 400 rounds each from a fixed seed, `-Dfuzz.seed` to vary it — skipping input
+that does not parse and asserting that enough did that the generator is testing something. The
+property is the same one the written cases check, which is the point: generated input does not share
+the author's idea of what an interesting character is. It found the trailing-backslash defect above
+on its first run, at a shape no enumerated case had.
+
 Current coverage:
 
 | Test | Module | Path |
@@ -402,7 +414,7 @@ Current coverage:
 | `security/CatalogIdentifierInjectionTest` | core | 2 — hostile names in all four positions; `quote` and `needsQuoting` as rules |
 | `security/FunctionArgumentInjectionTest` | core | 3 — `to_interval`, format masks, `SqlTemplate`, the custom-operator alphabet |
 | `security/CommentInjectionTest` | core | 4 — CR, LF, CRLF, and `lineComment` itself |
-| `HostileLiteralTest` | tools | 1 and 3, **for all eight dialects**, each read with its own literal syntax |
+| `HostileLiteralTest` | tools | 1 and 3, **for all eight dialects**, each read with its own literal syntax; plus the generated-input pass over paths 1 and 4 |
 | `HostileIdentifierTest` | tools | 2, for all eight dialects — spaces, keywords, embedded quotes, the CTE list |
 | `SqlInjectionEngineTest` | duckdb | all four, against a running engine |
 | `HostileNameSnowflakeTest`, `MixedCaseNameOracleTest` | snowflake, oracle | 2, against live engines |

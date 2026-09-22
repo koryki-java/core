@@ -185,7 +185,7 @@ Speichert die Hersteller für Produkte
 
 - plz: Postleitzahl des Herstellers.
 
-- land: Land des Herstellers for the supplier.
+- land: Land des Herstellers.
 
 - telefon: Telefonnummer der Kontaktperson des Herstellers
 
@@ -197,7 +197,7 @@ Speichert die Hersteller für Produkte
 Speichert die Gebiete.
 - gebiet_id: Die eindeutige Id für das Gebiet.
 
-- gebiet_beschreibung: Description of the territory.
+- gebiet_beschreibung: Beschreibung des Gebiets.
 
 ## us_staaten
 US Staaten.
@@ -336,7 +336,7 @@ Die Verknüpfung ist gerichtet, die Reihenfolge muss beachtet werden. Der erste 
 
 ## vorgesetzter_von
 
-Der erste Mitarbieter ist der Vorgesetzte des zweien Mitarbeiters.
+Der erste Mitarbeiter ist der Vorgesetzte des zweiten Mitarbeiters.
 Die Verknüpfung ist gerichtet, die Reihenfolge muss beachtet werden. Die entgegengesetzte Verknüpfungsrichtung ist 'berichtet_an'.
 
 ### Verknüpfungen / Links:
@@ -345,7 +345,7 @@ Die Verknüpfung ist gerichtet, die Reihenfolge muss beachtet werden. Die entgeg
 
 ## uebergeordnete_kategorie
 
-Die erste Produktkategorie ist eine Kind-Kategorie der zweiten Produktkategorie.
+Die erste Produktkategorie ist die übergeordnete Kategorie der zweiten Produktkategorie.
 Die Verknüpfung ist gerichtet, die Reihenfolge muss beachtet werden. Wurzelkategorien haben keine übergeordnete Produktkategorie.
 
 ### Verknüpfungen / Links:
@@ -354,8 +354,8 @@ Die Verknüpfung ist gerichtet, die Reihenfolge muss beachtet werden. Wurzelkate
 
 ## kind_von
 
-this first category is a subcategory of the second.
-The link is directed, order of categories matter. Root categories have not parent categories
+Die erste Produktkategorie ist eine Unterkategorie der zweiten Produktkategorie.
+Die Verknüpfung ist gerichtet, die Reihenfolge muss beachtet werden. Wurzelkategorien haben keine übergeordnete Produktkategorie.
 
 ### Verknüpfungen / Links:
 - kategorien - kategorien
