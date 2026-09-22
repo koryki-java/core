@@ -39,8 +39,6 @@ A demo application is available at: [demo.koryki.ai](https://demo.koryki.ai "(de
 
 ## Installation
 
-> Not yet published to Maven Central — coordinates below are what a release will use once it is.
-
 Add the core transpiler plus whichever database dialect(s) you need:
 
 **Gradle (Kotlin DSL)**

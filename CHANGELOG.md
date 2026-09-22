@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented here.
 
-## [0.1.0] - unreleased
+## [0.1.0] - 2026-09-22
 
 Initial release. Publishes thirteen signed artifacts to Maven Central under `ai.koryki.core`.
 
@@ -14,7 +14,8 @@ Initial release. Publishes thirteen signed artifacts to Maven Central under `ai.
 
 **The dialects**, each rendering the intermediate model as one engine's SQL and adapting its JDBC
 driver: `koryki-duckdb`, `koryki-postgresql`, `koryki-oracle`, `koryki-snowflake`, `koryki-trino`,
-`koryki-mariadb` (also MySQL), `koryki-mssql` and `koryki-sqlite`.
+`koryki-mariadb` (also MySQL), `koryki-mssql` and `koryki-sqlite`. Each brings `koryki-core` with
+it at compile scope, so depending on a dialect is enough to compile against both.
 
 **Support**
 
