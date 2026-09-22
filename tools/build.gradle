@@ -3,7 +3,9 @@ plugins {
     id 'maven-publish'
 }
 
-description = 'koryki tools'
+description = 'Build-time tooling for koryki: the shared list of documented dialects and '  +
+        'samples that every documentation generator works from, and an audit over the '  +
+        'function catalog for arguments with no declared type family. Not needed at runtime.'
 
 dependencies {
 

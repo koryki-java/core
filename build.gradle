@@ -201,6 +201,10 @@ rootProject.allprojects {
                         // read to POM-generation time, after the whole project is configured.
                         description.set(project.provider { project.description ?: 'Part of the koryki KQL transpiler.' })
                         url = 'https://github.com/koryki-java/core'
+                        organization {
+                            name = 'koryki'
+                            url = 'https://koryki.ai'
+                        }
                         licenses {
                             license {
                                 name = 'The Apache License, Version 2.0'
@@ -211,7 +215,7 @@ rootProject.allprojects {
                             developer {
                                 id = 'j0hannesz'
                                 name = 'Johannes Zemlin'
-                                email = 'johannes.zemlin@mailbox.org'
+                                email = 'johannes.zemlin@koryki.ai'
                             }
                         }
                         scm {

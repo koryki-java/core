@@ -3,7 +3,10 @@ plugins {
     id 'maven-publish'
 }
 
-description = 'koryki mariadb databases and services'
+description = 'The MariaDB dialect for koryki: renders the transpiler\'s intermediate query model as '  +
+        'MariaDB SQL and adapts its JDBC driver -- identifier quoting, literal escaping, type and '  +
+        'temporal mapping, and the functions MariaDB spells differently. Covers MySQL, which shares '  +
+        'its dialect. Add alongside koryki-core, which does the transpiling.'
 
 dependencies {
 

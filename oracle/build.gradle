@@ -3,7 +3,10 @@ plugins {
     id 'maven-publish'
 }
 
-description = 'koryki oracle databases and services'
+description = 'The Oracle Database dialect for koryki: renders the transpiler\'s intermediate query model '  +
+        'as Oracle SQL and adapts its JDBC driver -- identifier quoting, literal escaping, type and '  +
+        'temporal mapping, and the functions Oracle spells differently. Add alongside koryki-core, '  +
+        'which does the transpiling.'
 
 dependencies {
 

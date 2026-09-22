@@ -4,7 +4,9 @@ plugins {
     id 'maven-publish'
 }
 
-description = 'KQL grammar without VISUALISE'
+description = 'The KQL grammar and the ANTLR lexer and parser generated from it -- the core '  +
+        'language, without the VISUALISE clause, which is a separate project. A dependency '  +
+        'of koryki-core rather than something to depend on directly.'
 
 dependencies {
     antlr libs.antlr4

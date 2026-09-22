@@ -4,6 +4,13 @@ plugins {
     id 'maven-publish'
 }
 
+description = 'The koryki transpiler: turns KQL and IQL -- concise, human-readable query '  +
+        'languages written against a semantic layer rather than against tables -- into '  +
+        'SQL, with grammar, intermediate query model, rewrite rules, type checking, a '  +
+        'function catalog and a JDBC execution layer. Pair it with the artifact for the '  +
+        'target database: koryki-duckdb, -postgresql, -oracle, -snowflake, -trino, '  +
+        '-mariadb, -mssql or -sqlite.'
+
 dependencies {
 
     antlr libs.antlr4

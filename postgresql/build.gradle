@@ -3,7 +3,10 @@ plugins {
     id 'maven-publish'
 }
 
-description = 'koryki postgresql databases and services'
+description = 'The PostgreSQL dialect for koryki: renders the transpiler\'s intermediate query model as '  +
+        'PostgreSQL SQL and adapts its JDBC driver -- identifier quoting, literal escaping, type '  +
+        'and temporal mapping, and the functions PostgreSQL spells differently. Add alongside '  +
+        'koryki-core, which does the transpiling.'
 
 dependencies {
 

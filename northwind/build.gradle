@@ -3,6 +3,11 @@ plugins {
     id 'maven-publish'
 }
 
+description = 'Ready-made koryki services for the Northwind sample database: a catalog-backed '  +
+        'resolver and a DuckDB-backed engine, so a KQL query can be run against a real '  +
+        'dataset without assembling one. The schema and the data themselves are separate '  +
+        'artifacts, ai.koryki.northwind:koryki-northwind-catalog and :koryki-northwind-duckdb.'
+
 dependencies {
     implementation libs.jackson.databind
 

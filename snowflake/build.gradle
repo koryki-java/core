@@ -3,7 +3,10 @@ plugins {
     id 'maven-publish'
 }
 
-description = 'koryki snowflake databases and services'
+description = 'The Snowflake dialect for koryki: renders the transpiler\'s intermediate query model as '  +
+        'Snowflake SQL and adapts its JDBC driver -- identifier quoting, literal escaping, type and '  +
+        'temporal mapping, and the functions Snowflake spells differently. Add alongside '  +
+        'koryki-core, which does the transpiling.'
 
 dependencies {
     testImplementation(libs.snowflake)
