@@ -246,8 +246,8 @@ both tables refer to the same shipper data record
 
 ## root_category_of
 
-The category is the topmost root category of the second category
-The link is directed, order of categories matter. The second category is the root category.
+The first category is the topmost root category of the second category.
+The link is directed, the order of categories matters. The second category is the root category.
 
 ### Relations / Links:
 - categories - categories
@@ -255,8 +255,8 @@ The link is directed, order of categories matter. The second category is the roo
 
 ## belongs_to_root
 
-The category is a direct or indirect subcategory for the second category (root category)
-The link is directed, order of categories matter. The second category is the root category.
+The first category is a direct or indirect subcategory of the second category (the root category).
+The link is directed, the order of categories matters. The second category is the root category.
 
 ### Relations / Links:
 - categories - categories
@@ -324,8 +324,8 @@ both tables refer to the same order-detail data record
 
 ## reports_to
 
-the first employee reports to the second employee.
-The link is directed, order of employees matter. The first employee is team member, the second employee is the supervisor.
+The first employee reports to the second employee.
+The link is directed, the order of employees matters. The first employee is the team member, the second employee is the supervisor.
 
 ### Relations / Links:
 - employees - employees
@@ -333,8 +333,8 @@ The link is directed, order of employees matter. The first employee is team memb
 
 ## supervisor_of
 
-the first employee is supervisor of the second employee.
-The link is directed, order of employees matter. The first employee is team leader, the second employee is team member.
+The first employee is the supervisor of the second employee.
+The link is directed, the order of employees matters. The first employee is the team leader, the second employee is the team member.
 
 ### Relations / Links:
 - employees - employees
@@ -342,8 +342,8 @@ The link is directed, order of employees matter. The first employee is team lead
 
 ## parent_of
 
-this first category is a supercategory of the second.
-The link is directed, order of categories matter. Root categories have no parent categories
+The first category is a supercategory of the second.
+The link is directed, the order of categories matters. Root categories have no parent category.
 
 ### Relations / Links:
 - categories - categories
@@ -351,8 +351,8 @@ The link is directed, order of categories matter. Root categories have no parent
 
 ## child_of
 
-this first category is a subcategory of the second.
-The link is directed, order of categories matter. Root categories have not parent categories
+The first category is a subcategory of the second.
+The link is directed, the order of categories matters. Root categories have no parent category.
 
 ### Relations / Links:
 - categories - categories

@@ -1,12 +1,12 @@
 # Instructions for answers
 
 If a query is available, validate first using tool: validateKQL.
-send query to validateKQL in plain text, no markdown, no json, just plain text, no formatting.
-If validation fails, try no more than maximum three times, 3 times maximum validation. Then state error message.
-Pass formatted querystring returned by validateKQL method.
-Do not try to evaluate results of query-Service. Instead, try to include all information available inside query.
+Send the query to validateKQL in plain text: no markdown, no JSON, just plain text, no formatting.
+If validation fails, retry at most three times. Then state the error message.
+Pass the formatted query string returned by the validateKQL method.
+Do not try to evaluate the results of the query service. Instead, include all available information inside the query.
 
-no markdown with embedded json, instead json objekt only
+No markdown with embedded JSON: send JSON objects only.
 
 Answer JSON-only object matching
 {
@@ -25,9 +25,9 @@ kql-queries are transformed into SQL and then executed in databases.
 
 kql uses terms defined in schema.md.
 
-kql is quite different from SQL, but intend to pursue the same objectives for data retrieval.
+kql is quite different from SQL, but intends to pursue the same objectives for data retrieval.
 
-All alias and blockid must be querywide unique. 
+All aliases and block ids must be unique across the whole query. 
 
 ## first example
 
@@ -43,7 +43,7 @@ Three major keywords: **FIND**, **FILTER**, **FETCH**.
 Keyword **FIND** is followed by a first entity and optional a list of links. The purpose of **FIND** is to define the
 entities and entity-relations we are looking for.
 
-The first entity `customers` followed by alias `c`. Aliases are used to refer entity inside the query.
+The first entity `customers` followed by alias `c`. Aliases are used to refer to an entity inside the query.
 
 Then link `c orders o`. Entity `c` is linked to entity `orders` with alias `o`.
 Anonymous form because only one link exists between `customers` and `orders`.
@@ -84,7 +84,7 @@ a, b and c are unary logical expressions like:
     count(o) > 10
     emp.home_phone ISNULL
 
-Each unary logical expression resolve to true or false.
+Each unary logical expression resolves to true or false.
 
 #### EXISTS
 
@@ -332,7 +332,7 @@ A bare number never combines with a temporal value: `o.order_date + 30` is a val
 
 If EQUAL operator is used on textcolumns, prefer case-insensitive LIKE operator instead, add % at start and end
 add lower function to column in compare
-Use EQUAL on textcolumns only if user commits using.
+Use EQUAL on text columns only if the user explicitly asks for it.
 
 ### LIKE operator
 
