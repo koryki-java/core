@@ -1,5 +1,11 @@
 plugins {
-    id 'java'
+    // java-library, and stated rather than inherited: this module uses `api` below, and the only
+    // reason that configuration exists is that Gradle's antlr plugin applies JavaLibraryPlugin
+    // itself (measured: `plugins { id 'antlr' }` alone brings JavaBase, Java AND JavaLibrary).
+    // Declaring `java` while relying on that left the file reading as if `api` should not compile,
+    // and made the published scope of koryki-kqlcore depend on a side effect of a code-generation
+    // plugin -- which a future move of the IQL grammar out of this module would quietly remove.
+    id 'java-library'
     alias(libs.plugins.antlr)
     id 'maven-publish'
 }
@@ -15,7 +21,13 @@ dependencies {
 
     antlr libs.antlr4
 
-    implementation(libs.antlr4.runtime)
+    // api, like kqlcore declares it: ANTLR types are in this module's public signatures --
+    // Position.start(ParserRuleContext), Range.range(ParserRuleContext), the
+    // RangeException constructor, and every Map<Object, RuleContext> on IQLQueryMapper,
+    // SelectScopeCollector and the renderers. It currently also reaches consumers through
+    // kqlcore's own api declaration, so nothing is broken today; declared here it stays
+    // true if that ever stops being the route.
+    api(libs.antlr4.runtime)
 
     // The KQL grammar lives in kqlcore. 'api', because generated types (KQLParser.QueryContext)
     // appear in core's public signatures -- KQLTranspiler.getCtx(), for instance.
