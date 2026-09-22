@@ -48,13 +48,21 @@ test {
 }
 
 // FunctionDocGenerator, FunctionDocCoverage and FunctionDocsTest (the golden test that generated
-// and verified docs/functions/*.md and docs/dialects/*.md here) moved to incubator's koryki-tools.
-// This repo cannot depend on that module even at test scope -- it already depends on this repo's
-// published jars, and the other direction would be a cycle. docs/functions/*.md and
-// docs/dialects/*.md are therefore no longer self-verified by this repo's own build; that
-// verification, plus the coverageReport worklist and publishing to the web project, now live
-// entirely in incubator: ./gradlew :tools:test / :tools:coverageReport / :tools:publishFunctionDocs,
-// run from there.
+// and verified docs/functions/*.md and docs/dialects/*.md here) moved to incubator's tools module,
+// published as ai.koryki.incubator:koryki-incubator-tools. This repo cannot depend on that module
+// even at test scope -- it already depends on this repo's published jars, and the other direction
+// would be a cycle. docs/functions/*.md and docs/dialects/*.md are therefore no longer
+// self-verified by this repo's own build; that verification, plus the coverageReport worklist and
+// publishing to the web project, live entirely in incubator, run from there:
+//
+//   ./gradlew :tools:test              -PcoreDocsDir=/path/to/koryki-java/core/docs
+//   ./gradlew :tools:coverageReport -q
+//   ./gradlew :tools:publishFunctionDocs -PcoreDocsDir=/path/to/koryki-java/core/docs
+//
+// coreDocsDir is not optional and has no default, by design -- but note that leaving it unset does
+// NOT fail the publish: the Copy tasks then read from a path that does not exist, which Gradle
+// treats as a no-op, so publishFunctionDocs reports success and copies nothing. Set it once in
+// ~/.gradle/gradle.properties.
 
 // Argument-type coverage audit (all overloads): ./gradlew :tools:argTypeAudit -q
 tasks.register('argTypeAudit', JavaExec) {
