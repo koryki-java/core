@@ -65,8 +65,7 @@ dependencies {
 </dependency>
 ```
 
-A dialect brings `koryki-core` with it, so the second dependency alone is enough to compile against
-both. Releases are signed — [`docs/RELEASES.md`](./docs/RELEASES.md) shows how to verify a download.
+Releases are signed — [`docs/RELEASES.md`](./docs/RELEASES.md) shows how to verify a download.
 
 ## Demo Chat Application
 
