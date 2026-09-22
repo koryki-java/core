@@ -1,5 +1,5 @@
 plugins {
-    id 'java'
+    id 'java-library'
     id 'maven-publish'
 }
 
@@ -14,7 +14,10 @@ dependencies {
     implementation project(':northwind')
     // DocDialects reads the fixture corpus through Fixtures.
     implementation project(':testkit')
-    implementation project(':core')
+    // api: DocDialects.Doc carries a SqlDialect and resolvers() hands out LinkResolvers, both
+    // core types. The dialect modules below stay implementation -- they are read to build that
+    // list, but what leaves this module is always the core interface, never their own classes.
+    api project(':core')
 
     // Main scope, not test: DocDialects (below) lives in this sourceset now, so incubator::tools
     // can reuse it via the published koryki-tools jar instead of carrying its own copy.

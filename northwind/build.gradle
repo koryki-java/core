@@ -1,5 +1,5 @@
 plugins {
-    id 'java'
+    id 'java-library'
     id 'maven-publish'
 }
 
@@ -11,8 +11,11 @@ description = 'Ready-made koryki services for the Northwind sample database: a c
 dependencies {
     implementation libs.jackson.databind
 
-    implementation project(':core')
-    implementation project(':duckdb')
+    // api for both: NorthwindService hands out core's LinkResolver, Database, SqlRenderer and
+    // Engine, and NorthwindDuckdb returns a DuckdbDatabase. Every one of those is in a public
+    // signature here, so a consumer needs both on its compile classpath, not just at runtime.
+    api project(':core')
+    api project(':duckdb')
 
     // Files only, read from the classpath at runtime: the catalog (db.json, model.json) and the
     // Northwind database for DuckDB, both from the northwind repository.

@@ -1,5 +1,5 @@
 plugins {
-    id 'java'
+    id 'java-library'
     id 'maven-publish'
 }
 
@@ -13,7 +13,12 @@ dependencies {
     implementation(libs.trino)
     implementation libs.jackson.databind
 
-    implementation project(':core')
+    // api, not implementation: this module's public types ARE core's -- TrinoDialect is a
+    // SqlDialect, TrinoDatabase a JdbcDatabase -- so nothing here can be compiled against
+    // without core on the consumer's compile classpath. Declared as implementation it
+    // reached the POM at runtime scope, and javac answered "cannot access SqlDialect"
+    // for a consumer that depended on this artifact alone.
+    api project(':core')
     testImplementation project(':northwind')
     testImplementation project(':testkit')
     testImplementation libs.koryki.catalog
