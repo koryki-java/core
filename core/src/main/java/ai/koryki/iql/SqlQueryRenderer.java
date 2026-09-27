@@ -156,7 +156,12 @@ public class SqlQueryRenderer implements SqlRenderer {
         b.append(Identifier.indent(indent)).append(WITH).append(" ");
 
         boolean recursive =
-                block.stream().anyMatch(x -> Walker.apply(x, new BlockRecursionDetector(resolver)));
+                block.stream()
+                        .anyMatch(
+                                x ->
+                                        Walker.apply(
+                                                x,
+                                                new BlockRecursionDetector(resolver, x.getId())));
 
         b.append(dialect.recursive(recursive));
 

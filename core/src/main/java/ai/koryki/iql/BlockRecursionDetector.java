@@ -25,10 +25,20 @@ import java.util.List;
 public class BlockRecursionDetector implements Collector<Boolean> {
     private boolean recursive;
 
-    private LinkResolver resolver;
+    private final LinkResolver resolver;
 
-    public BlockRecursionDetector(LinkResolver resolver) {
+    /**
+     * The id of the block this detector was made for. A join naming some other block that is not a
+     * catalog entity either is not recursion -- it is one block using an earlier sibling, which
+     * {@link ai.koryki.iql.SqlQueryRenderer#toRecursive} must not answer {@code WITH RECURSIVE} for
+     * -- so {@link #joinColumns(Source, Source)} compares the referenced name against this one
+     * instead of merely asking whether it is a catalog entity at all.
+     */
+    private final String blockId;
+
+    public BlockRecursionDetector(LinkResolver resolver, String blockId) {
         this.resolver = resolver;
+        this.blockId = blockId;
     }
 
     public boolean visit(Deque<Object> deque, Select select) {
@@ -67,7 +77,7 @@ public class BlockRecursionDetector implements Collector<Boolean> {
         boolean b1 = resolver.isEntity(startTable);
         boolean b2 = resolver.isEntity(endTable);
 
-        recursive |= !b1 || !b2;
+        recursive |= (!b1 && blockId.equals(startTable)) || (!b2 && blockId.equals(endTable));
     }
 
     @Override
