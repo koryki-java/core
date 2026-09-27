@@ -535,6 +535,13 @@ public class MssqlDialect implements SqlDialect {
                         "parse_timestamp")) {
             registry.unsupported(fn);
         }
+        // PERCENTILE_CONT and PERCENTILE_DISC exist, but only as window functions -- SQL Server
+        // demands an OVER clause and refuses them as a plain GROUP BY aggregate ("must have an
+        // OVER clause"), which is the only form this catalog renders an aggregate call in. There
+        // is no native MEDIAN either. Measured 2026-09-27.
+        for (String fn : java.util.List.of("median", "quantile_cont", "quantile_disc")) {
+            registry.unsupported(fn);
+        }
         return registry;
     }
 

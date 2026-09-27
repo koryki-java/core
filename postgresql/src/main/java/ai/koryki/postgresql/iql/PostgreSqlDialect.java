@@ -150,6 +150,11 @@ public class PostgreSqlDialect implements SqlDialect {
         // transaction_timestamp()/CURRENT_TIMESTAMP (per transaction, unused here).
         registry.override("now", "statement_timestamp()");
         registry.override("clock_now", "clock_timestamp()");
+        // No native MEDIAN; PERCENTILE_CONT(0.5) WITHIN GROUP is exactly the same computation, not
+        // an approximation -- measured equal to Oracle's native MEDIAN on the same input
+        // (2026-09-27). quantile_cont/quantile_disc already render this way by default and need no
+        // override here.
+        registry.override("median", "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY {0})");
         return registry;
     }
 

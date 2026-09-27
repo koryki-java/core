@@ -8,9 +8,9 @@ order: 12
 
 # Window Functions
 
-Six functions that answer "where does this row sit among those rows": `row_number`, `rank`,
-`dense_rank`, `ntile`, `lag` and `lead`. Unlike an aggregate, a window function leaves the rows
-alone — every row keeps its identity and gains an answer about its neighbours.
+Seven functions that answer "where does this row sit among those rows": `row_number`, `rank`,
+`dense_rank`, `percent_rank`, `ntile`, `lag` and `lead`. Unlike an aggregate, a window function
+leaves the rows alone — every row keeps its identity and gains an answer about its neighbours.
 
 ## The OVER clause says which rows, and in what order
 
@@ -21,8 +21,8 @@ inside each group. KQL writes both without `BY`, matching how the rest of the la
 
 **Ranking without an order is refused.** `rank()` with nothing to rank by would give an arbitrary
 answer that changes between runs, so the query is rejected with a message saying so, rather than
-answered. The one deliberate exception is `row_number`: numbering the rows of an unordered
-partition is a legitimate thing to ask for.
+answered. `percent_rank` carries the same requirement. The one deliberate exception is
+`row_number`: numbering the rows of an unordered partition is a legitimate thing to ask for.
 
 Aggregates take an `OVER` clause too — `sum(...) OVER (...)` is a running total, and that is where
 most window queries actually start. Two of them cannot on every engine; the *Aggregate Functions*
@@ -143,6 +143,38 @@ SELECT
   o.order_id
 , o.freight
 , dense_rank() OVER ( ORDER BY o.freight DESC) AS freight_rank
+FROM
+ orders o
+WHERE
+  o.ship_country = 'France'
+```
+
+
+## percent_rank
+
+`percent_rank()` → FLOAT
+
+Where the row sits along the window, from 0 (the first row) to 1 (the last): `(rank - 1) / (rows in the window - 1)`. A single-row window is 0, not an undefined division. Unlike `rank`, ties still share the same value, but the scale runs 0 to 1 rather than counting positions.
+
+Sample query:
+
+```kql
+// percent_rank: where each order's freight sits between the lightest (0) and the heaviest (1) shipped to France.
+FIND orders o
+FILTER o.ship_country = 'France'
+FETCH o.order_id, o.freight, percent_rank() OVER (ORDER o.freight) freight_percentile
+```
+
+### Generated SQL
+
+**all dialects**
+
+```sql
+-- percent_rank: where each order's freight sits between the lightest (0) and the heaviest (1) shipped to France.
+SELECT
+  o.order_id
+, o.freight
+, percent_rank() OVER ( ORDER BY o.freight) AS freight_percentile
 FROM
  orders o
 WHERE

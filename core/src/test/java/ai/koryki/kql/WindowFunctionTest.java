@@ -53,6 +53,23 @@ public class WindowFunctionTest {
     }
 
     @Test
+    void percentRankRendersWithItsWindow() {
+        String sql = sql("FIND orders o FETCH o.order_id, percent_rank() OVER (ORDER o.freight) p");
+        assertTrue(sql.contains("percent_rank() OVER ( ORDER BY o.freight)"), sql);
+    }
+
+    /** Like `rank`, a `percent_rank` with nothing to rank by is arbitrary. */
+    @Test
+    void percentRankWithoutOrderIsAnError() {
+        assertTrue(
+                violations(
+                                "FIND orders o FETCH o.order_id, "
+                                        + "percent_rank() OVER (PARTITION o.ship_country) p")
+                        .stream()
+                        .anyMatch(Violation::isError));
+    }
+
+    @Test
     void lagTakesTheValueFromAnEarlierRow() {
         assertTrue(
                 sql("FIND orders o FETCH o.order_id, lag(o.freight) OVER (ORDER o.order_date) prev")

@@ -347,3 +347,127 @@ The remaining dialects differ only in this expression:
 | mssql | `, STRING_AGG(p.product_name, ', ') WITHIN GROUP (ORDER BY p.product_id) AS names` |
 | trino | `, array_join(array_agg(p.product_name ORDER BY p.product_id), ', ') AS names` |
 
+
+## median
+
+`median(value: numeric)` → FLOAT *(aggregate)*
+
+Middle value of the inputs once sorted -- the average of the two middle values when there is an even number of them, so the result need not be one of the inputs. Prefer it to `avg` for a value skewed by outliers: a few near-zero denominators drag the average away but move the median only if they are actually in the middle.
+
+| Argument | Type | Description |
+|---|---|---|
+| value | numeric | the numbers to take the middle of |
+
+Sample query:
+
+```kql
+// median: the middle unit price of each category's products, once sorted.
+FIND products p, p categories c
+FETCH c.category_name, median(p.unit_price) median_price
+```
+
+### Generated SQL
+
+**duckdb · oracle · snowflake**
+
+```sql
+-- median: the middle unit price of each category's products, once sorted.
+SELECT
+  c.category_name
+, MEDIAN(p.unit_price) AS median_price
+FROM
+ products p
+  INNER JOIN categories c ON
+   p.category_id = c.category_id
+GROUP BY
+  c.category_name
+```
+
+The remaining dialects differ only in this expression:
+
+| Dialect | Expression |
+|---|---|
+| postgresql | `, PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY p.unit_price) AS median_price` |
+
+Unsupported: **mariadb**, **mssql**, **sqlite**, **trino**
+
+
+## quantile_cont
+
+`quantile_cont(fraction: numeric, value: numeric)` → FLOAT *(aggregate)*
+
+The value at *fraction* of the way through the sorted inputs, interpolating between the two nearest when it falls between them -- so the result need not be one of the inputs. `quantile_cont(0.5, x)` is `median(x)`; `quantile_cont(0.25, x)` the lower quartile.
+
+| Argument | Type | Description |
+|---|---|---|
+| fraction | numeric | where in the sorted values to read, from 0 (the first) to 1 (the last); 0.5 is the median |
+| value | numeric | the numbers to take the quantile of |
+
+Sample query:
+
+```kql
+// quantile_cont: the price a quarter of the way up each category's sorted unit prices, interpolated.
+FIND products p, p categories c
+FETCH c.category_name, quantile_cont(0.25, p.unit_price) lower_quartile
+```
+
+### Generated SQL
+
+**duckdb · oracle · snowflake · postgresql**
+
+```sql
+-- quantile_cont: the price a quarter of the way up each category's sorted unit prices, interpolated.
+SELECT
+  c.category_name
+, PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY p.unit_price) AS lower_quartile
+FROM
+ products p
+  INNER JOIN categories c ON
+   p.category_id = c.category_id
+GROUP BY
+  c.category_name
+```
+
+Unsupported: **mariadb**, **mssql**, **sqlite**, **trino**
+
+> Results differ from the other dialects on **duckdb**.
+
+
+## quantile_disc
+
+`quantile_disc(fraction: numeric, value: ORDERED)` → argument-dependent *(aggregate)*
+
+Like `quantile_cont`, but never interpolates: the result is always one of the input values, the one that sits at or just past *fraction* of the way through. Works on any value that can be ordered, not only numbers -- a quantile of dates, say -- which `quantile_cont` cannot do.
+
+| Argument | Type | Description |
+|---|---|---|
+| fraction | numeric | where in the sorted values to read, from 0 (the first) to 1 (the last) |
+| value | ORDERED | the values to take the quantile of |
+
+Sample query:
+
+```kql
+// quantile_disc: like quantile_cont, but always one of the actual prices, never interpolated.
+FIND products p, p categories c
+FETCH c.category_name, quantile_disc(0.25, p.unit_price) lower_quartile
+```
+
+### Generated SQL
+
+**duckdb · oracle · snowflake · postgresql**
+
+```sql
+-- quantile_disc: like quantile_cont, but always one of the actual prices, never interpolated.
+SELECT
+  c.category_name
+, PERCENTILE_DISC(0.25) WITHIN GROUP (ORDER BY p.unit_price) AS lower_quartile
+FROM
+ products p
+  INNER JOIN categories c ON
+   p.category_id = c.category_id
+GROUP BY
+  c.category_name
+```
+
+Unsupported: **mariadb**, **mssql**, **sqlite**, **trino**
+

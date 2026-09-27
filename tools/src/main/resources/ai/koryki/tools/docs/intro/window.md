@@ -1,7 +1,7 @@
 
-Six functions that answer "where does this row sit among those rows": `row_number`, `rank`,
-`dense_rank`, `ntile`, `lag` and `lead`. Unlike an aggregate, a window function leaves the rows
-alone — every row keeps its identity and gains an answer about its neighbours.
+Seven functions that answer "where does this row sit among those rows": `row_number`, `rank`,
+`dense_rank`, `percent_rank`, `ntile`, `lag` and `lead`. Unlike an aggregate, a window function
+leaves the rows alone — every row keeps its identity and gains an answer about its neighbours.
 
 ## The OVER clause says which rows, and in what order
 
@@ -12,8 +12,8 @@ inside each group. KQL writes both without `BY`, matching how the rest of the la
 
 **Ranking without an order is refused.** `rank()` with nothing to rank by would give an arbitrary
 answer that changes between runs, so the query is rejected with a message saying so, rather than
-answered. The one deliberate exception is `row_number`: numbering the rows of an unordered
-partition is a legitimate thing to ask for.
+answered. `percent_rank` carries the same requirement. The one deliberate exception is
+`row_number`: numbering the rows of an unordered partition is a legitimate thing to ask for.
 
 Aggregates take an `OVER` clause too — `sum(...) OVER (...)` is a running total, and that is where
 most window queries actually start. Two of them cannot on every engine; the *Aggregate Functions*

@@ -77,6 +77,7 @@ What is specific to oracle: the rendering column is filled in only where this di
 | make_timestamp | datetime | scalar | overridden | `TO_TIMESTAMP(year \|\| '-' \|\| month \|\| '-' \|\| day \|\| ' ' \|\| hour \|\| ':' \|\| minute \|\| ':' \|\| second, 'YYYY-MM-DD HH24:MI:SS')` |  |
 | max | aggregate | aggregate | standard |  |  |
 | md5 | string | scalar | unsupported | `—` |  |
+| median | aggregate | aggregate | standard |  |  |
 | min | aggregate | aggregate | standard |  |  |
 | minus | arithmetic | scalar | standard |  |  |
 | minute | datetime | scalar | overridden | `EXTRACT(MINUTE FROM value)` |  |
@@ -97,9 +98,12 @@ What is specific to oracle: the rendering column is filled in only where this di
 | parse_date | datetime | scalar | overridden | `TO_DATE(value, format)` |  |
 | parse_time | datetime | scalar | overridden | `TO_DATE(value, format)` |  |
 | parse_timestamp | datetime | scalar | overridden | `TO_TIMESTAMP(value, format)` |  |
+| percent_rank | window | window | standard |  |  |
 | pi | math | scalar | overridden | `ACOS(-1)` |  |
 | position | string | scalar | overridden | `INSTR(str, substr)` |  |
 | power | math | scalar | standard |  | results differ |
+| quantile_cont | aggregate | aggregate | standard |  |  |
+| quantile_disc | aggregate | aggregate | standard |  |  |
 | quarter | datetime | scalar | overridden | `TO_NUMBER(TO_CHAR(value, 'Q'))` |  |
 | quarter_begin | datetime | scalar | overridden | `TRUNC(value, 'Q')` |  |
 | quarter_end | datetime | scalar | overridden | `LAST_DAY(ADD_MONTHS(TRUNC(value, 'Q'), 2))` |  |

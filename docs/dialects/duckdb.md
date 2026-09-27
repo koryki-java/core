@@ -82,6 +82,7 @@ What is specific to duckdb: the rendering column is filled in only where this di
 | make_timestamp | datetime | scalar | standard |  |  |
 | max | aggregate | aggregate | standard |  |  |
 | md5 | string | scalar | standard |  |  |
+| median | aggregate | aggregate | standard |  |  |
 | min | aggregate | aggregate | standard |  |  |
 | minus | arithmetic | scalar | standard |  |  |
 | minute | datetime | scalar | standard |  |  |
@@ -102,10 +103,13 @@ What is specific to duckdb: the rendering column is filled in only where this di
 | parse_date | datetime | scalar | overridden | `parse_date(…) — dialect-specific rendering` |  |
 | parse_time | datetime | scalar | overridden | `parse_time(…) — dialect-specific rendering` |  |
 | parse_timestamp | datetime | scalar | overridden | `parse_timestamp(…) — dialect-specific rendering` |  |
+| percent_rank | window | window | standard |  |  |
 | pi | math | scalar | standard |  |  |
 | position | string | scalar | standard |  |  |
 | power | math | scalar | standard |  |  |
 | printf | other | scalar | native | `printf(…)` |  |
+| quantile_cont | aggregate | aggregate | standard |  | results differ |
+| quantile_disc | aggregate | aggregate | standard |  |  |
 | quarter | datetime | scalar | standard |  |  |
 | quarter_begin | datetime | scalar | standard |  |  |
 | quarter_end | datetime | scalar | standard |  |  |

@@ -160,6 +160,69 @@ public final class AggregateFunctions {
                                 "Concatenates non-null input values into a string, separated by *separator*, "
                                         + "in ascending order of *order_by*. The two-argument form leaves the order "
                                         + "to the engine."));
+        // median, quantile_cont, quantile_disc — measured 2026-09-27 against DuckDB, PostgreSQL,
+        // MariaDB, Oracle, SQL Server, SQLite and Trino directly; Snowflake from its own published
+        // reference. All three are the SQL-standard ordered-set aggregates -- MEDIAN(x) is the
+        // special case PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY x) -- and the WITHIN GROUP form
+        // is what the default template uses for the other two, because it renders unchanged on
+        // DuckDB, PostgreSQL, Oracle and (by documentation) Snowflake: no override needed for any
+        // of
+        // the three on any of those four.
+        //
+        // Two dialects still need one apiece:
+        //   - PostgreSQL has no native MEDIAN and overrides it to PERCENTILE_CONT(0.5) WITHIN
+        //     GROUP -- exact, not an approximation, and measured equal to Oracle's native MEDIAN on
+        //     the same input.
+        //   - MariaDB, SQLite, Trino and SQL Server decline all three: MariaDB and SQLite have no
+        //     ordered-set aggregate syntax at all and reject WITHIN GROUP outright; Trino's parser
+        //     does the same; SQL Server accepts PERCENTILE_CONT/PERCENTILE_DISC only as window
+        //     functions with an OVER clause, never as a plain GROUP BY aggregate, which is the only
+        //     form this catalog renders them in.
+        r.register(
+                def("median", ReturnTypes.FLOAT)
+                        .args(arg("value", Families.NUMERIC, "the numbers to take the middle of"))
+                        .template("MEDIAN({0})")
+                        .doc(
+                                "Middle value of the inputs once sorted -- the average of the two middle "
+                                        + "values when there is an even number of them, so the result need not be "
+                                        + "one of the inputs. Prefer it to `avg` for a value skewed by outliers: a "
+                                        + "few near-zero denominators drag the average away but move the median "
+                                        + "only if they are actually in the middle."));
+        r.register(
+                def("quantile_cont", ReturnTypes.FLOAT)
+                        .args(
+                                arg(
+                                        "fraction",
+                                        Families.NUMERIC,
+                                        "where in the sorted values to read, from 0 (the first) to 1 (the last); "
+                                                + "0.5 is the median"),
+                                arg(
+                                        "value",
+                                        Families.NUMERIC,
+                                        "the numbers to take the quantile of"))
+                        .template("PERCENTILE_CONT({0}) WITHIN GROUP (ORDER BY {1})")
+                        .doc(
+                                "The value at *fraction* of the way through the sorted inputs, interpolating "
+                                        + "between the two nearest when it falls between them -- so the result need "
+                                        + "not be one of the inputs. `quantile_cont(0.5, x)` is `median(x)`; "
+                                        + "`quantile_cont(0.25, x)` the lower quartile."));
+        r.register(
+                def("quantile_disc", ReturnTypes.ARG1)
+                        .args(
+                                arg(
+                                        "fraction",
+                                        Families.NUMERIC,
+                                        "where in the sorted values to read, from 0 (the first) to 1 (the last)"),
+                                arg(
+                                        "value",
+                                        Families.ORDERED,
+                                        "the values to take the quantile of"))
+                        .template("PERCENTILE_DISC({0}) WITHIN GROUP (ORDER BY {1})")
+                        .doc(
+                                "Like `quantile_cont`, but never interpolates: the result is always one of the "
+                                        + "input values, the one that sits at or just past *fraction* of the way "
+                                        + "through. Works on any value that can be ordered, not only numbers -- a "
+                                        + "quantile of dates, say -- which `quantile_cont` cannot do."));
     }
 
     private static FunctionDefinition def(String name, ReturnTypeInference type) {

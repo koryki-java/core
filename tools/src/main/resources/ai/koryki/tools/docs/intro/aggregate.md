@@ -1,7 +1,8 @@
 
-Seven functions that turn many rows into one: `count`, `count_distinct`, `sum`, `avg`, `min`, `max`
-and `string_agg`. You never write `GROUP BY` — using one of these in a projection is what makes the
-query grouped, and the columns you also fetch become the grouping key.
+Ten functions that turn many rows into one: `count`, `count_distinct`, `sum`, `avg`, `min`, `max`,
+`string_agg`, `median`, `quantile_cont` and `quantile_disc`. You never write `GROUP BY` — using one
+of these in a projection is what makes the query grouped, and the columns you also fetch become the
+grouping key.
 
 ## count() and count(x) ask different questions
 
@@ -79,3 +80,16 @@ missing one means. Each spells the function differently (`GROUP_CONCAT`, `LISTAG
 `count_distinct` has none on MariaDB, SQL Server, PostgreSQL or SQLite. DuckDB is the only engine
 that allows both. Where the engine cannot, the query is refused before it runs, with a message
 naming the function and pointing at it — not a driver error after the fact.
+
+## median and the quantile functions are not everywhere
+
+`median`, `quantile_cont` and `quantile_disc` read the *sorted* values rather than reduce them
+arithmetically, which not every engine can express as a plain aggregate. DuckDB, PostgreSQL, Oracle
+and Snowflake support all three natively; MariaDB, SQLite, SQL Server and Trino refuse them
+outright, with a message naming the function, before the query ever runs.
+
+`quantile_cont(fraction, x)` interpolates between the two nearest sorted values when *fraction*
+falls between them, so the result need not be one of the inputs — `quantile_cont(0.5, x)` is
+`median(x)`. `quantile_disc(fraction, x)` never interpolates: the result is always one of the
+actual input values, which is also why it, alone among the three, keeps its argument's own type
+rather than always coming back fractional.
