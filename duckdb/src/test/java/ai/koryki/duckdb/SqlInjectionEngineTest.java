@@ -75,7 +75,7 @@ public class SqlInjectionEngineTest {
                                         DuckdbDatabase.fromResource(NorthwindDuckdb.DUCKDB, db),
                                         ZoneId.of("UTC")),
                                 NorthwindService.resolver(),
-                                new SqlQueryRenderer(ZoneId.of("UTC")))
+                                () -> new SqlQueryRenderer(ZoneId.of("UTC")))
                         .valueFormat(new StableFormat(Locale.ROOT))
                         .build();
         db.toFile().deleteOnExit();

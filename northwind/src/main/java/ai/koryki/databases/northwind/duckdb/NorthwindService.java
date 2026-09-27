@@ -36,11 +36,35 @@ public class NorthwindService<I extends ColumnInfo, P extends ResultProcessor<I>
 
     private final Engine<I, P> engine;
 
+    /**
+     * @param renderers makes the renderer for one query, see {@link EngineBuilder}; the service's
+     *     engine asks for one every time, so it can be shared
+     */
+    public static <I extends ColumnInfo, P extends ResultProcessor<I>> NorthwindService<I, P> build(
+            Database<P> database, Supplier<? extends SqlRenderer> renderers, Supplier<I> supplier) {
+        return new NorthwindService<>(database, renderers, supplier);
+    }
+
+    public static <P extends ResultProcessor<ColumnInfo>> NorthwindService<ColumnInfo, P> build(
+            Database<P> database, Supplier<? extends SqlRenderer> renderers) {
+
+        return new NorthwindService<>(database, renderers, HeaderInfo::new);
+    }
+
+    /**
+     * @deprecated one renderer for the life of the service, and so an engine for one caller at a
+     *     time. Pass a supplier: {@code () -> new SqlQueryRenderer(dialect, zone)}.
+     */
+    @Deprecated
     public static <I extends ColumnInfo, P extends ResultProcessor<I>> NorthwindService<I, P> build(
             Database<P> database, SqlRenderer renderer, Supplier<I> supplier) {
         return new NorthwindService<>(database, renderer, supplier);
     }
 
+    /**
+     * @deprecated see {@link #build(Database, SqlRenderer, Supplier)}
+     */
+    @Deprecated
     public static <P extends ResultProcessor<ColumnInfo>> NorthwindService<ColumnInfo, P> build(
             Database<P> database, SqlRenderer renderer) {
 
@@ -48,10 +72,42 @@ public class NorthwindService<I extends ColumnInfo, P extends ResultProcessor<I>
     }
 
     /** Create Service with Locale.ENGLISH, not system default Locale! */
+    public NorthwindService(
+            Database<P> database, Supplier<? extends SqlRenderer> renderers, Supplier<I> supplier) {
+        this(database, renderers, java.util.Locale.ENGLISH, supplier);
+    }
+
+    public NorthwindService(
+            Database<P> database,
+            Supplier<? extends SqlRenderer> renderers,
+            java.util.Locale locale,
+            Supplier<I> supplier) {
+
+        this(database, renderers, resolver(locale), supplier);
+    }
+
+    public NorthwindService(
+            Database<P> database,
+            Supplier<? extends SqlRenderer> renderers,
+            LinkResolver resolver,
+            Supplier<I> supplier) {
+        engine = new EngineBuilder<I, P>(database, resolver, renderers).info(supplier).build();
+    }
+
+    /**
+     * Create Service with Locale.ENGLISH, not system default Locale!
+     *
+     * @deprecated see {@link #build(Database, SqlRenderer, Supplier)}
+     */
+    @Deprecated
     public NorthwindService(Database<P> database, SqlRenderer renderer, Supplier<I> supplier) {
         this(database, renderer, java.util.Locale.ENGLISH, supplier);
     }
 
+    /**
+     * @deprecated see {@link #build(Database, SqlRenderer, Supplier)}
+     */
+    @Deprecated
     public NorthwindService(
             Database<P> database,
             SqlRenderer renderer,
@@ -61,6 +117,10 @@ public class NorthwindService<I extends ColumnInfo, P extends ResultProcessor<I>
         this(database, renderer, resolver(locale), supplier);
     }
 
+    /**
+     * @deprecated see {@link #build(Database, SqlRenderer, Supplier)}
+     */
+    @Deprecated
     public NorthwindService(
             Database<P> database,
             SqlRenderer renderer,

@@ -36,7 +36,25 @@ public class NorthwindDuckdb {
                 "ai/koryki/databases/northwind", fromResource(DUCKDB), modelZone);
     }
 
+    /**
+     * Copy the database out of the jar to a file of this process and open it.
+     *
+     * <p>The file is named after the process id and lives in the temporary directory. It used to be
+     * one path for everybody, {@code /tmp/korykiai.duckdb}: programs that started together replaced
+     * it under each other, and each one that found it locked by another died. A name of one's own
+     * leaves nothing to race over. The file is removed when the JVM ends properly; a process that
+     * is killed leaves its copy behind.
+     */
     public static Connection fromResource(String resource) {
-        return DuckdbDatabase.fromResource(resource, Path.of("/tmp/korykiai.duckdb"));
+        Path file = file();
+        file.toFile().deleteOnExit();
+        return DuckdbDatabase.fromResource(resource, file);
+    }
+
+    /** The file of this process -- a name, not a promise that it exists. */
+    static Path file() {
+        return Path.of(
+                System.getProperty("java.io.tmpdir"),
+                "korykiai-" + ProcessHandle.current().pid() + ".duckdb");
     }
 }

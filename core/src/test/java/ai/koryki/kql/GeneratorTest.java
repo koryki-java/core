@@ -51,7 +51,7 @@ public class GeneratorTest {
         generator =
                 new Generator<>(
                         NorthwindService.resolver(),
-                        new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, ZoneId.of("UTC")),
+                        () -> new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, ZoneId.of("UTC")),
                         HeaderInfo::new);
     }
 

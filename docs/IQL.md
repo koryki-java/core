@@ -134,6 +134,31 @@ SQL generation is split across two levels, matching the two levels of the IQL gr
 
 **`SqlSelectRenderer`** — handles the full SELECT body
 
+### A renderer is for one caller at a time
+
+`SqlQueryRenderer` keeps the query it is rendering — the query, its visibility scope and the map
+from IQL nodes to their source — in fields, from the start of `toSql` to its end. Two threads
+rendering on one instance write into each other's state, and what comes out is another query's SQL,
+or an exception from a scope that belongs to a different statement. Measured: five queries of
+different shapes from eight threads on one instance, and about a quarter of the results were wrong.
+
+The way to hold a renderer is therefore to make one for each use — `new SqlQueryRenderer(dialect,
+zone)` is a few assignments — and `Generator`, `Engine` and `EngineBuilder` do it for you when they
+are given the means to make one instead of a renderer:
+
+```java
+Engine<HeaderInfo, ListResult<HeaderInfo>> engine =
+        EngineBuilder.headers(database, resolver, () -> new SqlQueryRenderer(dialect, zone)).build();
+```
+
+The engine asks that supplier for a renderer for every operation and drops it afterwards, so it
+holds no renderer and can be built once and shared. `toSql`, `executeKQL`, `validateKQL`,
+`warningsKQL` and `analyze` each use one renderer, for the function catalog and the dialect as well
+as for rendering. The constructors that take a renderer instance are deprecated: that one instance
+then renders every query, and the engine is for one caller at a time again. What may be shared
+either way is the dialect, the `LinkResolver`, and a database as its `allowsConcurrentExecution()`
+says (see [JDBC.md](JDBC.md)).
+
 ## Link Resolution (`LinkResolver`)
 
 IQL queries reference joins by **link names** 

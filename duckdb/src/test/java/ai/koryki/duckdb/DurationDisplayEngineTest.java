@@ -67,7 +67,7 @@ public class DurationDisplayEngineTest extends BaseEngineTest<HeaderInfo> {
                 EngineBuilder.headers(
                                 NorthwindDuckdb.<ListWithSqlResult<HeaderInfo>>northwind(),
                                 TemporalService.resolver(),
-                                new SqlQueryRenderer(java.time.ZoneId.of("UTC")))
+                                () -> new SqlQueryRenderer(java.time.ZoneId.of("UTC")))
                         .valueFormat(WordedLocaleFormat.wide(Locale.ENGLISH))
                         .build();
     }

@@ -54,7 +54,7 @@ public class CastsTrinoEngineTest extends BaseEngineTest<HeaderInfo> {
                 EngineBuilder.headers(
                                 new NorthwindTrino<ListWithSqlResult<HeaderInfo>>(),
                                 NorthwindService.resolver(),
-                                new SqlQueryRenderer(java.time.ZoneId.of("UTC")))
+                                () -> new SqlQueryRenderer(java.time.ZoneId.of("UTC")))
                         .valueFormat(new StableFormat(Locale.ROOT))
                         .build();
     }

@@ -41,7 +41,7 @@ public class LinkResolver {
     private final Schema db;
     private final Model model;
 
-    private Map<Column, TypeDescriptor> columnToTypedescriptor = new HashMap<>();
+    private final Map<Column, TypeDescriptor> columnToTypedescriptor = new HashMap<>();
 
     private final Map<String, Link> linkMap;
     private final boolean alignedOnly;
@@ -449,6 +449,20 @@ public class LinkResolver {
 
     public Optional<String> getDialectTable(String entity) {
         return model.getEntity(entity).map(LinkResolver::getDialectTable);
+    }
+
+    /**
+     * The schema every base table is written under, if the catalog names one.
+     *
+     * <p>Here rather than read off {@link #getSchema} by each renderer: the resolver is the one
+     * object every select renderer already holds -- including the nested ones a sub-select creates
+     * -- so the answer reaches all of them without a constructor changing.
+     *
+     * @see Schema#getSchemaPrefix
+     */
+    public Optional<String> getSchemaPrefix() {
+        String prefix = db.getSchemaPrefix();
+        return prefix == null || prefix.isBlank() ? Optional.empty() : Optional.of(prefix);
     }
 
     public Optional<String> getDialectColumn(String entity, String attribute) {

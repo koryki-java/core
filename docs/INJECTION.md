@@ -82,8 +82,8 @@ then hands the result to `SqlDialect.textLiteral` for whatever the engine needs 
 
 ### 2. Identifiers — the catalog
 
-An entity's `table` and an attribute's `column` are *physical* names, written into the statement as
-identifiers. They cannot be literals and they cannot be parameters. A catalog is a JSON file, and an
+An entity's `table`, an attribute's `column` and the catalog's `schemaPrefix` are *physical* names,
+written into the statement as identifiers. They cannot be literals and they cannot be parameters. A catalog is a JSON file, and an
 application that generates one from an introspection run, accepts one per tenant, or lets a
 scaffolding tool write one is handing this library names it did not choose.
 
@@ -96,7 +96,7 @@ The name appears in four positions, and each is reached by its own code path:
 
 | Position | Renderer |
 |---|---|
-| the table and its alias in `FROM` and the join tree | `SqlSelectRenderer.toSql(Source, int)` |
+| the table and its alias in `FROM` and the join tree — and the `schemaPrefix` in front of the table | `SqlSelectRenderer.toSql(Source, int)` |
 | a column in the projection, `WHERE`, `GROUP BY`, `ORDER BY` | `SqlSelectRenderer.toSql(Field, int)` |
 | an output header — `… AS h` | `SqlSelectRenderer.toSql(Out, int)` |
 | the block name and its column list — `WITH b (…)` | `SqlQueryRenderer.toHeader` |
@@ -231,7 +231,8 @@ name is outside `[A-Za-z_][A-Za-z0-9_]*`, or is not all lower case) or when the 
 any engine here. A dialect that overrides `quote` has to keep it.
 
 Note what B3 does not do: it cannot help a caller that builds `alias + "." + column` without going
-through it. Qualified names are assembled from two `renderIdentifier` calls for exactly that reason.
+through it. Qualified names — `alias.column`, `schema.table` — are assembled from two
+`renderIdentifier` calls for exactly that reason.
 
 ### B4 — the validator checks types, not values
 

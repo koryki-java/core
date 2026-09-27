@@ -60,7 +60,7 @@ public class TypecheckDBEngineTest extends BaseEngineTest<HeaderInfo> {
                 EngineBuilder.headers(
                                 new NorthwindSnowflake<ListWithSqlResult<HeaderInfo>>(),
                                 resolver,
-                                new SqlQueryRenderer(java.time.ZoneId.of("UTC")))
+                                () -> new SqlQueryRenderer(java.time.ZoneId.of("UTC")))
                         .valueFormat(new StableFormat(Locale.ROOT))
                         .build();
     }

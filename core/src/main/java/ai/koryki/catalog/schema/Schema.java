@@ -28,6 +28,7 @@ public class Schema {
     private String label;
     private String comment;
     private String description;
+    private String schemaPrefix;
     private List<Table> tables;
     private List<Relation> relations;
 
@@ -78,6 +79,14 @@ public class Schema {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getSchemaPrefix() {
+        return schemaPrefix;
+    }
+
+    public void setSchemaPrefix(String schemaPrefix) {
+        this.schemaPrefix = schemaPrefix;
     }
 
     public List<Table> getTables() {
@@ -136,7 +145,7 @@ public class Schema {
         copy.setLabel(schema.getLabel());
         copy.setComment(schema.getComment());
         copy.setDescription(schema.getDescription());
-        copy.setName(schema.getName());
+        copy.setSchemaPrefix(schema.getSchemaPrefix());
 
         copy.setTables(
                 schema.getTables().stream().map(t -> deepCopy(t)).collect(Collectors.toList()));

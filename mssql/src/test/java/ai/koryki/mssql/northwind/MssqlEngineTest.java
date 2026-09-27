@@ -51,7 +51,7 @@ public class MssqlEngineTest extends BaseEngineTest<HeaderInfo> {
                 EngineBuilder.headers(
                                 new NorthwindMssql<ListWithSqlResult<HeaderInfo>>(ZoneId.of("UTC")),
                                 NorthwindService.resolver(),
-                                new SqlQueryRenderer(java.time.ZoneId.of("UTC")))
+                                () -> new SqlQueryRenderer(java.time.ZoneId.of("UTC")))
                         .valueFormat(new StableFormat(Locale.ROOT))
                         .build();
     }

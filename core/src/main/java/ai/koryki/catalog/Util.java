@@ -17,6 +17,7 @@
 package ai.koryki.catalog;
 
 import ai.koryki.antlr.KorykiaiException;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -28,12 +29,31 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Writes text and JSON output to files (golden generation and exports). Catalog loading lives in
  * {@link CatalogLoader}.
  */
 public class Util {
+
+    /**
+     * How JSON is written: no property whose value is {@code null}.
+     *
+     * <p>Decided for the writer and not per property. A catalog is full of them -- a comment, a
+     * description, a type encoding that most columns do not have -- and leaving them out makes the
+     * file smaller without losing anything: reading it back gives the same bean, because a missing
+     * property and a {@code null} one both leave the field unset. It also means a property that
+     * only some catalogs use, such as {@code Schema.schemaPrefix}, does not appear in the others,
+     * and needs no annotation on the class to make that so.
+     *
+     * <p>Only properties are skipped. A {@code null} inside a list or a map is data and is kept.
+     */
+    private static final ObjectMapper JSON =
+            JsonMapper.builder()
+                    .changeDefaultPropertyInclusion(
+                            inclusion -> inclusion.withValueInclusion(JsonInclude.Include.NON_NULL))
+                    .build();
 
     /**
      * The line break in everything koryki produces as text — a fixed {@code \n}, not the
@@ -113,10 +133,10 @@ public class Util {
         write(value, out, StandardCharsets.UTF_8);
     }
 
+    /** Pretty-printed JSON, without the properties that are {@code null} -- see {@link #JSON}. */
     public static void write(Object value, File out, Charset cs) {
         // Jackson 3 throws unchecked JacksonException; text() wraps its own IO errors
-        ObjectMapper mapper = new ObjectMapper();
-        String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(value);
+        String json = JSON.writerWithDefaultPrettyPrinter().writeValueAsString(value);
 
         text(json, out, cs);
     }
