@@ -108,6 +108,16 @@ All notable changes to this project are documented here.
   another was still copying found it empty (`missing db /tmp/korykiai.sqlite 0`). Its copy now goes
   to `korykiai-<pid>.sqlite` in `java.io.tmpdir` and is removed when the JVM ends properly.
   `SqliteDatabase.fromResource` is unchanged, so callers that choose their own file are unaffected.
+- A block could not correctly reference an earlier sibling block — only self-reference (a
+  recursive CTE) rendered correctly. `BlockRecursionDetector` treated any reference to a name that
+  is not a catalog entity as recursion, so a plain chain onto an earlier block wrongly emitted
+  `WITH RECURSIVE`; `InferJoinColumnsToBlockRule` added an inferred join column to the block
+  currently being rendered instead of the block actually referenced, so a chain through a `VIA`
+  join failed to render at all (`missing joinColumn`) unless the referenced block happened to
+  already select that column. Both now compare the referenced name against the block's own id
+  instead of only asking whether it is a catalog entity. Verified end to end against DuckDB,
+  SQLite, PostgreSQL, MariaDB, Oracle and Trino with three new fixtures (`block_chain`,
+  `block_chain_join`, `block_chain_three_deep`).
 
 ## [0.1.0] - 2026-09-22
 

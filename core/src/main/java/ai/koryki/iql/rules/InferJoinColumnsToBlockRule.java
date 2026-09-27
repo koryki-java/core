@@ -108,18 +108,17 @@ public class InferJoinColumnsToBlockRule {
             String msg,
             Source right,
             ai.koryki.iql.query.JoinColumns explicit) {
-        String startTable = start.getName();
-        String endTable = end.getName();
+        String startBlockId = start.getName();
+        String endBlockId = end.getName();
 
-        boolean b1 = resolver.isEntity(startTable);
-        Source s = b1 ? start : blockIdToLeadingTableMap.get(startTable);
-        startTable = s.getName();
-        startTable = Identifier.normal(Identifier.lowercase, startTable);
+        boolean b1 = resolver.isEntity(startBlockId);
+        Source s = b1 ? start : blockIdToLeadingTableMap.get(startBlockId);
+        String startTable = Identifier.normal(Identifier.lowercase, s.getName());
 
-        boolean b2 = resolver.isEntity(endTable);
-        Source e = b2 ? end : blockIdToLeadingTableMap.get(end.getName());
+        boolean b2 = resolver.isEntity(endBlockId);
+        Source e = b2 ? end : blockIdToLeadingTableMap.get(endBlockId);
 
-        endTable = Identifier.normal(Identifier.lowercase, e.getName());
+        String endTable = Identifier.normal(Identifier.lowercase, e.getName());
 
         Relation r;
         if (explicit != null) {
@@ -137,20 +136,33 @@ public class InferJoinColumnsToBlockRule {
         }
 
         if (!b1) {
-            List<String> cols = r.getStartColumns();
-            if (block != null) {
-                enhanceOut(block.getSet(), cols);
-            } else {
-                enhanceOut(s, cols);
-            }
+            enhanceReferencedBlock(block, startBlockId, s, r.getStartColumns());
         }
         if (!b2) {
-            List<String> cols = r.getEndColumns();
-            if (block != null) {
-                enhanceOut(block.getSet(), cols);
-            } else {
-                enhanceOut(e, cols);
-            }
+            enhanceReferencedBlock(block, endBlockId, e, r.getEndColumns());
+        }
+    }
+
+    /**
+     * Adds {@code cols} to whichever block must project them so the join in front of this method
+     * can select them: {@code block}'s own {@link Set} -- every branch of it, not just the one
+     * being visited -- when {@code referencedBlockId} names {@code block} itself (a recursive
+     * self-reference, where every branch of a {@code UNION} must agree on one output shape), or
+     * directly onto {@code leadingSource} -- the leading source of whichever <em>other</em>,
+     * already-declared block {@code referencedBlockId} names -- when it is a sibling reference.
+     *
+     * <p>Before this distinction existed, every non-entity reference inside a block's own body was
+     * treated as that block referencing itself, which is only true for actual recursion: a block
+     * chained onto an earlier sibling had the join column added to its <em>own</em> leading source
+     * instead of the sibling's, so the sibling's CTE never projected it and rendering failed with
+     * {@code missing joinColumn}.
+     */
+    private void enhanceReferencedBlock(
+            Block block, String referencedBlockId, Source leadingSource, List<String> cols) {
+        if (block != null && referencedBlockId.equals(block.getId())) {
+            enhanceOut(block.getSet(), cols);
+        } else {
+            enhanceOut(leadingSource, cols);
         }
     }
 
