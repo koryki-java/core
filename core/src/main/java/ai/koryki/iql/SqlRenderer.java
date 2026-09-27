@@ -75,6 +75,19 @@ public interface SqlRenderer {
     }
 
     /**
+     * Whoever renders next should write {@code signature} into the SQL as a comment right behind
+     * the first {@code SELECT} keyword, so whoever the statement is handed to afterward -- a
+     * database, or an external system it is posted to, such as a hosted MCP server -- can trace it
+     * back to whoever produced it. {@code null} for no signature.
+     *
+     * <p>A default no-op: most callers reach a renderer through a {@code Supplier} they wrote
+     * themselves ({@code () -> new SqlQueryRenderer(dialect, zone)}) without knowing about
+     * signatures at all, and this way that keeps working. {@link SqlQueryRenderer} is the
+     * implementation that actually writes one.
+     */
+    default void setSignature(String signature) {}
+
+    /**
      * Resolves the type of every top-level output column once, with this renderer's catalog and
      * visibility scope. Exceptions propagate (a query whose output type can't be resolved is not
      * renderable).

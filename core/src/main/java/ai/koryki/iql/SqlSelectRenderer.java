@@ -19,6 +19,7 @@ package ai.koryki.iql;
 import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.antlr.Range;
 import ai.koryki.antlr.RangeException;
+import ai.koryki.antlr.Text;
 import ai.koryki.catalog.schema.Relation;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.WallClockEncoding;
@@ -52,6 +53,8 @@ public class SqlSelectRenderer {
     private final Map<Object, RuleContext> iqlToContext;
     private final ZoneId modelZone;
 
+    private final String signature;
+
     public SqlSelectRenderer(
             Identifier identifier,
             Map<Object, RuleContext> iqlToContext,
@@ -59,6 +62,17 @@ public class SqlSelectRenderer {
             IQLVisibilityContext visibilityContext,
             SqlDialect dialect,
             ZoneId modelZone) {
+        this(identifier, iqlToContext, resolver, visibilityContext, dialect, modelZone, null);
+    }
+
+    public SqlSelectRenderer(
+            Identifier identifier,
+            Map<Object, RuleContext> iqlToContext,
+            LinkResolver resolver,
+            IQLVisibilityContext visibilityContext,
+            SqlDialect dialect,
+            ZoneId modelZone,
+            String signature) {
         this.identifier = identifier;
         this.iqlToContext = iqlToContext;
         this.resolver = resolver;
@@ -66,6 +80,7 @@ public class SqlSelectRenderer {
         this.dialect = dialect;
         this.functionRenderer = dialect.getFunctionRenderer();
         this.modelZone = modelZone;
+        this.signature = signature;
     }
 
     /**
@@ -103,6 +118,13 @@ public class SqlSelectRenderer {
         StringBuilder b = new StringBuilder();
         b.append(indent(indent)).append(SELECT);
         b.append(SqlRenderer.NL);
+
+        if (signature != null && !signature.isBlank()) {
+
+            b.append(indent(indent + 2))
+                    .append(Text.lineComment("-- ", signature))
+                    .append(SqlRenderer.NL);
+        }
 
         b.append(indent(indent + 2));
 
