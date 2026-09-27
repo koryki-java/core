@@ -108,7 +108,7 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
 
     /** Window functions that are meaningless without an ordering inside the frame. */
     private static final java.util.Set<String> NEEDS_ORDER =
-            java.util.Set.of("rank", "dense_rank", "ntile", "lag", "lead");
+            java.util.Set.of("rank", "dense_rank", "percent_rank", "ntile", "lag", "lead");
 
     /**
      * A {@link FunctionKind#WINDOW} function answers "where does this row sit among those rows", so

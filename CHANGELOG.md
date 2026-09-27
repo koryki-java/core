@@ -54,6 +54,46 @@ All notable changes to this project are documented here.
   this way is smaller and reads back to the same catalog, and a property that a catalog does
   not use, such as `schemaPrefix`, simply is not there.
 
+**`percent_rank`**
+
+- `percent_rank()` — where a row sits along its window, from 0 (first) to 1 (last):
+  `(rank - 1) / (rows in the window - 1)`. Requires an `ORDER` inside its `OVER` clause, the same
+  rule `rank` and `dense_rank` already carry. Chosen from a survey of real analyst queries against
+  a third-party financial MCP server, and measured directly against DuckDB, PostgreSQL, MariaDB,
+  Oracle, SQL Server, SQLite and Trino (2026-09-27): native and identical on every one of them,
+  Snowflake included per its own published reference. No dialect override was needed. `median` and
+  `percentile_cont` were the other candidates from that same survey — see the next entry for why
+  they were measured out at the time, and implemented anyway.
+
+**`median`, `quantile_cont` and `quantile_disc`**
+
+- `median(value: numeric)` — the middle value of the sorted inputs, the average of the two middle
+  values when there is an even number of them. `quantile_cont(fraction, value)` — the value at
+  *fraction* of the way through the sorted inputs, interpolating between the two nearest when it
+  falls between them; `quantile_cont(0.5, x)` is `median(x)`. `quantile_disc(fraction, value)` — the
+  same reading, but never interpolates: the result is always one of the actual input values, so its
+  return type tracks the value argument's own type (`ARG1`) rather than always coming back
+  fractional (`FLOAT`, `median`'s and `quantile_cont`'s type) the way an interpolated result must.
+- These are the two candidates the `percent_rank` entry above measured against the same seven
+  engines and did not qualify by that survey's own majority bar: DuckDB, PostgreSQL, Oracle and
+  Snowflake support them natively, as `MEDIAN`/`PERCENTILE_CONT`/`PERCENTILE_DISC ... WITHIN GROUP`;
+  MariaDB and SQLite have no ordered-set aggregate syntax at all, Trino's parser rejects
+  `WITHIN GROUP` outright, and SQL Server accepts `PERCENTILE_CONT`/`PERCENTILE_DISC` only as window
+  functions, never as a plain `GROUP BY` aggregate — a four-to-four split, not a majority.
+  Implemented anyway, on explicit request: native rendering for duckdb/oracle/snowflake, one
+  override for PostgreSQL (no native `MEDIAN`; `PERCENTILE_CONT(0.5) WITHIN GROUP` is exactly the
+  same computation, not an approximation — measured equal to Oracle's native `MEDIAN` on the same
+  input), and a clean `unsupported()` refusal on the other four — caught before a query ever
+  reaches them, with a message naming the function, rather than a driver error after the fact.
+- DuckDB's own `quantile_cont`/`percentile_cont` carries a real numeric quirk here, unrelated to
+  koryki: computed over a fixed-scale `DECIMAL(18,2)` column, it truncates the interpolated result
+  to that same scale instead of widening to full precision, so an exact `25.875` comes back `25.87`
+  where PostgreSQL and Oracle both answer the precise value. Not a rounding-convention difference —
+  round-half-even would give `25.88`, not `25.87` — DuckDB's ordered-set aggregates compute in the
+  input column's own decimal scale and lose the digit past it. Marked `// ignore=duckdb` on the two
+  affected fixtures, the same convention already used for a Snowflake rounding boundary in `avg`'s
+  moving-average fixture.
+
 ### Fixed
 
 - `NorthwindDuckdb.northwind()` and `NorthwindDuckdb.fromResource(String)` no longer copy the

@@ -77,6 +77,7 @@ What is specific to sqlite: the rendering column is filled in only where this di
 | make_timestamp | datetime | scalar | unsupported | `—` |  |
 | max | aggregate | aggregate | standard |  |  |
 | md5 | string | scalar | unsupported | `—` |  |
+| median | aggregate | aggregate | unsupported | `—` |  |
 | min | aggregate | aggregate | standard |  |  |
 | minus | arithmetic | scalar | standard |  |  |
 | minute | datetime | scalar | overridden | `CAST(strftime('%M', value) AS INTEGER)` |  |
@@ -97,9 +98,12 @@ What is specific to sqlite: the rendering column is filled in only where this di
 | parse_date | datetime | scalar | unsupported | `—` |  |
 | parse_time | datetime | scalar | unsupported | `—` |  |
 | parse_timestamp | datetime | scalar | unsupported | `—` |  |
+| percent_rank | window | window | standard |  |  |
 | pi | math | scalar | standard |  |  |
 | position | string | scalar | overridden | `instr(str, substr)` |  |
 | power | math | scalar | standard |  |  |
+| quantile_cont | aggregate | aggregate | unsupported | `—` |  |
+| quantile_disc | aggregate | aggregate | unsupported | `—` |  |
 | quarter | datetime | scalar | overridden | `((CAST(strftime('%m', value) AS INTEGER) + 2) / 3)` |  |
 | quarter_begin | datetime | scalar | overridden | `date(value, 'start of month', printf('%+d months', -((CAST(strftime('%m', value) AS INTEGER) - 1) % 3)))` |  |
 | quarter_end | datetime | scalar | overridden | `date(value, 'start of month', printf('%+d months', 3 - ((CAST(strftime('%m', value) AS INTEGER) - 1) % 3)), '-1 day')` |  |

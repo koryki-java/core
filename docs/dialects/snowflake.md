@@ -77,6 +77,7 @@ What is specific to snowflake: the rendering column is filled in only where this
 | make_timestamp | datetime | scalar | overridden | `TIMESTAMP_NTZ_FROM_PARTS(year, month, day, hour, minute, second)` |  |
 | max | aggregate | aggregate | standard |  |  |
 | md5 | string | scalar | standard |  |  |
+| median | aggregate | aggregate | standard |  |  |
 | min | aggregate | aggregate | standard |  |  |
 | minus | arithmetic | scalar | standard |  |  |
 | minute | datetime | scalar | standard |  |  |
@@ -97,9 +98,12 @@ What is specific to snowflake: the rendering column is filled in only where this
 | parse_date | datetime | scalar | overridden | `TO_DATE(value, format)` |  |
 | parse_time | datetime | scalar | overridden | `TO_TIME(value, format)` |  |
 | parse_timestamp | datetime | scalar | overridden | `TO_TIMESTAMP(value, format)` |  |
+| percent_rank | window | window | standard |  |  |
 | pi | math | scalar | standard |  |  |
 | position | string | scalar | standard |  |  |
 | power | math | scalar | standard |  |  |
+| quantile_cont | aggregate | aggregate | standard |  |  |
+| quantile_disc | aggregate | aggregate | standard |  |  |
 | quarter | datetime | scalar | standard |  |  |
 | quarter_begin | datetime | scalar | standard |  |  |
 | quarter_end | datetime | scalar | overridden | `LAST_DAY(value, 'quarter')` |  |

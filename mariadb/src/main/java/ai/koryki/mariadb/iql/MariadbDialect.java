@@ -425,6 +425,11 @@ public class MariadbDialect implements SqlDialect {
         for (String fn : List.of("translate", "to_number", "initcap", "regexp_count")) {
             registry.unsupported(fn);
         }
+        // No ordered-set aggregate syntax at all: WITHIN GROUP, and MEDIAN as a plain aggregate,
+        // are both rejected outright. Measured 2026-09-27.
+        for (String fn : List.of("median", "quantile_cont", "quantile_disc")) {
+            registry.unsupported(fn);
+        }
         return registry;
     }
 

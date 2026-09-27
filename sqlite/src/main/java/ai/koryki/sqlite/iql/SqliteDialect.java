@@ -282,6 +282,11 @@ public class SqliteDialect implements SqlDialect {
         // ignore= marker.
         r.unsupported("at_zone");
         r.unsupported("to_utc");
+        // No ordered-set aggregate syntax at all: WITHIN GROUP, and MEDIAN as a plain aggregate,
+        // are both rejected outright. Measured 2026-09-27.
+        for (String fn : List.of("median", "quantile_cont", "quantile_disc")) {
+            r.unsupported(fn);
+        }
         return r;
     }
 

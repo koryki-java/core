@@ -81,6 +81,7 @@ What is specific to postgresql: the rendering column is filled in only where thi
 | make_timestamp | datetime | scalar | standard |  |  |
 | max | aggregate | aggregate | standard |  |  |
 | md5 | string | scalar | standard |  |  |
+| median | aggregate | aggregate | overridden | `PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY value)` |  |
 | min | aggregate | aggregate | standard |  |  |
 | minus | arithmetic | scalar | standard |  |  |
 | minute | datetime | scalar | overridden | `EXTRACT(MINUTE FROM value)` |  |
@@ -101,9 +102,12 @@ What is specific to postgresql: the rendering column is filled in only where thi
 | parse_date | datetime | scalar | overridden | `TO_DATE(value, format)` |  |
 | parse_time | datetime | scalar | overridden | `TO_TIMESTAMP(value, format)::TIME` |  |
 | parse_timestamp | datetime | scalar | overridden | `TO_TIMESTAMP(value, format)::TIMESTAMP` |  |
+| percent_rank | window | window | standard |  |  |
 | pi | math | scalar | standard |  |  |
 | position | string | scalar | standard |  |  |
 | power | math | scalar | standard |  | results differ |
+| quantile_cont | aggregate | aggregate | standard |  |  |
+| quantile_disc | aggregate | aggregate | standard |  |  |
 | quarter | datetime | scalar | overridden | `EXTRACT(QUARTER FROM value)` |  |
 | quarter_begin | datetime | scalar | standard |  |  |
 | quarter_end | datetime | scalar | overridden | `CAST(date_trunc('quarter', value) + INTERVAL '3 months - 1 day' AS DATE)` |  |

@@ -38,8 +38,11 @@ import ai.koryki.iql.functions.ReturnTypes;
  * enforces that each call carries an OVER clause, and that the ordered ones carry an ORDER BY
  * inside it.
  *
- * <p>No dialect overrides. All six were measured native on all eight supported engines — unusually,
- * these are among the most portable functions in the catalog, not the least.
+ * <p>No dialect overrides. All seven were measured native on all eight supported engines —
+ * unusually, these are among the most portable functions in the catalog, not the least. {@code
+ * percent_rank} was the one addition checked this way: DuckDB, PostgreSQL, MariaDB, Oracle, SQL
+ * Server, SQLite and Trino were queried directly (2026-09-27), Snowflake taken from its own
+ * published reference — it is the one entry in this file the others were compared against.
  */
 public final class WindowFunctions {
 
@@ -62,6 +65,14 @@ public final class WindowFunctions {
                 def("dense_rank", ReturnTypes.BIGINT)
                         .signature(FunctionSignature.of())
                         .doc("Like `rank`, but without gaps after a tie: 1, 2, 2, 3."));
+        r.register(
+                def("percent_rank", ReturnTypes.FLOAT)
+                        .signature(FunctionSignature.of())
+                        .doc(
+                                "Where the row sits along the window, from 0 (the first row) to 1 (the last): "
+                                        + "`(rank - 1) / (rows in the window - 1)`. A single-row window is 0, not "
+                                        + "an undefined division. Unlike `rank`, ties still share the same value, "
+                                        + "but the scale runs 0 to 1 rather than counting positions."));
         r.register(
                 def("ntile", ReturnTypes.BIGINT)
                         .args(

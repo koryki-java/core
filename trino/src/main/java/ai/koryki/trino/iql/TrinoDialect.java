@@ -240,6 +240,12 @@ public class TrinoDialect implements SqlDialect {
         for (String fn : List.of("initcap", "make_time", "make_timestamp", "md5", "to_number")) {
             registry.unsupported(fn);
         }
+        // Trino's parser rejects WITHIN GROUP outright, and there is no native MEDIAN either.
+        // approx_percentile exists but is approximate, not the exact answer this catalog promises,
+        // so it is not used as a silent stand-in. Measured 2026-09-27.
+        for (String fn : List.of("median", "quantile_cont", "quantile_disc")) {
+            registry.unsupported(fn);
+        }
         return registry;
     }
 

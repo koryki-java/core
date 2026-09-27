@@ -77,6 +77,7 @@ What is specific to mariadb: the rendering column is filled in only where this d
 | make_timestamp | datetime | scalar | overridden | `STR_TO_DATE(CONCAT(year, '-', month, '-', day, ' ', hour, ':', minute, ':', second), '%Y-%m-%d %H:%i:%s')` |  |
 | max | aggregate | aggregate | standard |  |  |
 | md5 | string | scalar | standard |  |  |
+| median | aggregate | aggregate | unsupported | `—` |  |
 | min | aggregate | aggregate | standard |  |  |
 | minus | arithmetic | scalar | standard |  |  |
 | minute | datetime | scalar | standard |  |  |
@@ -97,9 +98,12 @@ What is specific to mariadb: the rendering column is filled in only where this d
 | parse_date | datetime | scalar | overridden | `parse_date(…) — dialect-specific rendering` |  |
 | parse_time | datetime | scalar | overridden | `parse_time(…) — dialect-specific rendering` |  |
 | parse_timestamp | datetime | scalar | overridden | `parse_timestamp(…) — dialect-specific rendering` |  |
+| percent_rank | window | window | standard |  |  |
 | pi | math | scalar | standard |  |  |
 | position | string | scalar | standard |  |  |
 | power | math | scalar | standard |  |  |
+| quantile_cont | aggregate | aggregate | unsupported | `—` |  |
+| quantile_disc | aggregate | aggregate | unsupported | `—` |  |
 | quarter | datetime | scalar | standard |  |  |
 | quarter_begin | datetime | scalar | overridden | `(MAKEDATE(YEAR(value), 1) + INTERVAL (QUARTER(value) - 1) * 3 MONTH)` |  |
 | quarter_end | datetime | scalar | overridden | `LAST_DAY(MAKEDATE(YEAR(value), 1) + INTERVAL (QUARTER(value) * 3 - 1) MONTH)` |  |

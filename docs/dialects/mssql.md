@@ -77,6 +77,7 @@ What is specific to mssql: the rendering column is filled in only where this dia
 | make_timestamp | datetime | scalar | overridden | `DATETIME2FROMPARTS(year, month, day, hour, minute, second, 0, 0)` |  |
 | max | aggregate | aggregate | standard |  |  |
 | md5 | string | scalar | overridden | `LOWER(CONVERT(VARCHAR(32), HASHBYTES('MD5', string), 2))` |  |
+| median | aggregate | aggregate | unsupported | `—` |  |
 | min | aggregate | aggregate | standard |  |  |
 | minus | arithmetic | scalar | standard |  |  |
 | minute | datetime | scalar | overridden | `DATEPART(MINUTE, value)` |  |
@@ -97,9 +98,12 @@ What is specific to mssql: the rendering column is filled in only where this dia
 | parse_date | datetime | scalar | unsupported | `—` |  |
 | parse_time | datetime | scalar | unsupported | `—` |  |
 | parse_timestamp | datetime | scalar | unsupported | `—` |  |
+| percent_rank | window | window | standard |  |  |
 | pi | math | scalar | standard |  |  |
 | position | string | scalar | overridden | `CHARINDEX(substr, str)` |  |
 | power | math | scalar | overridden | `POWER(CAST(base AS FLOAT), exponent)` |  |
+| quantile_cont | aggregate | aggregate | unsupported | `—` |  |
+| quantile_disc | aggregate | aggregate | unsupported | `—` |  |
 | quarter | datetime | scalar | overridden | `DATEPART(quarter, value)` |  |
 | quarter_begin | datetime | scalar | overridden | `DATEADD(QUARTER, DATEDIFF(QUARTER, 0, value), 0)` |  |
 | quarter_end | datetime | scalar | overridden | `EOMONTH(DATEADD(QUARTER, DATEDIFF(QUARTER, 0, value), 0), 2)` |  |

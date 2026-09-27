@@ -77,6 +77,7 @@ What is specific to trino: the rendering column is filled in only where this dia
 | make_timestamp | datetime | scalar | unsupported | `—` |  |
 | max | aggregate | aggregate | standard |  |  |
 | md5 | string | scalar | unsupported | `—` |  |
+| median | aggregate | aggregate | unsupported | `—` |  |
 | min | aggregate | aggregate | standard |  |  |
 | minus | arithmetic | scalar | standard |  |  |
 | minute | datetime | scalar | standard |  |  |
@@ -97,9 +98,12 @@ What is specific to trino: the rendering column is filled in only where this dia
 | parse_date | datetime | scalar | overridden | `parse_date(…) — dialect-specific rendering` |  |
 | parse_time | datetime | scalar | overridden | `parse_time(…) — dialect-specific rendering` |  |
 | parse_timestamp | datetime | scalar | overridden | `parse_timestamp(…) — dialect-specific rendering` |  |
+| percent_rank | window | window | standard |  |  |
 | pi | math | scalar | standard |  |  |
 | position | string | scalar | standard |  |  |
 | power | math | scalar | standard |  |  |
+| quantile_cont | aggregate | aggregate | unsupported | `—` |  |
+| quantile_disc | aggregate | aggregate | unsupported | `—` |  |
 | quarter | datetime | scalar | standard |  |  |
 | quarter_begin | datetime | scalar | standard |  |  |
 | quarter_end | datetime | scalar | overridden | `last_day_of_month(date_trunc('quarter', value) + INTERVAL '2' MONTH)` |  |
