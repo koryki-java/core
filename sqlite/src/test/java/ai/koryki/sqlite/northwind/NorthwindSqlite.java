@@ -35,8 +35,27 @@ public class NorthwindSqlite {
         return new SqliteDatabase<>("northwind", fromResource(SQLITE, true), modelZone);
     }
 
+    /**
+     * Copy the database out of the jar to a file of this process and open it.
+     *
+     * <p>The file is named after the process id and lives in the temporary directory. It used to be
+     * one path for everybody, {@code /tmp/korykiai.sqlite}: processes that ran together deleted it
+     * under each other, and one that opened it while another was still copying found it empty
+     * ({@code missing db /tmp/korykiai.sqlite 0}). A name of one's own leaves nothing to race over.
+     * The file is removed when the JVM ends properly; a process that is killed leaves its copy
+     * behind. {@code SqliteDatabase} is unchanged, so callers that choose their own file are
+     * unaffected.
+     */
     public static Connection fromResource(String resource, boolean case_sensitive_like) {
-        return SqliteDatabase.fromResource(
-                resource, Path.of("/tmp/korykiai.sqlite"), case_sensitive_like);
+        Path file = file();
+        file.toFile().deleteOnExit();
+        return SqliteDatabase.fromResource(resource, file, case_sensitive_like);
+    }
+
+    /** The file of this process -- a name, not a promise that it exists. */
+    static Path file() {
+        return Path.of(
+                System.getProperty("java.io.tmpdir"),
+                "korykiai-" + ProcessHandle.current().pid() + ".sqlite");
     }
 }

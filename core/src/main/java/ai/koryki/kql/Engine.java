@@ -44,6 +44,12 @@ import java.util.function.Supplier;
  *
  * <p>Nothing is overridden, and every Generator operation is correct on an Engine -- this is
  * specialization, not reuse by inheritance.
+ *
+ * <p><b>Shareable, if built from a supplier.</b> Every query is rendered on a renderer made for it
+ * -- see {@link Generator} -- so an engine built from a {@code Supplier<SqlRenderer>} can be used
+ * by several threads at once as far as rendering goes. The connection is a separate matter, and the
+ * database's to answer: {@code Database.allowsConcurrentExecution}. An engine built from a renderer
+ * instance (deprecated) renders every query on that one instance and is for one caller at a time.
  */
 public class Engine<I extends ColumnInfo, C extends ResultConsumer<I>> extends Generator<I> {
 
@@ -64,38 +70,86 @@ public class Engine<I extends ColumnInfo, C extends ResultConsumer<I>> extends G
      */
     private final ValueFormat valueFormat;
 
+    /**
+     * @param renderers makes the renderer for one operation, see {@link Generator}
+     */
     public Engine(
             Database<C> database,
             LinkResolver resolver,
-            SqlRenderer renderer,
+            Supplier<? extends SqlRenderer> renderers,
             Supplier<I> supplier) {
 
-        this(database, resolver, renderer, Generator.getInfo(supplier), null);
+        this(database, resolver, renderers, Generator.getInfo(supplier), null);
     }
 
+    /**
+     * @param renderers makes the renderer for one operation, see {@link Generator}
+     */
     public Engine(
             Database<C> database,
             LinkResolver resolver,
-            SqlRenderer renderer,
+            Supplier<? extends SqlRenderer> renderers,
             Function<KQLTranspiler, List<I>> info) {
-        this(database, resolver, renderer, info, null);
+        this(database, resolver, renderers, info, null);
     }
 
     /**
      * The full constructor; {@link EngineBuilder} uses this one.
      *
+     * @param renderers makes the renderer for one operation, see {@link Generator}
      * @param valueFormat how values become text, or null for the legacy {@code ColumnInfo.toString}
      *     path
      */
     public Engine(
             Database<C> database,
             LinkResolver resolver,
+            Supplier<? extends SqlRenderer> renderers,
+            Function<KQLTranspiler, List<I>> info,
+            ValueFormat valueFormat) {
+        super(resolver, renderers, info);
+        this.database = database;
+        this.valueFormat = valueFormat;
+    }
+
+    /**
+     * @deprecated one renderer for every query this engine will ever render, and so an engine for
+     *     one caller at a time. Pass a supplier: {@code () -> new SqlQueryRenderer(dialect, zone)}.
+     */
+    @Deprecated
+    public Engine(
+            Database<C> database,
+            LinkResolver resolver,
+            SqlRenderer renderer,
+            Supplier<I> supplier) {
+
+        this(database, resolver, shared(renderer), Generator.getInfo(supplier), null);
+    }
+
+    /**
+     * @deprecated see {@link #Engine(Database, LinkResolver, SqlRenderer, Supplier)}
+     */
+    @Deprecated
+    public Engine(
+            Database<C> database,
+            LinkResolver resolver,
+            SqlRenderer renderer,
+            Function<KQLTranspiler, List<I>> info) {
+        this(database, resolver, shared(renderer), info, null);
+    }
+
+    /**
+     * @deprecated see {@link #Engine(Database, LinkResolver, SqlRenderer, Supplier)}
+     * @param valueFormat how values become text, or null for the legacy {@code ColumnInfo.toString}
+     *     path
+     */
+    @Deprecated
+    public Engine(
+            Database<C> database,
+            LinkResolver resolver,
             SqlRenderer renderer,
             Function<KQLTranspiler, List<I>> info,
             ValueFormat valueFormat) {
-        super(resolver, renderer, info);
-        this.database = database;
-        this.valueFormat = valueFormat;
+        this(database, resolver, shared(renderer), info, valueFormat);
     }
 
     /**
@@ -107,13 +161,22 @@ public class Engine<I extends ColumnInfo, C extends ResultConsumer<I>> extends G
      * untouched, and nobody has to know any more whether someone before them already changed it.
      */
     public Engine<I, C> withInfo(Function<KQLTranspiler, List<I>> info) {
-        return new Engine<>(database, getResolver(), getRenderer(), info, valueFormat);
+        return new Engine<>(database, getResolver(), renderers(), info, valueFormat);
     }
 
+    /** Runs {@code sql}; works on any {@link Database}, JDBC or not. */
     public <P extends C> P executeSQL(String sql, Supplier<P> processor) {
-        return executeSQL(sql, processor, (statement) -> {});
+        return executeSQL(sql, processor, null);
     }
 
+    /**
+     * Like {@link #executeSQL(String, Supplier)}, with a hook to configure the JDBC statement
+     * (fetch size, timeout) before it runs.
+     *
+     * @param stmtConsumer applied to the prepared statement; {@code null} for none. It exists only
+     *     on a JDBC database -- any other refuses with an {@link UnsupportedOperationException},
+     *     because there is no statement for it to see.
+     */
     public <P extends C> P executeSQL(
             String sql, Supplier<P> processor, Consumer<Statement> stmtConsumer) {
         try (P p = processor.get()) {
@@ -127,7 +190,17 @@ public class Engine<I extends ColumnInfo, C extends ResultConsumer<I>> extends G
         }
     }
 
+    /**
+     * The one place that reaches the database. Without a statement hook the JDBC-free entry point
+     * is enough -- {@link Database#executeInto} -- and that is what keeps a database that has no
+     * statements usable here. With one, the JDBC route is the only one that has a statement to
+     * offer.
+     */
     private <P extends C> void execute(String sql, P p, Consumer<Statement> stmtConsumer) {
+        if (stmtConsumer == null) {
+            database.executeInto(sql, p);
+            return;
+        }
         database.execute(
                 sql,
                 s -> {
@@ -136,15 +209,23 @@ public class Engine<I extends ColumnInfo, C extends ResultConsumer<I>> extends G
                 });
     }
 
+    /** Transpiles and runs {@code kql}; works on any {@link Database}, JDBC or not. */
     public C executeKQL(String kql, Supplier<C> processor) {
-        return executeKQL(kql, processor, (c) -> {});
+        return executeKQL(kql, processor, null);
     }
 
+    /**
+     * Like {@link #executeKQL(String, Supplier)}, with a hook to configure the JDBC statement.
+     *
+     * @param stmtConsumer applied to the prepared statement; {@code null} for none. JDBC only, see
+     *     {@link #executeSQL(String, Supplier, Consumer)}.
+     */
     public C executeKQL(String kql, Supplier<C> processor, Consumer<Statement> stmtConsumer) {
 
-        KQLTranspiler transpiler = transpiler(kql);
+        SqlRenderer renderer = getRenderer();
+        KQLTranspiler transpiler = transpiler(kql, renderer);
 
-        String sql = transpiler.getSql(getRenderer());
+        String sql = transpiler.getSql(renderer);
 
         C p = processor.get();
 
@@ -179,12 +260,12 @@ public class Engine<I extends ColumnInfo, C extends ResultConsumer<I>> extends G
      * nothing about the caller for it.
      */
     public void runInto(String sql, ListResult<I> target) {
-        execute(sql, collector(target), s -> {});
+        execute(sql, collector(target), null);
     }
 
     @SuppressWarnings("unchecked")
     private C collector(ListResult<I> result) {
-        // JdbcDatabase.execute() invokes only ResultConsumer interface methods
+        // A Database invokes only ResultConsumer interface methods
         // (getInfos/metadata/append) on the processor, so a row-collecting
         // ListResult<I> runs safely regardless of the engine's concrete C.
         return (C) result;

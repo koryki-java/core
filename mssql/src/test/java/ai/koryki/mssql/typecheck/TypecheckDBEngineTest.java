@@ -62,7 +62,7 @@ public class TypecheckDBEngineTest extends BaseEngineTest<HeaderInfo> {
                 EngineBuilder.headers(
                                 new NorthwindMssql<ListWithSqlResult<HeaderInfo>>(ZoneId.of("UTC")),
                                 resolver,
-                                new SqlQueryRenderer(java.time.ZoneId.of("UTC")))
+                                () -> new SqlQueryRenderer(java.time.ZoneId.of("UTC")))
                         .valueFormat(new StableFormat(Locale.ROOT))
                         .build();
     }

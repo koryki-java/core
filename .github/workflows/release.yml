@@ -82,11 +82,16 @@ jobs:
             exit 1
           fi
 
+      # The two publish steps run sequentially, on purpose: everything they publish was checked to be
+      # byte-identical whether built sequentially or in parallel (65 of 65 artifacts), but signing and
+      # the upload to Central need credentials and were not tried in parallel, and a release cannot
+      # be taken back. To lift it, run this snapshot target once without --no-parallel: a snapshot is
+      # overwritten by the next one.
       - name: Publish to playground (snapshot)
         if: github.event_name == 'workflow_dispatch' && inputs.target == 'snapshot'
         run: |
           version=$(sed -n 's/^version=//p' gradle.properties)
-          ./gradlew publishAggregationToCentralSnapshots --no-daemon -Pversion="${version%-SNAPSHOT}-SNAPSHOT"
+          ./gradlew publishAggregationToCentralSnapshots --no-daemon --no-parallel -Pversion="${version%-SNAPSHOT}-SNAPSHOT"
 
       - name: Check signing key
         if: github.event_name == 'push' || inputs.target == 'release'
@@ -98,4 +103,4 @@ jobs:
 
       - name: Publish real release
         if: github.event_name == 'push' || inputs.target == 'release'
-        run: ./gradlew publishAggregationToCentralPortal --no-daemon
+        run: ./gradlew publishAggregationToCentralPortal --no-daemon --no-parallel

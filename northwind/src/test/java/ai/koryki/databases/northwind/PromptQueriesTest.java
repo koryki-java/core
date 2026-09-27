@@ -68,7 +68,7 @@ class PromptQueriesTest {
     private static Generator<HeaderInfo> generator(String language) {
         return new Generator<>(
                 NorthwindService.resolver(Locale.forLanguageTag(language)),
-                new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, ZoneId.of("UTC")),
+                () -> new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, ZoneId.of("UTC")),
                 HeaderInfo::new);
     }
 

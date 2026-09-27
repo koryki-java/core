@@ -192,7 +192,8 @@ class MixedCaseNameOracleTest {
             throws Exception {
         OracleDatabase<ListResult<HeaderInfo>> database =
                 new OracleDatabase<>("mixedcase", NorthwindOracle.connection());
-        return EngineBuilder.headers(database, resolver, new SqlQueryRenderer(ZoneId.of("UTC")))
+        return EngineBuilder.headers(
+                        database, resolver, () -> new SqlQueryRenderer(ZoneId.of("UTC")))
                 .build();
     }
 

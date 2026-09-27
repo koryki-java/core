@@ -125,7 +125,8 @@ class HostileNameSnowflakeTest {
 
         // The module's own renderer, which wires SnowflakeDialect for us.
         Engine<HeaderInfo, ListResult<HeaderInfo>> engine =
-                EngineBuilder.headers(database, catalog(), new SqlQueryRenderer(ZoneId.of("UTC")))
+                EngineBuilder.headers(
+                                database, catalog(), () -> new SqlQueryRenderer(ZoneId.of("UTC")))
                         .build();
 
         ListResult<HeaderInfo> result =

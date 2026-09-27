@@ -148,7 +148,7 @@ public class SqlSelectRenderer {
     protected String toSql(Source source, int indent) {
         StringBuilder b = new StringBuilder();
 
-        b.append(normal(toSql(source)));
+        b.append(qualified(source, normal(toSql(source))));
         if (source.getAlias() != null) {
             b.append(" ").append(normal(source.getAlias()));
         }
@@ -157,6 +157,15 @@ public class SqlSelectRenderer {
 
     protected String toSql(Source source) {
         return resolver.getDialectTable(source.getName()).orElse(source.getName());
+    }
+
+    private String qualified(Source source, String rendered) {
+        if (resolver.getDialectTable(source.getName()).isEmpty()) {
+            return rendered;
+        }
+        return resolver.getSchemaPrefix()
+                .map(prefix -> normal(prefix) + "." + rendered)
+                .orElse(rendered);
     }
 
     protected String toSql(Out out, int indent) {

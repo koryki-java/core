@@ -52,7 +52,7 @@ public class CastsSqliteEngineTest extends BaseEngineTest<HeaderInfo> {
                 EngineBuilder.headers(
                                 NorthwindSqlite.<ListWithSqlResult<HeaderInfo>>northwind(),
                                 NorthwindService.resolver(),
-                                new SqlQueryRenderer(java.time.ZoneId.of("UTC")))
+                                () -> new SqlQueryRenderer(java.time.ZoneId.of("UTC")))
                         .valueFormat(new StableFormat(Locale.ROOT))
                         .build();
     }

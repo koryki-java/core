@@ -54,7 +54,7 @@ public class CastsOracleEngineTest extends BaseEngineTest<HeaderInfo> {
                 EngineBuilder.headers(
                                 new NorthwindOracle<ListWithSqlResult<HeaderInfo>>(),
                                 NorthwindService.resolver(),
-                                new SqlQueryRenderer(java.time.ZoneId.of("UTC")))
+                                () -> new SqlQueryRenderer(java.time.ZoneId.of("UTC")))
                         .valueFormat(new StableFormat(Locale.ROOT))
                         .build();
     }

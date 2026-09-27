@@ -18,6 +18,7 @@ Top-level container for a database schema.
 | `label` | `String` | Human-readable label |
 | `comment` | `String` | Short comment |
 | `description` | `String` | Long description |
+| `schemaPrefix` | `String` | Optional. The database schema the tables live in; the renderer writes it in front of every base table (`sales.customers`), never in front of a block. One name, not a path. Left out of the JSON when unset. |
 | `tables` | `List<Table>` | All tables in the schema |
 | `relations` | `List<Relation>` | Foreign-key relations between tables |
 

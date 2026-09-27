@@ -23,6 +23,7 @@ import ai.koryki.jdbc.Database;
 import ai.koryki.jdbc.ResultConsumer;
 import ai.koryki.jdbc.ValueFormat;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -36,19 +37,42 @@ import java.util.function.Supplier;
  *
  * <p>Use {@link #headers} for the common {@link HeaderInfo} case; the generic constructor here
  * serves a custom {@link ColumnInfo} via {@link #info}.
+ *
+ * <p>The renderer is the one component that is not handed over but made: a renderer is not safe for
+ * concurrent use ({@link SqlRenderer}), so the builder takes the means to make one, a {@code
+ * Supplier}, and the engine asks it for a renderer for every query. What such an engine holds --
+ * the link resolver, the supplier, the column-info function -- may be shared, and the database as
+ * its {@code allowsConcurrentExecution} says; the engine can therefore be built once. The
+ * constructor and {@link #headers} that take a renderer instance are deprecated: that instance is
+ * then every query's renderer, and the engine is for one caller at a time.
  */
 public final class EngineBuilder<I extends ColumnInfo, C extends ResultConsumer<I>> {
 
     private final Database<C> database;
     private final LinkResolver resolver;
-    private final SqlRenderer renderer;
+    private final Supplier<? extends SqlRenderer> renderers;
     private Function<KQLTranspiler, List<I>> info;
     private ValueFormat valueFormat;
 
-    public EngineBuilder(Database<C> database, LinkResolver resolver, SqlRenderer renderer) {
+    /**
+     * @param renderers makes the renderer for one query, see {@link Generator}
+     */
+    public EngineBuilder(
+            Database<C> database,
+            LinkResolver resolver,
+            Supplier<? extends SqlRenderer> renderers) {
         this.database = database;
         this.resolver = resolver;
-        this.renderer = renderer;
+        this.renderers = Objects.requireNonNull(renderers, "renderers");
+    }
+
+    /**
+     * @deprecated one renderer for every query, and so an engine for one caller at a time. Pass a
+     *     supplier: {@code () -> new SqlQueryRenderer(dialect, zone)}.
+     */
+    @Deprecated
+    public EngineBuilder(Database<C> database, LinkResolver resolver, SqlRenderer renderer) {
+        this(database, resolver, Generator.shared(renderer));
     }
 
     /**
@@ -61,9 +85,22 @@ public final class EngineBuilder<I extends ColumnInfo, C extends ResultConsumer<
      * is. Supplying a customary default is the builder's business.
      */
     public static <C extends ResultConsumer<HeaderInfo>> EngineBuilder<HeaderInfo, C> headers(
+            Database<C> database,
+            LinkResolver resolver,
+            Supplier<? extends SqlRenderer> renderers) {
+
+        return new EngineBuilder<HeaderInfo, C>(database, resolver, renderers)
+                .info(HeaderInfo::new);
+    }
+
+    /**
+     * @deprecated see {@link #EngineBuilder(Database, LinkResolver, SqlRenderer)}
+     */
+    @Deprecated
+    public static <C extends ResultConsumer<HeaderInfo>> EngineBuilder<HeaderInfo, C> headers(
             Database<C> database, LinkResolver resolver, SqlRenderer renderer) {
 
-        return new EngineBuilder<HeaderInfo, C>(database, resolver, renderer).info(HeaderInfo::new);
+        return headers(database, resolver, Generator.shared(renderer));
     }
 
     /** Column metadata from a per-row supplier (the usual case). */
@@ -85,6 +122,6 @@ public final class EngineBuilder<I extends ColumnInfo, C extends ResultConsumer<
     }
 
     public Engine<I, C> build() {
-        return new Engine<>(database, resolver, renderer, info, valueFormat);
+        return new Engine<>(database, resolver, renderers, info, valueFormat);
     }
 }

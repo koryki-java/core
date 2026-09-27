@@ -46,7 +46,7 @@ public class ModelZoneTest {
                 EngineBuilder.headers(
                                 NorthwindDuckdb.<ListWithSqlResult<HeaderInfo>>northwind(modelZone),
                                 TemporalService.resolver(),
-                                new SqlQueryRenderer(modelZone))
+                                () -> new SqlQueryRenderer(modelZone))
                         .valueFormat(new StableFormat(Locale.ROOT))
                         .build();
         return engine.executeKQL(QUERY, ListWithSqlResult::new).toSortedCSV();

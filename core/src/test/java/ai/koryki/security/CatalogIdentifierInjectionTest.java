@@ -130,6 +130,32 @@ public class CatalogIdentifierInjectionTest {
     }
 
     /**
+     * The schema prefix is a catalog string written in front of every base table -- a new
+     * identifier position, in the FROM clause and in each JOIN. It goes through the same {@code
+     * renderIdentifier} as the table behind it, so a payload stays inside its quotes.
+     */
+    @Test
+    void aHostileSchemaPrefixStaysAnIdentifierInFromAndInJoin() {
+        String evilSchema = "sales\"; DROP TABLE orders; --";
+        Schema db = CatalogLoader.db(NORTHWIND_DB);
+        db.setSchemaPrefix(evilSchema);
+        LinkResolver prefixed =
+                new LinkResolver(
+                        Locale.ENGLISH,
+                        db,
+                        CatalogLoader.model(NORTHWIND_MODEL, Locale.ENGLISH),
+                        true);
+
+        String sql =
+                Kql.sql(prefixed, "FIND customers c, c orders o FETCH c.company_name, o.order_id");
+
+        SqlSkeleton.assertContained(sql, "DROP", ";", "--");
+        String qualifiedName = "\"sales\"\"; DROP TABLE orders; --\".";
+        assertTrue(sql.contains(qualifiedName + "customers c"), sql);
+        assertTrue(sql.contains(qualifiedName + "orders o"), sql);
+    }
+
+    /**
      * The mechanism, stated on its own so a dialect that overrides {@link SqlDialect#quote} has a
      * rule to meet rather than a golden to match. Doubling is the one escape all eight engines
      * share; a backslash is not an escape inside a quoted identifier anywhere.
