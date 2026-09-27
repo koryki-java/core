@@ -28,10 +28,10 @@ public class BlockRecursionDetector implements Collector<Boolean> {
     private final LinkResolver resolver;
 
     /**
-     * The id of the block this detector was made for. A join naming some other block that is not
-     * a catalog entity either is not recursion -- it is one block using an earlier sibling, which
-     * {@link ai.koryki.iql.SqlQueryRenderer#toRecursive} must not answer {@code WITH RECURSIVE}
-     * for -- so {@link #joinColumns(Source, Source)} compares the referenced name against this one
+     * The id of the block this detector was made for. A join naming some other block that is not a
+     * catalog entity either is not recursion -- it is one block using an earlier sibling, which
+     * {@link ai.koryki.iql.SqlQueryRenderer#toRecursive} must not answer {@code WITH RECURSIVE} for
+     * -- so {@link #joinColumns(Source, Source)} compares the referenced name against this one
      * instead of merely asking whether it is a catalog entity at all.
      */
     private final String blockId;
