@@ -28,6 +28,7 @@ import org.antlr.v4.runtime.RuleContext;
 
 /**
  * Renders the intermediate query model as SQL for one dialect.
+ *
  * <p><b>A renderer is for one caller at a time - SqlRenderers are not reentrant!</b>
  */
 public interface SqlRenderer {

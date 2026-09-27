@@ -30,6 +30,7 @@ import org.antlr.v4.runtime.RuleContext;
 
 /**
  * Renders a query as SQL for one dialect.
+ *
  * <p><b>A renderer is for one caller at a time - SqlQueryRenderers are not reentrant!</b>
  */
 public class SqlQueryRenderer implements SqlRenderer {
