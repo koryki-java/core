@@ -93,20 +93,23 @@ public class Engine<I extends ColumnInfo, C extends ResultConsumer<I>> extends G
         this(database, resolver, renderers, info, null);
     }
 
-    /**
-     * The full constructor; {@link EngineBuilder} uses this one.
-     *
-     * @param renderers makes the renderer for one operation, see {@link Generator}
-     * @param valueFormat how values become text, or null for the legacy {@code ColumnInfo.toString}
-     *     path
-     */
     public Engine(
             Database<C> database,
             LinkResolver resolver,
             Supplier<? extends SqlRenderer> renderers,
             Function<KQLTranspiler, List<I>> info,
             ValueFormat valueFormat) {
-        super(resolver, renderers, info);
+        this(database, resolver, renderers, info, valueFormat, null);
+    }
+
+    public Engine(
+            Database<C> database,
+            LinkResolver resolver,
+            Supplier<? extends SqlRenderer> renderers,
+            Function<KQLTranspiler, List<I>> info,
+            ValueFormat valueFormat,
+            String signature) {
+        super(resolver, renderers, info, signature);
         this.database = database;
         this.valueFormat = valueFormat;
     }
@@ -161,7 +164,17 @@ public class Engine<I extends ColumnInfo, C extends ResultConsumer<I>> extends G
      * untouched, and nobody has to know any more whether someone before them already changed it.
      */
     public Engine<I, C> withInfo(Function<KQLTranspiler, List<I>> info) {
-        return new Engine<>(database, getResolver(), renderers(), info, valueFormat);
+        return new Engine<>(
+                database, getResolver(), renderers(), info, valueFormat, getSignature());
+    }
+
+    /**
+     * The same engine with a different signature -- connection, model, formatting and column
+     * description are kept. See {@link Generator#getRenderer()} for what it does with it.
+     */
+    public Engine<I, C> withSignature(String signature) {
+        return new Engine<>(
+                database, getResolver(), renderers(), getInfo(), valueFormat, signature);
     }
 
     /** Runs {@code sql}; works on any {@link Database}, JDBC or not. */

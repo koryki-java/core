@@ -63,6 +63,8 @@ public class Generator<I extends ColumnInfo> {
 
     private final Function<KQLTranspiler, List<I>> info;
 
+    private final String signature;
+
     public static <I extends ColumnInfo> Function<KQLTranspiler, List<I>> getInfo(
             Supplier<I> supplier) {
         return t -> t.infos(supplier);
@@ -89,9 +91,25 @@ public class Generator<I extends ColumnInfo> {
             LinkResolver resolver,
             Supplier<? extends SqlRenderer> renderers,
             Function<KQLTranspiler, List<I>> info) {
+        this(resolver, renderers, info, null);
+    }
+
+    /**
+     * The full constructor; {@link ai.koryki.kql.EngineBuilder} uses this one.
+     *
+     * @param renderers see {@link #Generator(LinkResolver, Supplier, Supplier)}
+     * @param signature given to every renderer this generator makes, see {@link #getRenderer()};
+     *     {@code null} for no signature
+     */
+    public Generator(
+            LinkResolver resolver,
+            Supplier<? extends SqlRenderer> renderers,
+            Function<KQLTranspiler, List<I>> info,
+            String signature) {
         this.resolver = resolver;
         this.renderers = Objects.requireNonNull(renderers, "renderers");
         this.info = info;
+        this.signature = signature;
     }
 
     /**
@@ -211,13 +229,38 @@ public class Generator<I extends ColumnInfo> {
      * A renderer for one use. Made by the supplier the generator was built with, so a new one on
      * every call; a generator built from an instance (deprecated) returns that instance every time.
      * Do not keep it, and do not give it to another thread.
+     *
+     * <p>Carries this generator's {@link #signature}: passed to {@link SqlRenderer#setSignature}
+     * before the renderer is handed out, so a caller's own {@code Supplier} lambda never has to
+     * know about it -- {@code () -> new SqlQueryRenderer(dialect, zone)} keeps working unchanged,
+     * and {@link #withSignature} still reaches whatever it renders.
      */
     public SqlRenderer getRenderer() {
-        return Objects.requireNonNull(renderers.get(), "the renderer supplier returned null");
+        SqlRenderer renderer =
+                Objects.requireNonNull(renderers.get(), "the renderer supplier returned null");
+        renderer.setSignature(signature);
+        return renderer;
     }
 
     /** The TypeDescriptor derivation that decorates the result; chosen at construction. */
     public Function<KQLTranspiler, List<I>> getInfo() {
         return info;
+    }
+
+    /**
+     * The same generator with a different signature -- connection (on an {@link Engine}), resolver,
+     * renderer supplier and column description are kept. See {@link #getRenderer()} for what
+     * happens with it.
+     *
+     * <p>The same replacement-over-mutation idiom as {@link Engine#withInfo}: the generator passed
+     * in stays untouched.
+     */
+    public Generator<I> withSignature(String signature) {
+        return new Generator<>(resolver, renderers, info, signature);
+    }
+
+    /** The signature written into generated SQL, or {@code null} for none. */
+    public String getSignature() {
+        return signature;
     }
 }

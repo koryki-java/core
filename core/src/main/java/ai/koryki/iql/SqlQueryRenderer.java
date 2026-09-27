@@ -50,6 +50,9 @@ public class SqlQueryRenderer implements SqlRenderer {
     // Per-render output schema: resolved once in toSql, exposed for the read layer (ColumnInfo).
     private ai.koryki.iql.functions.FunctionRenderer functionRenderer;
 
+    /** See {@link #setSignature}. */
+    private String signature;
+
     @Override
     public ai.koryki.iql.functions.FunctionRenderer getFunctionRenderer() {
         if (functionRenderer == null) {
@@ -88,6 +91,11 @@ public class SqlQueryRenderer implements SqlRenderer {
     @Override
     public SqlDialect getDialect() {
         return dialect;
+    }
+
+    @Override
+    public void setSignature(String signature) {
+        this.signature = signature;
     }
 
     @Override
@@ -284,12 +292,18 @@ public class SqlQueryRenderer implements SqlRenderer {
 
     protected SqlSelectRenderer createSelectRenderer(
             LinkResolver resolver, IQLVisibilityContext ctx) {
-        return new SqlSelectRenderer(identifier, iqlToContext, resolver, ctx, dialect, modelZone);
+        return createSelectRenderer(resolver, ctx, null);
+    }
+
+    protected SqlSelectRenderer createSelectRenderer(
+            LinkResolver resolver, IQLVisibilityContext ctx, String signature) {
+        return new SqlSelectRenderer(
+                identifier, iqlToContext, resolver, ctx, dialect, modelZone, signature);
     }
 
     protected SqlSelectRenderer createOutermostSelectRenderer(
             LinkResolver resolver, IQLVisibilityContext ctx) {
-        return createSelectRenderer(resolver, ctx);
+        return createSelectRenderer(resolver, ctx, signature);
     }
 
     protected String toSql(LinkResolver resolver, Select select, int indent) {

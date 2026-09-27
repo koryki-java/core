@@ -53,6 +53,7 @@ public final class EngineBuilder<I extends ColumnInfo, C extends ResultConsumer<
     private final Supplier<? extends SqlRenderer> renderers;
     private Function<KQLTranspiler, List<I>> info;
     private ValueFormat valueFormat;
+    private String signature;
 
     /**
      * @param renderers makes the renderer for one query, see {@link Generator}
@@ -121,7 +122,21 @@ public final class EngineBuilder<I extends ColumnInfo, C extends ResultConsumer<
         return this;
     }
 
+    /**
+     * Written as a comment right behind the first {@code SELECT} keyword of every SQL statement the
+     * built engine produces from KQL; omit, or pass {@code null}, for no signature. See {@link
+     * ai.koryki.iql.SqlRenderer#setSignature} and {@code ai.koryki.iql.SqlQueryRenderer}.
+     *
+     * <p>What lets whoever operates a downstream system the SQL is posted to -- a database, or an
+     * external service such as a hosted MCP server -- trace a statement back to whoever produced
+     * it.
+     */
+    public EngineBuilder<I, C> signature(String signature) {
+        this.signature = signature;
+        return this;
+    }
+
     public Engine<I, C> build() {
-        return new Engine<>(database, resolver, renderers, info, valueFormat);
+        return new Engine<>(database, resolver, renderers, info, valueFormat, signature);
     }
 }
