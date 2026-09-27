@@ -1,7 +1,7 @@
 [versions]
 
 antlr = "4.13.2"
-jackson = "3.2.2"
+jackson = "3.2.3"
 # Jackson 3 keeps annotations at the 2.x group id and package (see jackson-databind pom).
 # Per JSTEP-1 there is no 3.x annotations module; jackson-bom 3.2.1 pins the 2.x line to 2.22.
 jackson-annotations = "2.22"
