@@ -235,6 +235,28 @@ public class KQLFormatter {
             return s2s;
         }
 
+        /**
+         * A {@code select} used as an ordinary expression -- a scalar subquery in a FETCH item, a
+         * FILTER comparison, anywhere an expression may stand -- parenthesized the way it was
+         * written.
+         *
+         * <p>Goes through {@link #subSelect}, not {@code KQLFormatter.this.toSelect}: that method
+         * always branches off the formatter's own root {@link #visibilityContext}, so a select
+         * nested this way could never see an outer alias to correlate against -- exactly the gap
+         * {@code EXISTS} does not have, since {@link #toExists} already builds its inner {@code
+         * SelectFormatter} from {@code this.visibilityContext}, not the root. A nested select at
+         * the top of a query (via {@code toSet}) still starts from the root deliberately: nothing
+         * outside a query is in scope for it to inherit.
+         */
+        private String toNestedSelect(KQLParser.SelectContext select, int indent) {
+            SelectFormatter s2s = subSelect(select);
+            return "("
+                    + SqlRenderer.NL
+                    + s2s.toSubSelect(select, indent + 1)
+                    + indent(indent)
+                    + ")";
+        }
+
         private String toSubSelect(KQLParser.SelectContext select, int indent) {
 
             // visibilityContext.child(select);
@@ -383,18 +405,18 @@ public class KQLFormatter {
                         right.append(toInterval(rl.get(0), rl.get(1), indent));
                     } else if (isSet(op)) {
 
-                        boolean subselect = !rl.isEmpty() && rl.get(0).select() != null;
-                        String intro = subselect ? SqlRenderer.NL : "";
-                        String extro = subselect ? indent(indent) : "";
-
-                        right.append(
-                                "("
-                                        + intro
-                                        + rl.stream()
-                                                .map(e -> toExpression(e, indent + 1))
-                                                .collect(Collectors.joining(", "))
-                                        + extro
-                                        + ")");
+                        if (rl.size() == 1 && rl.get(0).select() != null) {
+                            // A single subquery operand parenthesizes itself (see toExpression's
+                            // select() branch) -- wrapping it again here would double the parens.
+                            right.append(toExpression(rl.get(0), indent));
+                        } else {
+                            right.append(
+                                    "("
+                                            + rl.stream()
+                                                    .map(e -> toExpression(e, indent + 1))
+                                                    .collect(Collectors.joining(", "))
+                                            + ")");
+                        }
                     } else if (!unaryLogicalExpressionContext.expression().isEmpty()) {
                         right.append(
                                 rl.stream()
@@ -503,7 +525,7 @@ public class KQLFormatter {
         private String toExpression(KQLParser.ExpressionContext expression, int indent) {
 
             if (expression.select() != null) {
-                return toSelect(expression.select(), indent);
+                return toNestedSelect(expression.select(), indent);
             } else if (expression.LEFT_PAREN() != null) {
                 return "(" + toExpression(expression.expression(0), indent) + ")";
             } else if (expression.MULT() != null) {
