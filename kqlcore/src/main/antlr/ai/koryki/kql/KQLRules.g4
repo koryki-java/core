@@ -154,7 +154,10 @@ fetchItem
 ;
 
 expression
- : LEFT_PAREN expression RIGHT_PAREN
+// Postfix selector, first so it binds tighter than the prefix and the binary operators:
+// `-c.a@1` is `-(c.a@1)`. Which selector fits which base type is a type-resolver matter.
+ : base=expression selector
+| LEFT_PAREN expression RIGHT_PAREN
 | BAR expression
 | PLUS expression
 | left=expression (MULT | DIV) right=expression
@@ -162,11 +165,24 @@ expression
 | temporal_literal
 | field
 | function
+| param
 | INT
 | NUMBER
 | SQ_STRING
 | NULL
 | LEFT_PAREN select RIGHT_PAREN
+;
+
+selector
+ : SELECTOR_INT
+| SELECTOR_ID
+| SELECTOR_NAME
+;
+
+// Same token as a selector, different position: a primary `@x` can only be a lambda parameter, a
+// postfix `@x` is a field or key. Two rules keep the parse tree self-describing.
+param
+ : SELECTOR_ID
 ;
 
 temporal_literal
@@ -202,7 +218,24 @@ argument
 // expression first: a bare expression is now also a valid logical_expression (the boolean
 // predicate alternative), so listing logical_expression first would swallow every plain argument.
 // A genuine predicate like `c.nr > 0` is not a viable expression, so it still picks the second.
- : expression | logical_expression | identity=ID
+ : lambda | expression | logical_expression | identity=ID
+;
+
+// A lambda is only ever a function argument, never a value of its own: list_transform(c.tags, x -> @x * 2).
+// Parameters are declared as plain IDs and referenced as `@x` (see param); `x.name` stays a field.
+lambda
+ : lambda_params ARROW lambda_body
+;
+
+lambda_params
+ : ID
+| LEFT_PAREN ID (COMMA ID)* RIGHT_PAREN
+;
+
+// logical_expression contains a plain expression as its last alternative, so one body rule serves
+// a value (list_transform) and a predicate (list_filter) alike.
+lambda_body
+ : logical_expression
 ;
 
 field

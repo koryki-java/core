@@ -87,17 +87,31 @@ exists
 ;
 
 expression
-    : LEFT_PAREN expression RIGHT_PAREN
+    // postfix selector, first so it binds tighter than the prefix signs — see KQL.g4.
+    : base=expression selector
+    | LEFT_PAREN expression RIGHT_PAREN
     | MINUS_SIGN expression
     | PLUS_SIGN expression
     | temporal_literal
     | field
     | function
+    | param
     | INT
     | NUMBER
     | SQ_STRING
     | NULL
     | LEFT_PAREN select RIGHT_PAREN
+;
+
+selector
+    : SELECTOR_INT
+    | SELECTOR_ID
+    | SELECTOR_NAME
+;
+
+// Same token as a selector; a primary `@x` is a lambda parameter — see KQL.g4.
+param
+    : SELECTOR_ID
 ;
 
 temporal_literal
@@ -131,8 +145,21 @@ limit
 ;
 
 argument
-    // expression first — see KQL.g4.
-    : expression | logical_expression | identity=ID
+    // lambda first (decided by the arrow), then expression first — see KQL.g4.
+    : lambda | expression | logical_expression | identity=ID
+;
+
+lambda
+    : lambda_params ARROW lambda_body
+;
+
+lambda_params
+    : ID
+    | LEFT_PAREN ID (COMMA ID)* RIGHT_PAREN
+;
+
+lambda_body
+    : logical_expression
 ;
 
 field
@@ -454,11 +481,22 @@ SQ_STRING
     : SINGLE_QUOTE ('\\\'' | .)*? SINGLE_QUOTE
     ;
 
+// Postfix selectors, see KQLTokens.g4.
+SELECTOR_INT: AT ( SEL_IDX (':' SEL_IDX?)? | ':' SEL_IDX );
+SELECTOR_ID: AT ID;
+SELECTOR_NAME: AT SQ_STRING;
+
+fragment SEL_IDX
+    : '-'? INT
+    ;
+
 fragment LOWER
 : [a-z_]
 ;
 
 HASHMARK: '#';
+AT: '@';
+ARROW: '->';
 SINGLE_QUOTE:               '\'';
 DOT :                       '.';
 EQUALS:                     '=';

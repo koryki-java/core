@@ -124,6 +124,19 @@ SQ_STRING
 : SINGLE_QUOTE ('\\\'' | .)*? SINGLE_QUOTE
 ;
 
+// Postfix selectors on ARRAY/LIST, MAP and STRUCT values. One token each, so no whitespace inside:
+//   @1  @-1  @1:3  @2:  @:3   1-based position or slice, negative counts from the end
+//   @name                     struct field, map key; as a primary expression a lambda parameter
+//   @'Order Id'               field or key that is not a lowercase ID
+SELECTOR_INT: AT ( SEL_IDX (':' SEL_IDX?)? | ':' SEL_IDX );
+SELECTOR_ID: AT ID;
+SELECTOR_NAME: AT SQ_STRING;
+
+fragment SEL_IDX
+: '-'? INT
+;
+
+
 fragment LOWER
 : [a-z_]
 ;
@@ -133,8 +146,11 @@ DOT: '.';
 BAR: '-';
 VIA: 'VIA';
 
+// Lambda arrow. Only ever inside a function argument; the 11 `->` in the fixture corpus are comments.
+ARROW: '->';
 EQUALS: '=';
 HASHMARK: '#';
+AT: '@';
 COMMA: ',';
 PLUS: '+';
 MULT: '*';

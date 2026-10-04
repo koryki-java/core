@@ -103,6 +103,9 @@ rootProject.allprojects {
         spotless {
             java {
                 target 'src/**/*.java'
+                // ANTLR output (kqlcore writes it to src/main/antlr/.../gen, gitignored as **/gen/)
+                // is regenerated on every grammar change and is not ours to format.
+                targetExclude '**/gen/**'
                 googleJavaFormat(libs.versions.google.java.format.get()).aosp()
             }
         }
