@@ -28,5 +28,11 @@ public enum CoreTypeFamily implements TypeFamily {
     TIMESTAMP,
     TEXT,
     JSON,
-    UUID;
+    UUID,
+    /** A list or fixed-size array; the element type is a child of the {@link TypeDescriptor}. */
+    ARRAY,
+    /** Named fields of any type; the field types are children of the {@link TypeDescriptor}. */
+    STRUCT,
+    /** Keys to values; key and value are children of the {@link TypeDescriptor}. */
+    MAP;
 }

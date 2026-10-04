@@ -182,6 +182,17 @@ public class Schema {
         copy.setNullable(tabpe.getNullable());
         copy.setPkPos(tabpe.getPkPos());
         copy.setNamePos(tabpe.getNamePos());
+        if (tabpe.getNested() != null) {
+            copy.setNested(
+                    tabpe.getNested().stream()
+                            .map(
+                                    n ->
+                                            new NestedType(
+                                                    n.getPath(),
+                                                    n.getTypeFamily(),
+                                                    n.getTypeEncoding()))
+                            .collect(Collectors.toList()));
+        }
 
         // Carried too, and not before: a copy that quietly drops the encoding, the unit or the
         // presentation is not a copy, and the omission only shows up far away as a column that

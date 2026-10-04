@@ -156,5 +156,17 @@ public final class Families {
                             CoreTypeFamily.TIMESTAMP,
                             CoreTypeFamily.TEXT,
                             CoreTypeFamily.JSON,
-                            CoreTypeFamily.UUID));
+                            CoreTypeFamily.UUID,
+                            CoreTypeFamily.ARRAY,
+                            CoreTypeFamily.STRUCT,
+                            CoreTypeFamily.MAP));
+
+    /**
+     * The containers: ARRAY, STRUCT and MAP. The operand domain of functions that take a nested
+     * value as a whole; what is inside is the type's children, not a family.
+     */
+    public static final TypeFamily COMPLEX =
+            new FamilyGroup(
+                    "COMPLEX",
+                    Set.of(CoreTypeFamily.ARRAY, CoreTypeFamily.STRUCT, CoreTypeFamily.MAP));
 }

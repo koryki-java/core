@@ -95,4 +95,14 @@ public final class TypeNames {
     public static final String TYPE_UUID = "UUID";
     public static final String TYPE_JSON = "JSON";
     public static final String TYPE_NULL = "NULL";
+
+    /** The complex constructors, as they open a nested spelling: {@code STRUCT(...)}, ... */
+    public static final String TYPE_STRUCT = "STRUCT";
+
+    public static final String TYPE_MAP = "MAP";
+
+    /** DuckDB's name for a variable-length array; {@code T[]} is the usual spelling. */
+    public static final String TYPE_LIST = "LIST";
+
+    public static final String TYPE_ARRAY = "ARRAY";
 }

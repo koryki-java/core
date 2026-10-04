@@ -16,6 +16,8 @@
  */
 package ai.koryki.catalog.schema;
 
+import java.util.List;
+
 public class Column {
 
     private String name;
@@ -26,6 +28,15 @@ public class Column {
     private String typeFamily;
     private String typeEncoding;
     private String dialectType;
+
+    /**
+     * For a nested column (ARRAY, STRUCT, MAP) only: what the catalog knows about leaves inside it
+     * that the type spelling in {@link #dialectType} cannot say, such as the encoding of a
+     * timestamp stored as epoch seconds. Everything structural comes from {@link #dialectType};
+     * this only refines leaves, and null means no refinement.
+     */
+    private List<NestedType> nested;
+
     private Boolean nullable;
     private int pkPos;
 
@@ -156,6 +167,14 @@ public class Column {
 
     public String getTypeEncoding() {
         return typeEncoding;
+    }
+
+    public List<NestedType> getNested() {
+        return nested;
+    }
+
+    public void setNested(List<NestedType> nested) {
+        this.nested = nested;
     }
 
     public void setTypeEncoding(String typeEncoding) {

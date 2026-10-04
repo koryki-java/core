@@ -17,6 +17,7 @@
 package ai.koryki.catalog.types;
 
 import ai.koryki.catalog.schema.Column;
+import ai.koryki.catalog.schema.NestedType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -64,6 +65,13 @@ public interface TypeDescriptorParser {
                             + family.name());
         }
 
+        // A nested spelling (INTEGER[], STRUCT(...), MAP(...)) is a tree and has its own reader; a
+        // column that declares a container family goes there too, so that a flat name under a
+        // container family reports the mismatch instead of "Invalid dialectType format".
+        if (TypeSyntax.looksComplex(dialectType) || isContainer(family)) {
+            return parseComplex(column, family, typeEncoding, dialectType);
+        }
+
         Matcher matcher = TYPE_PATTERN.matcher(dialectType);
 
         Matcher intervalmatcher = INTERVAL_PATTERN.matcher(dialectType);
@@ -101,9 +109,161 @@ public interface TypeDescriptorParser {
                 case TEXT -> parseText(dialectType, typeName, typeEncoding, params);
                 case JSON -> parseJson(dialectType, typeName, typeEncoding);
                 case UUID -> parseUuid(dialectType, typeName, typeEncoding);
+                case ARRAY, STRUCT, MAP ->
+                        throw new IllegalStateException("containers are parsed by parseComplex");
             };
         }
         return parseExtended(column, family, dialectType, typeName, typeEncoding, params);
+    }
+
+    private static boolean isContainer(TypeFamily family) {
+        return CoreTypeFamily.ARRAY.equals(family)
+                || CoreTypeFamily.STRUCT.equals(family)
+                || CoreTypeFamily.MAP.equals(family);
+    }
+
+    /**
+     * A nested column: the structure comes from the spelling in {@code dialectType}, the leaves are
+     * typed by {@link #parseLeaf}, and {@code column.getNested()} may then refine single leaves
+     * with an encoding. The family the column declares must be the family of the root.
+     */
+    default TypeDescriptor parseComplex(
+            Column column, TypeFamily declared, TypeEncoding encoding, String dialectType) {
+        if (encoding != null) {
+            throw new IllegalArgumentException(
+                    "column '"
+                            + column.getName()
+                            + "': a nested column has no encoding of its own; "
+                            + "an encoding belongs to a leaf, declared under 'nested'");
+        }
+        TypeDescriptor root;
+        try {
+            root = TypeSyntax.parse(dialectType, this::parseLeaf);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(
+                    "column '" + column.getName() + "': " + e.getMessage(), e);
+        }
+        if (!declared.equals(root.getTypeFamily())) {
+            throw new IllegalArgumentException(
+                    "column '"
+                            + column.getName()
+                            + "': declared "
+                            + declared.name()
+                            + " but '"
+                            + dialectType
+                            + "' is a "
+                            + root.getTypeFamily().name());
+        }
+        if (column.getNested() != null) {
+            for (NestedType n : column.getNested()) {
+                root = parseNested(column, root, n);
+            }
+        }
+        return root;
+    }
+
+    /** Replaces the leaf at the declared path by the same physical type, refined by the catalog. */
+    private TypeDescriptor parseNested(Column column, TypeDescriptor root, NestedType nested) {
+        TypePath path;
+        try {
+            path = TypePath.parse(nested.getPath());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(
+                    "column '" + column.getName() + "': " + e.getMessage(), e);
+        }
+        try {
+            return path.replace(
+                    root,
+                    leaf -> {
+                        if (leaf.isComplex()) {
+                            throw new IllegalArgumentException(
+                                    "'"
+                                            + nested.getPath()
+                                            + "' names a "
+                                            + leaf.portable()
+                                            + ", only a leaf carries a family and an encoding");
+                        }
+                        Column refined = new Column(column.getName() + nested.getPath());
+                        refined.setTypeFamily(
+                                nested.getTypeFamily() != null
+                                        ? nested.getTypeFamily()
+                                        : leaf.getTypeFamily().name());
+                        refined.setTypeEncoding(nested.getTypeEncoding());
+                        refined.setDialectType(leaf.getPhysicalTypeName());
+                        return parse(refined);
+                    });
+        } catch (IllegalArgumentException e) {
+            String message = String.valueOf(e.getMessage());
+            throw message.startsWith("column '")
+                    ? e
+                    : new IllegalArgumentException(
+                            "column '" + column.getName() + "': " + message, e);
+        }
+    }
+
+    /**
+     * One scalar inside a nested spelling. It has no declared family, so the family is inferred
+     * from the name, and the scalar rules above ({@code parseDecimal}, {@code parseText}, ...) do
+     * the rest, so precision, scale and the known names stay in one place.
+     */
+    default TypeDescriptor parseLeaf(String spelling, String name, List<Integer> params) {
+        TypeFamily family = inferFamily(name);
+        if (family instanceof CoreTypeFamily core) {
+            return switch (core) {
+                case BLOB -> parseBlob(spelling, null);
+                case BOOLEAN -> parseBoolean(spelling, null);
+                case DATE -> parseDate(spelling, null);
+                case DECIMAL -> parseDecimal(spelling, null, params);
+                case FLOAT -> parseFloat(spelling, name, null);
+                case INTEGER -> parseInteger(spelling, name, null, params);
+                case TIME -> parseTime(spelling, name, null, params);
+                case INTERVAL -> parseInterval(spelling, name, null);
+                case TIMESTAMP -> parseTimestamp(spelling, name, null, params);
+                case TEXT -> parseText(spelling, name, null, params);
+                case JSON -> parseJson(spelling, name, null);
+                case UUID -> parseUuid(spelling, name, null);
+                case ARRAY, STRUCT, MAP ->
+                        throw new IllegalStateException("'" + name + "' is not a scalar");
+            };
+        }
+        throw new IllegalArgumentException(
+                "'" + spelling + "' is a " + family.name() + ", which has no leaf parser");
+    }
+
+    /**
+     * The family of a scalar type name, upper case. The names DuckDB prints, plus the common
+     * spellings of the other dialects; a dialect parser overrides this to add its own.
+     */
+    default TypeFamily inferFamily(String name) {
+        if (name.startsWith("TIMESTAMP") || name.startsWith("DATETIME")) {
+            return CoreTypeFamily.TIMESTAMP;
+        } else if (name.equals("TIME") || name.startsWith("TIME ") || name.equals("TIMETZ")) {
+            return CoreTypeFamily.TIME;
+        } else if (name.startsWith("INTERVAL")) {
+            return CoreTypeFamily.INTERVAL;
+        }
+        return switch (name) {
+            case "TINYINT",
+                    "SMALLINT",
+                    "INTEGER",
+                    "INT",
+                    "BIGINT",
+                    "HUGEINT",
+                    "UTINYINT",
+                    "USMALLINT",
+                    "UINTEGER",
+                    "UBIGINT" ->
+                    CoreTypeFamily.INTEGER;
+            case "DECIMAL", "NUMERIC", "NUMBER" -> CoreTypeFamily.DECIMAL;
+            case "FLOAT", "REAL", "DOUBLE", "DOUBLE PRECISION" -> CoreTypeFamily.FLOAT;
+            case "BOOLEAN", "BOOL" -> CoreTypeFamily.BOOLEAN;
+            case "VARCHAR", "TEXT", "STRING", "CHAR", "BPCHAR", "NVARCHAR" -> CoreTypeFamily.TEXT;
+            case "DATE" -> CoreTypeFamily.DATE;
+            case "UUID" -> CoreTypeFamily.UUID;
+            case "JSON" -> CoreTypeFamily.JSON;
+            case "BLOB", "BYTEA", "VARBINARY", "BINARY" -> CoreTypeFamily.BLOB;
+            default -> throw new IllegalArgumentException("unknown type name '" + name + "'");
+        };
     }
 
     default TypeDescriptor parseExtended(
