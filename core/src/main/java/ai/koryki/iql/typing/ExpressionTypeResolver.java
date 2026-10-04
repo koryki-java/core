@@ -74,9 +74,12 @@ public class ExpressionTypeResolver {
         } else if (expression.getLogical() != null) {
             return TypeDescriptor.BOOLEAN;
         } else if (expression.getSelection() != null) {
-            throw new KorykiaiException(
-                    "selectors are mapped, but their type is not resolved yet: "
-                            + expression.getSelection().getSelectors());
+            TypeDescriptor base = resolve(expression.getSelection().getBase());
+            // an unresolved base (a function the catalog does not know) stays unresolved; whoever
+            // reports that has the position
+            return base == null
+                    ? null
+                    : Selectors.apply(base, expression.getSelection().getSelectors());
         } else if (expression.getParameter() != null) {
             throw new KorykiaiException(
                     "lambda parameter @" + expression.getParameter() + " has no type yet");

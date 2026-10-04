@@ -129,6 +129,23 @@ public final class ConditionalReconciler {
             return new Result(TypeDescriptor.NULL, passthrough(branches.size()));
         }
 
+        // 0. Containers do not widen or convert: every branch must be the same structure, and the
+        //    result is that structure. Rebuilding the descriptor from family and physical name, as
+        //    for a scalar below, would drop the element and field types.
+        if (typed.get(0).isComplex()) {
+            for (TypeDescriptor b : typed) {
+                if (!b.portable().equals(typed.get(0).portable())) {
+                    throw new ReconcileException(
+                            ReconcileException.Kind.FAMILY_GROUP,
+                            "cannot bring these values to a common type — different structures: "
+                                    + typed.get(0).portable()
+                                    + " and "
+                                    + b.portable());
+                }
+            }
+            return new Result(typed.get(0), passthrough(branches.size()));
+        }
+
         // 1. Family-group: widen within the group, hard error across groups.
         TypeFamily targetFamily = typed.get(0).getTypeFamily();
         for (TypeDescriptor b : typed) {
