@@ -32,6 +32,7 @@ spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 
 koryki-catalog = { module = "ai.koryki.northwind:koryki-northwind-catalog", version.ref = "koryki-northwind" }
 koryki-northwind-duckdb = { module = "ai.koryki.northwind:koryki-northwind-duckdb", version.ref = "koryki-northwind" }
+koryki-northwind-sqlite = { module = "ai.koryki.northwind:koryki-northwind-sqlite", version.ref = "koryki-northwind" }
 
 duckdb = { module = "org.duckdb:duckdb_jdbc", version.ref = "duckdb" }
 h2database = { module = "com.h2database:h2", version.ref = "h2database" }

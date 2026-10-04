@@ -29,7 +29,7 @@ dependencies {
     testImplementation libs.koryki.catalog
 
     // Test-only, and deliberately so: the driver is needed to run the live integration tests
-    // (OracleAvailabilityCondition, BuildNorthwind, the *OracleEngineTest suite) against a real
+    // (OracleAvailabilityCondition, the *OracleEngineTest suite) against a real
     // Oracle instance, not to compile the module -- the consumer brings their own at runtime.
     testImplementation(libs.oracle)
 
@@ -57,19 +57,4 @@ publishing {
             artifactId = 'koryki-oracle'
         }
     }
-}
-
-tasks.register('OracleNorthwindScript', JavaExec) {
-
-    systemProperty "oracle.northwind.url", project.findProperty("oracle.northwind.url")
-    systemProperty "oracle.northwind.user", project.findProperty("oracle.northwind.user")
-    systemProperty "oracle.northwind.password", project.findProperty("oracle.northwind.password")
-
-    group = "application"
-    description = "Build Northwind Database for ORACLE"
-
-    classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'ai.koryki.oracle.northwind.BuildNorthwind'
-
-    args
 }

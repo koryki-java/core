@@ -4,6 +4,15 @@ All notable changes to this project are documented here.
 
 ## [unreleased]
 
+### Changed
+
+- The scripts that create the Northwind database for PostgreSQL, MariaDB, Oracle, SQL Server,
+  Snowflake and SQLite, their `BuildNorthwind` loaders, `Script`, `ExportJson` and the committed
+  `northwind.sqlite` moved to the northwind repository (modules `postgresql`, `mariadb`, `oracle`,
+  `mssql`, `snowflake`, `sqlite`, `loader`), so a change of the Northwind schema is a release of that
+  project only. The SQLite suites now take `northwind.sqlite` from `koryki-northwind-sqlite`; the
+  `*NorthwindScript` Gradle tasks are gone.
+
 ### Fixed
 
 - A block could not correctly reference an earlier sibling block — only self-reference (a
