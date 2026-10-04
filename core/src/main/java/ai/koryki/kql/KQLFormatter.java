@@ -524,7 +524,13 @@ public class KQLFormatter {
 
         private String toExpression(KQLParser.ExpressionContext expression, int indent) {
 
-            if (expression.select() != null) {
+            if (expression.selector() != null) {
+                // the step is kept as written: a field or key of a nested value is not an entity of
+                // the model, so there is nothing to translate
+                return toExpression(expression.base, indent) + expression.selector().getText();
+            } else if (expression.param() != null) {
+                return expression.param().getText();
+            } else if (expression.select() != null) {
                 return toNestedSelect(expression.select(), indent);
             } else if (expression.LEFT_PAREN() != null) {
                 return "(" + toExpression(expression.expression(0), indent) + ")";
@@ -680,7 +686,9 @@ public class KQLFormatter {
 
         private String toArgument(KQLParser.ArgumentContext argument, int indent) {
 
-            if (argument.logical_expression() != null) {
+            if (argument.lambda() != null) {
+                throw new RangeException(argument, "lambda arguments are not supported yet");
+            } else if (argument.logical_expression() != null) {
                 return toLogicalNode(argument.logical_expression(), indent);
             } else if (argument.expression() != null) {
                 return toExpression(argument.expression(), indent);

@@ -73,6 +73,13 @@ public class ExpressionTypeResolver {
             return TypeDescriptor.TEXT;
         } else if (expression.getLogical() != null) {
             return TypeDescriptor.BOOLEAN;
+        } else if (expression.getSelection() != null) {
+            throw new KorykiaiException(
+                    "selectors are mapped, but their type is not resolved yet: "
+                            + expression.getSelection().getSelectors());
+        } else if (expression.getParameter() != null) {
+            throw new KorykiaiException(
+                    "lambda parameter @" + expression.getParameter() + " has no type yet");
         } else if (expression.getIdentity() != null) {
             throw new KorykiaiException("identity is not allowed here");
         } else if (expression.getNumber() != null) {

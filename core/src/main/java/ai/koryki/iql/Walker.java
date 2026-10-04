@@ -379,6 +379,10 @@ public class Walker {
                         expression,
                         () ->
                                 walk(expression.getSelect(), visitor)
+                                        && (expression.getSelection() == null
+                                                || walk(
+                                                        expression.getSelection().getBase(),
+                                                        visitor))
                                         && walk(expression.getFunction(), visitor)
                                         && walk(expression.getField(), visitor)
                                         && walk(expression.getLogical(), visitor),

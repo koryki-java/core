@@ -309,7 +309,13 @@ public class IQLQueryMapper {
 
     public Expression toExpression(IQLParser.ExpressionContext expression) {
 
-        if (expression.MINUS_SIGN() != null) {
+        if (expression.selector() != null) {
+            return toSelection(expression);
+        } else if (expression.param() != null) {
+            Expression bean = build(expression, Expression::new);
+            bean.setParameter(expression.param().getText().substring(1));
+            return bean;
+        } else if (expression.MINUS_SIGN() != null) {
             Expression inner = toExpression(expression.expression());
             // As in KQLQueryMapper: a negated duration literal becomes a duration with negative
             // components right away. Both mappings must do the same, or the SQL read back from IQL
@@ -375,6 +381,63 @@ public class IQLQueryMapper {
             return bean;
         } else {
             throw new KorykiaiException();
+        }
+    }
+
+    /** The chain of selector steps as one node; see KQLQueryMapper. */
+    private Expression toSelection(IQLParser.ExpressionContext expression) {
+        java.util.Deque<IQLParser.SelectorContext> steps = new java.util.ArrayDeque<>();
+        IQLParser.ExpressionContext base = expression;
+        while (base.selector() != null) {
+            steps.addFirst(base.selector());
+            base = base.base;
+        }
+        Selection selection = new Selection();
+        selection.setBase(toExpression(base));
+        for (IQLParser.SelectorContext step : steps) {
+            selection.getSelectors().add(toSelector(step.getText()));
+        }
+        Expression bean = build(expression, Expression::new);
+        bean.setSelection(selection);
+        return bean;
+    }
+
+    /**
+     * Reads the text of a selector token of the grammar, including its {@code @}. The three lexical
+     * forms are told apart by what follows the {@code @}: a quote, a digit, a minus or a colon, or
+     * a name. Shared with {@code KQLQueryMapper}; the two grammars have the same tokens.
+     */
+    public static Selector toSelector(String token) {
+        if (token == null || token.length() < 2 || token.charAt(0) != '@') {
+            throw new KorykiaiException("not a selector: " + token);
+        }
+        Selector selector = new Selector();
+        String s = token.substring(1);
+        char c = s.charAt(0);
+        if (c == '\'') {
+            // the only escape the grammar knows is \'
+            selector.setName(s.substring(1, s.length() - 1).replace("\\'", "'"));
+        } else if (Character.isDigit(c) || c == '-' || c == ':') {
+            int colon = s.indexOf(':');
+            if (colon < 0) {
+                selector.setIndex(selectorNumber(s, token));
+            } else {
+                String left = s.substring(0, colon);
+                String right = s.substring(colon + 1);
+                selector.setFrom(left.isEmpty() ? null : selectorNumber(left, token));
+                selector.setTo(right.isEmpty() ? null : selectorNumber(right, token));
+            }
+        } else {
+            selector.setId(s);
+        }
+        return selector;
+    }
+
+    private static int selectorNumber(String digits, String token) {
+        try {
+            return Integer.parseInt(digits);
+        } catch (NumberFormatException e) {
+            throw new KorykiaiException("selector index out of range: " + token, e);
         }
     }
 
@@ -457,7 +520,10 @@ public class IQLQueryMapper {
     }
 
     public Expression toExpression(IQLParser.ArgumentContext argument) {
-        if (argument.logical_expression() != null) {
+        if (argument.lambda() != null) {
+            throw new ai.koryki.antlr.RangeException(
+                    argument, "lambda arguments are not supported yet");
+        } else if (argument.logical_expression() != null) {
             Expression e = build(argument, Expression::new);
             e.setLogical(toLogicalNode(argument.logical_expression()));
             return e;

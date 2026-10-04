@@ -474,7 +474,13 @@ public class KQLQueryMapper {
 
     private Expression toExpression(KQLParser.ExpressionContext expression) {
 
-        if (expression.select() != null) {
+        if (expression.selector() != null) {
+            return toSelection(expression);
+        } else if (expression.param() != null) {
+            Expression bean = build(expression, Expression::new);
+            bean.setParameter(expression.param().getText().substring(1));
+            return bean;
+        } else if (expression.select() != null) {
             Expression bean = build(expression, Expression::new);
             bean.setSelect(toSelect(expression.select()));
             return bean;
@@ -559,6 +565,27 @@ public class KQLQueryMapper {
         }
     }
 
+    /**
+     * {@code c.items@1@sku}: the grammar nests one expression per step, the bean keeps the chain as
+     * one node, base first, steps in the order they are written.
+     */
+    private Expression toSelection(KQLParser.ExpressionContext expression) {
+        java.util.Deque<KQLParser.SelectorContext> steps = new java.util.ArrayDeque<>();
+        KQLParser.ExpressionContext base = expression;
+        while (base.selector() != null) {
+            steps.addFirst(base.selector());
+            base = base.base;
+        }
+        Selection selection = new Selection();
+        selection.setBase(toExpression(base));
+        for (KQLParser.SelectorContext step : steps) {
+            selection.getSelectors().add(ai.koryki.iql.IQLQueryMapper.toSelector(step.getText()));
+        }
+        Expression bean = build(expression, Expression::new);
+        bean.setSelection(selection);
+        return bean;
+    }
+
     private Expression mathFunction(KQLParser.ExpressionContext expression, String name) {
         Expression bean = build(expression, Expression::new);
         Function f = build(expression, Function::new);
@@ -623,7 +650,9 @@ public class KQLQueryMapper {
         f.setFunc(function.ID().getText());
 
         for (KQLParser.ArgumentContext a : function.argument()) {
-            if (a.logical_expression() != null) {
+            if (a.lambda() != null) {
+                throw new RangeException(a, "lambda arguments are not supported yet");
+            } else if (a.logical_expression() != null) {
                 Expression e = build(a, Expression::new);
                 e.setLogical(toLogicalNode(java.util.Map.of(), a.logical_expression()));
                 f.getArguments().add(e);
