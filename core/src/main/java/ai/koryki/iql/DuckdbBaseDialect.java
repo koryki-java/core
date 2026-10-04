@@ -470,6 +470,84 @@ public class DuckdbBaseDialect implements SqlDialect {
         return "TIMESTAMP '" + SqlDialect.plainTimestamp(dateTime) + "'";
     }
 
+    /**
+     * DuckDB subscripts everything with brackets and counts from 1, like koryki: {@code l[1]},
+     * {@code l[-1]} the last, {@code l[2:3]} inclusive, {@code s['field']}, {@code m['key']},
+     * {@code m[1]} for an integer key. A struct position has no bracket form, it is {@code
+     * struct_extract_at}. JSON is the exception: its paths count from 0, and the whole chain is one
+     * path, {@code (j -> '$.a.b[0]')}, with {@code #-1} for the last element.
+     */
+    @Override
+    public String selection(
+            String base,
+            TypeDescriptor baseType,
+            java.util.List<ai.koryki.iql.query.Selector> steps) {
+        String sql = base;
+        TypeDescriptor type = baseType;
+        for (int i = 0; i < steps.size(); i++) {
+            if (CoreTypeFamily.JSON.equals(type.getTypeFamily())) {
+                return "("
+                        + sql
+                        + " -> "
+                        + Literals.quote(jsonPath(steps.subList(i, steps.size())))
+                        + ")";
+            }
+            ai.koryki.iql.query.Selector step = steps.get(i);
+            sql = subscript(sql, type, step);
+            type = ai.koryki.iql.typing.Selectors.step(type, step);
+        }
+        return sql;
+    }
+
+    private static String subscript(
+            String sql, TypeDescriptor type, ai.koryki.iql.query.Selector step) {
+        if (step.getId() != null || step.getName() != null) {
+            return sql
+                    + "["
+                    + Literals.quote(step.getId() != null ? step.getId() : step.getName())
+                    + "]";
+        } else if (step.getIndex() != null) {
+            if (CoreTypeFamily.STRUCT.equals(type.getTypeFamily())) {
+                int n = type.children().size();
+                int position = step.getIndex() > 0 ? step.getIndex() : n + step.getIndex() + 1;
+                return "struct_extract_at(" + sql + ", " + position + ")";
+            }
+            return sql + "[" + step.getIndex() + "]";
+        }
+        return sql
+                + "["
+                + (step.getFrom() == null ? "" : step.getFrom())
+                + ":"
+                + (step.getTo() == null ? "" : step.getTo())
+                + "]";
+    }
+
+    private static final Pattern JSON_NAME = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
+
+    /**
+     * {@code $.a."b c"[0]}: names as members, 1-based positions as 0-based, {@code #-n} from the
+     * end.
+     */
+    private static String jsonPath(java.util.List<ai.koryki.iql.query.Selector> steps) {
+        StringBuilder path = new StringBuilder("$");
+        for (ai.koryki.iql.query.Selector step : steps) {
+            if (step.getId() != null || step.getName() != null) {
+                String name = step.getId() != null ? step.getId() : step.getName();
+                if (JSON_NAME.matcher(name).matches()) {
+                    path.append('.').append(name);
+                } else {
+                    path.append(".\"")
+                            .append(name.replace("\\", "\\\\").replace("\"", "\\\""))
+                            .append('"');
+                }
+            } else {
+                int position = step.getIndex();
+                path.append(position > 0 ? "[" + (position - 1) + "]" : "[#" + position + "]");
+            }
+        }
+        return path.toString();
+    }
+
     @Override
     public String durationLiteral(ai.koryki.iql.query.Duration duration) {
         return SqlDialect.combinedInterval(

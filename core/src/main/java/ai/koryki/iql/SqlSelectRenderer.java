@@ -971,9 +971,11 @@ public class SqlSelectRenderer {
         } else if (expression.getLogical() != null) {
             return toSqlInline(expression.getLogical(), indent);
         } else if (expression.getSelection() != null) {
-            throw new KorykiaiException(
-                    "selectors are mapped, but not rendered yet: "
-                            + expression.getSelection().getSelectors());
+            Expression base = expression.getSelection().getBase();
+            return dialect.selection(
+                    toSql(base, indent),
+                    resolveType(base),
+                    expression.getSelection().getSelectors());
         } else if (expression.getParameter() != null) {
             throw new KorykiaiException(
                     "lambda parameter @" + expression.getParameter() + " is not rendered yet");

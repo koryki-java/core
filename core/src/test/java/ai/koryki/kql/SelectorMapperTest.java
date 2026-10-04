@@ -340,24 +340,4 @@ class SelectorMapperTest {
             assertTrue(e.getMessage().contains("lambda"), e.getMessage());
         }
     }
-
-    @Test
-    void theRendererSaysWhatIsMissing() {
-        // typed and valid on the complex bed; only the SQL for it is still to come
-        KorykiaiException e =
-                assertThrows(
-                        KorykiaiException.class,
-                        () ->
-                                KQLTranspiler.builder(
-                                                "FIND check_complex t FETCH t.tags@1",
-                                                ai.koryki.databases.complex.duckdb.ComplexService
-                                                        .resolver())
-                                        .build()
-                                        .getSql(
-                                                new ai.koryki.iql.SqlQueryRenderer(
-                                                        ai.koryki.iql.DuckdbBaseDialect.INSTANCE,
-                                                        java.time.ZoneId.of("UTC"))));
-
-        assertTrue(String.valueOf(e).contains("not rendered yet"), () -> String.valueOf(e));
-    }
 }

@@ -55,7 +55,8 @@ public final class Selectors {
         return type;
     }
 
-    private static TypeDescriptor step(TypeDescriptor type, Selector step) {
+    /** The type after one step; a renderer follows the chain with it. */
+    public static TypeDescriptor step(TypeDescriptor type, Selector step) {
         String text = IQLSerializer.selector(step);
         if (type == null || type.getTypeFamily() == null) {
             throw new SelectorException("cannot apply " + text + " to a value without a type");

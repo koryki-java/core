@@ -16,6 +16,7 @@
  */
 package ai.koryki.iql;
 
+import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.catalog.types.*;
 import ai.koryki.iql.functions.ConditionalReconciler;
 import ai.koryki.iql.functions.Fixity;
@@ -521,6 +522,28 @@ public interface SqlDialect {
 
     default String renderFunction(SqlSelectRenderer renderer, Function function, int indent) {
         return null;
+    }
+
+    /**
+     * A selector chain on a nested value: {@code base@1@name}. Handed over whole, because a dialect
+     * may fold it (a JSON path takes every step in one string) and because what a step means
+     * depends on the type it meets, which {@link ai.koryki.iql.typing.Selectors#step} follows.
+     *
+     * <p>Positions arrive 1-based and may be negative (from the end); a dialect whose collections
+     * count differently adjusts. A dialect that cannot express a step says so here rather than
+     * rendering something close: the default refuses every selector.
+     *
+     * @param base the SQL of the value selected from
+     * @param baseType its type, an ARRAY, STRUCT, MAP or JSON
+     * @param steps at least one, already checked against the type
+     */
+    default String selection(
+            String base, TypeDescriptor baseType, List<ai.koryki.iql.query.Selector> steps) {
+        throw new KorykiaiException(
+                getClass().getSimpleName()
+                        + " cannot render selectors on "
+                        + baseType.portable()
+                        + " yet");
     }
 
     default String renderEncodedArithmetic(

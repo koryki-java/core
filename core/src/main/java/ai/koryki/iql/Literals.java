@@ -59,6 +59,13 @@ final class Literals {
     }
 
     /**
+     * A SQL text literal for a value that is already plain: {@code it's} becomes {@code 'it''s'}.
+     */
+    static String quote(String value) {
+        return "'" + value.replace("'", "''") + "'";
+    }
+
+    /**
      * Canonical text form of a numeric literal: integers verbatim, decimals with trailing zeros
      * dropped (0.0 → 0) but full precision kept. Used by both {@code SqlSelectRenderer} (→ SQL) and
      * {@code IQLSerializer} (→ IQL); the surrounding quoting/typing differs, this core does not.
