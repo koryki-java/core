@@ -29,7 +29,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Read-layer presentation: turns a JDBC result value into a display string, driven by the column's
@@ -103,8 +105,146 @@ public class LocaleFormat implements ValueFormat {
             return interval(iv);
         } else if (isNumeric(fam) && value instanceof Number n) {
             return number(n, type);
+        } else if (type != null && type.isComplex()) {
+            return json(value, type);
         }
         return value.toString();
+    }
+
+    // ---- nested values: JSON ------------------------------------------------------------------
+
+    /**
+     * An ARRAY, STRUCT or MAP as JSON: {@code [1,2]}, {@code {"w":1.5,"h":2.5}}. Compact and
+     * unambiguous, which {@code toString()} of the driver's objects is not: {@code [a, b]} is a
+     * list of two or of one text, and {@code null} is a missing value or the word.
+     *
+     * <p>A struct is an object in field order; a map is an object too, with its keys written as
+     * text, because JSON has no other kind. Numbers are always plain, whatever the locale, since a
+     * grouped {@code 1.234,5} is no JSON number; booleans are {@code true} and {@code false}; a
+     * JSON value inside is embedded as it is. Every other leaf, text, dates, timestamps, intervals,
+     * is a string, written by {@link #format(Object, TypeDescriptor)} so a subclass's rendering of
+     * it applies inside a container as well.
+     */
+    protected String json(Object value, TypeDescriptor type) {
+        StringBuilder out = new StringBuilder();
+        json(out, value, type);
+        return out.toString();
+    }
+
+    private void json(StringBuilder out, Object value, TypeDescriptor type) {
+        if (value == null) {
+            out.append("null");
+            return;
+        }
+        TypeFamily family = type.getTypeFamily();
+        if (CoreTypeFamily.ARRAY.equals(family) && value instanceof List<?> list) {
+            out.append('[');
+            for (int i = 0; i < list.size(); i++) {
+                if (i > 0) {
+                    out.append(',');
+                }
+                json(out, list.get(i), type.element());
+            }
+            out.append(']');
+        } else if (CoreTypeFamily.STRUCT.equals(family) && value instanceof Map<?, ?> map) {
+            out.append('{');
+            for (int i = 0; i < type.children().size(); i++) {
+                if (i > 0) {
+                    out.append(',');
+                }
+                String name = type.fieldNames().get(i);
+                quote(out, name);
+                out.append(':');
+                json(out, map.get(name), type.children().get(i));
+            }
+            out.append('}');
+        } else if (CoreTypeFamily.MAP.equals(family) && value instanceof Map<?, ?> map) {
+            out.append('{');
+            boolean first = true;
+            for (Map.Entry<?, ?> e : map.entrySet()) {
+                if (!first) {
+                    out.append(',');
+                }
+                first = false;
+                quote(out, jsonKey(e.getKey(), type.key()));
+                out.append(':');
+                json(out, e.getValue(), type.value());
+            }
+            out.append('}');
+        } else if (type.isComplex()) {
+            // a container that was not decoded (no column type at the read boundary): the driver's
+            // own text, as a string, rather than a guess at its structure
+            quote(out, value.toString());
+        } else {
+            jsonLeaf(out, value, type);
+        }
+    }
+
+    private void jsonLeaf(StringBuilder out, Object value, TypeDescriptor type) {
+        TypeFamily family = type.getTypeFamily();
+        if (value instanceof Boolean b) {
+            out.append(b);
+        } else if (isNumeric(family) && value instanceof Number n) {
+            String plain = plainNumber(n, type);
+            if (plain == null) {
+                quote(out, n.toString()); // NaN and the infinities are not JSON numbers
+            } else {
+                out.append(plain);
+            }
+        } else if (CoreTypeFamily.JSON.equals(family)) {
+            String raw = value.toString();
+            out.append(raw.isBlank() ? "null" : raw);
+        } else {
+            quote(out, format(value, type));
+        }
+    }
+
+    private String jsonKey(Object key, TypeDescriptor type) {
+        if (key == null) {
+            return "null";
+        }
+        if (key instanceof Number n && isNumeric(type.getTypeFamily())) {
+            String plain = plainNumber(n, type);
+            return plain != null ? plain : n.toString();
+        }
+        return format(key, type);
+    }
+
+    /** A number as JSON writes it, at the type's scale when it has one; null for NaN, infinity. */
+    private static String plainNumber(Number n, TypeDescriptor type) {
+        if ((n instanceof Double d && (d.isNaN() || d.isInfinite()))
+                || (n instanceof Float f && (f.isNaN() || f.isInfinite()))) {
+            return null;
+        }
+        BigDecimal bd = n instanceof BigDecimal b ? b : new BigDecimal(n.toString());
+        int scale = type.getScale();
+        return scale >= 0
+                ? bd.setScale(scale, java.math.RoundingMode.HALF_UP).toPlainString()
+                : bd.toPlainString();
+    }
+
+    private static void quote(StringBuilder out, String text) {
+        out.append('"');
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            switch (c) {
+                case '"' -> out.append("\\\"");
+                case '\\' -> out.append("\\\\");
+                case '\n' -> out.append("\\n");
+                case '\r' -> out.append("\\r");
+                case '\t' -> out.append("\\t");
+                case '\b' -> out.append("\\b");
+                case '\f' -> out.append("\\f");
+                default -> {
+                    if (c < 0x20) {
+                        out.append(String.format("\\u%04x", (int) c));
+                    } else {
+                        out.append(c);
+                    }
+                }
+            }
+        }
+        out.append('"');
     }
 
     /** Render a boolean-encoded text ("0"/"1" or "true"/"false") as canonical true/false. */
