@@ -155,6 +155,12 @@ class NestedTypeParserTest {
         assertEquals("ARRAY(INTEGER)", portable("ARRAY", "ARRAY(INTEGER)"));
         assertEquals("ARRAY(INTEGER)", portable("ARRAY", "LIST(INTEGER)"));
         assertEquals("STRUCT(a:INTEGER)", portable("STRUCT", "ROW(a INTEGER)"));
+        // Oracle's leaf names inside collections and object types
+        assertEquals(
+                "ARRAY(STRUCT(sku:TEXT,price:DECIMAL,w:FLOAT))",
+                portable(
+                        "ARRAY",
+                        "ARRAY(ROW(sku VARCHAR2(20), price NUMBER(10,2), w BINARY_DOUBLE))"));
         // Snowflake's structured OBJECT and the spellings it prints
         assertEquals("STRUCT(a:INTEGER)", portable("STRUCT", "OBJECT(a INTEGER)"));
         assertEquals(

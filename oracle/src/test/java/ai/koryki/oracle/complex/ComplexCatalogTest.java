@@ -31,9 +31,10 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
- * The Oracle catalog of the complex-types test bed loads: the key and the one JSON column Oracle
- * offers of the DuckDB table. No connection is needed: the resolver parses every column when it is
- * built, so one type it cannot read fails here.
+ * The Oracle catalog of the complex-types test bed loads, and every column reads as the tree the
+ * table was designed to be: VARRAYs and a nested table as arrays, object types as structs, and JSON
+ * for the maps Oracle does not have. No connection is needed: the resolver parses every column when
+ * it is built, so one type it cannot read fails here.
  */
 class ComplexCatalogTest {
 
@@ -44,7 +45,22 @@ class ComplexCatalogTest {
 
     static {
         EXPECTED.put("nr", "INTEGER");
+        EXPECTED.put("tags", "ARRAY(TEXT)");
+        EXPECTED.put("scores", "ARRAY(INTEGER)");
+        EXPECTED.put("vec", "ARRAY(FLOAT)");
+        EXPECTED.put("matrix", "ARRAY(ARRAY(FLOAT))");
+        EXPECTED.put("dims", "STRUCT(w:FLOAT,h:FLOAT)");
+        EXPECTED.put(
+                "address",
+                "STRUCT(street:TEXT,geo:STRUCT(lat:FLOAT,lon:FLOAT),phones:ARRAY(TEXT))");
+        EXPECTED.put("attrs", "JSON");
+        EXPECTED.put("counts", "JSON");
+        EXPECTED.put("lookup", "JSON");
+        EXPECTED.put("items", "ARRAY(STRUCT(sku:TEXT,qty:INTEGER,price:DECIMAL,opts:ARRAY(TEXT)))");
+        EXPECTED.put("events", "ARRAY(STRUCT(ts:TIMESTAMP,day:DATE))");
+        EXPECTED.put("deep", "JSON");
         EXPECTED.put("doc", "JSON");
+        EXPECTED.put("odd", "STRUCT(Odd Name:INTEGER,x:INTEGER)");
     }
 
     private static LinkResolver resolver() {

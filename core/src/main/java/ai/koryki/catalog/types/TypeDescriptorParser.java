@@ -255,9 +255,19 @@ public interface TypeDescriptorParser {
                     "UBIGINT" ->
                     CoreTypeFamily.INTEGER;
             case "DECIMAL", "NUMERIC", "NUMBER" -> CoreTypeFamily.DECIMAL;
-            case "FLOAT", "REAL", "DOUBLE", "DOUBLE PRECISION" -> CoreTypeFamily.FLOAT;
+            case "FLOAT", "REAL", "DOUBLE", "DOUBLE PRECISION", "BINARY_DOUBLE", "BINARY_FLOAT" ->
+                    CoreTypeFamily.FLOAT;
             case "BOOLEAN", "BOOL" -> CoreTypeFamily.BOOLEAN;
-            case "VARCHAR", "TEXT", "STRING", "CHAR", "BPCHAR", "NVARCHAR" -> CoreTypeFamily.TEXT;
+            case "VARCHAR",
+                    "VARCHAR2",
+                    "NVARCHAR2",
+                    "NCHAR",
+                    "TEXT",
+                    "STRING",
+                    "CHAR",
+                    "BPCHAR",
+                    "NVARCHAR" ->
+                    CoreTypeFamily.TEXT;
             case "DATE" -> CoreTypeFamily.DATE;
             case "UUID" -> CoreTypeFamily.UUID;
             case "JSON" -> CoreTypeFamily.JSON;
