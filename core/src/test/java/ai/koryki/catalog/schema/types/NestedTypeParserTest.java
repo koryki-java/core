@@ -155,6 +155,19 @@ class NestedTypeParserTest {
         assertEquals("ARRAY(INTEGER)", portable("ARRAY", "ARRAY(INTEGER)"));
         assertEquals("ARRAY(INTEGER)", portable("ARRAY", "LIST(INTEGER)"));
         assertEquals("STRUCT(a:INTEGER)", portable("STRUCT", "ROW(a INTEGER)"));
+        // Snowflake's structured OBJECT and the spellings it prints
+        assertEquals("STRUCT(a:INTEGER)", portable("STRUCT", "OBJECT(a INTEGER)"));
+        assertEquals(
+                "ARRAY(STRUCT(sku:TEXT,price:DECIMAL,ts:TIMESTAMP))",
+                portable(
+                        "ARRAY",
+                        "ARRAY(OBJECT(sku VARCHAR, price NUMBER(10,2), ts TIMESTAMP_NTZ))"));
+        assertEquals(
+                "ARRAY(MAP(TEXT,STRUCT(a:ARRAY(INTEGER),b:MAP(INTEGER,ARRAY(TEXT)))))",
+                portable(
+                        "ARRAY",
+                        "ARRAY(MAP(VARCHAR, OBJECT(a ARRAY(INTEGER), b MAP(INTEGER,"
+                                + " ARRAY(VARCHAR)))))"));
     }
 
     // ---- round trip ---------------------------------------------------------------------------

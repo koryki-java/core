@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
  *
  * <pre>
  * type  := base ( '[' INT? ']' )*              DOUBLE[3][2] is two rows of DOUBLE[3]
- * base  := STRUCT '(' field (',' field)* ')'   ROW(...) is accepted too
+ * base  := STRUCT '(' field (',' field)* ')'   ROW(...) and OBJECT(...) (Snowflake) are accepted too
  *        | MAP '(' type ',' type ')'
  *        | LIST '(' type ')' | ARRAY '(' type [',' INT] ')'
  *        | name [ '(' INT (',' INT)* ')' ]     a scalar: DECIMAL(10,2), DOUBLE PRECISION
@@ -52,7 +52,8 @@ public final class TypeSyntax {
     }
 
     private static final Pattern OPENS_COMPLEX =
-            Pattern.compile("^\\s*(STRUCT|ROW|MAP|LIST|ARRAY)\\s*\\(", Pattern.CASE_INSENSITIVE);
+            Pattern.compile(
+                    "^\\s*(STRUCT|ROW|OBJECT|MAP|LIST|ARRAY)\\s*\\(", Pattern.CASE_INSENSITIVE);
 
     private TypeSyntax() {}
 
@@ -114,7 +115,7 @@ public final class TypeSyntax {
             skipSpaces();
             boolean open = !atEnd() && peek() == '(';
             switch (name) {
-                case "STRUCT", "ROW" -> {
+                case "STRUCT", "ROW", "OBJECT" -> {
                     requireOpen(open, name);
                     return struct();
                 }
