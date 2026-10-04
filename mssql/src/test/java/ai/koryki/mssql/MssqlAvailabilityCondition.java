@@ -36,7 +36,11 @@ public class MssqlAvailabilityCondition implements ExecutionCondition {
                 NorthwindMssql.connection();
                 return ConditionEvaluationResult.enabled("Connection is up");
             } catch (Exception e) {
-                return ConditionEvaluationResult.disabled("Connection is down");
+                // Say why: "no route to host", a refused login and a missing property are three
+                // different problems, and a bare "down" made them all look like the same skip.
+                // JUnit keeps the reason in its own report only; Gradle shows a bare "skipped".
+                System.err.println("MSSQL suites skipped, connection is down: " + e);
+                return ConditionEvaluationResult.disabled("Connection is down: " + e);
             }
         }
         return ConditionEvaluationResult.enabled("No assumptions, moving on...");
