@@ -281,12 +281,12 @@ public class MariadbDialect implements SqlDialect {
                     "JSON_TYPE(JSON_QUERY("
                             + base
                             + ", "
-                            + literal(paths.get(i))
+                            + NestedSql.literal(INSTANCE, paths.get(i))
                             + ")) = '"
                             + (steps.get(i).getIndex() != null ? "ARRAY" : "OBJECT")
                             + "'");
         }
-        String last = literal(paths.get(steps.size()));
+        String last = NestedSql.literal(INSTANCE, paths.get(steps.size()));
         return "CASE WHEN "
                 + String.join(" AND ", guards)
                 + " THEN COALESCE(JSON_QUERY("
@@ -298,11 +298,6 @@ public class MariadbDialect implements SqlDialect {
                 + ", "
                 + last
                 + ")) END";
-    }
-
-    /** MariaDB reads a backslash in a string literal as an escape. */
-    private static String literal(String text) {
-        return "'" + text.replace("\\", "\\\\").replace("'", "''") + "'";
     }
 
     private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();

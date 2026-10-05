@@ -509,9 +509,9 @@ public class OracleDialect implements SqlDialect {
             guards.add(
                     "JSON_VALUE("
                             + sql
-                            + ", '"
-                            + paths.get(i).replace("'", "''")
-                            + ".type()') = '"
+                            + ", "
+                            + NestedSql.literal(INSTANCE, paths.get(i) + ".type()")
+                            + ") = '"
                             + (steps.get(i).getIndex() != null ? "array" : "object")
                             + "'");
         }
@@ -519,17 +519,17 @@ public class OracleDialect implements SqlDialect {
                 + String.join(" AND ", guards)
                 + " THEN JSON_QUERY("
                 + sql
-                + ", '"
-                + paths.get(steps.size()).replace("'", "''")
-                + "' RETURNING JSON) END";
+                + ", "
+                + NestedSql.literal(INSTANCE, paths.get(steps.size()))
+                + " RETURNING JSON) END";
     }
 
     /**
      * Oracle has no lambda, so TRANSFORM and FILTER are a {@code CAST(MULTISET(SELECT ... FROM
      * TABLE(list)))} to a generic collection type, the element as column {@code X} and its position
-     * as column {@code I} of a derived table named for the depth of the lambda; the parameters of
-     * the lambda are replaced by those columns in the body. A fold has no SQL form in a scalar
-     * position, so REDUCE is refused.
+     * as column {@code I} of a derived table named for the depth of the lambda. The parameters of
+     * the lambda are bound to those columns, so the body is rendered with them. REDUCE is declared
+     * unsupported where the functions are registered.
      */
     private static String listWithLambda(
             String name, SqlSelectRenderer renderer, Function function, int indent) {

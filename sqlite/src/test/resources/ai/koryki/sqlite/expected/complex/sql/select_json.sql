@@ -3,10 +3,10 @@
 -- and the array in row 3 both answer.
 SELECT
   t.nr
-, json_extract(t.doc, '$.n') AS n
-, json_extract(t.doc, '$.a.b') AS inner_list
-, json_extract(t.doc, '$.a.b[0]') AS inner_first
-, json_extract(t.doc, '$[0]') AS array_first
-, json_extract(t.doc, '$[#-1]') AS array_last
+, (t.doc -> '$.n') AS n
+, (t.doc -> '$.a.b') AS inner_list
+, (t.doc -> '$.a.b[0]') AS inner_first
+, (t.doc -> '$[0]') AS array_first
+, (t.doc -> '$[#-1]') AS array_last
 FROM
  check_complex t

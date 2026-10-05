@@ -256,7 +256,7 @@ public class PostgreSqlDialect implements SqlDialect {
                 path.append(" -> ").append(n > 0 ? n - 1 : n);
             } else {
                 String name = NestedSql.key(step);
-                path.append(" -> '").append(name.replace("'", "''")).append("'");
+                path.append(" -> ").append(NestedSql.literal(INSTANCE, name));
             }
         }
         return path.append(")").toString();

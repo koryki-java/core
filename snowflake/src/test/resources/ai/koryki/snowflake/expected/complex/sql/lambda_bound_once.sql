@@ -5,7 +5,7 @@ SELECT
   t.nr
 , (SELECT CASE WHEN ARRAY_SIZE(BO_1.L) >= 1 THEN GET(BO_1.L, ARRAY_SIZE(BO_1.L) - 1) END FROM (SELECT FILTER(t.scores, _l0_x -> _l0_x > 5) AS L) BO_1) AS last_big
 , (SELECT ARRAY_SLICE(BO_1.L, GREATEST(ARRAY_SIZE(BO_1.L) - 2, 0), ARRAY_SIZE(BO_1.L)) FROM (SELECT TRANSFORM(t.scores, _l0_x -> _l0_x * 2) AS L) BO_1) AS last_two_doubled
-, (SELECT TRANSFORM(ARRAY_GENERATE_RANGE(1, ARRAY_SIZE(BO_1.L) + 1), _l0_i -> GET(BO_1.L, _l0_i - 1) * _l0_i) FROM (SELECT FILTER(t.scores, _l0_x -> _l0_x > 5) AS L) BO_1) AS weighted_big
+, (SELECT TRANSFORM(ARRAY_GENERATE_RANGE(1, ARRAY_SIZE(BO_1.L) + 1), _l0_i -> GET(BO_1.L, CAST(_l0_i AS INTEGER) - 1) * _l0_i) FROM (SELECT FILTER(t.scores, _l0_x -> _l0_x > 5) AS L) BO_1) AS weighted_big
 , (SELECT REDUCE(ARRAY_SLICE(BO_1.L, 1, ARRAY_SIZE(BO_1.L)), GET(BO_1.L, 0), (_l0_a, _l0_b) -> _l0_a + _l0_b) FROM (SELECT FILTER(t.scores, _l0_x -> _l0_x > 5) AS L) BO_1) AS total_big
 FROM
  check_complex t

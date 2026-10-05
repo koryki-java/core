@@ -4,6 +4,6 @@ SELECT
   t.nr
 , TRANSFORM(t.tags, _l0_x -> upper(_l0_x)) AS shouted
 , TRANSFORM(t.scores, _l0_x -> _l0_x * 2) AS doubled
-, TRANSFORM(ARRAY_GENERATE_RANGE(1, ARRAY_SIZE(t.scores) + 1), _l0_i -> GET(t.scores, _l0_i - 1) * _l0_i) AS weighted
+, TRANSFORM(ARRAY_GENERATE_RANGE(1, ARRAY_SIZE(t.scores) + 1), _l0_i -> GET(t.scores, CAST(_l0_i AS INTEGER) - 1) * _l0_i) AS weighted
 FROM
  check_complex t

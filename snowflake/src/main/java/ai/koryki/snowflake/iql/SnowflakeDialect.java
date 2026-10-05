@@ -39,8 +39,6 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class SnowflakeDialect implements SqlDialect {
 
@@ -128,7 +126,12 @@ public class SnowflakeDialect implements SqlDialect {
             } else if (CoreTypeFamily.ARRAY.equals(type.getTypeFamily())) {
                 sql = step.getIndex() != null ? element(sql, step.getIndex()) : slice(sql, step);
             } else if (CoreTypeFamily.STRUCT.equals(type.getTypeFamily())) {
-                sql = "GET(" + sql + ", " + literal(NestedSql.fieldName(type, step)) + ")";
+                sql =
+                        "GET("
+                                + sql
+                                + ", "
+                                + NestedSql.literal(INSTANCE, NestedSql.fieldName(type, step))
+                                + ")";
             } else if (CoreTypeFamily.MAP.equals(type.getTypeFamily())) {
                 sql = "GET(" + sql + ", " + mapKey(step) + ")";
             } else {
@@ -151,10 +154,6 @@ public class SnowflakeDialect implements SqlDialect {
         return (step.getFrom() != null && step.getFrom() < 0)
                 || step.getTo() == null
                 || step.getTo() < 0;
-    }
-
-    private static String literal(String text) {
-        return "'" + text.replace("'", "''").replace("\\", "\\\\") + "'";
     }
 
     private static String element(String list, int position) {
@@ -199,14 +198,15 @@ public class SnowflakeDialect implements SqlDialect {
         if (step.getIndex() != null) {
             return String.valueOf(step.getIndex());
         }
-        return literal(NestedSql.key(step));
+        return NestedSql.literal(INSTANCE, NestedSql.key(step));
     }
 
     private static String jsonPath(String sql, List<Selector> steps) {
         return "GET_PATH("
                 + sql
                 + ", "
-                + literal(
+                + NestedSql.literal(
+                        INSTANCE,
                         NestedSql.jsonPath(
                                 steps,
                                 "",
@@ -224,22 +224,6 @@ public class SnowflakeDialect implements SqlDialect {
                         ? parameters.get(0)
                         : "(" + String.join(", ", parameters) + ")";
         return head + " -> " + body;
-    }
-
-    private static final Pattern LAMBDA_NAME = Pattern.compile("\\b_l(\\d+)_\\w+");
-
-    /**
-     * A lambda in Snowflake does not see the parameters of the lambda around it (measured: invalid
-     * identifier), only the columns of the query. Said here rather than left to the database.
-     */
-    private static void refuseEnclosingParameters(int depth, String body) {
-        Matcher m = LAMBDA_NAME.matcher(body);
-        while (m.find()) {
-            if (Integer.parseInt(m.group(1)) < depth) {
-                throw new KorykiaiException(
-                        "a lambda in Snowflake cannot use the parameter of the lambda around it");
-            }
-        }
     }
 
     /**
@@ -273,7 +257,10 @@ public class SnowflakeDialect implements SqlDialect {
                         ? SqlSelectRenderer.parameterName(
                                 depth, lambda.getLambda().getParameters().get(1))
                         : null;
-        String at = positioned ? "GET(" + list + ", " + index + " - 1)" : null;
+        // the index is cast: inside a lambda, GET of a list that is an expression and not a column
+        // answers undefined for an index that is not an integer (measured), and the generated range
+        // holds variants
+        String at = positioned ? "GET(" + list + ", CAST(" + index + " AS INTEGER) - 1)" : null;
         return renderer.lambda(
                 lambda,
                 indent,
@@ -282,7 +269,11 @@ public class SnowflakeDialect implements SqlDialect {
                                 ? SqlSelectRenderer.parameterName(d, parameter)
                                 : position == 0 ? at : index,
                 (names, body) -> {
-                    refuseEnclosingParameters(depth, body);
+                    if (renderer.lambdaReachesOut()) {
+                        // measured: a lambda here does not see the parameters of the one around it
+                        throw new KorykiaiException(
+                                "a lambda in Snowflake cannot use the parameter of the lambda around it");
+                    }
                     if (positioned) {
                         String range = "ARRAY_GENERATE_RANGE(1, ARRAY_SIZE(" + list + ") + 1)";
                         if (name.equals("list_transform")) {

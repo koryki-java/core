@@ -108,10 +108,62 @@ public final class NestedSql {
             k++;
         }
         String alias = "BO_" + k;
-        String template = from.replace("{1}", alias);
-        int at = template.indexOf("{0}");
-        String source = template.substring(0, at) + value + template.substring(at + 3);
+        String[] bound = unbind(value);
+        String source;
+        if (bound != null) {
+            // the value is a list made from a list made once itself: write the two as a chain of
+            // derived tables, not as a subquery in a derived table, which not every engine accepts
+            source = "FROM (SELECT " + bound[0] + " AS L " + bound[1] + ") " + alias;
+        } else {
+            source = from.replace("{1}", alias);
+            int at = source.indexOf("{0}");
+            source = source.substring(0, at) + value + source.substring(at + 3);
+        }
         return "(SELECT " + over.apply(alias + ".L") + " " + source + ")";
+    }
+
+    /**
+     * Takes apart what {@link #bindOnce} made, {@code (SELECT over FROM (SELECT value AS L) BO_k)},
+     * into {@code over} and {@code FROM (SELECT value AS L) BO_k}; null for anything else.
+     */
+    static String[] unbind(String sql) {
+        if (!sql.startsWith("(SELECT ") || !sql.endsWith(")")) {
+            return null;
+        }
+        String body = sql.substring("(SELECT ".length(), sql.length() - 1);
+        java.util.regex.Matcher tail = Pattern.compile("\\) BO_\\d+$").matcher(body);
+        if (!tail.find()) {
+            return null;
+        }
+        int close = tail.start();
+        // the parenthesis that closes at 'close': a forward scan that knows text and identifiers
+        java.util.ArrayDeque<Integer> open = new java.util.ArrayDeque<>();
+        char quote = 0;
+        for (int i = 0; i <= close; i++) {
+            char c = body.charAt(i);
+            if (quote != 0) {
+                if (c == quote) {
+                    quote = 0; // a doubled quote ends and starts again, which comes out the same
+                }
+            } else if (c == '\'' || c == '"') {
+                quote = c;
+            } else if (c == '(') {
+                open.push(i);
+            } else if (c == ')') {
+                int start = open.isEmpty() ? -1 : open.pop();
+                if (i == close) {
+                    String before = body.substring(0, Math.max(start, 0));
+                    if (start < 0 || !before.endsWith(" FROM ")) {
+                        return null;
+                    }
+                    return new String[] {
+                        before.substring(0, before.length() - " FROM ".length()),
+                        "FROM " + body.substring(start)
+                    };
+                }
+            }
+        }
+        return null;
     }
 
     /** How a JSON path of a dialect names the end of a list. */

@@ -174,4 +174,22 @@ class PostgresqlSelectionTest {
 
         assertTrue(String.valueOf(e.getMessage()).contains("fold over an array"), e.getMessage());
     }
+
+    private static String nestedTransforms(int depth) {
+        String list = "t.scores";
+        for (int i = 0; i < depth; i++) {
+            list = "list_transform(" + list + ", (x, i) -> @x + @i)";
+        }
+        return list;
+    }
+
+    @Test
+    void nestingDoesNotMultiplyTheSql() {
+        int three = sql(nestedTransforms(3)).length();
+        int six = sql(nestedTransforms(6)).length();
+
+        // twice the depth, about twice the SQL; a list named three times at every level would
+        // make it twenty-seven times
+        assertTrue(six < three * 2.6, () -> three + " characters at depth 3, " + six + " at 6");
+    }
 }

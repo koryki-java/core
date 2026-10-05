@@ -1045,8 +1045,29 @@ public class SqlSelectRenderer {
      */
     private final java.util.Deque<LambdaScope> lambdaScopes = new java.util.ArrayDeque<>();
 
-    private record LambdaScope(
-            java.util.Map<String, String> names, java.util.Map<String, TypeDescriptor> types) {}
+    private static final class LambdaScope {
+        private final java.util.Map<String, String> names;
+        private final java.util.Map<String, TypeDescriptor> types;
+
+        /**
+         * Set when the body, or a lambda inside it, uses a parameter of a lambda around this one.
+         */
+        private boolean reachesOut;
+
+        LambdaScope(
+                java.util.Map<String, String> names, java.util.Map<String, TypeDescriptor> types) {
+            this.names = names;
+            this.types = types;
+        }
+
+        java.util.Map<String, String> names() {
+            return names;
+        }
+
+        java.util.Map<String, TypeDescriptor> types() {
+            return types;
+        }
+    }
 
     private ExpressionTypeResolver typeResolver() {
         if (typeResolver == null) {
@@ -1157,10 +1178,26 @@ public class SqlSelectRenderer {
         for (LambdaScope scope : lambdaScopes) {
             String renamed = scope.names().get(name);
             if (renamed != null) {
+                // every lambda between the use and the one that declares it reaches outside itself
+                for (LambdaScope inner : lambdaScopes) {
+                    if (inner == scope) {
+                        break;
+                    }
+                    inner.reachesOut = true;
+                }
                 return renamed;
             }
         }
         throw new KorykiaiException("lambda parameter @" + name + " is not in scope");
+    }
+
+    /**
+     * Whether the lambda being rendered uses a parameter of a lambda around it. Asked from the
+     * shape of {@link #lambda}, when the body has been rendered: a dialect whose lambdas cannot see
+     * the ones around them refuses it there.
+     */
+    public boolean lambdaReachesOut() {
+        return lambdaScopes.peek().reachesOut;
     }
 
     /**

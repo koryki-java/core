@@ -37,8 +37,10 @@ with an `@`: `list_transform(t.scores, x -> @x * 2)`.
 * `list_transform` and `list_filter`: one parameter (the element) or two (element, position from 1).
 * `list_reduce`: two parameters (state, element); the first element is the initial state, so a list
   of one gives that element.
-* A lambda sees the columns of the query as well as its parameters. A parameter of a lambda around
-  it is hidden by one of the same name.
+* A lambda sees the columns of the query as well as its parameters. A parameter may not be named like
+  an alias visible where the lambda stands (`t.price` is a field of the alias, `@t@price` a selection
+  from the parameter), nor like a parameter of a lambda around it; both are refused when the query is
+  checked.
 * A NULL list stays NULL.
 
 ## What the dialects do
@@ -59,9 +61,9 @@ is an array position, so an integer key is written `@'1'`.
 
 ### Differences that are kept, not hidden
 
-* **JSON scalars.** DuckDB, PostgreSQL, Trino and Oracle answer a JSON string as JSON, with its
-  quotes. SQL Server, MariaDB and SQLite answer it as plain text: their functions do not say whether
-  a value was a string or a number. Objects and lists are JSON text everywhere; the spacing inside
+* **JSON scalars.** DuckDB, PostgreSQL, Trino, Oracle and SQLite answer a JSON string as JSON, with
+  its quotes. SQL Server and MariaDB answer it as plain text: their functions do not say whether a
+  value was a string or a number. Objects and lists are JSON text everywhere; the spacing inside
   them is the engine's own.
 * **Reduce on an empty list** is an error on DuckDB and NULL on Trino.
 * **Oracle** builds a list only of text, number or date: a result that is a list of structs or of
@@ -79,5 +81,8 @@ Lambda parameters are bound to what the dialect can name: a lambda parameter whe
 a column of a derived table where it has not (Oracle, PostgreSQL). Where SQL has to name a list more
 than once (its size and its elements, a position parameter), a list that is an expression is
 evaluated once in a derived table of one row, so nesting does not multiply the SQL and a function
-such as `random()` is not called again for each mention. Oracle and MariaDB cannot refer to the
-outer query from such a derived table and write the expression where it is needed.
+such as `random()` is not called again for each mention. Oracle and MariaDB cannot do that: Oracle
+evaluates a derived table that refers to the outer query once for the whole query instead of once
+per row, so every row would get the first row's list (measured), and MariaDB refuses the reference
+("Unknown table"). They write the expression wherever it is needed, and the SQL of a lambda whose
+list is itself a lambda grows with every nesting there; keep such chains short.

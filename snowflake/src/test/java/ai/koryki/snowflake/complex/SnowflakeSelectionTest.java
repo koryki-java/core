@@ -135,9 +135,11 @@ class SnowflakeSelectionTest {
             value = {
                 "list_transform(t.tags, x -> upper(@x))|TRANSFORM(t.tags, _l0_x -> upper(_l0_x))",
                 "list_filter(t.scores, x -> @x > 10)|FILTER(t.scores, _l0_x -> _l0_x > 10)",
-                // the position: the 1-based indexes of the list, the element read back with GET
-                "list_transform(t.scores, (x, i) -> @x * @i)|TRANSFORM(ARRAY_GENERATE_RANGE(1, ARRAY_SIZE(t.scores) + 1), _l0_i -> GET(t.scores, _l0_i - 1) * _l0_i)",
-                "list_filter(t.scores, (x, i) -> @x > @i)|TRANSFORM(FILTER(ARRAY_GENERATE_RANGE(1, ARRAY_SIZE(t.scores) + 1), _l0_i -> GET(t.scores, _l0_i - 1) > _l0_i), _l0_i -> GET(t.scores, _l0_i - 1))",
+                // the position: the 1-based indexes of the list, the element read back with GET at
+                // the index
+                // cast to an integer: inside a lambda an index that is a variant gives undefined
+                "list_transform(t.scores, (x, i) -> @x * @i)|TRANSFORM(ARRAY_GENERATE_RANGE(1, ARRAY_SIZE(t.scores) + 1), _l0_i -> GET(t.scores, CAST(_l0_i AS INTEGER) - 1) * _l0_i)",
+                "list_filter(t.scores, (x, i) -> @x > @i)|TRANSFORM(FILTER(ARRAY_GENERATE_RANGE(1, ARRAY_SIZE(t.scores) + 1), _l0_i -> GET(t.scores, CAST(_l0_i AS INTEGER) - 1) > _l0_i), _l0_i -> GET(t.scores, CAST(_l0_i AS INTEGER) - 1))",
                 // reduce starts with the first element, as in DuckDB
                 "list_reduce(t.scores, (a, b) -> @a + @b)|REDUCE(ARRAY_SLICE(t.scores, 1, ARRAY_SIZE(t.scores)), GET(t.scores, 0), (_l0_a, _l0_b) -> _l0_a + _l0_b)",
                 // a step on the parameter: an OBJECT field
@@ -161,5 +163,23 @@ class SnowflakeSelectionTest {
                                         "list_transform(t.scores, x -> list_transform(t.scores, y -> @x + @y))"));
 
         assertTrue(e.getMessage().contains("parameter of the lambda around it"), e.getMessage());
+    }
+
+    private static String nestedTransforms(int depth) {
+        String list = "t.scores";
+        for (int i = 0; i < depth; i++) {
+            list = "list_transform(" + list + ", (x, i) -> @x + @i)";
+        }
+        return list;
+    }
+
+    @Test
+    void nestingDoesNotMultiplyTheSql() {
+        int three = sql(nestedTransforms(3)).length();
+        int six = sql(nestedTransforms(6)).length();
+
+        // twice the depth, about twice the SQL; a list named three times at every level would
+        // make it twenty-seven times
+        assertTrue(six < three * 2.6, () -> three + " characters at depth 3, " + six + " at 6");
     }
 }

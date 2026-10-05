@@ -75,12 +75,22 @@ class DuckdbLambdaTest {
     }
 
     @Test
-    void aParameterNamedLikeAnAliasDoesNotTakeTheAlias() {
-        // t is the alias of the table and also the name of the parameter: inside the lambda, SQL
-        // would read t.price as the column of the table, not as the field of the element
-        String actual = sql("list_transform(t.items, t -> @t@price * t.nr)");
+    void aParameterNamedLikeAColumnDoesNotTakeTheColumn() {
+        // nr is a column of the table and also the name of the parameter: a bare nr in the SQL of
+        // the lambda would be the column, so the parameter is written under a name of its own
+        String actual = sql("list_transform(t.items, nr -> @nr@price * t.nr)");
 
-        assertTrue(actual.contains("_l0_t['price'] * t.nr"), actual);
+        assertTrue(actual.contains("_l0_nr['price'] * t.nr"), actual);
+    }
+
+    @Test
+    void aParameterNamedLikeAnAliasIsRefusedBeforeItIsRendered() {
+        ValidateException e =
+                assertThrows(
+                        ValidateException.class,
+                        () -> sql("list_transform(t.items, t -> @t@price)"));
+
+        assertTrue(e.getMessage().contains("has the name of the alias t"), e.getMessage());
     }
 
     @Test

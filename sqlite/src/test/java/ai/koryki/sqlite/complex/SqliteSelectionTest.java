@@ -58,12 +58,13 @@ class SqliteSelectionTest {
     @CsvSource(
             delimiter = '|',
             value = {
-                // one json_extract path, counted from 0, # for the end
-                "t.doc@n|json_extract(t.doc, '$.n')",
-                "t.doc@a@b@1|json_extract(t.doc, '$.a.b[0]')",
-                "t.doc@-1|json_extract(t.doc, '$[#-1]')",
-                "t.doc@-3|json_extract(t.doc, '$[#-3]')",
-                "t.doc@'a b'|json_extract(t.doc, '$.\"a b\"')",
+                // one -> path, counted from 0, # for the end; JSON text, so a string keeps its
+                // quotes
+                "t.doc@n|(t.doc -> '$.n')",
+                "t.doc@a@b@1|(t.doc -> '$.a.b[0]')",
+                "t.doc@-1|(t.doc -> '$[#-1]')",
+                "t.doc@-3|(t.doc -> '$[#-3]')",
+                "t.doc@'a b'|(t.doc -> '$.\"a b\"')",
             })
     void theShapeOfTheSelection(String expression, String expected) {
         String actual = sql(expression);

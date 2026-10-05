@@ -63,10 +63,10 @@ public class SqliteDialect implements SqlDialect {
 
     /**
      * SQLite has no collection, object or map type: the only nested value is JSON, kept as text and
-     * read by the JSON functions. A selector chain is one {@code json_extract} path, counted from
-     * 0, with {@code #} for the end ({@code $[#-1]} is the last). The answer is an SQL value for a
-     * scalar, a string without its quotes, and JSON text for an object or a list; NULL for what the
-     * path does not find.
+     * read by the JSON functions. A selector chain is one {@code ->} path, counted from 0, with
+     * {@code #} for the end ({@code $[#-1]} is the last). The operator answers JSON text, as the
+     * other dialects do: a string keeps its quotes, an object or a list is its text, and NULL is
+     * what the path does not find. ({@code json_extract} would answer a string without its quotes.)
      */
     @Override
     public String selection(String base, TypeDescriptor baseType, List<Selector> steps) {
@@ -79,7 +79,7 @@ public class SqliteDialect implements SqlDialect {
         String path =
                 NestedSql.jsonPath(
                         steps, "$", NestedSql.FromEnd.HASH, NestedSql.Quoting.DOT, "SQLite");
-        return "json_extract(" + base + ", '" + path.replace("'", "''") + "')";
+        return "(" + base + " -> " + NestedSql.literal(INSTANCE, path) + ")";
     }
 
     private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();

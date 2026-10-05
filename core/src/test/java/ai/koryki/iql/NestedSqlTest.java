@@ -137,4 +137,68 @@ class NestedSqlTest {
     private static TypeDescriptor leaf() {
         return new TypeDescriptor("INTEGER", null, ai.koryki.catalog.types.CoreTypeFamily.INTEGER);
     }
+
+    @Test
+    void anExpressionIsBoundOnceInADerivedTableOfOneRow() {
+        String sql =
+                NestedSql.bindOnce(
+                        "f(t.a)",
+                        "FROM (SELECT {0} AS L) {1}",
+                        ref -> "size(" + ref + ") + first(" + ref + ")");
+
+        assertEquals("(SELECT size(BO_1.L) + first(BO_1.L) FROM (SELECT f(t.a) AS L) BO_1)", sql);
+    }
+
+    @Test
+    void aReferenceIsNotBound() {
+        assertEquals(
+                "size(t.a)",
+                NestedSql.bindOnce("t.a", "FROM (SELECT {0} AS L) {1}", r -> "size(" + r + ")"));
+    }
+
+    @Test
+    void aListMadeFromABoundListIsAChainOfDerivedTables() {
+        String once = "FROM (SELECT {0} AS L) {1}";
+        String inner = NestedSql.bindOnce("f(t.a)", once, ref -> "g(" + ref + ")");
+        String outer = NestedSql.bindOnce(inner, once, ref -> "h(" + ref + ")");
+
+        assertEquals(
+                "(SELECT h(BO_2.L) FROM (SELECT g(BO_1.L) AS L FROM (SELECT f(t.a) AS L) BO_1) BO_2)",
+                outer);
+    }
+
+    @Test
+    void aChainOfThreeStaysAChain() {
+        String once = "FROM (SELECT {0} AS L) {1}";
+        String sql = "f(t.a)";
+        for (String fn : List.of("g", "h", "i")) {
+            sql = NestedSql.bindOnce(sql, once, ref -> fn + "(" + ref + ")");
+        }
+
+        assertEquals(
+                "(SELECT i(BO_3.L) FROM (SELECT h(BO_2.L) AS L FROM (SELECT g(BO_1.L) AS L FROM (SELECT f(t.a) AS L) BO_1) BO_2) BO_3)",
+                sql);
+    }
+
+    @Test
+    void parenthesesAndQuotesInTextDoNotConfuseTheChain() {
+        String once = "FROM (SELECT {0} AS L) {1}";
+        String inner = NestedSql.bindOnce("f(')', t.a)", once, ref -> "g(" + ref + ", \"a)b\")");
+        String outer = NestedSql.bindOnce(inner, once, ref -> "h(" + ref + ")");
+
+        assertEquals(
+                "(SELECT h(BO_2.L) FROM (SELECT g(BO_1.L, \"a)b\") AS L FROM (SELECT f(')', t.a) AS L) BO_1) BO_2)",
+                outer);
+    }
+
+    @Test
+    void anotherSubqueryIsBoundAsAValue() {
+        String sql =
+                NestedSql.bindOnce(
+                        "(SELECT max(x) FROM u)",
+                        "FROM (SELECT {0} AS L) {1}",
+                        ref -> "g(" + ref + ")");
+
+        assertEquals("(SELECT g(BO_1.L) FROM (SELECT (SELECT max(x) FROM u) AS L) BO_1)", sql);
+    }
 }

@@ -208,7 +208,7 @@ public class TrinoDialect implements SqlDialect {
     }
 
     /** One row holding a value, to name it more than once: see {@link NestedSql#bindOnce}. */
-    private static final String ONCE = "FROM (VALUES ({0})) AS {1}(L)";
+    private static final String ONCE = "FROM (SELECT {0} AS L) {1}";
 
     /** A range whose bounds are not both plain positions needs the length of the list. */
     private static boolean needsSize(Selector step) {
@@ -263,14 +263,14 @@ public class TrinoDialect implements SqlDialect {
         if (step.getIndex() != null) {
             return String.valueOf(step.getIndex());
         }
-        return "'" + NestedSql.key(step).replace("'", "''") + "'";
+        return NestedSql.literal(INSTANCE, NestedSql.key(step));
     }
 
     private static String jsonPath(String sql, List<Selector> steps) {
         String path =
                 NestedSql.jsonPath(
                         steps, "$", NestedSql.FromEnd.NONE, NestedSql.Quoting.BRACKET, "Trino");
-        return "json_extract(" + sql + ", '" + path.replace("'", "''") + "')";
+        return "json_extract(" + sql + ", " + NestedSql.literal(INSTANCE, path) + ")";
     }
 
     private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();

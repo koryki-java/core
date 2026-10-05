@@ -299,7 +299,7 @@ public class MssqlDialect implements SqlDialect {
         String path =
                 NestedSql.jsonPath(
                         steps, "$", NestedSql.FromEnd.NONE, NestedSql.Quoting.DOT, "SQL Server");
-        String literal = "'" + path.replace("'", "''") + "'";
+        String literal = NestedSql.literal(INSTANCE, path);
         return "COALESCE(JSON_QUERY("
                 + base
                 + ", "
