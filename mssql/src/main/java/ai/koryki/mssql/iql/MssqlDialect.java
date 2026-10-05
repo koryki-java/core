@@ -16,6 +16,7 @@
  */
 package ai.koryki.mssql.iql;
 
+import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.catalog.types.CoreTypeEncoding;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.Families;
@@ -35,10 +36,13 @@ import ai.koryki.iql.functions.StandardFunctions;
 import ai.koryki.iql.query.Duration;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
+import ai.koryki.iql.query.Selector;
 import ai.koryki.iql.typing.TimeEncodings;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
+import java.util.regex.Pattern;
 
 public class MssqlDialect implements SqlDialect {
 
@@ -267,6 +271,56 @@ public class MssqlDialect implements SqlDialect {
     @Override
     public String textLiteral(String quoted) {
         return quoted.chars().anyMatch(ch -> ch > 127) ? "N" + quoted : quoted;
+    }
+
+    // ---- nested values: selectors -------------------------------------------------------------
+
+    private static final Pattern JSON_NAME = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
+
+    /**
+     * SQL Server has no collection, object or map type: the only nested value is JSON, kept as
+     * text. A selector chain is one path, counted from 0. {@code JSON_VALUE} answers a scalar and
+     * {@code JSON_QUERY} an object or a list, each NULL for the other kind, so the two together
+     * answer whatever the path finds, and NULL for what it does not (the default, lax mode). The
+     * path has no position from the end, which is refused. A scalar string comes back as its text
+     * without the quotes: JSON_VALUE does not tell a string from a number.
+     */
+    @Override
+    public String selection(String base, TypeDescriptor baseType, List<Selector> steps) {
+        if (!CoreTypeFamily.JSON.equals(baseType.getTypeFamily())) {
+            throw new KorykiaiException(
+                    "SQL Server cannot select from "
+                            + baseType.portable()
+                            + " with a selector: only JSON is a nested value here");
+        }
+        StringBuilder path = new StringBuilder("$");
+        for (Selector step : steps) {
+            if (step.getIndex() != null) {
+                if (step.getIndex() < 0) {
+                    throw new KorykiaiException(
+                            "a JSON path in SQL Server has no position from the end: "
+                                    + ai.koryki.iql.IQLSerializer.selector(step));
+                }
+                path.append('[').append(step.getIndex() - 1).append(']');
+            } else {
+                String name = step.getId() != null ? step.getId() : step.getName();
+                path.append('.')
+                        .append(
+                                JSON_NAME.matcher(name).matches()
+                                        ? name
+                                        : "\"" + name.replace("\"", "\\\"") + "\"");
+            }
+        }
+        String literal = "'" + path.toString().replace("'", "''") + "'";
+        return "COALESCE(JSON_QUERY("
+                + base
+                + ", "
+                + literal
+                + "), JSON_VALUE("
+                + base
+                + ", "
+                + literal
+                + "))";
     }
 
     private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();
