@@ -23,6 +23,7 @@ import ai.koryki.iql.functions.catalog.ConditionalFunctions;
 import ai.koryki.iql.functions.catalog.ConversionFunctions;
 import ai.koryki.iql.functions.catalog.DateTimeFunctions;
 import ai.koryki.iql.functions.catalog.FormattingFunctions;
+import ai.koryki.iql.functions.catalog.ListFunctions;
 import ai.koryki.iql.functions.catalog.LogicalFunctions;
 import ai.koryki.iql.functions.catalog.MathFunctions;
 import ai.koryki.iql.functions.catalog.PatternMatchingFunctions;
@@ -48,6 +49,7 @@ public class StandardFunctions {
         PatternMatchingFunctions.register(r);
         MathFunctions.register(r);
         ConditionalFunctions.register(r);
+        ListFunctions.register(r);
         ComparisonFunctions.register(r);
         LogicalFunctions.register(r);
         return r;

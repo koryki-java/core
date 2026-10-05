@@ -27,11 +27,29 @@ public class FunctionBinding {
     private final Function function;
     private final java.util.function.Function<Expression, TypeDescriptor> resolver;
     private final Map<Integer, TypeDescriptor> cache = new HashMap<>();
+    private final Map<Integer, TypeDescriptor> lambdaTypes;
 
     public FunctionBinding(
             Function function, java.util.function.Function<Expression, TypeDescriptor> resolver) {
+        this(function, resolver, Map.of());
+    }
+
+    /**
+     * @param lambdaTypes the type of the body of each lambda argument, by argument position, with
+     *     its parameters bound to what the function says they are
+     */
+    public FunctionBinding(
+            Function function,
+            java.util.function.Function<Expression, TypeDescriptor> resolver,
+            Map<Integer, TypeDescriptor> lambdaTypes) {
         this.function = function;
         this.resolver = resolver;
+        this.lambdaTypes = lambdaTypes;
+    }
+
+    /** The type a lambda argument produces; null if it could not be typed. */
+    public TypeDescriptor getLambdaType(int i) {
+        return lambdaTypes.get(i);
     }
 
     public TypeDescriptor getOperandType(int i) {

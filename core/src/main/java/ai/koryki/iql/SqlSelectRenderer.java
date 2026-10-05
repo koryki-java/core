@@ -976,9 +976,10 @@ public class SqlSelectRenderer {
                     toSql(base, indent),
                     resolveType(base),
                     expression.getSelection().getSelectors());
+        } else if (expression.getLambda() != null) {
+            return lambdaSql(expression, indent);
         } else if (expression.getParameter() != null) {
-            throw new KorykiaiException(
-                    "lambda parameter @" + expression.getParameter() + " is not rendered yet");
+            return parameterSql(expression.getParameter());
         } else if (expression.getIdentity() != null) {
             throw new KorykiaiException("identity is not allowed here");
         } else {
@@ -1036,12 +1037,64 @@ public class SqlSelectRenderer {
     // identity memo. Subselects get their own renderer (subSelect()), hence their own resolver.
     private ExpressionTypeResolver typeResolver;
 
-    public TypeDescriptor resolveType(Expression expression) {
+    /**
+     * The lambdas being rendered, innermost first: the name each parameter has in the SQL and the
+     * type it was given. A parameter is renamed {@code _l<depth>_<name>}, so that what the author
+     * called it can never be an alias or a column of the query, which is what a bare {@code p}
+     * would be taken for inside a lambda.
+     */
+    private final java.util.Deque<LambdaScope> lambdaScopes = new java.util.ArrayDeque<>();
+
+    private record LambdaScope(
+            java.util.Map<String, String> names, java.util.Map<String, TypeDescriptor> types) {}
+
+    private ExpressionTypeResolver typeResolver() {
         if (typeResolver == null) {
             typeResolver =
                     new ExpressionTypeResolver(resolver, visibilityContext, functionRenderer);
         }
-        return typeResolver.resolve(expression);
+        // the scopes from the outside in: an inner parameter hides an outer one of its name
+        java.util.Map<String, TypeDescriptor> parameters = new java.util.LinkedHashMap<>();
+        lambdaScopes.descendingIterator().forEachRemaining(s -> parameters.putAll(s.types()));
+        return typeResolver.withParameters(parameters);
+    }
+
+    public TypeDescriptor resolveType(Expression expression) {
+        return typeResolver().resolve(expression);
+    }
+
+    private String lambdaSql(Expression expression, int indent) {
+        ai.koryki.iql.query.Lambda lambda = expression.getLambda();
+        java.util.List<TypeDescriptor> types = lambda.getParameterTypes();
+        if (types == null) {
+            throw new KorykiaiException(
+                    "the parameters of the lambda " + lambda.getParameters() + " have no types");
+        }
+        int depth = lambdaScopes.size();
+        java.util.Map<String, String> names = new java.util.LinkedHashMap<>();
+        java.util.Map<String, TypeDescriptor> typed = new java.util.LinkedHashMap<>();
+        for (int i = 0; i < lambda.getParameters().size(); i++) {
+            String name = lambda.getParameters().get(i);
+            names.put(name, "_l" + depth + "_" + name);
+            typed.put(name, types.get(i));
+        }
+        lambdaScopes.push(new LambdaScope(names, typed));
+        try {
+            return dialect.lambda(
+                    new java.util.ArrayList<>(names.values()), toSql(lambda.getBody(), indent));
+        } finally {
+            lambdaScopes.pop();
+        }
+    }
+
+    private String parameterSql(String name) {
+        for (LambdaScope scope : lambdaScopes) {
+            String renamed = scope.names().get(name);
+            if (renamed != null) {
+                return renamed;
+            }
+        }
+        throw new KorykiaiException("lambda parameter @" + name + " is not in scope");
     }
 
     /**
@@ -1073,6 +1126,8 @@ public class SqlSelectRenderer {
     }
 
     protected String toSql(Function function, int indent) {
+        // the lambdas of the call learn the types of their parameters before they are rendered
+        typeResolver().bindLambdas(function);
         String sql = functionRenderer.function(this, function, indent);
         return sql;
     }

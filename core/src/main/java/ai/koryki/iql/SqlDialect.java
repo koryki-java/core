@@ -525,6 +525,14 @@ public interface SqlDialect {
     }
 
     /**
+     * A lambda argument: its parameters, already renamed, and its body as SQL. Refused by default,
+     * like {@link #selection}.
+     */
+    default String lambda(List<String> parameters, String body) {
+        throw new KorykiaiException(getClass().getSimpleName() + " cannot render lambdas yet");
+    }
+
+    /**
      * A selector chain on a nested value: {@code base@1@name}. Handed over whole, because a dialect
      * may fold it (a JSON path takes every step in one string) and because what a step means
      * depends on the type it meets, which {@link ai.koryki.iql.typing.Selectors#step} follows.

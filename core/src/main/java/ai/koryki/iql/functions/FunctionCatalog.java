@@ -30,6 +30,14 @@ public interface FunctionCatalog {
 
     TypeDescriptor descriptor(FunctionBinding binding);
 
+    /**
+     * The lambda the call takes at an argument position, or null if it takes none there or the
+     * function is unknown to this catalog.
+     */
+    default LambdaSpec lambda(String name, int argCount, int position) {
+        return null;
+    }
+
     /** Overload set of a function name; empty = unknown to this catalog (validation skips it). */
     default List<FunctionDefinition> overloads(String name) {
         return List.of();

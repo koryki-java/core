@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.koryki.antlr.KorykiaiException;
-import ai.koryki.antlr.RangeException;
 import ai.koryki.databases.northwind.duckdb.NorthwindService;
 import ai.koryki.iql.IQLQueryMapper;
 import ai.koryki.iql.IQLReader;
@@ -321,23 +320,5 @@ class SelectorMapperTest {
 
         assertTrue(out.contains(expression.replace("p.product_name", "p.product_name")), out);
         assertEquals(out, reformat(out));
-    }
-
-    // ---- what is not mapped yet ---------------------------------------------------------------
-
-    @Test
-    void aLambdaIsRefusedWithAPositionNotWithAnNpe() {
-        for (String lambda : List.of("x -> @x", "(a, b) -> @a + @b")) {
-            RangeException e =
-                    assertThrows(
-                            RangeException.class,
-                            () ->
-                                    bean(
-                                            "FIND products p FETCH list_transform(p.tags, "
-                                                    + lambda
-                                                    + ")"),
-                            lambda);
-            assertTrue(e.getMessage().contains("lambda"), e.getMessage());
-        }
     }
 }

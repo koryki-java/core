@@ -44,6 +44,25 @@ public class ReturnTypes {
     public static final ReturnTypeInference ARG2 = b -> b.getOperandType(2);
     public static final ReturnTypeInference INTERVAL = b -> TypeDescriptor.INTERVAL;
 
+    /** {@code list_transform}: a list of whatever the lambda returns. */
+    public static final ReturnTypeInference LIST_OF_LAMBDA =
+            b -> {
+                TypeDescriptor element = b.getLambdaType(1);
+                return element == null ? null : TypeDescriptor.array(element);
+            };
+
+    /** {@code list_filter}: a list of the elements of the argument, whatever its fixed size. */
+    public static final ReturnTypeInference LIST_OF_ELEMENT =
+            b -> {
+                TypeDescriptor list = b.getOperandType(0);
+                return list == null || list.getTypeFamily() != CoreTypeFamily.ARRAY
+                        ? null
+                        : TypeDescriptor.array(list.element());
+            };
+
+    /** {@code list_reduce}: what the lambda returns. */
+    public static final ReturnTypeInference LAMBDA = b -> b.getLambdaType(1);
+
     /**
      * calendar_distance: an INTERVAL whose "startEpoch;endEpoch" wire form is decoded to a calendar
      * span.

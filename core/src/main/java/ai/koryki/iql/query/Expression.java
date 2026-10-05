@@ -41,6 +41,9 @@ public class Expression {
     /** The name of a lambda parameter, written {@code @x} where a value is expected. */
     private String parameter;
 
+    /** A lambda, which only ever stands as an argument of a function. */
+    private Lambda lambda;
+
     /**
      * A boolean-valued logical expression used as a function argument (e.g. the condition of {@code
      * if}).
@@ -135,6 +138,14 @@ public class Expression {
 
     public void setDuration(Duration duration) {
         this.duration = duration;
+    }
+
+    public Lambda getLambda() {
+        return lambda;
+    }
+
+    public void setLambda(Lambda lambda) {
+        this.lambda = lambda;
     }
 
     public Selection getSelection() {

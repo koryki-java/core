@@ -147,6 +147,9 @@ public class DuckdbBaseDialect implements SqlDialect {
     private static FunctionRenderer buildFunctionRenderer() {
         FunctionRegistry registry = StandardFunctions.registry();
 
+        // the standard catalog rejects lambdas on lists; DuckDB has them
+        ai.koryki.iql.functions.catalog.ListFunctions.register(registry, true);
+
         // list([x]) — DuckDB array literal
         registry.register(
                 new FunctionDefinition("list", ReturnTypes.TEXT)
@@ -546,6 +549,18 @@ public class DuckdbBaseDialect implements SqlDialect {
             }
         }
         return path.toString();
+    }
+
+    /**
+     * {@code x -> body}, or {@code (x, i) -> body}; DuckDB's arrow, which also reads JSON paths.
+     */
+    @Override
+    public String lambda(java.util.List<String> parameters, String body) {
+        String head =
+                parameters.size() == 1
+                        ? parameters.get(0)
+                        : "(" + String.join(", ", parameters) + ")";
+        return head + " -> " + body;
     }
 
     @Override

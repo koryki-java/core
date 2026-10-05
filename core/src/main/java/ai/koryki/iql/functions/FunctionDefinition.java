@@ -49,6 +49,7 @@ public class FunctionDefinition {
     private SqlTemplate template;
     private boolean unsupported;
     private boolean windowUnsupported;
+    private final java.util.List<LambdaSpec> lambdas = new java.util.ArrayList<>();
 
     /**
      * What the author can do instead, appended to the rejection. Optional, and worth having only
@@ -86,6 +87,18 @@ public class FunctionDefinition {
         this.windowUnsupported = base.windowUnsupported;
         this.unsupportedHint = base.unsupportedHint;
         this.fixity = base.fixity;
+        this.lambdas.addAll(base.lambdas);
+    }
+
+    /** Declares that the argument at {@code spec.position()} is a lambda, and what kind. */
+    public FunctionDefinition lambda(LambdaSpec spec) {
+        this.lambdas.add(spec);
+        return this;
+    }
+
+    /** The lambda this function takes at the position, or null if it takes none there. */
+    public LambdaSpec getLambda(int position) {
+        return lambdas.stream().filter(l -> l.position() == position).findFirst().orElse(null);
     }
 
     public FunctionDefinition signature(FunctionSignature signature) {

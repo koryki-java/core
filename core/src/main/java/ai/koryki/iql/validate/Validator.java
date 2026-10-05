@@ -112,6 +112,7 @@ public class Validator {
                     Walker.apply(
                             bean,
                             new SelectorValidator(iqlToContext, functions, resolver, visibility)));
+            violations.addAll(Walker.apply(bean, new LambdaValidator(iqlToContext, functions)));
             violations.addAll(Walker.apply(bean, new DurationValidator(iqlToContext)));
 
             // The dialect last: what it cannot express is only interesting once the query itself

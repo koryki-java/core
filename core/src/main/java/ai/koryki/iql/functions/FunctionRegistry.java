@@ -357,6 +357,12 @@ public class FunctionRegistry implements FunctionRenderer {
     }
 
     @Override
+    public LambdaSpec lambda(String name, int argCount, int position) {
+        FunctionDefinition fn = lookup(name, argCount);
+        return fn == null ? null : fn.getLambda(position);
+    }
+
+    @Override
     public TypeDescriptor descriptor(FunctionBinding binding) {
         FunctionDefinition fn =
                 lookup(

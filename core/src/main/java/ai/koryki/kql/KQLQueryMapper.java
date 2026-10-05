@@ -565,6 +565,30 @@ public class KQLQueryMapper {
         }
     }
 
+    private Lambda toLambda(KQLParser.LambdaContext lambda) {
+        Lambda bean = build(lambda, Lambda::new);
+        for (org.antlr.v4.runtime.tree.TerminalNode id : lambda.lambda_params().ID()) {
+            bean.getParameters().add(id.getText());
+        }
+        KQLParser.Logical_expressionContext body = lambda.lambda_body().logical_expression();
+        KQLParser.Unary_logical_expressionContext unary = body.unary_logical_expression();
+        // a body that is only a value is that value; anything with an operator is a predicate
+        if (unary != null
+                && unary.expression().size() == 1
+                && unary.operator() == null
+                && unary.BETWEEN() == null
+                && unary.PLACEHOLDER() == null
+                && unary.EXISTS() == null
+                && unary.logical_expression() == null) {
+            bean.setBody(toExpression(unary.expression(0)));
+        } else {
+            Expression e = build(body, Expression::new);
+            e.setLogical(toLogicalNode(java.util.Map.of(), body));
+            bean.setBody(e);
+        }
+        return bean;
+    }
+
     /**
      * {@code c.items@1@sku}: the grammar nests one expression per step, the bean keeps the chain as
      * one node, base first, steps in the order they are written.
@@ -651,7 +675,9 @@ public class KQLQueryMapper {
 
         for (KQLParser.ArgumentContext a : function.argument()) {
             if (a.lambda() != null) {
-                throw new RangeException(a, "lambda arguments are not supported yet");
+                Expression e = build(a, Expression::new);
+                e.setLambda(toLambda(a.lambda()));
+                f.getArguments().add(e);
             } else if (a.logical_expression() != null) {
                 Expression e = build(a, Expression::new);
                 e.setLogical(toLogicalNode(java.util.Map.of(), a.logical_expression()));

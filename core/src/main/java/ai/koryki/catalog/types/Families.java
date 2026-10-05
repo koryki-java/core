@@ -162,6 +162,14 @@ public final class Families {
                             CoreTypeFamily.MAP));
 
     /**
+     * The declared type of a lambda argument, {@code x -> @x * 2}. A group without members: no
+     * resolved value has this family, so a plain value where a lambda is declared fails the family
+     * check, while the lambda itself, which resolves to no type of its own, passes as a wildcard
+     * and is checked by {@code LambdaValidator}.
+     */
+    public static final TypeFamily LAMBDA = new FamilyGroup("LAMBDA", Set.of());
+
+    /**
      * The containers: ARRAY, STRUCT and MAP. The operand domain of functions that take a nested
      * value as a whole; what is inside is the type's children, not a family.
      */

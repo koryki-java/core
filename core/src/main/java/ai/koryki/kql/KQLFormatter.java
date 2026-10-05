@@ -687,7 +687,11 @@ public class KQLFormatter {
         private String toArgument(KQLParser.ArgumentContext argument, int indent) {
 
             if (argument.lambda() != null) {
-                throw new RangeException(argument, "lambda arguments are not supported yet");
+                // the parameters are the query's own names, the body is formatted like any other
+                return argument.lambda().lambda_params().getText().replace(",", ", ")
+                        + " -> "
+                        + toLogicalNode(
+                                argument.lambda().lambda_body().logical_expression(), indent);
             } else if (argument.logical_expression() != null) {
                 return toLogicalNode(argument.logical_expression(), indent);
             } else if (argument.expression() != null) {

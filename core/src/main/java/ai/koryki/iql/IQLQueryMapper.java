@@ -384,6 +384,30 @@ public class IQLQueryMapper {
         }
     }
 
+    private Lambda toLambda(IQLParser.LambdaContext lambda) {
+        Lambda bean = build(lambda, Lambda::new);
+        for (org.antlr.v4.runtime.tree.TerminalNode id : lambda.lambda_params().ID()) {
+            bean.getParameters().add(id.getText());
+        }
+        IQLParser.Logical_expressionContext body = lambda.lambda_body().logical_expression();
+        IQLParser.Unary_logical_expressionContext unary = body.unary_logical_expression();
+        // as in KQLQueryMapper: a body that is only a value is that value
+        if (unary != null
+                && unary.expression().size() == 1
+                && unary.operator() == null
+                && unary.BETWEEN() == null
+                && unary.PLACEHOLDER() == null
+                && unary.EXISTS() == null
+                && unary.logical_expression() == null) {
+            bean.setBody(toExpression(unary.expression(0)));
+        } else {
+            Expression e = build(body, Expression::new);
+            e.setLogical(toLogicalNode(body));
+            bean.setBody(e);
+        }
+        return bean;
+    }
+
     /** The chain of selector steps as one node; see KQLQueryMapper. */
     private Expression toSelection(IQLParser.ExpressionContext expression) {
         java.util.Deque<IQLParser.SelectorContext> steps = new java.util.ArrayDeque<>();
@@ -521,8 +545,9 @@ public class IQLQueryMapper {
 
     public Expression toExpression(IQLParser.ArgumentContext argument) {
         if (argument.lambda() != null) {
-            throw new ai.koryki.antlr.RangeException(
-                    argument, "lambda arguments are not supported yet");
+            Expression e = build(argument, Expression::new);
+            e.setLambda(toLambda(argument.lambda()));
+            return e;
         } else if (argument.logical_expression() != null) {
             Expression e = build(argument, Expression::new);
             e.setLogical(toLogicalNode(argument.logical_expression()));

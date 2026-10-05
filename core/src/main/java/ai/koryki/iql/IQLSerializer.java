@@ -400,7 +400,14 @@ public class IQLSerializer {
     private String toStringBody(Expression expression, int indent) {
         StringBuilder b = new StringBuilder();
 
-        if (expression.getSelection() != null) {
+        if (expression.getLambda() != null) {
+            Lambda lambda = expression.getLambda();
+            String parameters =
+                    lambda.getParameters().size() == 1
+                            ? lambda.getParameters().get(0)
+                            : "(" + String.join(", ", lambda.getParameters()) + ")";
+            b.append(parameters).append(" -> ").append(toString(lambda.getBody(), indent));
+        } else if (expression.getSelection() != null) {
             // base and steps, attached: c.items@1@sku; a parenthesised base keeps its parens
             b.append(toString(expression.getSelection().getBase(), indent));
             expression.getSelection().getSelectors().forEach(s -> b.append(selector(s)));
