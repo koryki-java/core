@@ -23,6 +23,7 @@ import ai.koryki.catalog.types.Families;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.WallClockEncoding;
 import ai.koryki.iql.Identifier;
+import ai.koryki.iql.NestedSql;
 import ai.koryki.iql.SqlDialect;
 import ai.koryki.iql.SqlRenderer;
 import ai.koryki.iql.SqlSelectRenderer;
@@ -42,7 +43,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
-import java.util.regex.Pattern;
 
 public class MssqlDialect implements SqlDialect {
 
@@ -275,8 +275,6 @@ public class MssqlDialect implements SqlDialect {
 
     // ---- nested values: selectors -------------------------------------------------------------
 
-    private static final Pattern JSON_NAME = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
-
     /**
      * SQL Server has no collection, object or map type: the only nested value is JSON, kept as
      * text. A selector chain is one path, counted from 0. {@code JSON_VALUE} answers a scalar and
@@ -293,25 +291,15 @@ public class MssqlDialect implements SqlDialect {
                             + baseType.portable()
                             + " with a selector: only JSON is a nested value here");
         }
-        StringBuilder path = new StringBuilder("$");
-        for (Selector step : steps) {
-            if (step.getIndex() != null) {
-                if (step.getIndex() < 0) {
-                    throw new KorykiaiException(
-                            "a JSON path in SQL Server has no position from the end: "
-                                    + ai.koryki.iql.IQLSerializer.selector(step));
-                }
-                path.append('[').append(step.getIndex() - 1).append(']');
-            } else {
-                String name = step.getId() != null ? step.getId() : step.getName();
-                path.append('.')
-                        .append(
-                                JSON_NAME.matcher(name).matches()
-                                        ? name
-                                        : "\"" + name.replace("\"", "\\\"") + "\"");
-            }
+        if (!NestedSql.isReference(base)) {
+            // JSON_QUERY and JSON_VALUE both ask for the value
+            return NestedSql.bindOnce(
+                    base, "FROM (SELECT {0} AS L) {1}", ref -> selection(ref, baseType, steps));
         }
-        String literal = "'" + path.toString().replace("'", "''") + "'";
+        String path =
+                NestedSql.jsonPath(
+                        steps, "$", NestedSql.FromEnd.NONE, NestedSql.Quoting.DOT, "SQL Server");
+        String literal = "'" + path.replace("'", "''") + "'";
         return "COALESCE(JSON_QUERY("
                 + base
                 + ", "

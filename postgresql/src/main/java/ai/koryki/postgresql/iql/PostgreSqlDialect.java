@@ -20,6 +20,7 @@ import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.WallClockEncoding;
+import ai.koryki.iql.NestedSql;
 import ai.koryki.iql.SqlDialect;
 import ai.koryki.iql.functions.FunctionArg;
 import ai.koryki.iql.functions.FunctionCategory;
@@ -72,39 +73,56 @@ public class PostgreSqlDialect implements SqlDialect {
             int indent,
             boolean filter) {
         String list = renderer.toSql(function.getArguments().get(0), indent);
-        TypeDescriptor returned = function.getArguments().get(1).getLambda().getBodyType();
+        TypeDescriptor returned = renderer.lambdaBodyType(function.getArguments().get(1));
         if (!filter && returned != null && CoreTypeFamily.ARRAY.equals(returned.getTypeFamily())) {
             // an array of arrays is one multi-dimensional array: it cannot be collected from rows
-            // of
-            // different lengths ("cannot accumulate arrays of different dimensionality"), and it
-            // would mean a different type from the list of lists the query asks for
+            // of different lengths ("cannot accumulate arrays of different dimensionality"), and
+            // it would mean a different type from the list of lists the query asks for
             throw new KorykiaiException(
                     "PostgreSQL cannot return a list of lists from list_transform: its arrays do not nest");
         }
-        return renderer.lambda(
-                function.getArguments().get(1),
-                indent,
-                (names, body) -> {
-                    String element = names.get(0);
-                    String position = names.size() > 1 ? names.get(1) : "_pos_" + element;
-                    String select = filter ? element : body;
-                    String where = filter ? " WHERE " + body : "";
-                    return "CASE WHEN "
-                            + list
-                            + " IS NULL THEN NULL ELSE ARRAY(SELECT "
-                            + select
-                            + " FROM (SELECT _s._a[_i] AS "
-                            + element
-                            + ", _i AS "
-                            + position
-                            + " FROM (SELECT "
-                            + list
-                            + " AS _a) AS _s, generate_subscripts(_s._a, 1) AS _i) AS _u"
-                            + where
-                            + " ORDER BY "
-                            + position
-                            + ") END";
-                });
+        // the list is named for the NULL check, the elements and the subscripts: once, then
+        return NestedSql.bindOnce(
+                list,
+                ONCE,
+                array ->
+                        renderer.lambda(
+                                function.getArguments().get(1),
+                                indent,
+                                (names, body) -> {
+                                    String element = names.get(0);
+                                    String position =
+                                            names.size() > 1 ? names.get(1) : "_pos_" + element;
+                                    String select = filter ? element : body;
+                                    String where = filter ? " WHERE " + body : "";
+                                    return "CASE WHEN "
+                                            + array
+                                            + " IS NULL THEN NULL ELSE ARRAY(SELECT "
+                                            + select
+                                            + " FROM (SELECT "
+                                            + array
+                                            + "[_i] AS "
+                                            + element
+                                            + ", _i AS "
+                                            + position
+                                            + " FROM generate_subscripts("
+                                            + array
+                                            + ", 1) AS _i) AS _u"
+                                            + where
+                                            + " ORDER BY "
+                                            + position
+                                            + ") END";
+                                }));
+    }
+
+    /** One row holding a value, to name it more than once: see {@link NestedSql#bindOnce}. */
+    private static final String ONCE = "FROM (SELECT {0} AS L) {1}";
+
+    /** A position from the end is the length minus what is left: the array is named twice. */
+    private static boolean fromEnd(Selector step) {
+        return (step.getIndex() != null && step.getIndex() < 0)
+                || (step.getFrom() != null && step.getFrom() < 0)
+                || (step.getTo() != null && step.getTo() < 0);
     }
 
     private static final java.util.regex.Pattern REFERENCE =
@@ -129,6 +147,16 @@ public class PostgreSqlDialect implements SqlDialect {
         TypeDescriptor type = baseType;
         for (int i = 0; i < steps.size(); i++) {
             Selector step = steps.get(i);
+            if (CoreTypeFamily.ARRAY.equals(type.getTypeFamily())
+                    && steps.subList(i, steps.size()).stream().anyMatch(PostgreSqlDialect::fromEnd)
+                    && !NestedSql.isReference(sql)) {
+                int from = i;
+                TypeDescriptor typeHere = type;
+                return NestedSql.bindOnce(
+                        sql,
+                        ONCE,
+                        ref -> selection(ref, typeHere, steps.subList(from, steps.size())));
+            }
             if (CoreTypeFamily.JSON.equals(type.getTypeFamily())) {
                 return jsonPath(sql, steps.subList(i, steps.size()));
             } else if (CoreTypeFamily.STRUCT.equals(type.getTypeFamily())) {
@@ -180,26 +208,7 @@ public class PostgreSqlDialect implements SqlDialect {
      * The declared name of the field, from the type: quoted unless it is a plain lower-case name.
      */
     private static String fieldName(TypeDescriptor type, Selector step) {
-        String name;
-        if (step.getIndex() != null) {
-            int n = type.children().size();
-            name =
-                    type.fieldNames()
-                            .get(step.getIndex() > 0 ? step.getIndex() - 1 : n + step.getIndex());
-        } else {
-            String wanted = step.getId() != null ? step.getId() : step.getName();
-            name =
-                    type.fieldNames().stream()
-                            .filter(f -> f.equals(wanted))
-                            .findFirst()
-                            .orElseGet(
-                                    () ->
-                                            type.fieldNames().stream()
-                                                    .filter(f -> f.equalsIgnoreCase(wanted))
-                                                    .findFirst()
-                                                    .orElse(wanted));
-        }
-        return PLAIN_NAME.matcher(name).matches() ? name : "\"" + name.replace("\"", "\"\"") + "\"";
+        return NestedSql.identifier(NestedSql.fieldName(type, step), PLAIN_NAME);
     }
 
     private String dimensions(String sql, TypeDescriptor type, java.util.List<Selector> steps) {
@@ -246,7 +255,7 @@ public class PostgreSqlDialect implements SqlDialect {
                 int n = step.getIndex();
                 path.append(" -> ").append(n > 0 ? n - 1 : n);
             } else {
-                String name = step.getId() != null ? step.getId() : step.getName();
+                String name = NestedSql.key(step);
                 path.append(" -> '").append(name.replace("'", "''")).append("'");
             }
         }

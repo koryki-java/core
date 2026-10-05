@@ -1068,6 +1068,43 @@ public class SqlSelectRenderer {
     }
 
     /**
+     * What the calls rendered so far made of their lambdas, by lambda: the types of the parameters
+     * and of the body. Kept here and not on the query model, which stays what was written.
+     */
+    private final java.util.Map<ai.koryki.iql.query.Lambda, ai.koryki.iql.typing.LambdaTyping>
+            lambdaTypings = new java.util.IdentityHashMap<>();
+
+    /** What a lambda argument of a call being rendered returns; null if it could not be typed. */
+    public TypeDescriptor lambdaBodyType(Expression lambda) {
+        ai.koryki.iql.typing.LambdaTyping typing = lambdaTypings.get(lambda.getLambda());
+        return typing != null ? typing.bodyType() : null;
+    }
+
+    /** How many lambdas are being rendered around the point the renderer is at. */
+    public int lambdaDepth() {
+        return lambdaScopes.size();
+    }
+
+    /** The SQL name a parameter has unless a dialect binds it to something else. */
+    public static String parameterName(int depth, String name) {
+        return "_l" + depth + "_" + name;
+    }
+
+    /**
+     * What a lambda parameter reads as in the SQL: a name where the dialect has lambdas, a column
+     * of a derived table or an expression over one where it has not.
+     */
+    @FunctionalInterface
+    public interface ParameterBinding {
+        /**
+         * @param parameter the name the author gave it
+         * @param position 0 for the first parameter
+         * @param depth how many lambdas enclose this one; distinguishes it from the lambdas around
+         */
+        String sql(String parameter, int position, int depth);
+    }
+
+    /**
      * Renders a lambda argument with its parameters renamed and in scope, and lets the caller shape
      * the result from the new names and the SQL of the body. The dialect's own {@code x -> body} is
      * one such shape; a dialect without lambda expressions builds a subquery from the same two
@@ -1077,18 +1114,34 @@ public class SqlSelectRenderer {
             Expression expression,
             int indent,
             java.util.function.BiFunction<java.util.List<String>, String, String> shape) {
+        return lambda(
+                expression, indent, (name, position, depth) -> parameterName(depth, name), shape);
+    }
+
+    /**
+     * As {@link #lambda(Expression, int, java.util.function.BiFunction)}, with the SQL of each
+     * parameter chosen by the caller: a dialect that cannot name a parameter binds it to a column
+     * or to an expression, and the body is rendered with that, so no text has to be replaced in it
+     * afterwards. The shape receives the bound SQL of the parameters, in order.
+     */
+    public String lambda(
+            Expression expression,
+            int indent,
+            ParameterBinding binding,
+            java.util.function.BiFunction<java.util.List<String>, String, String> shape) {
         ai.koryki.iql.query.Lambda lambda = expression.getLambda();
-        java.util.List<TypeDescriptor> types = lambda.getParameterTypes();
-        if (types == null) {
+        ai.koryki.iql.typing.LambdaTyping typing = lambdaTypings.get(lambda);
+        if (typing == null || typing.parameterTypes() == null) {
             throw new KorykiaiException(
                     "the parameters of the lambda " + lambda.getParameters() + " have no types");
         }
+        java.util.List<TypeDescriptor> types = typing.parameterTypes();
         int depth = lambdaScopes.size();
         java.util.Map<String, String> names = new java.util.LinkedHashMap<>();
         java.util.Map<String, TypeDescriptor> typed = new java.util.LinkedHashMap<>();
         for (int i = 0; i < lambda.getParameters().size(); i++) {
             String name = lambda.getParameters().get(i);
-            names.put(name, "_l" + depth + "_" + name);
+            names.put(name, binding.sql(name, i, depth));
             typed.put(name, types.get(i));
         }
         lambdaScopes.push(new LambdaScope(names, typed));
@@ -1140,7 +1193,10 @@ public class SqlSelectRenderer {
 
     protected String toSql(Function function, int indent) {
         // the lambdas of the call learn the types of their parameters before they are rendered
-        typeResolver().bindLambdas(function);
+        java.util.List<Expression> arguments = function.getArguments();
+        typeResolver()
+                .bindLambdas(function)
+                .forEach((i, typing) -> lambdaTypings.put(arguments.get(i).getLambda(), typing));
         String sql = functionRenderer.function(this, function, indent);
         return sql;
     }

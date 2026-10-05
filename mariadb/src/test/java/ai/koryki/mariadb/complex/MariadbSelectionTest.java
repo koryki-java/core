@@ -98,4 +98,11 @@ class MariadbSelectionTest {
 
         assertTrue(e.getMessage().contains("only JSON"), e.getMessage());
     }
+
+    @Test
+    void aQuoteInAKeyStaysInsideTheLiteralOfItsGuardToo() {
+        String actual = sql("t.doc@'it\\'s'@x");
+
+        assertTrue(actual.contains("JSON_QUERY(t.doc, '$.\"it''s\"')"), actual);
+    }
 }

@@ -22,6 +22,7 @@ import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.Families;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.WallClockEncoding;
+import ai.koryki.iql.NestedSql;
 import ai.koryki.iql.SqlDialect;
 import ai.koryki.iql.SqlSelectRenderer;
 import ai.koryki.iql.functions.FormatMask;
@@ -97,6 +98,18 @@ public class TrinoDialect implements SqlDialect {
     private static String listWithLambda(
             String name, SqlSelectRenderer renderer, Function function, int indent) {
         String list = renderer.toSql(function.getArguments().get(0), indent);
+        // the position and the fold name the list several times
+        boolean repeated =
+                name.equals("list_reduce")
+                        || function.getArguments().get(1).getLambda().getParameters().size() > 1;
+        return repeated
+                ? NestedSql.bindOnce(
+                        list, ONCE, ref -> lambdaOver(name, renderer, function, ref, indent))
+                : lambdaOver(name, renderer, function, list, indent);
+    }
+
+    private static String lambdaOver(
+            String name, SqlSelectRenderer renderer, Function function, String list, int indent) {
         return renderer.lambda(
                 function.getArguments().get(1),
                 indent,
@@ -163,6 +176,17 @@ public class TrinoDialect implements SqlDialect {
         TypeDescriptor type = baseType;
         for (int i = 0; i < steps.size(); i++) {
             Selector step = steps.get(i);
+            if (CoreTypeFamily.ARRAY.equals(type.getTypeFamily())
+                    && needsSize(step)
+                    && !NestedSql.isReference(sql)) {
+                // the size of the list is asked for as well as its elements: evaluate it once
+                int from = i;
+                TypeDescriptor typeHere = type;
+                return NestedSql.bindOnce(
+                        sql,
+                        ONCE,
+                        ref -> selection(ref, typeHere, steps.subList(from, steps.size())));
+            }
             if (CoreTypeFamily.JSON.equals(type.getTypeFamily())) {
                 return jsonPath(sql, steps.subList(i, steps.size()));
             } else if (CoreTypeFamily.ARRAY.equals(type.getTypeFamily())) {
@@ -181,6 +205,18 @@ public class TrinoDialect implements SqlDialect {
             type = ai.koryki.iql.typing.Selectors.step(type, step);
         }
         return sql;
+    }
+
+    /** One row holding a value, to name it more than once: see {@link NestedSql#bindOnce}. */
+    private static final String ONCE = "FROM (VALUES ({0})) AS {1}(L)";
+
+    /** A range whose bounds are not both plain positions needs the length of the list. */
+    private static boolean needsSize(Selector step) {
+        return step.getIndex() == null
+                && !(step.getFrom() != null
+                        && step.getTo() != null
+                        && step.getFrom() > 0
+                        && step.getTo() > 0);
     }
 
     private static String slice(String list, Selector step) {
@@ -219,54 +255,22 @@ public class TrinoDialect implements SqlDialect {
                     + (step.getIndex() > 0 ? step.getIndex() : n + step.getIndex() + 1)
                     + "]";
         }
-        String wanted = step.getId() != null ? step.getId() : step.getName();
         // the name as the type declares it; Trino reads names without regard to case anyway
-        String name =
-                type.fieldNames().stream()
-                        .filter(f -> f.equalsIgnoreCase(wanted))
-                        .findFirst()
-                        .orElse(wanted);
-        return "("
-                + sql
-                + ")."
-                + (PLAIN_NAME.matcher(name).matches()
-                        ? name
-                        : "\"" + name.replace("\"", "\"\"") + "\"");
+        return "(" + sql + ")." + NestedSql.identifier(NestedSql.fieldName(type, step), PLAIN_NAME);
     }
 
     private static String mapKey(TypeDescriptor type, Selector step) {
         if (step.getIndex() != null) {
             return String.valueOf(step.getIndex());
         }
-        String key = step.getId() != null ? step.getId() : step.getName();
-        return "'" + key.replace("'", "''") + "'";
+        return "'" + NestedSql.key(step).replace("'", "''") + "'";
     }
 
-    private static final java.util.regex.Pattern JSON_NAME =
-            java.util.regex.Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
-
     private static String jsonPath(String sql, List<Selector> steps) {
-        StringBuilder path = new StringBuilder("$");
-        for (Selector step : steps) {
-            if (step.getIndex() != null) {
-                if (step.getIndex() < 0) {
-                    throw new KorykiaiException(
-                            "a JSON path in Trino has no position from the end: "
-                                    + ai.koryki.iql.IQLSerializer.selector(step));
-                }
-                path.append('[').append(step.getIndex() - 1).append(']');
-            } else {
-                String name = step.getId() != null ? step.getId() : step.getName();
-                if (JSON_NAME.matcher(name).matches()) {
-                    path.append('.').append(name);
-                } else {
-                    path.append("[\"")
-                            .append(name.replace("\\", "\\\\").replace("\"", "\\\""))
-                            .append("\"]");
-                }
-            }
-        }
-        return "json_extract(" + sql + ", '" + path.toString().replace("'", "''") + "')";
+        String path =
+                NestedSql.jsonPath(
+                        steps, "$", NestedSql.FromEnd.NONE, NestedSql.Quoting.BRACKET, "Trino");
+        return "json_extract(" + sql + ", '" + path.replace("'", "''") + "')";
     }
 
     private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();

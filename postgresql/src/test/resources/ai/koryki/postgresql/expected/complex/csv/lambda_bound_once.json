@@ -1,0 +1,4 @@
+Nr : INTEGER
+last_big : INTEGER
+last_two_doubled : ARRAY(INTEGER)
+weighted_big : ARRAY(INTEGER)

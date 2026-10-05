@@ -269,22 +269,23 @@ public class ExpressionTypeResolver {
     }
 
     private TypeDescriptor resolveFunction(Function function) {
-        return catalog.descriptor(
-                new FunctionBinding(function, this::resolve, bindLambdas(function)));
+        java.util.Map<Integer, TypeDescriptor> bodies = new java.util.HashMap<>();
+        bindLambdas(function).forEach((i, typing) -> bodies.put(i, typing.bodyType()));
+        return catalog.descriptor(new FunctionBinding(function, this::resolve, bodies));
     }
 
     /**
      * Gives every lambda argument of the call the types of its parameters, which the function
-     * declares from the types of its other arguments, and types its body with them. The types are
-     * written to the lambda too ({@link Lambda#setParameterTypes}), because the renderer meets the
-     * body later and must know what {@code @x@price} selects from.
+     * declares from the types of its other arguments, and types its body with them. Nothing is
+     * written to the query model: the renderer, which meets the body later and must know what
+     * {@code @x@price} selects from, keeps what is returned here.
      *
-     * @return the type of the body of each lambda, by argument position; a lambda that cannot be
-     *     typed (an argument of the wrong type, a parameter count the function does not take) is
-     *     left out, and whoever checks the call reports why
+     * @return the typing of each lambda, by argument position; a lambda that cannot be typed (an
+     *     argument of the wrong type, a parameter count the function does not take) is left out,
+     *     and whoever checks the call reports why
      */
-    public java.util.Map<Integer, TypeDescriptor> bindLambdas(Function function) {
-        java.util.Map<Integer, TypeDescriptor> bodies = new java.util.HashMap<>();
+    public java.util.Map<Integer, LambdaTyping> bindLambdas(Function function) {
+        java.util.Map<Integer, LambdaTyping> bodies = new java.util.HashMap<>();
         List<Expression> arguments = function.getArguments();
         if (arguments.stream().noneMatch(a -> a.getLambda() != null)) {
             return bodies;
@@ -317,14 +318,12 @@ public class ExpressionTypeResolver {
                 continue;
             }
             types = List.copyOf(types.subList(0, n));
-            lambda.setParameterTypes(types);
             java.util.Map<String, TypeDescriptor> scope = new java.util.LinkedHashMap<>();
             for (int k = 0; k < n; k++) {
                 scope.put(lambda.getParameters().get(k), types.get(k));
             }
             TypeDescriptor body = withParameters(scope).resolve(lambda.getBody());
-            lambda.setBodyType(body);
-            bodies.put(i, body);
+            bodies.put(i, new LambdaTyping(types, body));
         }
         return bodies;
     }

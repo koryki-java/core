@@ -16,7 +16,6 @@
  */
 package ai.koryki.iql.query;
 
-import ai.koryki.catalog.types.TypeDescriptor;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,15 +26,14 @@ import java.util.List;
  * expression holding a logical one.
  *
  * <p>A lambda is never a value of its own: the function it is passed to says how many parameters it
- * takes and of what types, and the typing writes those types back here so that the renderer, which
- * meets the body later, knows what {@code @x@price} selects from.
+ * takes and of what types. Those types are not kept here, the model stays what was written: the
+ * typing returns them as a {@link ai.koryki.iql.typing.LambdaTyping} and the renderer keeps them
+ * for the rendering of that call.
  */
 public class Lambda {
 
     private List<String> parameters = new ArrayList<>();
     private Expression body;
-    private List<TypeDescriptor> parameterTypes;
-    private TypeDescriptor bodyType;
 
     public List<String> getParameters() {
         return parameters;
@@ -51,25 +49,5 @@ public class Lambda {
 
     public void setBody(Expression body) {
         this.body = body;
-    }
-
-    /** Set by the typing once the enclosing call is resolved; null before. */
-    public List<TypeDescriptor> getParameterTypes() {
-        return parameterTypes;
-    }
-
-    public void setParameterTypes(List<TypeDescriptor> parameterTypes) {
-        this.parameterTypes = parameterTypes;
-    }
-
-    /**
-     * What the body returns, set with the parameter types; null before, or if it cannot be typed.
-     */
-    public TypeDescriptor getBodyType() {
-        return bodyType;
-    }
-
-    public void setBodyType(TypeDescriptor bodyType) {
-        this.bodyType = bodyType;
     }
 }

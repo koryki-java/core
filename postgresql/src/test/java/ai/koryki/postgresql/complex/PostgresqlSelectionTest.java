@@ -119,11 +119,11 @@ class PostgresqlSelectionTest {
     @CsvSource(
             delimiter = '|',
             value = {
-                "list_transform(t.tags, x -> upper(@x))|ARRAY(SELECT upper(_l0_x) FROM (SELECT _s._a[_i] AS _l0_x,"
-                        + " _i AS _pos__l0_x FROM (SELECT t.tags AS _a) AS _s, generate_subscripts(_s._a, 1) AS _i) AS _u"
+                "list_transform(t.tags, x -> upper(@x))|ARRAY(SELECT upper(_l0_x) FROM (SELECT t.tags[_i] AS _l0_x,"
+                        + " _i AS _pos__l0_x FROM generate_subscripts(t.tags, 1) AS _i) AS _u"
                         + " ORDER BY _pos__l0_x)",
-                "list_transform(t.scores, (x, i) -> @x * @i)|SELECT _l0_x * _l0_i FROM (SELECT _s._a[_i] AS _l0_x, _i AS _l0_i",
-                "list_filter(t.scores, x -> @x > 10)|SELECT _l0_x FROM (SELECT _s._a[_i] AS _l0_x",
+                "list_transform(t.scores, (x, i) -> @x * @i)|SELECT _l0_x * _l0_i FROM (SELECT t.scores[_i] AS _l0_x, _i AS _l0_i",
+                "list_filter(t.scores, x -> @x > 10)|SELECT _l0_x FROM (SELECT t.scores[_i] AS _l0_x",
                 "list_filter(t.scores, x -> @x > 10)|WHERE _l0_x > 10",
                 // a NULL list stays NULL; an empty subquery would make it an empty array
                 "list_transform(t.tags, x -> @x)|CASE WHEN t.tags IS NULL THEN NULL ELSE ARRAY(",
@@ -133,6 +133,23 @@ class PostgresqlSelectionTest {
                 "list_transform(t.tags, x -> @x)@1|[1]",
             })
     void theShapeOfTheLambda(String expression, String expected) {
+        String actual = sql(expression);
+
+        assertTrue(actual.contains(expected), () -> expected + " not in: " + actual);
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            delimiter = '|',
+            value = {
+                // a list that is an expression is evaluated once, in a derived table of one row
+                "list_filter(t.scores, x -> @x > 5)@-1|FROM (SELECT CASE WHEN t.scores IS NULL",
+                "list_filter(t.scores, x -> @x > 5)@-1|BO_1.L[array_length(BO_1.L, 1)]",
+                "coalesce(t.tags, t.tags)@-2:|array_length(BO_1.L, 1)",
+                // a column is written as it is
+                "t.tags@-1|t.tags[array_length(t.tags, 1)]",
+            })
+    void anExpressionIsEvaluatedOnceWhereItIsNamedRepeatedly(String expression, String expected) {
         String actual = sql(expression);
 
         assertTrue(actual.contains(expected), () -> expected + " not in: " + actual);

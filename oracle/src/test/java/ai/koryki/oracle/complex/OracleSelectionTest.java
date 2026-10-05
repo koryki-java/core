@@ -110,7 +110,6 @@ class OracleSelectionTest {
     @CsvSource(
             delimiter = '|',
             value = {
-                "list_reduce(t.scores, (a, b) -> @a + @b)|a fold has no form in SQL",
                 "list_filter(t.items, it -> @it@qty > 1)|cannot build a list of STRUCT",
                 "t.items@1:2|cannot build a list of STRUCT",
                 "list_transform(t.items, it -> @it@opts)|cannot build a list of ARRAY",
@@ -122,9 +121,28 @@ class OracleSelectionTest {
     }
 
     @Test
+    void reduceIsDeclaredUnsupportedWithWhatToDoInstead() {
+        RuntimeException e =
+                assertThrows(
+                        RuntimeException.class,
+                        () -> sql("list_reduce(t.scores, (a, b) -> @a + @b)"));
+
+        assertTrue(
+                String.valueOf(e.getMessage()).contains("no fold over a collection"),
+                e.getMessage());
+    }
+
+    @Test
     void aQuoteInAJsonKeyStaysInsideItsLiteral() {
         String actual = sql("t.attrs@'it\\'s'");
 
         assertTrue(actual.contains("'$.\"it''s\"'"), actual);
+    }
+
+    @Test
+    void aQuoteInAKeyStaysInsideTheLiteralOfItsGuardToo() {
+        String actual = sql("t.attrs@'it\\'s'@x");
+
+        assertTrue(actual.contains("'$.\"it''s\".type()'"), actual);
     }
 }

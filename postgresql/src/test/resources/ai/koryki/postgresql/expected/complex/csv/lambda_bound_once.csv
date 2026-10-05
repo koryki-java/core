@@ -1,0 +1,3 @@
+"Nr", "last_big", "last_two_doubled", "weighted_big"
+"1", "30", "[40,60]", "[10,40,90]"
+"3", "", "[10,null]", "[]"

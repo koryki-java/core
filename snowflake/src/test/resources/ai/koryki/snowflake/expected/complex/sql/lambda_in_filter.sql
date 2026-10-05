@@ -5,7 +5,7 @@ SELECT
   t.nr
 , GET(TRANSFORM(t.tags, _l0_x -> upper(_l0_x)), 0) AS first_shouted
 , GET(FILTER(t.scores, _l0_x -> _l0_x > 5), 0) AS first_big
-, CASE WHEN ARRAY_SIZE(TRANSFORM(t.items, _l0_it -> GET(_l0_it, 'sku'))) >= 1 THEN GET(TRANSFORM(t.items, _l0_it -> GET(_l0_it, 'sku')), ARRAY_SIZE(TRANSFORM(t.items, _l0_it -> GET(_l0_it, 'sku'))) - 1) END AS last_sku
+, (SELECT CASE WHEN ARRAY_SIZE(BO_1.L) >= 1 THEN GET(BO_1.L, ARRAY_SIZE(BO_1.L) - 1) END FROM (SELECT TRANSFORM(t.items, _l0_it -> GET(_l0_it, 'sku')) AS L) BO_1) AS last_sku
 FROM
  check_complex t
 WHERE

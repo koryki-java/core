@@ -22,6 +22,7 @@ import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.Families;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.WallClockEncoding;
+import ai.koryki.iql.NestedSql;
 import ai.koryki.iql.SqlDialect;
 import ai.koryki.iql.SqlSelectRenderer;
 import ai.koryki.iql.functions.FunctionArg;
@@ -41,7 +42,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -419,6 +419,10 @@ public class OracleDialect implements SqlDialect {
         return sql;
     }
 
+    // No bind-once here, unlike the other dialects: TABLE() over a collection column of a
+    // derived table that refers to the outer query answers no rows (measured, Oracle 26ai), so a
+    // list expression is written wherever it is needed.
+
     private static String size(String list) {
         return "(SELECT COUNT(*) FROM TABLE(" + list + "))";
     }
@@ -485,26 +489,8 @@ public class OracleDialect implements SqlDialect {
     private static final Pattern PLAIN_ATTRIBUTE = Pattern.compile("[a-z][a-z0-9_]*");
 
     private static String attribute(TypeDescriptor type, Selector step) {
-        String name;
-        if (step.getIndex() != null) {
-            int n = type.fieldNames().size();
-            name =
-                    type.fieldNames()
-                            .get(step.getIndex() > 0 ? step.getIndex() - 1 : n + step.getIndex());
-        } else {
-            String wanted = step.getId() != null ? step.getId() : step.getName();
-            name =
-                    type.fieldNames().stream()
-                            .filter(f -> f.equalsIgnoreCase(wanted))
-                            .findFirst()
-                            .orElse(wanted);
-        }
-        return PLAIN_ATTRIBUTE.matcher(name).matches()
-                ? name
-                : "\"" + name.replace("\"", "\"\"") + "\"";
+        return NestedSql.identifier(NestedSql.fieldName(type, step), PLAIN_ATTRIBUTE);
     }
-
-    private static final Pattern JSON_NAME = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
 
     /**
      * One JSON_QUERY for the whole path. Oracle's default (lax) paths treat an object as a list of
@@ -515,43 +501,28 @@ public class OracleDialect implements SqlDialect {
      * JSON_QUERY form.)
      */
     private static String jsonPath(String sql, List<Selector> steps) {
-        StringBuilder path = new StringBuilder("$");
+        List<String> paths =
+                NestedSql.jsonPaths(
+                        steps, "$", NestedSql.FromEnd.LAST, NestedSql.Quoting.DOT, "Oracle");
         List<String> guards = new ArrayList<>();
-        for (Selector step : steps) {
+        for (int i = 0; i < steps.size(); i++) {
             guards.add(
                     "JSON_VALUE("
                             + sql
                             + ", '"
-                            + path
+                            + paths.get(i).replace("'", "''")
                             + ".type()') = '"
-                            + (step.getIndex() != null ? "array" : "object")
+                            + (steps.get(i).getIndex() != null ? "array" : "object")
                             + "'");
-            if (step.getIndex() != null) {
-                int n = step.getIndex();
-                // JSON paths count from 0, and say "last" for the end
-                path.append(
-                        n > 0
-                                ? "[" + (n - 1) + "]"
-                                : n == -1 ? "[last]" : "[last-" + (-n - 1) + "]");
-            } else {
-                String name = step.getId() != null ? step.getId() : step.getName();
-                path.append('.')
-                        .append(
-                                JSON_NAME.matcher(name).matches()
-                                        ? name
-                                        : "\"" + name.replace("\"", "\\\"") + "\"");
-            }
         }
         return "CASE WHEN "
-                + String.join(" AND ", guards).replace("''", "''")
+                + String.join(" AND ", guards)
                 + " THEN JSON_QUERY("
                 + sql
                 + ", '"
-                + path.toString().replace("'", "''")
+                + paths.get(steps.size()).replace("'", "''")
                 + "' RETURNING JSON) END";
     }
-
-    private static final Pattern LAMBDA_NAME = Pattern.compile("_l(\\d+)_");
 
     /**
      * Oracle has no lambda, so TRANSFORM and FILTER are a {@code CAST(MULTISET(SELECT ... FROM
@@ -562,24 +533,26 @@ public class OracleDialect implements SqlDialect {
      */
     private static String listWithLambda(
             String name, SqlSelectRenderer renderer, Function function, int indent) {
-        if ("list_reduce".equals(name)) {
-            throw new KorykiaiException(
-                    "list_reduce is not supported on Oracle: a fold has no form in SQL");
-        }
         Expression listExpression = function.getArguments().get(0);
-        String list = renderer.toSql(listExpression, indent);
         TypeDescriptor element = renderer.resolveType(listExpression).element();
         Expression lambda = function.getArguments().get(1);
+        return lambdaOver(
+                name, renderer, lambda, element, renderer.toSql(listExpression, indent), indent);
+    }
+
+    private static String lambdaOver(
+            String name,
+            SqlSelectRenderer renderer,
+            Expression lambda,
+            TypeDescriptor element,
+            String list,
+            int indent) {
+        String alias = "LA" + renderer.lambdaDepth();
         return renderer.lambda(
                 lambda,
                 indent,
-                (names, body) -> {
-                    Matcher depth = LAMBDA_NAME.matcher(names.get(0));
-                    String alias = "LA" + (depth.find() ? depth.group(1) : "0");
-                    String b = replaceName(body, names.get(0), alias + ".X");
-                    if (names.size() > 1) {
-                        b = replaceName(b, names.get(1), alias + ".I");
-                    }
+                (parameter, position, depth) -> alias + (position == 0 ? ".X" : ".I"),
+                (names, b) -> {
                     boolean object = CoreTypeFamily.STRUCT.equals(element.getTypeFamily());
                     String source =
                             "(SELECT "
@@ -598,7 +571,7 @@ public class OracleDialect implements SqlDialect {
                                         + " ORDER BY "
                                         + alias
                                         + ".I) AS "
-                                        + collectionType(lambda.getLambda().getBodyType())
+                                        + collectionType(renderer.lambdaBodyType(lambda))
                                         + ")");
                     }
                     return nullIfNull(
@@ -617,12 +590,6 @@ public class OracleDialect implements SqlDialect {
                 });
     }
 
-    private static String replaceName(String body, String name, String replacement) {
-        return Pattern.compile("\\b" + Pattern.quote(name) + "\\b")
-                .matcher(body)
-                .replaceAll(Matcher.quoteReplacement(replacement));
-    }
-
     private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();
 
     @Override
@@ -633,7 +600,15 @@ public class OracleDialect implements SqlDialect {
     private static FunctionRenderer buildFunctionRenderer() {
         FunctionRegistry registry = StandardFunctions.registry();
 
-        for (String name : List.of("list_transform", "list_filter", "list_reduce")) {
+        // a fold has no form in a scalar position of SQL: declared, so that it is refused with what
+        // to do instead where the query is checked, and listed as unsupported in the documentation
+        registry.register(
+                ListFunctions.supported("list_reduce")
+                        .unsupported()
+                        .unsupportedHint(
+                                "Oracle has no fold over a collection; sum, min, max or listagg over"
+                                        + " TABLE(list) cover the usual cases"));
+        for (String name : List.of("list_transform", "list_filter")) {
             registry.register(
                     new FunctionDefinition(ListFunctions.supported(name)) {
                         @Override

@@ -22,6 +22,7 @@ import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.Families;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.iql.Identifier;
+import ai.koryki.iql.NestedSql;
 import ai.koryki.iql.SqlDialect;
 import ai.koryki.iql.SqlRenderer;
 import ai.koryki.iql.SqlSelectRenderer;
@@ -44,7 +45,6 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 public class SqliteDialect implements SqlDialect {
 
@@ -61,8 +61,6 @@ public class SqliteDialect implements SqlDialect {
 
     // ---- nested values: selectors -------------------------------------------------------------
 
-    private static final Pattern JSON_NAME = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
-
     /**
      * SQLite has no collection, object or map type: the only nested value is JSON, kept as text and
      * read by the JSON functions. A selector chain is one {@code json_extract} path, counted from
@@ -78,21 +76,10 @@ public class SqliteDialect implements SqlDialect {
                             + baseType.portable()
                             + " with a selector: only JSON is a nested value here");
         }
-        StringBuilder path = new StringBuilder("$");
-        for (Selector step : steps) {
-            if (step.getIndex() != null) {
-                int n = step.getIndex();
-                path.append(n > 0 ? "[" + (n - 1) + "]" : "[#-" + (-n) + "]");
-            } else {
-                String name = step.getId() != null ? step.getId() : step.getName();
-                path.append('.')
-                        .append(
-                                JSON_NAME.matcher(name).matches()
-                                        ? name
-                                        : "\"" + name.replace("\"", "\\\"") + "\"");
-            }
-        }
-        return "json_extract(" + base + ", '" + path.toString().replace("'", "''") + "')";
+        String path =
+                NestedSql.jsonPath(
+                        steps, "$", NestedSql.FromEnd.HASH, NestedSql.Quoting.DOT, "SQLite");
+        return "json_extract(" + base + ", '" + path.replace("'", "''") + "')";
     }
 
     private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();

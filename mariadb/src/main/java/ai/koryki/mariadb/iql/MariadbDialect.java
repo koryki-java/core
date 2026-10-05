@@ -22,6 +22,7 @@ import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.Families;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.WallClockEncoding;
+import ai.koryki.iql.NestedSql;
 import ai.koryki.iql.SqlDialect;
 import ai.koryki.iql.SqlSelectRenderer;
 import ai.koryki.iql.functions.*;
@@ -34,7 +35,6 @@ import ai.koryki.iql.typing.TimeEncodings;
 import ai.koryki.mariadb.iql.validate.MariadbValidator;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 public class MariadbDialect implements SqlDialect {
 
@@ -252,8 +252,6 @@ public class MariadbDialect implements SqlDialect {
 
     // ---- nested values: selectors -------------------------------------------------------------
 
-    private static final Pattern JSON_NAME = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
-
     /**
      * MariaDB has no collection, object or map type: the only nested value is JSON. A selector
      * chain is one path, counted from 0, with {@code last} for the end ({@code JSON_EXTRACT} does
@@ -272,45 +270,39 @@ public class MariadbDialect implements SqlDialect {
                             + baseType.portable()
                             + " with a selector: only JSON is a nested value here");
         }
-        StringBuilder path = new StringBuilder("$");
+        // no bind-once, unlike the other dialects: a derived table in FROM cannot refer to the
+        // outer query here ("Unknown table"), so the base is written wherever it is needed
+        List<String> paths =
+                NestedSql.jsonPaths(
+                        steps, "$", NestedSql.FromEnd.LAST, NestedSql.Quoting.DOT, "MariaDB");
         List<String> guards = new ArrayList<>();
-        for (Selector step : steps) {
+        for (int i = 0; i < steps.size(); i++) {
             guards.add(
                     "JSON_TYPE(JSON_QUERY("
                             + base
-                            + ", '"
-                            + path
-                            + "')) = '"
-                            + (step.getIndex() != null ? "ARRAY" : "OBJECT")
+                            + ", "
+                            + literal(paths.get(i))
+                            + ")) = '"
+                            + (steps.get(i).getIndex() != null ? "ARRAY" : "OBJECT")
                             + "'");
-            if (step.getIndex() != null) {
-                int n = step.getIndex();
-                path.append(
-                        n > 0
-                                ? "[" + (n - 1) + "]"
-                                : n == -1 ? "[last]" : "[last-" + (-n - 1) + "]");
-            } else {
-                String name = step.getId() != null ? step.getId() : step.getName();
-                path.append('.')
-                        .append(
-                                JSON_NAME.matcher(name).matches()
-                                        ? name
-                                        : "\"" + name.replace("\"", "\\\"") + "\"");
-            }
         }
-        // the path is a string literal: MariaDB reads a backslash in it as an escape
-        String literal = "'" + path.toString().replace("\\", "\\\\").replace("'", "''") + "'";
+        String last = literal(paths.get(steps.size()));
         return "CASE WHEN "
                 + String.join(" AND ", guards)
                 + " THEN COALESCE(JSON_QUERY("
                 + base
                 + ", "
-                + literal
+                + last
                 + "), JSON_VALUE("
                 + base
                 + ", "
-                + literal
+                + last
                 + ")) END";
+    }
+
+    /** MariaDB reads a backslash in a string literal as an escape. */
+    private static String literal(String text) {
+        return "'" + text.replace("\\", "\\\\").replace("'", "''") + "'";
     }
 
     private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();

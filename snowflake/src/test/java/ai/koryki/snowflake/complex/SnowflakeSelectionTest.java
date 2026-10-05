@@ -93,6 +93,28 @@ class SnowflakeSelectionTest {
         assertTrue(actual.contains(expected), () -> expected + " not in: " + actual);
     }
 
+    @ParameterizedTest
+    @CsvSource(
+            delimiter = '|',
+            value = {
+                // a list that is an expression is evaluated once, in a derived table of one row,
+                // where its size is asked for as well as its elements
+                "list_filter(t.scores, x -> @x > 5)@-1|FROM (SELECT FILTER(t.scores, _l0_x -> _l0_x > 5) AS L) BO_1",
+                "list_filter(t.scores, x -> @x > 5)@-1|GET(BO_1.L, ARRAY_SIZE(BO_1.L) - 1)",
+                "coalesce(t.tags, t.tags)@2:|ARRAY_SLICE(BO_1.L, 1, ARRAY_SIZE(BO_1.L))",
+                // the position names the list twice, the fold three times
+                "list_transform(list_filter(t.scores, x -> @x > 5), (x, i) -> @x * @i)|ARRAY_SIZE(BO_1.L)",
+                "list_reduce(list_filter(t.scores, x -> @x > 5), (a, b) -> @a + @b)|REDUCE(ARRAY_SLICE(BO_1.L, 1, ARRAY_SIZE(BO_1.L)), GET(BO_1.L, 0)",
+                // a column, and a list read once, are written as they are
+                "t.tags@-1|CASE WHEN ARRAY_SIZE(t.tags) >= 1",
+                "coalesce(t.tags, t.tags)@2|GET(coalesce(t.tags, t.tags), 1)",
+            })
+    void anExpressionIsEvaluatedOnceWhereItIsNamedRepeatedly(String expression, String expected) {
+        String actual = sql(expression);
+
+        assertTrue(actual.contains(expected), () -> expected + " not in: " + actual);
+    }
+
     @Test
     void aQuoteInAKeyStaysInsideItsLiteral() {
         String actual = sql("t.attrs@'it\\'s'");

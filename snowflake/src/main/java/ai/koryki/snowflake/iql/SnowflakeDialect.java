@@ -21,6 +21,7 @@ import ai.koryki.catalog.types.CoreTypeEncoding;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.WallClockEncoding;
+import ai.koryki.iql.NestedSql;
 import ai.koryki.iql.SqlDialect;
 import ai.koryki.iql.SqlSelectRenderer;
 import ai.koryki.iql.functions.FunctionDefinition;
@@ -111,12 +112,23 @@ public class SnowflakeDialect implements SqlDialect {
         TypeDescriptor type = baseType;
         for (int i = 0; i < steps.size(); i++) {
             Selector step = steps.get(i);
+            if (CoreTypeFamily.ARRAY.equals(type.getTypeFamily())
+                    && needsSize(step)
+                    && !NestedSql.isReference(sql)) {
+                // the size of the list is asked for as well as its elements: evaluate it once
+                int from = i;
+                TypeDescriptor typeHere = type;
+                return NestedSql.bindOnce(
+                        sql,
+                        ONCE,
+                        ref -> selection(ref, typeHere, steps.subList(from, steps.size())));
+            }
             if (CoreTypeFamily.JSON.equals(type.getTypeFamily())) {
                 return jsonPath(sql, steps.subList(i, steps.size()));
             } else if (CoreTypeFamily.ARRAY.equals(type.getTypeFamily())) {
                 sql = step.getIndex() != null ? element(sql, step.getIndex()) : slice(sql, step);
             } else if (CoreTypeFamily.STRUCT.equals(type.getTypeFamily())) {
-                sql = "GET(" + sql + ", " + literal(fieldName(type, step)) + ")";
+                sql = "GET(" + sql + ", " + literal(NestedSql.fieldName(type, step)) + ")";
             } else if (CoreTypeFamily.MAP.equals(type.getTypeFamily())) {
                 sql = "GET(" + sql + ", " + mapKey(step) + ")";
             } else {
@@ -126,6 +138,19 @@ public class SnowflakeDialect implements SqlDialect {
             type = ai.koryki.iql.typing.Selectors.step(type, step);
         }
         return sql;
+    }
+
+    /** One row holding a value, to name it more than once: see {@link NestedSql#bindOnce}. */
+    private static final String ONCE = "FROM (SELECT {0} AS L) {1}";
+
+    /** A position from the end, and a range with an open or negative end, ask for the size. */
+    private static boolean needsSize(Selector step) {
+        if (step.getIndex() != null) {
+            return step.getIndex() < 0;
+        }
+        return (step.getFrom() != null && step.getFrom() < 0)
+                || step.getTo() == null
+                || step.getTo() < 0;
     }
 
     private static String literal(String text) {
@@ -170,51 +195,25 @@ public class SnowflakeDialect implements SqlDialect {
         return "ARRAY_SLICE(" + list + ", " + start + ", " + stop + ")";
     }
 
-    private static String fieldName(TypeDescriptor type, Selector step) {
-        if (step.getIndex() != null) {
-            int n = type.fieldNames().size();
-            return type.fieldNames()
-                    .get(step.getIndex() > 0 ? step.getIndex() - 1 : n + step.getIndex());
-        }
-        String wanted = step.getId() != null ? step.getId() : step.getName();
-        // the name as the type declares it: OBJECT keys are case sensitive here
-        return type.fieldNames().stream()
-                .filter(f -> f.equalsIgnoreCase(wanted))
-                .findFirst()
-                .orElse(wanted);
-    }
-
     private static String mapKey(Selector step) {
         if (step.getIndex() != null) {
             return String.valueOf(step.getIndex());
         }
-        return literal(step.getId() != null ? step.getId() : step.getName());
+        return literal(NestedSql.key(step));
     }
 
-    private static final Pattern JSON_NAME = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
-
     private static String jsonPath(String sql, List<Selector> steps) {
-        StringBuilder path = new StringBuilder();
-        for (Selector step : steps) {
-            if (step.getIndex() != null) {
-                if (step.getIndex() < 0) {
-                    throw new KorykiaiException(
-                            "a JSON path in Snowflake has no position from the end: "
-                                    + ai.koryki.iql.IQLSerializer.selector(step));
-                }
-                path.append('[').append(step.getIndex() - 1).append(']');
-            } else {
-                String name = step.getId() != null ? step.getId() : step.getName();
-                if (path.length() > 0) {
-                    path.append('.');
-                }
-                path.append(
-                        JSON_NAME.matcher(name).matches()
-                                ? name
-                                : "\"" + name.replace("\"", "\\\"") + "\"");
-            }
-        }
-        return "GET_PATH(" + sql + ", " + literal(path.toString()) + ")";
+        return "GET_PATH("
+                + sql
+                + ", "
+                + literal(
+                        NestedSql.jsonPath(
+                                steps,
+                                "",
+                                NestedSql.FromEnd.NONE,
+                                NestedSql.Quoting.DOT,
+                                "Snowflake"))
+                + ")";
     }
 
     /** {@code x -> body}, or {@code (a, b) -> body}: Snowflake's own lambda. */
@@ -227,6 +226,22 @@ public class SnowflakeDialect implements SqlDialect {
         return head + " -> " + body;
     }
 
+    private static final Pattern LAMBDA_NAME = Pattern.compile("\\b_l(\\d+)_\\w+");
+
+    /**
+     * A lambda in Snowflake does not see the parameters of the lambda around it (measured: invalid
+     * identifier), only the columns of the query. Said here rather than left to the database.
+     */
+    private static void refuseEnclosingParameters(int depth, String body) {
+        Matcher m = LAMBDA_NAME.matcher(body);
+        while (m.find()) {
+            if (Integer.parseInt(m.group(1)) < depth) {
+                throw new KorykiaiException(
+                        "a lambda in Snowflake cannot use the parameter of the lambda around it");
+            }
+        }
+    }
+
     /**
      * TRANSFORM, FILTER and REDUCE take a lambda over the element only. The position is spelled out
      * by walking the 1-based indexes of the list and reading the element back with {@code GET}, the
@@ -236,32 +251,51 @@ public class SnowflakeDialect implements SqlDialect {
     private static String listWithLambda(
             String name, SqlSelectRenderer renderer, Function function, int indent) {
         String list = renderer.toSql(function.getArguments().get(0), indent);
+        // the position and the fold name the list several times
+        boolean repeated =
+                name.equals("list_reduce")
+                        || function.getArguments().get(1).getLambda().getParameters().size() > 1;
+        return repeated
+                ? NestedSql.bindOnce(
+                        list, ONCE, ref -> lambdaOver(name, renderer, function, ref, indent))
+                : lambdaOver(name, renderer, function, list, indent);
+    }
+
+    private static String lambdaOver(
+            String name, SqlSelectRenderer renderer, Function function, String list, int indent) {
+        Expression lambda = function.getArguments().get(1);
+        boolean positioned =
+                lambda.getLambda().getParameters().size() > 1 && !name.equals("list_reduce");
+        int depth = renderer.lambdaDepth();
+        // the name of the position parameter, the one the generated range binds
+        String index =
+                positioned
+                        ? SqlSelectRenderer.parameterName(
+                                depth, lambda.getLambda().getParameters().get(1))
+                        : null;
+        String at = positioned ? "GET(" + list + ", " + index + " - 1)" : null;
         return renderer.lambda(
-                function.getArguments().get(1),
+                lambda,
                 indent,
+                (parameter, position, d) ->
+                        !positioned
+                                ? SqlSelectRenderer.parameterName(d, parameter)
+                                : position == 0 ? at : index,
                 (names, body) -> {
-                    refuseEnclosingParameters(names.get(0), body);
-                    String range = "ARRAY_GENERATE_RANGE(1, ARRAY_SIZE(" + list + ") + 1)";
-                    if (names.size() == 2 && !name.equals("list_reduce")) {
-                        String at = "GET(" + list + ", " + names.get(1) + " - 1)";
-                        String indexed = replaceName(body, names.get(0), at);
+                    refuseEnclosingParameters(depth, body);
+                    if (positioned) {
+                        String range = "ARRAY_GENERATE_RANGE(1, ARRAY_SIZE(" + list + ") + 1)";
                         if (name.equals("list_transform")) {
-                            return "TRANSFORM("
-                                    + range
-                                    + ", "
-                                    + names.get(1)
-                                    + " -> "
-                                    + indexed
-                                    + ")";
+                            return "TRANSFORM(" + range + ", " + index + " -> " + body + ")";
                         }
                         return "TRANSFORM(FILTER("
                                 + range
                                 + ", "
-                                + names.get(1)
+                                + index
                                 + " -> "
-                                + indexed
+                                + body
                                 + "), "
-                                + names.get(1)
+                                + index
                                 + " -> "
                                 + at
                                 + ")";
@@ -287,31 +321,6 @@ public class SnowflakeDialect implements SqlDialect {
                                     + ")";
                     }
                 });
-    }
-
-    private static final Pattern LAMBDA_NAME = Pattern.compile("\\b_l(\\d+)_\\w+");
-
-    /**
-     * A lambda in Snowflake does not see the parameters of the lambda around it (measured: invalid
-     * identifier), only the columns of the query. Said here rather than left to the database.
-     */
-    private static void refuseEnclosingParameters(String own, String body) {
-        Matcher own_ = LAMBDA_NAME.matcher(own);
-        int depth = own_.find() ? Integer.parseInt(own_.group(1)) : 0;
-        Matcher m = LAMBDA_NAME.matcher(body);
-        while (m.find()) {
-            if (Integer.parseInt(m.group(1)) < depth) {
-                throw new KorykiaiException(
-                        "a lambda in Snowflake cannot use the parameter of the lambda around it");
-            }
-        }
-    }
-
-    /** The generated lambda names are unique tokens, so a word boundary is all it takes. */
-    private static String replaceName(String body, String name, String replacement) {
-        return Pattern.compile("\\b" + Pattern.quote(name) + "\\b")
-                .matcher(body)
-                .replaceAll(Matcher.quoteReplacement(replacement));
     }
 
     private static FunctionRenderer buildFunctionRenderer() {
