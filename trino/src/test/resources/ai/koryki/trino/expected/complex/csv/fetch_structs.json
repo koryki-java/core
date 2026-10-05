@@ -1,0 +1,4 @@
+Nr : INTEGER
+Dimensions : STRUCT(w:FLOAT,h:FLOAT)
+Address : STRUCT(street:TEXT,geo:STRUCT(lat:FLOAT,lon:FLOAT),phones:ARRAY(TEXT))
+Odd : STRUCT(Odd Name:INTEGER,x:INTEGER)

@@ -1,0 +1,4 @@
+Nr : INTEGER
+Attributes : MAP(TEXT,TEXT)
+Counts : MAP(TEXT,INTEGER)
+Lookup : MAP(INTEGER,TEXT)

@@ -1,0 +1,11 @@
+Nr : INTEGER
+width : FLOAT
+height : FLOAT
+first_field : FLOAT
+last_field : FLOAT
+street : TEXT
+latitude : FLOAT
+first_phone : TEXT
+odd_name : INTEGER
+odd_name_upper : INTEGER
+odd_x : INTEGER

@@ -16,6 +16,7 @@
  */
 package ai.koryki.trino.iql;
 
+import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.catalog.types.CoreTypeEncoding;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.Families;
@@ -31,9 +32,11 @@ import ai.koryki.iql.functions.FunctionRenderer;
 import ai.koryki.iql.functions.ReturnTypes;
 import ai.koryki.iql.functions.StandardFunctions;
 import ai.koryki.iql.functions.catalog.DateTimeFunctions;
+import ai.koryki.iql.functions.catalog.ListFunctions;
 import ai.koryki.iql.query.Duration;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
+import ai.koryki.iql.query.Selector;
 import ai.koryki.iql.typing.TimeEncodings;
 import java.util.List;
 import java.util.Optional;
@@ -91,6 +94,175 @@ public class TrinoDialect implements SqlDialect {
                 + " AS TIMESTAMP)";
     }
 
+    private static String listWithLambda(
+            String name, SqlSelectRenderer renderer, Function function, int indent) {
+        String list = renderer.toSql(function.getArguments().get(0), indent);
+        return renderer.lambda(
+                function.getArguments().get(1),
+                indent,
+                (names, body) -> {
+                    String head =
+                            names.size() == 1 ? names.get(0) : "(" + String.join(", ", names) + ")";
+                    switch (name) {
+                        case "list_transform":
+                            if (names.size() == 1) {
+                                return "transform(" + list + ", " + head + " -> " + body + ")";
+                            }
+                            // the position: the list zipped with 1..n. sequence(1, 0) counts down
+                            // and fails on an empty list, so the sequence is cut to the length.
+                            return "zip_with("
+                                    + list
+                                    + ", slice(sequence(1, greatest(cardinality("
+                                    + list
+                                    + "), 1)), 1, cardinality("
+                                    + list
+                                    + ")), "
+                                    + head
+                                    + " -> "
+                                    + body
+                                    + ")";
+                        case "list_filter":
+                            if (names.size() != 1) {
+                                throw new KorykiaiException(
+                                        "list_filter with the position as a second parameter is not supported on Trino");
+                            }
+                            return "filter(" + list + ", " + head + " -> " + body + ")";
+                        default:
+                            // reduce(array, initial, (state, element) -> state, state -> state):
+                            // the
+                            // first element is the initial state and the rest the elements, as in
+                            // DuckDB; an empty list has no first element and gives NULL
+                            return "reduce(slice("
+                                    + list
+                                    + ", 2, cardinality("
+                                    + list
+                                    + ")), element_at("
+                                    + list
+                                    + ", 1), "
+                                    + head
+                                    + " -> "
+                                    + body
+                                    + ", s -> s)";
+                    }
+                });
+    }
+
+    private static final java.util.regex.Pattern PLAIN_NAME =
+            java.util.regex.Pattern.compile("[a-z_][a-z0-9_]*");
+
+    /**
+     * Trino has the shapes natively. Lists: {@code element_at}, which counts from 1, from the end
+     * when negative, and is NULL outside the list where a subscript is an error; ranges through
+     * {@code slice(list, start, length)}. Rows (the structs): a field by name or by position, in
+     * parentheses. Maps: {@code element_at}, NULL for a key the map does not have. JSON: {@code
+     * json_extract} with a path counted from 0, which has no position from the end.
+     */
+    @Override
+    public String selection(String base, TypeDescriptor baseType, List<Selector> steps) {
+        String sql = base;
+        TypeDescriptor type = baseType;
+        for (int i = 0; i < steps.size(); i++) {
+            Selector step = steps.get(i);
+            if (CoreTypeFamily.JSON.equals(type.getTypeFamily())) {
+                return jsonPath(sql, steps.subList(i, steps.size()));
+            } else if (CoreTypeFamily.ARRAY.equals(type.getTypeFamily())) {
+                sql =
+                        step.getIndex() != null
+                                ? "element_at(" + sql + ", " + step.getIndex() + ")"
+                                : slice(sql, step);
+            } else if (CoreTypeFamily.STRUCT.equals(type.getTypeFamily())) {
+                sql = row(sql, type, step);
+            } else if (CoreTypeFamily.MAP.equals(type.getTypeFamily())) {
+                sql = "element_at(" + sql + ", " + mapKey(type, step) + ")";
+            } else {
+                throw new KorykiaiException(
+                        "Trino cannot select from " + type.portable() + " with a selector");
+            }
+            type = ai.koryki.iql.typing.Selectors.step(type, step);
+        }
+        return sql;
+    }
+
+    private static String slice(String list, Selector step) {
+        String length = "cardinality(" + list + ")";
+        Integer from = step.getFrom();
+        Integer to = step.getTo();
+        if (from != null && to != null && from > 0 && to > 0) {
+            return "slice(" + list + ", " + from + ", " + Math.max(to - from + 1, 0) + ")";
+        }
+        String start =
+                from == null ? "1" : from > 0 ? String.valueOf(from) : length + " + " + (from + 1);
+        String stop = to == null ? length : to > 0 ? String.valueOf(to) : length + " + " + (to + 1);
+        return "slice("
+                + list
+                + ", "
+                + start
+                + ", greatest("
+                + stop
+                + " - ("
+                + start
+                + ") + 1, 0))";
+    }
+
+    private static String row(String sql, TypeDescriptor type, Selector step) {
+        if (step.getIndex() != null) {
+            int n = type.children().size();
+            return "("
+                    + sql
+                    + ")["
+                    + (step.getIndex() > 0 ? step.getIndex() : n + step.getIndex() + 1)
+                    + "]";
+        }
+        String wanted = step.getId() != null ? step.getId() : step.getName();
+        // the name as the type declares it; Trino reads names without regard to case anyway
+        String name =
+                type.fieldNames().stream()
+                        .filter(f -> f.equalsIgnoreCase(wanted))
+                        .findFirst()
+                        .orElse(wanted);
+        return "("
+                + sql
+                + ")."
+                + (PLAIN_NAME.matcher(name).matches()
+                        ? name
+                        : "\"" + name.replace("\"", "\"\"") + "\"");
+    }
+
+    private static String mapKey(TypeDescriptor type, Selector step) {
+        if (step.getIndex() != null) {
+            return String.valueOf(step.getIndex());
+        }
+        String key = step.getId() != null ? step.getId() : step.getName();
+        return "'" + key.replace("'", "''") + "'";
+    }
+
+    private static final java.util.regex.Pattern JSON_NAME =
+            java.util.regex.Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
+
+    private static String jsonPath(String sql, List<Selector> steps) {
+        StringBuilder path = new StringBuilder("$");
+        for (Selector step : steps) {
+            if (step.getIndex() != null) {
+                if (step.getIndex() < 0) {
+                    throw new KorykiaiException(
+                            "a JSON path in Trino has no position from the end: "
+                                    + ai.koryki.iql.IQLSerializer.selector(step));
+                }
+                path.append('[').append(step.getIndex() - 1).append(']');
+            } else {
+                String name = step.getId() != null ? step.getId() : step.getName();
+                if (JSON_NAME.matcher(name).matches()) {
+                    path.append('.').append(name);
+                } else {
+                    path.append("[\"")
+                            .append(name.replace("\\", "\\\\").replace("\"", "\\\""))
+                            .append("\"]");
+                }
+            }
+        }
+        return "json_extract(" + sql + ", '" + path.toString().replace("'", "''") + "')";
+    }
+
     private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();
 
     @Override
@@ -100,6 +272,20 @@ public class TrinoDialect implements SqlDialect {
 
     private static FunctionRenderer buildFunctionRenderer() {
         FunctionRegistry registry = StandardFunctions.registry();
+
+        // lists with lambdas: transform, filter and reduce are Trino's own, with a lambda of one
+        // parameter; the position as a second parameter and the start from the first element are
+        // spelled out
+        for (String name : List.of("list_transform", "list_filter", "list_reduce")) {
+            registry.register(
+                    new FunctionDefinition(ListFunctions.supported(name)) {
+                        @Override
+                        protected String renderBody(
+                                SqlSelectRenderer renderer, Function function, int indent) {
+                            return listWithLambda(name, renderer, function, indent);
+                        }
+                    });
+        }
         // to_text is the rolled-out, tested function: keep its dialect cast-type override.
         registry.overrideAll("to_text", "CAST({0} AS VARCHAR)");
         registry.override("trunc", 1, "truncate({0})");

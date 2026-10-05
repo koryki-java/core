@@ -1,0 +1,6 @@
+// list_filter keeps the elements for which the test is true, in order. An element the test cannot
+// decide, a NULL, is not kept. The same lambda works on a list of structs.
+FIND check_complex t
+FETCH t.nr, list_filter(t.scores, x -> @x > 10) big,
+      list_filter(t.tags, x -> @x <> 'green') without_green,
+      list_filter(t.items, it -> @it@qty > 1) many

@@ -1,0 +1,6 @@
+// list_transform does something to every element of a list and gives the list back, element for
+// element. @x is the element; a second parameter is its position, from 1. A NULL element stays NULL.
+FIND check_complex t
+FETCH t.nr, list_transform(t.tags, x -> upper(@x)) shouted,
+      list_transform(t.scores, x -> @x * 2) doubled,
+      list_transform(t.scores, (x, i) -> @x * @i) weighted

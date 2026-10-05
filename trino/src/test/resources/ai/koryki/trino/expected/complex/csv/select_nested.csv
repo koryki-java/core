@@ -1,0 +1,4 @@
+"Nr", "first_sku", "first_price", "second_option", "empty_options", "first_event", "first_day", "deep_number", "deep_text", "second_item"
+"1", "A-1", "9.99", "y", "[]", "2026-05-17 14:30:45", "2026-05-17", "2", "q", "[{""sku"":""B-2"",""qty"":1,""price"":24.50,""opts"":[]}]"
+"2", "", "", "", "", "", "", "", "", "[]"
+"3", "C-3", "", "", "", "", "2026-01-01", "", "", "[]"
