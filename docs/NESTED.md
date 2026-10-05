@@ -87,6 +87,32 @@ postfix one: `it@price`.
 * An expression of constants in a query with an aggregate is a key of the GROUP BY on every dialect;
   Oracle refuses a subquery there, so `list_size(list(1, 2, 3))` is written in a query of its own.
 
+## Flatten views: one row per element
+
+A list cannot be grouped by what is inside it: "revenue by sku" needs one row per element. KQL has no
+UNNEST; the answer is a generated view per list column. The view is an ordinary table of the catalog,
+so it gets an entity, labels, a relation back to its parent, and everything built on them.
+
+`FlattenViews` (module `tools`) reads a `db.json`, and writes the DDL and the catalog entries:
+
+```
+./gradlew :tools:flattenViews -Pflatten.args="duckdb db.json model.json check_complex out-dir"
+```
+
+A view `<table>_<column>` has the parent's key, `ordinal` (the position in the list, from 1) and one
+column per struct field, or `value` for a list of scalars. The relation `<column>_of_<table>` runs from
+the view to the parent:
+
+```
+FIND check_complex_items i, i VIA items_of_check_complex check_complex t
+FETCH t.nr, i.sku, sum(i.qty * i.price) revenue
+```
+
+The generator needs a table key. It handles lists of structs and of scalars for DuckDB, PostgreSQL,
+Trino, Snowflake and Oracle, and refuses lists of lists and of maps. The complex test beds carry the
+three views `check_complex_tags`, `_items` and `_events`. Two differences remain: Snowflake `FLATTEN`
+drops NULL elements, and the ordinal of an Oracle nested table follows storage order.
+
 ## What the dialects do
 
 | | list | range | struct | map | JSON | JSON from the end | transform, filter | position parameter | reduce |

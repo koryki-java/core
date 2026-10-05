@@ -1,0 +1,3 @@
+// A scalar-free struct list with temporal fields.
+FIND check_complex_events e
+FETCH e.nr, e.ordinal, e.day

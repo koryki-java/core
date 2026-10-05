@@ -19,6 +19,11 @@ All notable changes to this project are documented here.
   the lambda that declares it, and otherwise an alias as before. A parameter may not be named like an
   alias in sight, nor like the parameter of the lambda around it.
 
+- Flatten views: `FlattenViews` (module `tools`, task `flattenViews`) generates, for a list column,
+  the view with one row per element (parent key, `ordinal`, struct fields or `value`) in the SQL of
+  DuckDB, PostgreSQL, Trino, Snowflake and Oracle, plus the catalog and model entries and the relation
+  to the parent. The complex test beds carry three of them; see `docs/NESTED.md`.
+
 - A JSON value can be cast to the scalar it holds: `to_boolean`, `to_float`, `to_double`,
   `to_integer`, `to_bigint`, `to_smallint`, `to_decimal`, `to_text` and `to_varchar` accept JSON, so
   `FILTER to_integer(t.doc@n) > 0` and `to_text(t.attrs@color) = 'red'` work on every dialect that

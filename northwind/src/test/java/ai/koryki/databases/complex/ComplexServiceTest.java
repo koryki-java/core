@@ -98,4 +98,22 @@ class ComplexServiceTest {
                     column.getName());
         }
     }
+
+    @Test
+    void theFlattenViewsAreEntitiesLinkedToTheirParent() {
+        LinkResolver resolver = ComplexService.resolver();
+
+        for (String view : new String[] {"tags", "items", "events"}) {
+            assertTrue(resolver.isEntity("check_complex_" + view), view);
+            assertTrue(resolver.getLinkMap().containsKey(view + "_of_check_complex"), view);
+        }
+        Table items =
+                resolver.getSchema().getTables().stream()
+                        .filter(t -> t.getName().equals("check_complex_items"))
+                        .findFirst()
+                        .orElseThrow();
+        assertEquals(
+                java.util.List.of("nr", "ordinal", "sku", "qty", "price", "opts"),
+                items.getColumns().stream().map(Column::getName).toList());
+    }
 }

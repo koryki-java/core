@@ -1,0 +1,3 @@
+// A struct list flattened by a generated view: one row per element, joined back to its parent.
+FIND check_complex_items i, i VIA items_of_check_complex check_complex t
+FETCH t.nr, i.ordinal, i.sku, i.qty * i.price total

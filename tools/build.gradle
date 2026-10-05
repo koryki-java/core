@@ -72,6 +72,22 @@ tasks.register('argTypeAudit', JavaExec) {
     mainClass = 'ai.koryki.tools.docs.FunctionArgTypeAudit'
 }
 
+// Views that flatten the list columns of a table into one row per element (see FlattenViews):
+//   ./gradlew :tools:flattenViews -Pflatten.args="duckdb db.json model.json check_complex out items events"
+tasks.register('flattenViews', JavaExec) {
+    group = 'documentation'
+    description = 'Writes the SQL, catalog and model entries of the flatten views of a table.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'ai.koryki.tools.flatten.FlattenViews'
+    doFirst {
+        def given = project.findProperty('flatten.args')
+        if (given == null) {
+            throw new GradleException('give the arguments: -Pflatten.args="dialect db.json model.json table out-directory [column ...]"')
+        }
+        args = given.toString().split(' ').toList()
+    }
+}
+
 publishing {
     publications {
         // Define the publication for this subproject
