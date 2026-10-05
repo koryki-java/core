@@ -1,0 +1,5 @@
+Nr : INTEGER
+far_back : ARRAY(TEXT)
+last_two : ARRAY(TEXT)
+all_but_last : ARRAY(TEXT)
+before_start : ARRAY(TEXT)

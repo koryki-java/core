@@ -67,6 +67,9 @@ class TrinoSelectionTest {
                 "t.tags@1:2|slice(t.tags, 1, 2)",
                 "t.tags@2:|slice(t.tags, 2, greatest(cardinality(t.tags) - (2) + 1, 0))",
                 "t.tags@:2|slice(t.tags, 1, greatest(2 - (1) + 1, 0))",
+                // a start before the list is the first element, not 0 (an error) or negative (the
+                // end)
+                "t.tags@-5:|slice(t.tags, greatest(cardinality(t.tags) + -4, 1), greatest(cardinality(t.tags) - (greatest(cardinality(t.tags) + -4, 1)) + 1, 0))",
                 // rows: a field by name or by position, in parentheses
                 "t.dims@w|(t.dims).w",
                 "t.dims@1|(t.dims)[1]",

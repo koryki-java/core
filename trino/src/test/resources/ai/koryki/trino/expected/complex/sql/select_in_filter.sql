@@ -5,6 +5,6 @@ SELECT
 FROM
  check_complex t
 WHERE
-  element_at(t.scores, 2) > 10
- AND
   element_at(t.attrs, 'color') = 'red'
+ AND
+  element_at(t.scores, 2) > 10

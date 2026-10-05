@@ -1,0 +1,4 @@
+"Nr", "far_back", "last_two", "all_but_last", "before_start"
+"1", "[""red"",""green"",""blue""]", "[""green"",""blue""]", "[""red"",""green""]", "[]"
+"2", "[]", "[]", "[]", "[]"
+"3", "[""x"",null,""z""]", "[null,""z""]", "[""x"",null]", "[]"

@@ -190,8 +190,14 @@ public class TrinoDialect implements SqlDialect {
         if (from != null && to != null && from > 0 && to > 0) {
             return "slice(" + list + ", " + from + ", " + Math.max(to - from + 1, 0) + ")";
         }
+        // a start before the list is the first element: slice() reads a start of 0 as an error and
+        // a negative one as counting from the end, which would answer the wrong elements
         String start =
-                from == null ? "1" : from > 0 ? String.valueOf(from) : length + " + " + (from + 1);
+                from == null
+                        ? "1"
+                        : from > 0
+                                ? String.valueOf(from)
+                                : "greatest(" + length + " + " + (from + 1) + ", 1)";
         String stop = to == null ? length : to > 0 ? String.valueOf(to) : length + " + " + (to + 1);
         return "slice("
                 + list
