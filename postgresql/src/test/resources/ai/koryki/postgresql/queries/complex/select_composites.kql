@@ -1,0 +1,6 @@
+// A name selects a field of a composite type, a position the field at that place, which has no SQL
+// of its own: the name is read from the type. @'...' finds a field whatever the case it is written in.
+FIND check_complex t
+FETCH t.nr, t.dims@w width, t.dims@1 first_field, t.dims@-1 last_field,
+      t.address@street street, t.address@geo@lat latitude, t.address@phones@1 first_phone,
+      t.odd@'Odd Name' odd_name, t.odd@'ODD NAME' odd_name_upper, t.odd@x odd_x

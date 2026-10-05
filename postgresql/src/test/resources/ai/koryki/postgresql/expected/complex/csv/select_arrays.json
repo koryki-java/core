@@ -1,0 +1,10 @@
+Nr : INTEGER
+first_tag : TEXT
+last_tag : TEXT
+last_but_one : TEXT
+fifth_tag : TEXT
+second_score : INTEGER
+first_two : ARRAY(TEXT)
+from_second : ARRAY(TEXT)
+up_to_second : ARRAY(TEXT)
+vec_last : FLOAT

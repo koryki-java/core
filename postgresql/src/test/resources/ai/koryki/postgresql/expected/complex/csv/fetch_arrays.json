@@ -1,0 +1,5 @@
+Nr : INTEGER
+Tags : ARRAY(TEXT)
+Scores : ARRAY(INTEGER)
+Vector : ARRAY(FLOAT)
+Matrix : ARRAY(ARRAY(FLOAT))

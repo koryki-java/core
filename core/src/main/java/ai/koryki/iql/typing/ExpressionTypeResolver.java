@@ -322,7 +322,9 @@ public class ExpressionTypeResolver {
             for (int k = 0; k < n; k++) {
                 scope.put(lambda.getParameters().get(k), types.get(k));
             }
-            bodies.put(i, withParameters(scope).resolve(lambda.getBody()));
+            TypeDescriptor body = withParameters(scope).resolve(lambda.getBody());
+            lambda.setBodyType(body);
+            bodies.put(i, body);
         }
         return bodies;
     }

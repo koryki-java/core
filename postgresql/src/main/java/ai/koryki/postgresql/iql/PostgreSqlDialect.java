@@ -16,7 +16,9 @@
  */
 package ai.koryki.postgresql.iql;
 
+import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.catalog.types.CoreTypeFamily;
+import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.WallClockEncoding;
 import ai.koryki.iql.SqlDialect;
 import ai.koryki.iql.functions.FunctionArg;
@@ -27,6 +29,8 @@ import ai.koryki.iql.functions.FunctionRegistry;
 import ai.koryki.iql.functions.FunctionRenderer;
 import ai.koryki.iql.functions.ReturnTypes;
 import ai.koryki.iql.functions.StandardFunctions;
+import ai.koryki.iql.functions.catalog.ListFunctions;
+import ai.koryki.iql.query.Selector;
 
 public class PostgreSqlDialect implements SqlDialect {
 
@@ -49,6 +53,206 @@ public class PostgreSqlDialect implements SqlDialect {
         return SqlDialect.atTimeZoneShift(valueSql, fromZoneSql, toZoneSql);
     }
 
+    /**
+     * {@code list_transform} and {@code list_filter} over {@code generate_subscripts}, which,
+     * unlike {@code unnest}, hands over an element of a composite type whole instead of spreading
+     * it into columns. The list is evaluated once, in a derived table; the position runs in the
+     * order of the list; a list that is NULL stays NULL, as it does for a lambda on DuckDB, where
+     * an empty subquery would make it {@code {}}.
+     *
+     * <pre>
+     * CASE WHEN l IS NULL THEN NULL ELSE ARRAY(
+     *   SELECT body FROM (SELECT _s._a[_i] AS x, _i AS i FROM (SELECT l AS _a) AS _s,
+     *                     generate_subscripts(_s._a, 1) AS _i) AS _u [WHERE test] ORDER BY i) END
+     * </pre>
+     */
+    private static String listWithLambda(
+            ai.koryki.iql.SqlSelectRenderer renderer,
+            ai.koryki.iql.query.Function function,
+            int indent,
+            boolean filter) {
+        String list = renderer.toSql(function.getArguments().get(0), indent);
+        TypeDescriptor returned = function.getArguments().get(1).getLambda().getBodyType();
+        if (!filter && returned != null && CoreTypeFamily.ARRAY.equals(returned.getTypeFamily())) {
+            // an array of arrays is one multi-dimensional array: it cannot be collected from rows
+            // of
+            // different lengths ("cannot accumulate arrays of different dimensionality"), and it
+            // would mean a different type from the list of lists the query asks for
+            throw new KorykiaiException(
+                    "PostgreSQL cannot return a list of lists from list_transform: its arrays do not nest");
+        }
+        return renderer.lambda(
+                function.getArguments().get(1),
+                indent,
+                (names, body) -> {
+                    String element = names.get(0);
+                    String position = names.size() > 1 ? names.get(1) : "_pos_" + element;
+                    String select = filter ? element : body;
+                    String where = filter ? " WHERE " + body : "";
+                    return "CASE WHEN "
+                            + list
+                            + " IS NULL THEN NULL ELSE ARRAY(SELECT "
+                            + select
+                            + " FROM (SELECT _s._a[_i] AS "
+                            + element
+                            + ", _i AS "
+                            + position
+                            + " FROM (SELECT "
+                            + list
+                            + " AS _a) AS _s, generate_subscripts(_s._a, 1) AS _i) AS _u"
+                            + where
+                            + " ORDER BY "
+                            + position
+                            + ") END";
+                });
+    }
+
+    private static final java.util.regex.Pattern REFERENCE =
+            java.util.regex.Pattern.compile(
+                    "[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)?(\\[[^\\]]*\\])*");
+
+    private static final java.util.regex.Pattern PLAIN_NAME =
+            java.util.regex.Pattern.compile("[a-z_][a-z0-9_]*");
+
+    /**
+     * PostgreSQL arrays count from 1 like koryki, but have no negative positions, and composite
+     * types (the structs) have no positions at all; JSON is {@code jsonb} with {@code ->}. A MAP
+     * has no counterpart: a map is a jsonb object here, so it arrives as JSON.
+     *
+     * <p>An array of arrays is a multi-dimensional array: {@code m[2][1]} is one subscript, and
+     * {@code m[2]} alone is NULL. A chain has to go through every dimension at once, and a slice of
+     * one has no portable meaning, so both are refused instead of rendering a NULL.
+     */
+    @Override
+    public String selection(String base, TypeDescriptor baseType, java.util.List<Selector> steps) {
+        String sql = base;
+        TypeDescriptor type = baseType;
+        for (int i = 0; i < steps.size(); i++) {
+            Selector step = steps.get(i);
+            if (CoreTypeFamily.JSON.equals(type.getTypeFamily())) {
+                return jsonPath(sql, steps.subList(i, steps.size()));
+            } else if (CoreTypeFamily.STRUCT.equals(type.getTypeFamily())) {
+                sql = "(" + sql + ")." + fieldName(type, step);
+            } else if (CoreTypeFamily.ARRAY.equals(type.getTypeFamily())) {
+                if (CoreTypeFamily.ARRAY.equals(type.element().getTypeFamily())) {
+                    return dimensions(sql, type, steps.subList(i, steps.size()));
+                }
+                sql = arrayStep(sql, step);
+            } else {
+                throw new KorykiaiException(
+                        "PostgreSQL cannot select from " + type.portable() + " with a selector");
+            }
+            type = ai.koryki.iql.typing.Selectors.step(type, step);
+        }
+        return sql;
+    }
+
+    private static String operand(String sql) {
+        return REFERENCE.matcher(sql).matches() ? sql : "(" + sql + ")";
+    }
+
+    private static String arrayStep(String sql, Selector step) {
+        String array = operand(sql);
+        if (step.getIndex() != null) {
+            return array + "[" + position(array, step.getIndex(), 1) + "]";
+        }
+        return array
+                + "["
+                + (step.getFrom() == null ? "" : position(array, step.getFrom(), 1))
+                + ":"
+                + (step.getTo() == null ? "" : position(array, step.getTo(), 1))
+                + "]";
+    }
+
+    /**
+     * A position from the end becomes the length minus what is left, as there is no negative one;
+     * {@code dimension} is the one the position counts in, for an array of several.
+     */
+    private static String position(String array, int n, int dimension) {
+        if (n > 0) {
+            return String.valueOf(n);
+        }
+        String length = "array_length(" + array + ", " + dimension + ")";
+        return n == -1 ? length : length + " - " + (-n - 1);
+    }
+
+    /**
+     * The declared name of the field, from the type: quoted unless it is a plain lower-case name.
+     */
+    private static String fieldName(TypeDescriptor type, Selector step) {
+        String name;
+        if (step.getIndex() != null) {
+            int n = type.children().size();
+            name =
+                    type.fieldNames()
+                            .get(step.getIndex() > 0 ? step.getIndex() - 1 : n + step.getIndex());
+        } else {
+            String wanted = step.getId() != null ? step.getId() : step.getName();
+            name =
+                    type.fieldNames().stream()
+                            .filter(f -> f.equals(wanted))
+                            .findFirst()
+                            .orElseGet(
+                                    () ->
+                                            type.fieldNames().stream()
+                                                    .filter(f -> f.equalsIgnoreCase(wanted))
+                                                    .findFirst()
+                                                    .orElse(wanted));
+        }
+        return PLAIN_NAME.matcher(name).matches() ? name : "\"" + name.replace("\"", "\"\"") + "\"";
+    }
+
+    private String dimensions(String sql, TypeDescriptor type, java.util.List<Selector> steps) {
+        int depth = 0;
+        for (TypeDescriptor t = type;
+                CoreTypeFamily.ARRAY.equals(t.getTypeFamily());
+                t = t.element()) {
+            depth++;
+        }
+        StringBuilder subscripts = new StringBuilder();
+        TypeDescriptor t = type;
+        int taken = 0;
+        while (taken < steps.size()
+                && taken < depth
+                && CoreTypeFamily.ARRAY.equals(t.getTypeFamily())
+                && steps.get(taken).getIndex() != null) {
+            subscripts
+                    .append('[')
+                    .append(position(operand(sql), steps.get(taken).getIndex(), taken + 1))
+                    .append(']');
+            t = t.element();
+            taken++;
+        }
+        if (taken < depth) {
+            throw new KorykiaiException(
+                    "PostgreSQL arrays of arrays are multi-dimensional: select a position in every"
+                            + " dimension ("
+                            + depth
+                            + "), as @i@j; a row alone, a slice or a name is NULL or wrong there");
+        }
+        String result = operand(sql) + subscripts;
+        java.util.List<Selector> rest = steps.subList(taken, steps.size());
+        return rest.isEmpty() ? result : selection(result, t, rest);
+    }
+
+    /**
+     * {@code (j -> 'a' -> 'b' -> 0)}: names as keys, positions counted from 0, negative from the
+     * end.
+     */
+    private static String jsonPath(String sql, java.util.List<Selector> steps) {
+        StringBuilder path = new StringBuilder("(" + sql);
+        for (Selector step : steps) {
+            if (step.getIndex() != null) {
+                int n = step.getIndex();
+                path.append(" -> ").append(n > 0 ? n - 1 : n);
+            } else {
+                String name = step.getId() != null ? step.getId() : step.getName();
+                path.append(" -> '").append(name.replace("'", "''")).append("'");
+            }
+        }
+        return path.append(")").toString();
+    }
+
     private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();
 
     @Override
@@ -61,6 +265,28 @@ public class PostgreSqlDialect implements SqlDialect {
 
         // date-part extraction
         StandardFunctions.registerExtractParts(registry);
+
+        // lists with lambdas: no lambda expressions here, so a subquery over the list; list_reduce
+        // has no counterpart without a custom aggregate and is rejected with what to do instead
+        registry.register(
+                ListFunctions.supported("list_reduce")
+                        .unsupported()
+                        .unsupportedHint(
+                                "PostgreSQL has no fold over an array; sum, min, max or string_agg over the"
+                                        + " unnested elements cover the usual cases"));
+        for (String name : java.util.List.of("list_transform", "list_filter")) {
+            boolean filter = name.equals("list_filter");
+            registry.register(
+                    new FunctionDefinition(ListFunctions.supported(name)) {
+                        @Override
+                        protected String renderBody(
+                                ai.koryki.iql.SqlSelectRenderer renderer,
+                                ai.koryki.iql.query.Function function,
+                                int indent) {
+                            return listWithLambda(renderer, function, indent, filter);
+                        }
+                    });
+        }
 
         // PostgreSQL-specific string functions (the portable ones moved to the canonical catalog)
         registry.windowUnsupported(

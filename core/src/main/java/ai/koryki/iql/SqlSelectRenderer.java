@@ -1064,6 +1064,19 @@ public class SqlSelectRenderer {
     }
 
     private String lambdaSql(Expression expression, int indent) {
+        return lambda(expression, indent, dialect::lambda);
+    }
+
+    /**
+     * Renders a lambda argument with its parameters renamed and in scope, and lets the caller shape
+     * the result from the new names and the SQL of the body. The dialect's own {@code x -> body} is
+     * one such shape; a dialect without lambda expressions builds a subquery from the same two
+     * pieces.
+     */
+    public String lambda(
+            Expression expression,
+            int indent,
+            java.util.function.BiFunction<java.util.List<String>, String, String> shape) {
         ai.koryki.iql.query.Lambda lambda = expression.getLambda();
         java.util.List<TypeDescriptor> types = lambda.getParameterTypes();
         if (types == null) {
@@ -1080,7 +1093,7 @@ public class SqlSelectRenderer {
         }
         lambdaScopes.push(new LambdaScope(names, typed));
         try {
-            return dialect.lambda(
+            return shape.apply(
                     new java.util.ArrayList<>(names.values()), toSql(lambda.getBody(), indent));
         } finally {
             lambdaScopes.pop();

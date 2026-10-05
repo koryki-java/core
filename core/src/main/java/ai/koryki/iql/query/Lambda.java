@@ -35,6 +35,7 @@ public class Lambda {
     private List<String> parameters = new ArrayList<>();
     private Expression body;
     private List<TypeDescriptor> parameterTypes;
+    private TypeDescriptor bodyType;
 
     public List<String> getParameters() {
         return parameters;
@@ -59,5 +60,16 @@ public class Lambda {
 
     public void setParameterTypes(List<TypeDescriptor> parameterTypes) {
         this.parameterTypes = parameterTypes;
+    }
+
+    /**
+     * What the body returns, set with the parameter types; null before, or if it cannot be typed.
+     */
+    public TypeDescriptor getBodyType() {
+        return bodyType;
+    }
+
+    public void setBodyType(TypeDescriptor bodyType) {
+        this.bodyType = bodyType;
     }
 }

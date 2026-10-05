@@ -1,0 +1,4 @@
+// An array of arrays is one two-dimensional array here: a position in every dimension at once, the
+// first for the row. The dimension a negative position counts in is the one it is written in.
+FIND check_complex t
+FETCH t.nr, t.matrix@2@1 cell, t.matrix@-1@-1 corner, t.matrix@1@-1 end_of_first_row

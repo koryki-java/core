@@ -1,0 +1,3 @@
+Nr : INTEGER
+shifted : ARRAY(INTEGER)
+above_five_times_nr : ARRAY(INTEGER)

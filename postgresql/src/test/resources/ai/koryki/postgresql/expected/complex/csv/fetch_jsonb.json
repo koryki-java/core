@@ -1,0 +1,6 @@
+Nr : INTEGER
+Attributes : JSON
+Counts : JSON
+Lookup : JSON
+Deep : JSON
+Document : JSON

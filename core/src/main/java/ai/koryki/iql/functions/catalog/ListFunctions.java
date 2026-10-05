@@ -41,7 +41,7 @@ public final class ListFunctions {
 
     private ListFunctions() {}
 
-    private static final String HINT = "lambdas on lists are supported on DuckDB so far";
+    private static final String HINT = "lambdas on lists are not supported by this dialect yet";
 
     public static void register(FunctionRegistry r) {
         register(r, false);
@@ -55,6 +55,17 @@ public final class ListFunctions {
         for (FunctionDefinition d : definitions()) {
             r.register(supported ? d : d.unsupported().unsupportedHint(HINT));
         }
+    }
+
+    /**
+     * A working definition of one of the three, for a dialect that renders it its own way: it
+     * overrides {@code renderBody} on a copy of this and registers it over the rejected one.
+     */
+    public static FunctionDefinition supported(String name) {
+        return definitions().stream()
+                .filter(d -> d.getName().equals(name))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("not a list function: " + name));
     }
 
     private static TypeDescriptor element(List<TypeDescriptor> argumentTypes) {

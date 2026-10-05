@@ -1,0 +1,4 @@
+Nr : INTEGER
+big : ARRAY(INTEGER)
+without_green : ARRAY(TEXT)
+many : ARRAY(STRUCT(sku:TEXT,qty:INTEGER,price:DECIMAL,opts:ARRAY(TEXT)))

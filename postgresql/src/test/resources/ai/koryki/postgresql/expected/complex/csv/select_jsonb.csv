@@ -1,0 +1,4 @@
+"Nr", "color", "count_a", "one", "n", "inner_first", "array_first", "array_last", "deep_number"
+"1", """red""", "1", """one""", "1", "5", "", "", "2"
+"2", "", "", "", "", "", "", "", ""
+"3", "", "", "", "", "", "1", "3", ""

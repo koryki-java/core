@@ -1,0 +1,4 @@
+Nr : INTEGER
+cell : FLOAT
+corner : FLOAT
+end_of_first_row : FLOAT

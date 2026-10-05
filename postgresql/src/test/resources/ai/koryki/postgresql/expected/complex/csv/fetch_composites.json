@@ -1,0 +1,6 @@
+Nr : INTEGER
+Dimensions : STRUCT(w:FLOAT,h:FLOAT)
+Address : STRUCT(street:TEXT,geo:STRUCT(lat:FLOAT,lon:FLOAT),phones:ARRAY(TEXT))
+Items : ARRAY(STRUCT(sku:TEXT,qty:INTEGER,price:DECIMAL,opts:ARRAY(TEXT)))
+Events : ARRAY(STRUCT(ts:TIMESTAMP,day:DATE))
+Odd : STRUCT(Odd Name:INTEGER,x:INTEGER)
