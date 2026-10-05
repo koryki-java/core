@@ -1,0 +1,5 @@
+Nr : INTEGER
+any_big : BOOLEAN
+all_big : BOOLEAN
+any_many : BOOLEAN
+all_stocked : BOOLEAN

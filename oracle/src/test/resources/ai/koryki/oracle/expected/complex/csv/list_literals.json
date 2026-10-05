@@ -1,0 +1,4 @@
+Nr : INTEGER
+sorted_literal : ARRAY(INTEGER)
+n_literal : INTEGER
+has_red : BOOLEAN

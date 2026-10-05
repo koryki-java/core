@@ -185,4 +185,24 @@ class TrinoSelectionTest {
         org.junit.jupiter.api.Assertions.assertTrue(
                 actual.contains(expected), () -> expected + " not in: " + actual);
     }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource(
+            delimiter = '|',
+            value = {
+                "list_sort(t.tags)|array_sort(t.tags)",
+                "list_sort(t.tags, 'desc')|array_sort(t.tags, (a, b) -> CASE WHEN a IS NULL AND b IS NULL THEN 0",
+                "list_distinct(t.tags)|array_sort(array_distinct(filter(t.tags, x -> x IS NOT NULL)))",
+                "list_concat(t.scores, t.scores)|coalesce(concat(t.scores, t.scores), t.scores, t.scores)",
+                "list_any(t.scores, x -> x > 5)|cardinality(filter(t.scores, _l0_x -> _l0_x > 5)) > 0",
+                "list_all(t.scores, x -> x > 5)|cardinality(filter(t.scores, _l0_x -> _l0_x > 5)) = cardinality(t.scores)",
+                "list(1, 2)|ARRAY[1, 2]",
+                "list_agg(t.nr)|array_agg(t.nr) FILTER (WHERE t.nr IS NOT NULL)",
+            })
+    void aListIsShapedAndMade(String expression, String expected) {
+        String actual = sql(expression);
+
+        org.junit.jupiter.api.Assertions.assertTrue(
+                actual.contains(expected), () -> expected + " not in: " + actual);
+    }
 }

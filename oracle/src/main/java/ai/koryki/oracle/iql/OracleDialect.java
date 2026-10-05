@@ -553,10 +553,74 @@ public class OracleDialect implements SqlDialect {
     private static String listWithLambda(
             String name, SqlSelectRenderer renderer, Function function, int indent) {
         Expression listExpression = function.getArguments().get(0);
+        noAggregateList(listExpression);
         TypeDescriptor element = renderer.resolveType(listExpression).element();
         Expression lambda = function.getArguments().get(1);
         return lambdaOver(
                 name, renderer, lambda, element, renderer.toSql(listExpression, indent), indent);
+    }
+
+    /**
+     * {@code list_agg}: COLLECT leaves NULLs out, answers an empty collection for no rows where the
+     * contract says NULL, and takes an ORDER BY, which {@code list_sort(list_agg(x))} uses: a
+     * COLLECT cannot be read through TABLE() in a subquery (ORA-00934), so it is sorted inside.
+     */
+    private static String collected(
+            SqlSelectRenderer renderer, Expression value, int indent, Boolean descending) {
+        String sql = renderer.toSql(value, indent);
+        return "CASE WHEN COUNT("
+                + sql
+                + ") = 0 THEN NULL ELSE CAST(COLLECT("
+                + sql
+                + (descending == null ? "" : " ORDER BY " + sql + (descending ? " DESC" : ""))
+                + ") AS "
+                + collectionType(renderer.resolveType(value))
+                + ") END";
+    }
+
+    /** What Oracle cannot do with a list that is the result of an aggregate. */
+    private static void noAggregateList(Expression list) {
+        if (ai.koryki.iql.validate.FunctionValidator.isAggregateOfColumnOrIdentity(list)) {
+            throw new KorykiaiException(
+                    "on Oracle the list of list_agg can be shown or sorted with list_sort and"
+                            + " nothing else: TABLE() cannot read an aggregate (ORA-00934)");
+        }
+    }
+
+    /**
+     * {@code list_any} and {@code list_all} count the elements the test lets through, or not, so a
+     * list of objects works as well as one of numbers: the lambda is bound to the element as it is
+     * for a transform, and nothing has to be built.
+     */
+    private static String quantifier(
+            boolean all,
+            SqlSelectRenderer renderer,
+            Expression lambda,
+            TypeDescriptor element,
+            String list,
+            int indent) {
+        String alias = "LA" + renderer.lambdaDepth();
+        return renderer.lambda(
+                lambda,
+                indent,
+                (parameter, position, depth) -> alias + ".X",
+                (names, test) -> {
+                    boolean object = CoreTypeFamily.STRUCT.equals(element.getTypeFamily());
+                    String source =
+                            "(SELECT "
+                                    + (object ? "VALUE(Z)" : "COLUMN_VALUE")
+                                    + " X FROM TABLE("
+                                    + list
+                                    + ") Z) "
+                                    + alias;
+                    String count =
+                            "(SELECT COUNT(*) FROM "
+                                    + source
+                                    + " WHERE "
+                                    + (all ? "(" + test + ") IS NOT TRUE" : test)
+                                    + ")";
+                    return nullIfNull(list, "(" + count + (all ? " = 0)" : " > 0)"));
+                });
     }
 
     private static String lambdaOver(
@@ -650,6 +714,141 @@ public class OracleDialect implements SqlDialect {
                 ListFunctions.supported("list_avg")
                         .template(
                                 "(SELECT CAST(AVG(COLUMN_VALUE) AS BINARY_DOUBLE) FROM TABLE({0}))"));
+        // any, all, sort, distinct and concat through TABLE(): a collection of the generic types
+        // for what is a list again, a count for what is a yes or no
+        for (String name : List.of("list_any", "list_all")) {
+            registry.register(
+                    new FunctionDefinition(ListFunctions.supported(name)) {
+                        @Override
+                        protected String renderBody(
+                                SqlSelectRenderer renderer, Function function, int indent) {
+                            Expression listExpression = function.getArguments().get(0);
+                            noAggregateList(listExpression);
+                            return quantifier(
+                                    name.equals("list_all"),
+                                    renderer,
+                                    function.getArguments().get(1),
+                                    renderer.resolveType(listExpression).element(),
+                                    renderer.toSql(listExpression, indent),
+                                    indent);
+                        }
+                    });
+        }
+        registry.register(
+                new FunctionDefinition(ListFunctions.supported("list_sort")) {
+                    @Override
+                    protected String renderBody(
+                            SqlSelectRenderer renderer, Function function, int indent) {
+                        Expression listExpression = function.getArguments().get(0);
+                        if (listExpression.getFunction() != null
+                                && "list_agg".equals(listExpression.getFunction().getFunc())) {
+                            return collected(
+                                    renderer,
+                                    listExpression.getFunction().getArguments().get(0),
+                                    indent,
+                                    ListFunctions.descending(function));
+                        }
+                        noAggregateList(listExpression);
+                        String list = renderer.toSql(listExpression, indent);
+                        return nullIfNull(
+                                list,
+                                "CAST(MULTISET(SELECT COLUMN_VALUE FROM TABLE("
+                                        + list
+                                        + ") ORDER BY COLUMN_VALUE"
+                                        + (ListFunctions.descending(function) ? " DESC" : "")
+                                        + " NULLS LAST) AS "
+                                        + collectionType(
+                                                renderer.resolveType(listExpression).element())
+                                        + ")");
+                    }
+                });
+        registry.register(
+                new FunctionDefinition(ListFunctions.supported("list_distinct")) {
+                    @Override
+                    protected String renderBody(
+                            SqlSelectRenderer renderer, Function function, int indent) {
+                        Expression listExpression = function.getArguments().get(0);
+                        noAggregateList(listExpression);
+                        String list = renderer.toSql(listExpression, indent);
+                        return nullIfNull(
+                                list,
+                                "CAST(MULTISET(SELECT DISTINCT COLUMN_VALUE FROM TABLE("
+                                        + list
+                                        + ") WHERE COLUMN_VALUE IS NOT NULL ORDER BY COLUMN_VALUE) AS "
+                                        + collectionType(
+                                                renderer.resolveType(listExpression).element())
+                                        + ")");
+                    }
+                });
+        registry.register(
+                new FunctionDefinition(ListFunctions.supported("list_concat")) {
+                    @Override
+                    protected String renderBody(
+                            SqlSelectRenderer renderer, Function function, int indent) {
+                        Expression first = function.getArguments().get(0);
+                        noAggregateList(first);
+                        noAggregateList(function.getArguments().get(1));
+                        String a = renderer.toSql(first, indent);
+                        String b = renderer.toSql(function.getArguments().get(1), indent);
+                        return "CASE WHEN "
+                                + a
+                                + " IS NULL AND "
+                                + b
+                                + " IS NULL THEN NULL ELSE CAST(MULTISET(SELECT V FROM (SELECT 1 K,"
+                                + " ROWNUM R, COLUMN_VALUE V FROM TABLE("
+                                + a
+                                + ") UNION ALL SELECT 2, ROWNUM, COLUMN_VALUE FROM TABLE("
+                                + b
+                                + ")) ORDER BY K, R) AS "
+                                + collectionType(renderer.resolveType(first).element())
+                                + ") END";
+                    }
+                });
+        // the generic collection types again: a constructor of the one that holds what the
+        // values are, COLLECT for the rows of a group
+        registry.register(
+                new FunctionDefinition(ListFunctions.supported("list")) {
+                    @Override
+                    protected String renderBody(
+                            SqlSelectRenderer renderer, Function function, int indent) {
+                        TypeDescriptor first = renderer.resolveType(function.getArguments().get(0));
+                        return collectionType(first)
+                                + "("
+                                + function.getArguments().stream()
+                                        .map(a -> renderer.toSql(a, indent))
+                                        .collect(Collectors.joining(", "))
+                                + ")";
+                    }
+                });
+        registry.register(
+                new FunctionDefinition(ListFunctions.supported("list_agg")) {
+                    @Override
+                    protected String renderBody(
+                            SqlSelectRenderer renderer, Function function, int indent) {
+                        return collected(renderer, function.getArguments().get(0), indent, null);
+                    }
+                });
+        // a template of the functions that read a list, with the check that what they read is not
+        // an aggregate, which TABLE() in a subquery cannot hold
+        for (String name :
+                List.of(
+                        "list_size",
+                        "list_contains",
+                        "list_sum",
+                        "list_min",
+                        "list_max",
+                        "list_avg")) {
+            FunctionDefinition template = registry.lookup(name);
+            registry.register(
+                    new FunctionDefinition(template) {
+                        @Override
+                        protected String renderBody(
+                                SqlSelectRenderer renderer, Function function, int indent) {
+                            noAggregateList(function.getArguments().get(0));
+                            return super.renderBody(renderer, function, indent);
+                        }
+                    });
+        }
         for (String name : List.of("list_transform", "list_filter")) {
             registry.register(
                     new FunctionDefinition(ListFunctions.supported(name)) {

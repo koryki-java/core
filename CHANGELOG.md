@@ -29,6 +29,9 @@ All notable changes to this project are documented here.
   and `list_avg`, on DuckDB, PostgreSQL, Trino, Snowflake and Oracle, and `x IN t.tags` for the
   membership of a value in a list column. `length(list)` is refused and names `list_size`.
 
+- Shaping and making lists: `list_sort`, `list_distinct`, `list_concat`, `list_any`, `list_all`,
+  `list(a, b, ...)` and the aggregate `list_agg`, on DuckDB, PostgreSQL, Trino, Snowflake and Oracle.
+
 ### Changed
 
 - The scripts that create the Northwind database for PostgreSQL, MariaDB, Oracle, SQL Server,
@@ -40,6 +43,8 @@ All notable changes to this project are documented here.
 
 ### Fixed
 
+- An aggregate over a selection, `sum(t.scores@2)`, was not taken for an aggregate: the other
+  items of the query were not grouped. It is now, like an aggregate over a column.
 - A block could not correctly reference an earlier sibling block — only self-reference (a
   recursive CTE) rendered correctly. `BlockRecursionDetector` treated any reference to a name that
   is not a catalog entity as recursion, so a plain chain onto an earlier block wrongly emitted

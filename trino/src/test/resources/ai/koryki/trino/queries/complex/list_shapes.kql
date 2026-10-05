@@ -1,0 +1,7 @@
+// Lists made of lists. NULL elements come last in either order, list_distinct drops them and gives the
+// rest in ascending order, and list_concat is NULL when either list is (vec of row 2 is NULL).
+FIND check_complex t
+FETCH t.nr, list_sort(t.tags) sorted_tags, list_sort(t.scores, 'desc') scores_desc,
+      list_distinct(list_concat(t.tags, t.tags)) distinct_tags,
+      list_concat(t.scores, list_transform(t.scores, x -> x * 10)) joined,
+      list_concat(t.vec, t.vec) vec_twice

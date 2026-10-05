@@ -322,6 +322,34 @@ public class TrinoDialect implements SqlDialect {
         registry.register(
                 ListFunctions.supported("list_avg")
                         .template("(SELECT avg(CAST(_e AS DOUBLE)) FROM UNNEST({0}) AS _u(_e))"));
+        registry.register(ListFunctions.supported("list_any"));
+        registry.register(ListFunctions.supported("list_all"));
+        // array_sort puts NULL last; the descending order needs the comparison spelled out for it
+        registry.register(
+                new FunctionDefinition(ListFunctions.supported("list_sort")) {
+                    @Override
+                    protected String renderBody(
+                            SqlSelectRenderer renderer, Function function, int indent) {
+                        String list = renderer.toSql(function.getArguments().get(0), indent);
+                        return ListFunctions.descending(function)
+                                ? "array_sort("
+                                        + list
+                                        + ", (a, b) -> CASE WHEN a IS NULL AND b IS NULL THEN 0"
+                                        + " WHEN a IS NULL THEN 1 WHEN b IS NULL THEN -1"
+                                        + " WHEN a < b THEN 1 WHEN a > b THEN -1 ELSE 0 END)"
+                                : "array_sort(" + list + ")";
+                    }
+                });
+        registry.register(
+                ListFunctions.supported("list_distinct")
+                        .template("array_sort(array_distinct(filter({0}, x -> x IS NOT NULL)))"));
+        registry.register(
+                ListFunctions.supported("list_concat")
+                        .template("coalesce(concat({0}, {1}), {0}, {1})"));
+        registry.register(ListFunctions.supported("list").template("ARRAY[{*}]"));
+        registry.register(
+                ListFunctions.supported("list_agg")
+                        .template("array_agg({0}) FILTER (WHERE {0} IS NOT NULL)"));
         for (String name : List.of("list_transform", "list_filter", "list_reduce")) {
             registry.register(
                     new FunctionDefinition(ListFunctions.supported(name)) {

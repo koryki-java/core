@@ -216,6 +216,25 @@ public class SnowflakeDialect implements SqlDialect {
                 + ")";
     }
 
+    /** The element type of a structured array, by what the elements are. */
+    private static String structuredElement(TypeDescriptor element) {
+        var family = element.getTypeFamily();
+        if (CoreTypeFamily.INTEGER.equals(family)) {
+            return "INTEGER";
+        } else if (CoreTypeFamily.DECIMAL.equals(family)) {
+            return "NUMBER(38, " + Math.max(element.getScale(), 0) + ")";
+        } else if (CoreTypeFamily.FLOAT.equals(family)) {
+            return "DOUBLE";
+        } else if (CoreTypeFamily.BOOLEAN.equals(family)) {
+            return "BOOLEAN";
+        } else if (CoreTypeFamily.DATE.equals(family)) {
+            return "DATE";
+        } else if (CoreTypeFamily.TIMESTAMP.equals(family)) {
+            return "TIMESTAMP_NTZ";
+        }
+        return "VARCHAR";
+    }
+
     /** A VARIANT as text: a JSON string without its quotes, a number as its digits. */
     @Override
     public String jsonScalar(String json) {
@@ -358,6 +377,62 @@ public class SnowflakeDialect implements SqlDialect {
                         }
                     });
         }
+        registry.register(ListFunctions.supported("list_any"));
+        registry.register(ListFunctions.supported("list_all"));
+        registry.register(
+                new FunctionDefinition(ListFunctions.supported("list_sort")) {
+                    @Override
+                    protected String renderBody(
+                            SqlSelectRenderer renderer, Function function, int indent) {
+                        return "ARRAY_SORT("
+                                + renderer.toSql(function.getArguments().get(0), indent)
+                                + ", "
+                                + (ListFunctions.descending(function) ? "FALSE" : "TRUE")
+                                + ", FALSE)";
+                    }
+                });
+        registry.register(
+                ListFunctions.supported("list_distinct")
+                        .template("ARRAY_SORT(ARRAY_DISTINCT(ARRAY_COMPACT({0})), TRUE, FALSE)"));
+        registry.register(
+                ListFunctions.supported("list_concat")
+                        .template("COALESCE(ARRAY_CAT({0}, {1}), {0}, {1})"));
+        // a list that is made here is cast to the structured array of its elements, so that it is
+        // as typed as a column: ARRAY_CONTAINS takes the plain value of a typed array and only a
+        // variant of an untyped one
+        registry.register(
+                new FunctionDefinition(ListFunctions.supported("list")) {
+                    @Override
+                    protected String renderBody(
+                            SqlSelectRenderer renderer, Function function, int indent) {
+                        TypeDescriptor element =
+                                renderer.resolveType(function.getArguments().get(0));
+                        return "ARRAY_CONSTRUCT("
+                                + function.getArguments().stream()
+                                        .map(a -> renderer.toSql(a, indent))
+                                        .collect(java.util.stream.Collectors.joining(", "))
+                                + ")::ARRAY("
+                                + structuredElement(element)
+                                + ")";
+                    }
+                });
+        // ARRAY_AGG leaves NULLs out, and answers an empty array where there is nothing to collect
+        registry.register(
+                new FunctionDefinition(ListFunctions.supported("list_agg")) {
+                    @Override
+                    protected String renderBody(
+                            SqlSelectRenderer renderer, Function function, int indent) {
+                        Expression value = function.getArguments().get(0);
+                        String sql = renderer.toSql(value, indent);
+                        return "CASE WHEN COUNT("
+                                + sql
+                                + ") = 0 THEN NULL ELSE ARRAY_AGG("
+                                + sql
+                                + ")::ARRAY("
+                                + structuredElement(renderer.resolveType(value))
+                                + ") END";
+                    }
+                });
         for (String name : List.of("list_transform", "list_filter", "list_reduce")) {
             registry.register(
                     new FunctionDefinition(ListFunctions.supported(name)) {

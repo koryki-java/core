@@ -1,0 +1,4 @@
+"Nr", "sorted_literal", "n_literal", "has_red"
+"1", "[1,2,3]", "3", "true"
+"2", "[1,2,3]", "3", "true"
+"3", "[1,2,3]", "3", "true"

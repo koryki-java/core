@@ -175,4 +175,30 @@ class OracleSelectionTest {
         org.junit.jupiter.api.Assertions.assertTrue(
                 actual.contains(expected), () -> expected + " not in: " + actual);
     }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource(
+            delimiter = '|',
+            value = {
+                "list_sort(t.tags)|CAST(MULTISET(SELECT COLUMN_VALUE FROM TABLE(t.tags) ORDER BY COLUMN_VALUE NULLS LAST) AS SYS.ODCIVARCHAR2LIST)",
+                "list_concat(t.scores, t.scores)|UNION ALL SELECT 2, ROWNUM, COLUMN_VALUE FROM TABLE(t.scores)",
+                "list_any(t.items, it -> it@qty > 1)|(SELECT COUNT(*) FROM (SELECT VALUE(Z) X FROM TABLE(t.items) Z) LA0 WHERE LA0.X.qty > 1) > 0",
+                "list(1, 2)|SYS.ODCINUMBERLIST(1, 2)",
+                "list_agg(t.nr)|CASE WHEN COUNT(t.nr) = 0 THEN NULL ELSE CAST(COLLECT(t.nr) AS SYS.ODCINUMBERLIST) END",
+                "list_sort(list_agg(t.tags@1))|COLLECT(",
+            })
+    void aListIsShapedAndMade(String expression, String expected) {
+        String actual = sql(expression);
+
+        org.junit.jupiter.api.Assertions.assertTrue(
+                actual.contains(expected), () -> expected + " not in: " + actual);
+    }
+
+    @Test
+    void theListOfAnAggregateCanOnlyBeShownOrSorted() {
+        KorykiaiException e =
+                assertThrows(KorykiaiException.class, () -> sql("list_size(list_agg(t.nr))"));
+
+        assertTrue(e.getMessage().contains("can be shown or sorted"), e.getMessage());
+    }
 }

@@ -1,0 +1,9 @@
+-- list_agg(x) makes a list out of the rows of a group. It leaves NULLs out and promises no order, so what
+-- is shown is sorted: the first tags of the rows are red and x (row 2 has no first tag), the second
+-- scores 5 and 20 (row 2 has none).
+SELECT
+  CASE WHEN COUNT(t.nr) = 0 THEN NULL ELSE CAST(COLLECT(t.nr ORDER BY t.nr) AS SYS.ODCINUMBERLIST) END AS all_nrs
+, CASE WHEN COUNT((SELECT E1.V FROM (SELECT COLUMN_VALUE V, ROWNUM RN FROM TABLE(t.tags) Z) E1 WHERE E1.RN = 1)) = 0 THEN NULL ELSE CAST(COLLECT((SELECT E1.V FROM (SELECT COLUMN_VALUE V, ROWNUM RN FROM TABLE(t.tags) Z) E1 WHERE E1.RN = 1) ORDER BY (SELECT E1.V FROM (SELECT COLUMN_VALUE V, ROWNUM RN FROM TABLE(t.tags) Z) E1 WHERE E1.RN = 1)) AS SYS.ODCIVARCHAR2LIST) END AS first_tags
+, CASE WHEN COUNT((SELECT E1.V FROM (SELECT COLUMN_VALUE V, ROWNUM RN FROM TABLE(t.scores) Z) E1 WHERE E1.RN = 2)) = 0 THEN NULL ELSE CAST(COLLECT((SELECT E1.V FROM (SELECT COLUMN_VALUE V, ROWNUM RN FROM TABLE(t.scores) Z) E1 WHERE E1.RN = 2) ORDER BY (SELECT E1.V FROM (SELECT COLUMN_VALUE V, ROWNUM RN FROM TABLE(t.scores) Z) E1 WHERE E1.RN = 2)) AS SYS.ODCINUMBERLIST) END AS second_scores
+FROM
+ check_complex t

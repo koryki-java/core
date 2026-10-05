@@ -213,4 +213,22 @@ class SnowflakeSelectionTest {
         org.junit.jupiter.api.Assertions.assertTrue(
                 actual.contains(expected), () -> expected + " not in: " + actual);
     }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource(
+            delimiter = '|',
+            value = {
+                "list_sort(t.tags)|ARRAY_SORT(t.tags, TRUE, FALSE)",
+                "list_sort(t.tags, 'desc')|ARRAY_SORT(t.tags, FALSE, FALSE)",
+                "list_distinct(t.tags)|ARRAY_SORT(ARRAY_DISTINCT(ARRAY_COMPACT(t.tags)), TRUE, FALSE)",
+                "list_concat(t.scores, t.scores)|COALESCE(ARRAY_CAT(t.scores, t.scores), t.scores, t.scores)",
+                "list(1, 2)|ARRAY_CONSTRUCT(1, 2)::ARRAY(INTEGER)",
+                "list_agg(t.nr)|CASE WHEN COUNT(t.nr) = 0 THEN NULL ELSE ARRAY_AGG(t.nr)::ARRAY(INTEGER) END",
+            })
+    void aListIsShapedAndMade(String expression, String expected) {
+        String actual = sql(expression);
+
+        org.junit.jupiter.api.Assertions.assertTrue(
+                actual.contains(expected), () -> expected + " not in: " + actual);
+    }
 }

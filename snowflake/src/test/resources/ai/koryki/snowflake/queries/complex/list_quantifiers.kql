@@ -1,0 +1,5 @@
+// Whether some or every element passes a test. An empty list has no element that passes and every
+// element of it does; a test that is NULL does not pass (row 3 has NULL scores and a NULL quantity).
+FIND check_complex t
+FETCH t.nr, list_any(t.scores, x -> x > 25) any_big, list_all(t.scores, x -> x > 5) all_big,
+      list_any(t.items, it -> it@qty > 1) any_many, list_all(t.items, it -> it@qty > 0) all_stocked

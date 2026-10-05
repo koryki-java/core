@@ -1258,6 +1258,8 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
 
         if (expression.getField() != null) {
             return true;
+        } else if (expression.getSelection() != null) {
+            return isScalarOfColumn(expression.getSelection().getBase());
         } else if (expression.getFunction() != null) {
             return isScalarOfColumn(expression.getFunction());
         } else if (expression.getLogical() != null) {
@@ -1294,6 +1296,10 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
     private static boolean hasColumnOrIdentity(Expression e, boolean aggregate) {
         if (e.getField() != null || e.getIdentity() != null) {
             return true;
+        }
+        if (e.getSelection() != null) {
+            // t.scores@2 is a value of the column t.scores: sum(t.scores@2) aggregates it
+            return hasColumnOrIdentity(e.getSelection().getBase(), aggregate);
         }
         if (e.getFunction() != null && (aggregate || !isAggregate(e.getFunction()))) {
             return hasColumnOrIdentity(e.getFunction(), aggregate);

@@ -96,4 +96,39 @@ class ListVocabularyTest {
 
         assertTrue(message.contains("list_size(list)"), message);
     }
+
+    @ParameterizedTest
+    @CsvSource(
+            delimiter = '|',
+            value = {
+                "list_sort(t.tags)|list_sort(t.tags, 'ASC', 'NULLS LAST')",
+                "list_sort(t.tags, 'desc')|list_sort(t.tags, 'DESC', 'NULLS LAST')",
+                "list_distinct(t.tags)|list_sort(list_distinct(t.tags), 'ASC', 'NULLS LAST')",
+                "list_concat(t.scores, t.scores)|CASE WHEN t.scores IS NULL AND t.scores IS NULL THEN NULL ELSE list_concat(t.scores, t.scores) END",
+                "list_any(t.scores, x -> x > 5)|len(list_filter(t.scores, _l0_x -> _l0_x > 5)) > 0",
+                "list_all(t.scores, x -> x > 5)|len(list_filter(t.scores, _l0_x -> _l0_x > 5)) = len(t.scores)",
+                "list(1, 2)|list_value(1, 2)",
+                "list_agg(t.nr)|list(t.nr) FILTER (WHERE t.nr IS NOT NULL)",
+            })
+    void theShapingFunctionsRenderInDuckdbsForm(String expression, String expected) {
+        String sql = sql("FIND check_complex t FETCH " + expression);
+
+        assertTrue(sql.contains(expected), sql);
+    }
+
+    @Test
+    void theOrderOfAListIsAscOrDesc() {
+        String message = refusal("FIND check_complex t FETCH list_sort(t.tags, 'sideways') s");
+
+        assertTrue(message.contains("'asc' or 'desc'"), message);
+    }
+
+    @Test
+    void anAggregateOfASelectionGroupsLikeAnAggregateOfAColumn() {
+        String grouped = sql("FIND check_complex t FETCH t.nr, sum(t.scores@2) s");
+        String whole = sql("FIND check_complex t FETCH list_sort(list_agg(t.tags@1)) first_tags");
+
+        assertTrue(grouped.replaceAll("\\s+", " ").contains("GROUP BY t.nr"), grouped);
+        assertTrue(!whole.contains("GROUP BY"), whole);
+    }
 }

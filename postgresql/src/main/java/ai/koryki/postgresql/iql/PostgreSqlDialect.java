@@ -318,6 +318,57 @@ public class PostgreSqlDialect implements SqlDialect {
         registry.register(
                 ListFunctions.supported("list_avg")
                         .template("(SELECT avg(_e::double precision) FROM unnest({0}) AS _u(_e))"));
+        registry.register(ListFunctions.supported("list_any"));
+        registry.register(ListFunctions.supported("list_all"));
+        // in order and without duplicates, as an array of the rows of unnest; NULL stays NULL, as
+        // an empty subquery would make it an empty array
+        registry.register(
+                new FunctionDefinition(ListFunctions.supported("list_sort")) {
+                    @Override
+                    protected String renderBody(
+                            ai.koryki.iql.SqlSelectRenderer renderer,
+                            ai.koryki.iql.query.Function function,
+                            int indent) {
+                        boolean descending = ListFunctions.descending(function);
+                        return NestedSql.bindOnce(
+                                renderer.toSql(function.getArguments().get(0), indent),
+                                ONCE,
+                                list ->
+                                        "CASE WHEN "
+                                                + list
+                                                + " IS NULL THEN NULL ELSE ARRAY(SELECT _e FROM"
+                                                + " unnest("
+                                                + list
+                                                + ") AS _u(_e) ORDER BY _e"
+                                                + (descending ? " DESC" : "")
+                                                + " NULLS LAST) END");
+                    }
+                });
+        registry.register(
+                new FunctionDefinition(ListFunctions.supported("list_distinct")) {
+                    @Override
+                    protected String renderBody(
+                            ai.koryki.iql.SqlSelectRenderer renderer,
+                            ai.koryki.iql.query.Function function,
+                            int indent) {
+                        return NestedSql.bindOnce(
+                                renderer.toSql(function.getArguments().get(0), indent),
+                                ONCE,
+                                list ->
+                                        "CASE WHEN "
+                                                + list
+                                                + " IS NULL THEN NULL ELSE ARRAY(SELECT DISTINCT _e"
+                                                + " FROM unnest("
+                                                + list
+                                                + ") AS _u(_e) WHERE _e IS NOT NULL ORDER BY _e)"
+                                                + " END");
+                    }
+                });
+        registry.register(ListFunctions.supported("list_concat").template("array_cat({0}, {1})"));
+        registry.register(ListFunctions.supported("list").template("ARRAY[{*}]"));
+        registry.register(
+                ListFunctions.supported("list_agg")
+                        .template("array_agg({0}) FILTER (WHERE {0} IS NOT NULL)"));
         for (String name : java.util.List.of("list_transform", "list_filter")) {
             boolean filter = name.equals("list_filter");
             registry.register(

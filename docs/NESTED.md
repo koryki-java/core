@@ -66,6 +66,27 @@ postfix one: `it@price`.
 * Available where lists are: DuckDB, PostgreSQL, Trino, Snowflake and Oracle. The aggregates of
   Oracle ignore the order a nested table has none of; its `list_avg` is a floating point number.
 
+## Shaping and making lists
+
+| Function | Answers |
+|---|---|
+| `list_sort(l)`, `list_sort(l, 'desc')` | the list in order; NULL elements come last in either order |
+| `list_distinct(l)` | the elements without duplicates and without NULLs, in ascending order |
+| `list_concat(a, b)` | `a` followed by `b`; a NULL list counts as empty, the answer is NULL only when both are |
+| `list_any(l, x -> test)`, `list_all(l, x -> test)` | whether some, or every, element passes the test; a test that is NULL does not pass; an empty list has no element that passes and every element of it does |
+| `list(a, b, ...)` | a list of the values, in the order they are written |
+| `list_agg(x)` | an aggregate: the values of the group as a list, NULLs left out, no order promised, NULL where nothing was collected |
+
+* A list from `list_agg` has no order, so one that is shown or compared is sorted:
+  `list_sort(list_agg(t.nr))`. On Oracle this is the only thing besides showing it that can be done
+  with it: TABLE() cannot read an aggregate in a subquery (ORA-00934), and the refusal says so.
+* `list_any` and `list_all` work on a list of structs on every dialect, including Oracle, which
+  cannot build a list of objects for `list_filter`.
+* An aggregate over a selection, `sum(t.scores@2)`, groups the other items of the query like an
+  aggregate over a column does.
+* An expression of constants in a query with an aggregate is a key of the GROUP BY on every dialect;
+  Oracle refuses a subquery there, so `list_size(list(1, 2, 3))` is written in a query of its own.
+
 ## What the dialects do
 
 | | list | range | struct | map | JSON | JSON from the end | transform, filter | position parameter | reduce |

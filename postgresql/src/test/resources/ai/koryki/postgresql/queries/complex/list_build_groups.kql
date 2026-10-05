@@ -1,0 +1,3 @@
+// One list per group. A group whose values are all NULL has nothing to collect: row 2 has no first tag.
+FIND check_complex t
+FETCH t.nr, list_agg(t.tags@1) first_tag

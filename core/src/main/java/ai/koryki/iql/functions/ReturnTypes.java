@@ -127,6 +127,24 @@ public class ReturnTypes {
                 return ConditionalReconciler.reconcile(types).target();
             };
 
+    /** A list of the type of the first argument: {@code list_agg}. */
+    public static final ReturnTypeInference LIST_OF_ARG0 =
+            binding -> {
+                TypeDescriptor value = binding.getOperandType(0);
+                return value == null ? null : TypeDescriptor.array(value);
+            };
+
+    /** A list of the common type of all the arguments: {@code list(a, b, ...)}. */
+    public static final ReturnTypeInference LIST_OF_COMMON =
+            binding -> {
+                List<TypeDescriptor> types = new ArrayList<>();
+                for (int i = 0; i < binding.getOperandCount(); i++) {
+                    types.add(binding.getOperandType(i));
+                }
+                TypeDescriptor common = ConditionalReconciler.reconcile(types).target();
+                return common == null ? null : TypeDescriptor.array(common);
+            };
+
     public static final ReturnTypeInference LEAST_RESTRICTIVE =
             binding -> {
                 TypeDescriptor result = binding.getOperandType(0);
