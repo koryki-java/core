@@ -43,6 +43,17 @@ jobs:
             exit 1
           fi
 
+      # A release of core must not depend on a SNAPSHOT of northwind: Central has none, so nobody
+      # could resolve the published artifact.
+      - name: Check no SNAPSHOT dependency
+        if: github.event_name == 'push' || inputs.target == 'release'
+        run: |
+          if grep -q 'SNAPSHOT' gradle/libs.versions.toml; then
+            echo "::error::gradle/libs.versions.toml still pins a SNAPSHOT; release northwind first and pin its release"
+            grep -n 'SNAPSHOT' gradle/libs.versions.toml
+            exit 1
+          fi
+
       # gradle-wrapper.jar is the first thing the build runs: check it against Gradle's published
       # checksums, so a jar swapped in a commit cannot run with the signing key in reach.
       - uses: gradle/actions/wrapper-validation@v6
