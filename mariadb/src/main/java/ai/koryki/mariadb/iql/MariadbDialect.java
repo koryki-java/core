@@ -16,6 +16,7 @@
  */
 package ai.koryki.mariadb.iql;
 
+import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.catalog.types.CoreTypeEncoding;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.Families;
@@ -28,9 +29,12 @@ import ai.koryki.iql.functions.catalog.DateTimeFunctions;
 import ai.koryki.iql.query.Duration;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
+import ai.koryki.iql.query.Selector;
 import ai.koryki.iql.typing.TimeEncodings;
 import ai.koryki.mariadb.iql.validate.MariadbValidator;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class MariadbDialect implements SqlDialect {
 
@@ -244,6 +248,69 @@ public class MariadbDialect implements SqlDialect {
     @Override
     public String textLiteral(String quoted) {
         return quoted.replace("\\", "\\\\");
+    }
+
+    // ---- nested values: selectors -------------------------------------------------------------
+
+    private static final Pattern JSON_NAME = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
+
+    /**
+     * MariaDB has no collection, object or map type: the only nested value is JSON. A selector
+     * chain is one path, counted from 0, with {@code last} for the end ({@code JSON_EXTRACT} does
+     * not know it, {@code JSON_VALUE} and {@code JSON_QUERY} do). {@code JSON_VALUE} answers a
+     * scalar and {@code JSON_QUERY} an object or a list, each NULL for the other kind, so the two
+     * together answer whatever the path finds. Paths are lax in a way the other engines are not: an
+     * object counts as a list of one ({@code $[0]} answers the object), so each step is guarded by
+     * the {@code JSON_TYPE} of the value it is applied to, a position needing an ARRAY and a name
+     * an OBJECT. A scalar string comes back without its quotes, as JSON_VALUE gives it.
+     */
+    @Override
+    public String selection(String base, TypeDescriptor baseType, List<Selector> steps) {
+        if (!CoreTypeFamily.JSON.equals(baseType.getTypeFamily())) {
+            throw new KorykiaiException(
+                    "MariaDB cannot select from "
+                            + baseType.portable()
+                            + " with a selector: only JSON is a nested value here");
+        }
+        StringBuilder path = new StringBuilder("$");
+        List<String> guards = new ArrayList<>();
+        for (Selector step : steps) {
+            guards.add(
+                    "JSON_TYPE(JSON_QUERY("
+                            + base
+                            + ", '"
+                            + path
+                            + "')) = '"
+                            + (step.getIndex() != null ? "ARRAY" : "OBJECT")
+                            + "'");
+            if (step.getIndex() != null) {
+                int n = step.getIndex();
+                path.append(
+                        n > 0
+                                ? "[" + (n - 1) + "]"
+                                : n == -1 ? "[last]" : "[last-" + (-n - 1) + "]");
+            } else {
+                String name = step.getId() != null ? step.getId() : step.getName();
+                path.append('.')
+                        .append(
+                                JSON_NAME.matcher(name).matches()
+                                        ? name
+                                        : "\"" + name.replace("\"", "\\\"") + "\"");
+            }
+        }
+        // the path is a string literal: MariaDB reads a backslash in it as an escape
+        String literal = "'" + path.toString().replace("\\", "\\\\").replace("'", "''") + "'";
+        return "CASE WHEN "
+                + String.join(" AND ", guards)
+                + " THEN COALESCE(JSON_QUERY("
+                + base
+                + ", "
+                + literal
+                + "), JSON_VALUE("
+                + base
+                + ", "
+                + literal
+                + ")) END";
     }
 
     private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();

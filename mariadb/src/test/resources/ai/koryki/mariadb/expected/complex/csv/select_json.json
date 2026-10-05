@@ -1,0 +1,6 @@
+Nr : INTEGER
+n : JSON
+inner_list : JSON
+inner_first : JSON
+array_first : JSON
+array_last : JSON
