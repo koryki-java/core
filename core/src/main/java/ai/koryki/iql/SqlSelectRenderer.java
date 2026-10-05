@@ -625,7 +625,29 @@ public class SqlSelectRenderer {
                 // A boolean column or other boolean expression standing alone as a predicate.
                 return dialect.booleanPredicate(toSql(left, indent), leftType);
             }
+            if ("IN".equalsIgnoreCase(op) && right.size() == 1 && isList(right.get(0))) {
+                // x IN list is the question list_contains(list, x) asks
+                Function contains = new Function();
+                contains.setFunc("list_contains");
+                contains.getArguments().add(right.get(0));
+                contains.getArguments().add(left);
+                Expression call = new Expression();
+                call.setFunction(contains);
+                String predicateSql = toSqlPredicate(call, indent);
+                return predicateSql != null
+                        ? predicateSql
+                        : dialect.booleanPredicate(toSql(call, indent), TypeDescriptor.BOOLEAN);
+            }
             return dialect.renderComparison(this, left, leftType, op, right, indent);
+        }
+    }
+
+    private boolean isList(Expression expression) {
+        try {
+            TypeDescriptor type = resolveType(expression);
+            return type != null && CoreTypeFamily.ARRAY.equals(type.getTypeFamily());
+        } catch (RuntimeException unresolved) {
+            return false;
         }
     }
 

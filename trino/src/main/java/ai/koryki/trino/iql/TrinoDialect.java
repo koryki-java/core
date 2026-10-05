@@ -303,6 +303,25 @@ public class TrinoDialect implements SqlDialect {
         // lists with lambdas: transform, filter and reduce are Trino's own, with a lambda of one
         // parameter; the position as a second parameter and the start from the first element are
         // spelled out
+        // what a list answers about itself; array_max and array_min give NULL as soon as one
+        // element
+        // is NULL, so the aggregates run over UNNEST, which ignores them
+        registry.register(ListFunctions.supported("list_size").template("cardinality({0})"));
+        registry.register(
+                ListFunctions.supported("list_contains")
+                        .template("(array_position({0}, {1}) > 0)"));
+        registry.register(
+                ListFunctions.supported("list_sum")
+                        .template("(SELECT sum(_e) FROM UNNEST({0}) AS _u(_e))"));
+        registry.register(
+                ListFunctions.supported("list_min")
+                        .template("(SELECT min(_e) FROM UNNEST({0}) AS _u(_e))"));
+        registry.register(
+                ListFunctions.supported("list_max")
+                        .template("(SELECT max(_e) FROM UNNEST({0}) AS _u(_e))"));
+        registry.register(
+                ListFunctions.supported("list_avg")
+                        .template("(SELECT avg(CAST(_e AS DOUBLE)) FROM UNNEST({0}) AS _u(_e))"));
         for (String name : List.of("list_transform", "list_filter", "list_reduce")) {
             registry.register(
                     new FunctionDefinition(ListFunctions.supported(name)) {

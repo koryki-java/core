@@ -168,4 +168,21 @@ class TrinoSelectionTest {
         org.junit.jupiter.api.Assertions.assertTrue(
                 actual.contains(expected), () -> expected + " not in: " + actual);
     }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource(
+            delimiter = '|',
+            value = {
+                "list_size(t.tags)|cardinality(t.tags)",
+                "list_contains(t.tags, 'red')|(array_position(t.tags, 'red') > 0)",
+                "list_sum(t.scores)|(SELECT sum(_e) FROM UNNEST(t.scores) AS _u(_e))",
+                "list_max(t.scores)|(SELECT max(_e) FROM UNNEST(t.scores) AS _u(_e))",
+                "list_avg(t.scores)|avg(CAST(_e AS DOUBLE))",
+            })
+    void aListAnswersAboutItself(String expression, String expected) {
+        String actual = sql(expression);
+
+        org.junit.jupiter.api.Assertions.assertTrue(
+                actual.contains(expected), () -> expected + " not in: " + actual);
+    }
 }

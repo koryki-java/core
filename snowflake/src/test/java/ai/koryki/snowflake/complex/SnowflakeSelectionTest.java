@@ -196,4 +196,21 @@ class SnowflakeSelectionTest {
         org.junit.jupiter.api.Assertions.assertTrue(
                 actual.contains(expected), () -> expected + " not in: " + actual);
     }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource(
+            delimiter = '|',
+            value = {
+                "list_size(t.tags)|ARRAY_SIZE(t.tags)",
+                "list_contains(t.tags, 'red')|ARRAY_CONTAINS('red', t.tags)",
+                "list_min(t.scores)|ARRAY_MIN(t.scores)",
+                "list_sum(t.scores)|CASE WHEN ARRAY_SIZE(BO_1.L) = 0 THEN NULL ELSE REDUCE(BO_1.L, 0, (a, x) -> a + x) END",
+                "list_avg(t.scores)|/ NULLIF(ARRAY_SIZE(BO_1.L), 0)",
+            })
+    void aListAnswersAboutItself(String expression, String expected) {
+        String actual = sql(expression);
+
+        org.junit.jupiter.api.Assertions.assertTrue(
+                actual.contains(expected), () -> expected + " not in: " + actual);
+    }
 }

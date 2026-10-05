@@ -323,6 +323,41 @@ public class SnowflakeDialect implements SqlDialect {
     private static FunctionRenderer buildFunctionRenderer() {
         FunctionRegistry registry = StandardFunctions.registry();
 
+        // what a list answers about itself. A correlated FLATTEN in a scalar subquery is not
+        // accepted (measured), so the sum and the mean fold the list without its NULLs, and the
+        // smallest and largest are the functions Snowflake has. A typed array takes the value to
+        // look for as it is.
+        registry.register(ListFunctions.supported("list_size").template("ARRAY_SIZE({0})"));
+        registry.register(
+                ListFunctions.supported("list_contains").template("ARRAY_CONTAINS({1}, {0})"));
+        registry.register(ListFunctions.supported("list_min").template("ARRAY_MIN({0})"));
+        registry.register(ListFunctions.supported("list_max").template("ARRAY_MAX({0})"));
+        for (String aggregate : List.of("sum", "avg")) {
+            registry.register(
+                    new FunctionDefinition(ListFunctions.supported("list_" + aggregate)) {
+                        @Override
+                        protected String renderBody(
+                                SqlSelectRenderer renderer, Function function, int indent) {
+                            String list = renderer.toSql(function.getArguments().get(0), indent);
+                            return NestedSql.bindOnce(
+                                    "ARRAY_COMPACT(" + list + ")",
+                                    ONCE,
+                                    values ->
+                                            aggregate.equals("sum")
+                                                    ? "CASE WHEN ARRAY_SIZE("
+                                                            + values
+                                                            + ") = 0 THEN NULL ELSE REDUCE("
+                                                            + values
+                                                            + ", 0, (a, x) -> a + x) END"
+                                                    : "REDUCE("
+                                                            + values
+                                                            + ", 0::DOUBLE, (a, x) -> a + x::DOUBLE)"
+                                                            + " / NULLIF(ARRAY_SIZE("
+                                                            + values
+                                                            + "), 0)");
+                        }
+                    });
+        }
         for (String name : List.of("list_transform", "list_filter", "list_reduce")) {
             registry.register(
                     new FunctionDefinition(ListFunctions.supported(name)) {

@@ -627,6 +627,29 @@ public class OracleDialect implements SqlDialect {
                         .unsupportedHint(
                                 "Oracle has no fold over a collection; sum, min, max or listagg over"
                                         + " TABLE(list) cover the usual cases"));
+        // what a list answers about itself, through TABLE(); a NULL list has no rows, so the size
+        // and the membership say NULL for it explicitly, and the aggregates are NULL on their own
+        registry.register(
+                ListFunctions.supported("list_size")
+                        .template(
+                                "CASE WHEN {0} IS NULL THEN NULL ELSE (SELECT COUNT(*) FROM TABLE({0})) END"));
+        registry.register(
+                ListFunctions.supported("list_contains")
+                        .template(
+                                "CASE WHEN {0} IS NULL THEN NULL ELSE ((SELECT COUNT(*) FROM TABLE({0}) WHERE COLUMN_VALUE = {1}) > 0) END"));
+        registry.register(
+                ListFunctions.supported("list_sum")
+                        .template("(SELECT SUM(COLUMN_VALUE) FROM TABLE({0}))"));
+        registry.register(
+                ListFunctions.supported("list_min")
+                        .template("(SELECT MIN(COLUMN_VALUE) FROM TABLE({0}))"));
+        registry.register(
+                ListFunctions.supported("list_max")
+                        .template("(SELECT MAX(COLUMN_VALUE) FROM TABLE({0}))"));
+        registry.register(
+                ListFunctions.supported("list_avg")
+                        .template(
+                                "(SELECT CAST(AVG(COLUMN_VALUE) AS BINARY_DOUBLE) FROM TABLE({0}))"));
         for (String name : List.of("list_transform", "list_filter")) {
             registry.register(
                     new FunctionDefinition(ListFunctions.supported(name)) {

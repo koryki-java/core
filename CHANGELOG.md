@@ -25,6 +25,10 @@ All notable changes to this project are documented here.
   has JSON. New `SqlDialect.jsonScalar` and `selectionScalar` hooks; a dialect with JSON implements
   them.
 
+- What a list answers about itself: `list_size`, `list_contains`, `list_sum`, `list_min`, `list_max`
+  and `list_avg`, on DuckDB, PostgreSQL, Trino, Snowflake and Oracle, and `x IN t.tags` for the
+  membership of a value in a list column. `length(list)` is refused and names `list_size`.
+
 ### Changed
 
 - The scripts that create the Northwind database for PostgreSQL, MariaDB, Oracle, SQL Server,

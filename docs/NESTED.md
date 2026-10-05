@@ -46,6 +46,26 @@ postfix one: `it@price`.
   checked.
 * A NULL list stays NULL.
 
+## What a list answers about itself
+
+| Function | Answers |
+|---|---|
+| `list_size(l)` | the number of elements, NULL elements included |
+| `list_contains(l, v)` or `v IN l` | whether an element equals `v`; true or false for a list that is there |
+| `list_sum(l)`, `list_min(l)`, `list_max(l)` | over the elements that are not NULL |
+| `list_avg(l)` | the mean of those, as a floating point number |
+
+* A list that is NULL gives NULL; a list with no element left to count (empty, or only NULLs) gives
+  NULL for the sum, the mean, the smallest and the largest.
+* `x IN l` is the membership of a value in a list column, `x IN (1, 2)` stays the membership in a
+  list of literals. The value meets the *elements* of the list, so `1 IN t.tags` over a list of
+  texts is refused. Negate with `NOT (x IN l)`.
+* A list is not a text: `length(t.tags)` is refused and names `list_size`.
+* The list may be anything that is a list, a column or what a lambda made: `list_size(list_filter(
+  t.scores, x -> x > 5))`.
+* Available where lists are: DuckDB, PostgreSQL, Trino, Snowflake and Oracle. The aggregates of
+  Oracle ignore the order a nested table has none of; its `list_avg` is a floating point number.
+
 ## What the dialects do
 
 | | list | range | struct | map | JSON | JSON from the end | transform, filter | position parameter | reduce |

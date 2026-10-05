@@ -41,7 +41,7 @@ public final class ListFunctions {
 
     private ListFunctions() {}
 
-    private static final String HINT = "lambdas on lists are not supported by this dialect yet";
+    private static final String HINT = "lists are not supported by this dialect yet";
 
     public static void register(FunctionRegistry r) {
         register(r, false);
@@ -58,8 +58,9 @@ public final class ListFunctions {
     }
 
     /**
-     * A working definition of one of the three, for a dialect that renders it its own way: it
-     * overrides {@code renderBody} on a copy of this and registers it over the rejected one.
+     * A working definition of one of the list functions, for a dialect that renders it its own way:
+     * it sets a template, or overrides {@code renderBody} on a copy of this, and registers it over
+     * the rejected one.
      */
     public static FunctionDefinition supported(String name) {
         return definitions().stream()
@@ -76,6 +77,58 @@ public final class ListFunctions {
     }
 
     private static List<FunctionDefinition> definitions() {
+        List<FunctionDefinition> all = new java.util.ArrayList<>(lambdaDefinitions());
+        all.addAll(valueDefinitions());
+        return all;
+    }
+
+    /**
+     * The functions that take a list and answer about it, no lambda: the size, whether it holds a
+     * value, and the sum, smallest, largest and mean of its elements. Rendered in DuckDB's form
+     * here, which is the canonical one; every other dialect that has lists writes its own.
+     *
+     * <p>What they promise, on every dialect: a NULL list gives NULL; the aggregates ignore NULL
+     * elements and give NULL for a list with none; {@code list_contains} is true or false, never
+     * NULL, for a list that is there.
+     */
+    private static List<FunctionDefinition> valueDefinitions() {
+        return List.of(
+                new FunctionDefinition("list_size", ReturnTypes.INTEGER)
+                        .args(arg("list", CoreTypeFamily.ARRAY, "the list"))
+                        .template("len({0})")
+                        .category(FunctionCategory.OTHER)
+                        .doc("The number of elements of the list, NULL elements included."),
+                new FunctionDefinition("list_contains", ReturnTypes.BOOLEAN)
+                        .args(
+                                arg("list", CoreTypeFamily.ARRAY, "the list"),
+                                arg("value", Families.ANY, "the value to look for"))
+                        .template("list_contains({0}, {1})")
+                        .category(FunctionCategory.OTHER)
+                        .doc("Whether the list has an element equal to the value."),
+                new FunctionDefinition("list_sum", ReturnTypes.ELEMENT_OF_LIST)
+                        .args(arg("list", CoreTypeFamily.ARRAY, "the list of numbers"))
+                        .template("list_sum({0})")
+                        .category(FunctionCategory.OTHER)
+                        .doc("The sum of the elements, NULL elements ignored."),
+                new FunctionDefinition("list_min", ReturnTypes.ELEMENT_OF_LIST)
+                        .args(arg("list", CoreTypeFamily.ARRAY, "the list"))
+                        .template("list_min({0})")
+                        .category(FunctionCategory.OTHER)
+                        .doc("The smallest element, NULL elements ignored."),
+                new FunctionDefinition("list_max", ReturnTypes.ELEMENT_OF_LIST)
+                        .args(arg("list", CoreTypeFamily.ARRAY, "the list"))
+                        .template("list_max({0})")
+                        .category(FunctionCategory.OTHER)
+                        .doc("The largest element, NULL elements ignored."),
+                new FunctionDefinition("list_avg", ReturnTypes.DOUBLE)
+                        .args(arg("list", CoreTypeFamily.ARRAY, "the list of numbers"))
+                        .template("list_avg({0})")
+                        .category(FunctionCategory.OTHER)
+                        .doc(
+                                "The mean of the elements as a floating point number, NULL elements ignored."));
+    }
+
+    private static List<FunctionDefinition> lambdaDefinitions() {
         return List.of(
                 new FunctionDefinition("list_transform", ReturnTypes.LIST_OF_LAMBDA)
                         .args(

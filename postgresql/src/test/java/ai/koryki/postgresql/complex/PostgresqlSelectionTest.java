@@ -207,4 +207,21 @@ class PostgresqlSelectionTest {
         org.junit.jupiter.api.Assertions.assertTrue(
                 actual.contains(expected), () -> expected + " not in: " + actual);
     }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource(
+            delimiter = '|',
+            value = {
+                "list_size(t.tags)|cardinality(t.tags)",
+                "list_contains(t.tags, 'red')|(t.tags @> ARRAY['red'])",
+                "list_sum(t.scores)|(SELECT sum(_e) FROM unnest(t.scores) AS _u(_e))",
+                "list_min(t.scores)|(SELECT min(_e) FROM unnest(t.scores) AS _u(_e))",
+                "list_avg(t.scores)|avg(_e::double precision)",
+            })
+    void aListAnswersAboutItself(String expression, String expected) {
+        String actual = sql(expression);
+
+        org.junit.jupiter.api.Assertions.assertTrue(
+                actual.contains(expected), () -> expected + " not in: " + actual);
+    }
 }

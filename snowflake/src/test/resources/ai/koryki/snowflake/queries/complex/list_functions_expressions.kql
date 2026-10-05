@@ -1,0 +1,6 @@
+// The list can be anything that is a list, a lambda's result as well as a column. Row 2 has an empty
+// list, row 3 NULL elements among its values: nothing matches, and the sum of what is left is 10.
+FIND check_complex t
+FETCH t.nr, list_contains(list_transform(t.tags, x -> upper(x)), 'RED') has_red_upper,
+      list_size(list_filter(t.scores, x -> x > 5)) big,
+      list_sum(list_transform(t.scores, x -> x * 2)) doubled_total

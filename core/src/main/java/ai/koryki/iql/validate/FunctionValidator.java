@@ -100,6 +100,7 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         checkTimeArithmetic(function);
         checkAnchorFirst(function);
         checkConditionalReconciliation(function);
+        checkListSize(function);
         checkLogicalArguments(function);
         checkProjectionOnly(deque, function);
         checkWindowOnly(function);
@@ -930,6 +931,39 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
                                 + " — compare it with an operator, e.g. `= 'x'` or `> 0`"));
     }
 
+    private static final java.util.Set<String> SIZE_NAMES =
+            java.util.Set.of("length", "len", "size", "cardinality", "array_length", "array_size");
+
+    /**
+     * {@code length(t.tags)} is not in the catalog, so it was passed through to the engine as it is
+     * and meant something different on each: the characters of a text on one, an error on the next.
+     * The number of elements of a list has a name of its own.
+     */
+    private void checkListSize(Function function) {
+        if (functions == null
+                || !typeChecks()
+                || scopes.isEmpty()
+                || function.getArguments().size() != 1
+                || !SIZE_NAMES.contains(function.getFunc().toLowerCase(Locale.ROOT))
+                || !functions.overloads(function.getFunc()).isEmpty()) {
+            return;
+        }
+        ExpressionTypeResolver types =
+                new ExpressionTypeResolver(resolver, scopes.peek(), functions);
+        TypeDescriptor type = resolveOrNull(types, function.getArguments().get(0));
+        if (type != null
+                && ai.koryki.catalog.types.CoreTypeFamily.ARRAY.equals(type.getTypeFamily())) {
+            violations.add(
+                    new Violation(
+                            "function",
+                            function,
+                            Range.of(iqlToContext, function),
+                            function.getFunc()
+                                    + " is not a function of a list; the number of its elements is"
+                                    + " list_size(list)"));
+        }
+    }
+
     /**
      * Comparison operators whose operands must meet in one type; all declare {@code Families.ANY}.
      */
@@ -975,7 +1009,16 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         List<TypeDescriptor> operands = new ArrayList<>();
         operands.add(resolveOrNull(types, node.getLeft()));
         for (Expression e : node.getRight()) {
-            operands.add(resolveOrNull(types, e));
+            TypeDescriptor type = resolveOrNull(types, e);
+            // x IN list: the value meets the elements of the list, the list is not an operand of
+            // its own
+            if ("IN".equalsIgnoreCase(node.getOp().trim())
+                    && node.getRight().size() == 1
+                    && type != null
+                    && ai.koryki.catalog.types.CoreTypeFamily.ARRAY.equals(type.getTypeFamily())) {
+                type = type.element();
+            }
+            operands.add(type);
         }
         // a single typed operand has nothing to reconcile against
         if (operands.stream().filter(java.util.Objects::nonNull).count() < 2) {

@@ -1,0 +1,4 @@
+Nr : INTEGER
+has_red_upper : BOOLEAN
+big : INTEGER
+doubled_total : INTEGER

@@ -302,6 +302,22 @@ public class PostgreSqlDialect implements SqlDialect {
                         .unsupportedHint(
                                 "PostgreSQL has no fold over an array; sum, min, max or string_agg over the"
                                         + " unnested elements cover the usual cases"));
+        // what a list answers about itself: unnest in a scalar subquery for the aggregates, which
+        // ignores NULL elements and answers NULL for no rows, as the contract says
+        registry.register(ListFunctions.supported("list_size").template("cardinality({0})"));
+        registry.register(ListFunctions.supported("list_contains").template("({0} @> ARRAY[{1}])"));
+        registry.register(
+                ListFunctions.supported("list_sum")
+                        .template("(SELECT sum(_e) FROM unnest({0}) AS _u(_e))"));
+        registry.register(
+                ListFunctions.supported("list_min")
+                        .template("(SELECT min(_e) FROM unnest({0}) AS _u(_e))"));
+        registry.register(
+                ListFunctions.supported("list_max")
+                        .template("(SELECT max(_e) FROM unnest({0}) AS _u(_e))"));
+        registry.register(
+                ListFunctions.supported("list_avg")
+                        .template("(SELECT avg(_e::double precision) FROM unnest({0}) AS _u(_e))"));
         for (String name : java.util.List.of("list_transform", "list_filter")) {
             boolean filter = name.equals("list_filter");
             registry.register(

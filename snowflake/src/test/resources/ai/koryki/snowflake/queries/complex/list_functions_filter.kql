@@ -1,0 +1,5 @@
+// The functions work where a condition is: the rows whose list holds a value, and the rows with
+// something in the list at all.
+FIND check_complex t
+FILTER list_contains(t.tags, 'red') OR list_size(t.scores) > 2
+FETCH t.nr, list_size(t.scores) n

@@ -1,0 +1,8 @@
+Nr : INTEGER
+tags : INTEGER
+vec : INTEGER
+has_red : BOOLEAN
+total : INTEGER
+lowest : INTEGER
+highest : INTEGER
+average : FLOAT

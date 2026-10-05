@@ -159,4 +159,20 @@ class OracleSelectionTest {
         org.junit.jupiter.api.Assertions.assertTrue(
                 actual.contains(expected), () -> expected + " not in: " + actual);
     }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource(
+            delimiter = '|',
+            value = {
+                "list_size(t.tags)|CASE WHEN t.tags IS NULL THEN NULL ELSE (SELECT COUNT(*) FROM TABLE(t.tags)) END",
+                "list_contains(t.tags, 'red')|((SELECT COUNT(*) FROM TABLE(t.tags) WHERE COLUMN_VALUE = 'red') > 0)",
+                "list_sum(t.scores)|(SELECT SUM(COLUMN_VALUE) FROM TABLE(t.scores))",
+                "list_avg(t.scores)|CAST(AVG(COLUMN_VALUE) AS BINARY_DOUBLE)",
+            })
+    void aListAnswersAboutItself(String expression, String expected) {
+        String actual = sql(expression);
+
+        org.junit.jupiter.api.Assertions.assertTrue(
+                actual.contains(expected), () -> expected + " not in: " + actual);
+    }
 }

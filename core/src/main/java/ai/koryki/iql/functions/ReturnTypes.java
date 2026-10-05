@@ -60,6 +60,15 @@ public class ReturnTypes {
                         : TypeDescriptor.array(list.element());
             };
 
+    /** The type of an element of the list argument: {@code list_sum}, {@code list_max}. */
+    public static final ReturnTypeInference ELEMENT_OF_LIST =
+            b -> {
+                TypeDescriptor list = b.getOperandType(0);
+                return list == null || list.getTypeFamily() != CoreTypeFamily.ARRAY
+                        ? null
+                        : list.element();
+            };
+
     /** {@code list_reduce}: what the lambda returns. */
     public static final ReturnTypeInference LAMBDA = b -> b.getLambdaType(1);
 
