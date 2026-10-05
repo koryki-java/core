@@ -1,0 +1,4 @@
+Nr : INTEGER
+shouted : TEXT
+first_tag : TEXT
+double_price : DECIMAL

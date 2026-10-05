@@ -1,0 +1,4 @@
+Nr : INTEGER
+line_totals : ARRAY(DECIMAL)
+skus : ARRAY(TEXT)
+options : ARRAY(ARRAY(TEXT))

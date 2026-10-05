@@ -16,22 +16,30 @@
  */
 package ai.koryki.snowflake.iql;
 
+import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.catalog.types.CoreTypeEncoding;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.WallClockEncoding;
 import ai.koryki.iql.SqlDialect;
 import ai.koryki.iql.SqlSelectRenderer;
+import ai.koryki.iql.functions.FunctionDefinition;
 import ai.koryki.iql.functions.FunctionRegistry;
 import ai.koryki.iql.functions.FunctionRenderer;
 import ai.koryki.iql.functions.ReturnTypes;
 import ai.koryki.iql.functions.StandardFunctions;
+import ai.koryki.iql.functions.catalog.ListFunctions;
 import ai.koryki.iql.query.Expression;
+import ai.koryki.iql.query.Function;
+import ai.koryki.iql.query.Selector;
 import ai.koryki.iql.typing.TimeEncodings;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class SnowflakeDialect implements SqlDialect {
 
@@ -86,8 +94,239 @@ public class SnowflakeDialect implements SqlDialect {
         return quoted.replace("\\", "\\\\");
     }
 
+    // ---- nested values: selectors and lambdas -------------------------------------------------
+
+    /**
+     * Snowflake counts from 0, so every position is shifted. {@code GET} reads an ARRAY element, an
+     * OBJECT field (the struct) and a MAP value alike, and is NULL for an index or key that is not
+     * there. A position from the end is not accepted by {@code GET} (an error, measured), so it is
+     * computed from {@code ARRAY_SIZE} and guarded to stay NULL when it falls off the front. A
+     * range is {@code ARRAY_SLICE(list, from, to)}, 0-based with an exclusive end; a struct has no
+     * positional access, so a position becomes the field name the type declares. A JSON value
+     * (VARIANT) takes one {@code GET_PATH}, which has no position from the end either.
+     */
+    @Override
+    public String selection(String base, TypeDescriptor baseType, List<Selector> steps) {
+        String sql = base;
+        TypeDescriptor type = baseType;
+        for (int i = 0; i < steps.size(); i++) {
+            Selector step = steps.get(i);
+            if (CoreTypeFamily.JSON.equals(type.getTypeFamily())) {
+                return jsonPath(sql, steps.subList(i, steps.size()));
+            } else if (CoreTypeFamily.ARRAY.equals(type.getTypeFamily())) {
+                sql = step.getIndex() != null ? element(sql, step.getIndex()) : slice(sql, step);
+            } else if (CoreTypeFamily.STRUCT.equals(type.getTypeFamily())) {
+                sql = "GET(" + sql + ", " + literal(fieldName(type, step)) + ")";
+            } else if (CoreTypeFamily.MAP.equals(type.getTypeFamily())) {
+                sql = "GET(" + sql + ", " + mapKey(step) + ")";
+            } else {
+                throw new KorykiaiException(
+                        "Snowflake cannot select from " + type.portable() + " with a selector");
+            }
+            type = ai.koryki.iql.typing.Selectors.step(type, step);
+        }
+        return sql;
+    }
+
+    private static String literal(String text) {
+        return "'" + text.replace("'", "''").replace("\\", "\\\\") + "'";
+    }
+
+    private static String element(String list, int position) {
+        if (position > 0) {
+            return "GET(" + list + ", " + (position - 1) + ")";
+        }
+        int fromEnd = -position;
+        return "CASE WHEN ARRAY_SIZE("
+                + list
+                + ") >= "
+                + fromEnd
+                + " THEN GET("
+                + list
+                + ", ARRAY_SIZE("
+                + list
+                + ") - "
+                + fromEnd
+                + ") END";
+    }
+
+    /** 1-based inclusive bounds to {@code ARRAY_SLICE}'s 0-based start and exclusive end. */
+    private static String slice(String list, Selector step) {
+        String size = "ARRAY_SIZE(" + list + ")";
+        Integer from = step.getFrom();
+        Integer to = step.getTo();
+        String start =
+                from == null
+                        ? "0"
+                        : from > 0
+                                ? String.valueOf(from - 1)
+                                : "GREATEST(" + size + " - " + (-from) + ", 0)";
+        String stop =
+                to == null
+                        ? size
+                        : to > 0
+                                ? String.valueOf(to)
+                                : "GREATEST(" + size + " - " + (-to) + " + 1, 0)";
+        return "ARRAY_SLICE(" + list + ", " + start + ", " + stop + ")";
+    }
+
+    private static String fieldName(TypeDescriptor type, Selector step) {
+        if (step.getIndex() != null) {
+            int n = type.fieldNames().size();
+            return type.fieldNames()
+                    .get(step.getIndex() > 0 ? step.getIndex() - 1 : n + step.getIndex());
+        }
+        String wanted = step.getId() != null ? step.getId() : step.getName();
+        // the name as the type declares it: OBJECT keys are case sensitive here
+        return type.fieldNames().stream()
+                .filter(f -> f.equalsIgnoreCase(wanted))
+                .findFirst()
+                .orElse(wanted);
+    }
+
+    private static String mapKey(Selector step) {
+        if (step.getIndex() != null) {
+            return String.valueOf(step.getIndex());
+        }
+        return literal(step.getId() != null ? step.getId() : step.getName());
+    }
+
+    private static final Pattern JSON_NAME = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
+
+    private static String jsonPath(String sql, List<Selector> steps) {
+        StringBuilder path = new StringBuilder();
+        for (Selector step : steps) {
+            if (step.getIndex() != null) {
+                if (step.getIndex() < 0) {
+                    throw new KorykiaiException(
+                            "a JSON path in Snowflake has no position from the end: "
+                                    + ai.koryki.iql.IQLSerializer.selector(step));
+                }
+                path.append('[').append(step.getIndex() - 1).append(']');
+            } else {
+                String name = step.getId() != null ? step.getId() : step.getName();
+                if (path.length() > 0) {
+                    path.append('.');
+                }
+                path.append(
+                        JSON_NAME.matcher(name).matches()
+                                ? name
+                                : "\"" + name.replace("\"", "\\\"") + "\"");
+            }
+        }
+        return "GET_PATH(" + sql + ", " + literal(path.toString()) + ")";
+    }
+
+    /** {@code x -> body}, or {@code (a, b) -> body}: Snowflake's own lambda. */
+    @Override
+    public String lambda(List<String> parameters, String body) {
+        String head =
+                parameters.size() == 1
+                        ? parameters.get(0)
+                        : "(" + String.join(", ", parameters) + ")";
+        return head + " -> " + body;
+    }
+
+    /**
+     * TRANSFORM, FILTER and REDUCE take a lambda over the element only. The position is spelled out
+     * by walking the 1-based indexes of the list and reading the element back with {@code GET}, the
+     * element parameter replaced in the body; REDUCE starts from the first element as DuckDB's
+     * does, and an empty list gives NULL.
+     */
+    private static String listWithLambda(
+            String name, SqlSelectRenderer renderer, Function function, int indent) {
+        String list = renderer.toSql(function.getArguments().get(0), indent);
+        return renderer.lambda(
+                function.getArguments().get(1),
+                indent,
+                (names, body) -> {
+                    refuseEnclosingParameters(names.get(0), body);
+                    String range = "ARRAY_GENERATE_RANGE(1, ARRAY_SIZE(" + list + ") + 1)";
+                    if (names.size() == 2 && !name.equals("list_reduce")) {
+                        String at = "GET(" + list + ", " + names.get(1) + " - 1)";
+                        String indexed = replaceName(body, names.get(0), at);
+                        if (name.equals("list_transform")) {
+                            return "TRANSFORM("
+                                    + range
+                                    + ", "
+                                    + names.get(1)
+                                    + " -> "
+                                    + indexed
+                                    + ")";
+                        }
+                        return "TRANSFORM(FILTER("
+                                + range
+                                + ", "
+                                + names.get(1)
+                                + " -> "
+                                + indexed
+                                + "), "
+                                + names.get(1)
+                                + " -> "
+                                + at
+                                + ")";
+                    }
+                    String head =
+                            names.size() == 1 ? names.get(0) : "(" + String.join(", ", names) + ")";
+                    switch (name) {
+                        case "list_transform":
+                            return "TRANSFORM(" + list + ", " + head + " -> " + body + ")";
+                        case "list_filter":
+                            return "FILTER(" + list + ", " + head + " -> " + body + ")";
+                        default:
+                            return "REDUCE(ARRAY_SLICE("
+                                    + list
+                                    + ", 1, ARRAY_SIZE("
+                                    + list
+                                    + ")), GET("
+                                    + list
+                                    + ", 0), "
+                                    + head
+                                    + " -> "
+                                    + body
+                                    + ")";
+                    }
+                });
+    }
+
+    private static final Pattern LAMBDA_NAME = Pattern.compile("\\b_l(\\d+)_\\w+");
+
+    /**
+     * A lambda in Snowflake does not see the parameters of the lambda around it (measured: invalid
+     * identifier), only the columns of the query. Said here rather than left to the database.
+     */
+    private static void refuseEnclosingParameters(String own, String body) {
+        Matcher own_ = LAMBDA_NAME.matcher(own);
+        int depth = own_.find() ? Integer.parseInt(own_.group(1)) : 0;
+        Matcher m = LAMBDA_NAME.matcher(body);
+        while (m.find()) {
+            if (Integer.parseInt(m.group(1)) < depth) {
+                throw new KorykiaiException(
+                        "a lambda in Snowflake cannot use the parameter of the lambda around it");
+            }
+        }
+    }
+
+    /** The generated lambda names are unique tokens, so a word boundary is all it takes. */
+    private static String replaceName(String body, String name, String replacement) {
+        return Pattern.compile("\\b" + Pattern.quote(name) + "\\b")
+                .matcher(body)
+                .replaceAll(Matcher.quoteReplacement(replacement));
+    }
+
     private static FunctionRenderer buildFunctionRenderer() {
         FunctionRegistry registry = StandardFunctions.registry();
+
+        for (String name : List.of("list_transform", "list_filter", "list_reduce")) {
+            registry.register(
+                    new FunctionDefinition(ListFunctions.supported(name)) {
+                        @Override
+                        protected String renderBody(
+                                SqlSelectRenderer renderer, Function function, int indent) {
+                            return listWithLambda(name, renderer, function, indent);
+                        }
+                    });
+        }
 
         // concat and concat_ws skip NULL arguments -- so documented, and so the other seven
         // dialects behave. Snowflake does not: its documentation says explicitly "the Snowflake

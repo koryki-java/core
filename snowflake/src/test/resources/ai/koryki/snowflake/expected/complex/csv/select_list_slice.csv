@@ -1,0 +1,4 @@
+"Nr", "first_two", "from_second", "up_to_second", "vec_head"
+"1", "[""red"",""green""]", "[""green"",""blue""]", "[""red"",""green""]", "[1.0,2.0]"
+"2", "[]", "[]", "[]", ""
+"3", "[""x"",null]", "[null,""z""]", "[""x"",null]", "[0.0,null]"

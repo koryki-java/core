@@ -1,0 +1,7 @@
+// Steps follow the structure to any depth: a list of structs, a struct holding a list, a list of
+// maps of structs holding a list and a map of lists. Each step is checked against the type it meets.
+FIND check_complex t
+FETCH t.nr,
+      t.items@1@sku first_sku, t.items@1@price first_price, t.items@1@opts@2 second_option,
+      t.items@2@opts empty_options, t.events@1@ts first_event, t.events@1@day first_day,
+      t.deep@1@m@a@2 deep_number, t.deep@1@m@b@1@1 deep_text, t.items@2:2 second_item

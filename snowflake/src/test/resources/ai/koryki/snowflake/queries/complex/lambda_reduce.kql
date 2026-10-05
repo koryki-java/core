@@ -1,0 +1,8 @@
+// list_reduce combines a list into one value: (a, b) is the result so far and the next element,
+// starting with the first element. A list of one element is that element; DuckDB refuses an empty
+// list, so the row that has one is filtered out. A NULL anywhere makes the result NULL, as the sum
+// of a NULL does.
+FIND check_complex t
+FILTER t.nr <> 2
+FETCH t.nr, list_reduce(t.scores, (a, b) -> @a + @b) total,
+      list_reduce(t.vec, (a, b) -> @a * @b) product

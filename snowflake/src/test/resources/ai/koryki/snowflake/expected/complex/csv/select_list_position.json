@@ -1,0 +1,5 @@
+Nr : INTEGER
+first_tag : TEXT
+last_tag : TEXT
+fifth_tag : TEXT
+second_score : INTEGER

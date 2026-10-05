@@ -41,6 +41,7 @@ public class SnowflakeDatabase<C extends ResultProcessor<?>> extends JdbcDatabas
 
     public SnowflakeDatabase(String name, Connection conn, ZoneId modelZone) {
         super(name, conn, modelZone);
+        setDecoder(new SnowflakeDecoder(modelZone)); // containers arrive as JSON text
     }
 
     /** Pin the session so TIMESTAMP_LTZ reads and now() are reproducible (TEMPORAL.md). */
