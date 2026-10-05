@@ -16,6 +16,7 @@
  */
 package ai.koryki.sqlite.iql;
 
+import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.catalog.types.CoreTypeEncoding;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.Families;
@@ -34,6 +35,7 @@ import ai.koryki.iql.functions.StandardFunctions;
 import ai.koryki.iql.query.Duration;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
+import ai.koryki.iql.query.Selector;
 import ai.koryki.iql.typing.TimeEncodings;
 import ai.koryki.sqlite.iql.validate.SqliteValidator;
 import java.time.LocalDate;
@@ -42,6 +44,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 public class SqliteDialect implements SqlDialect {
 
@@ -55,6 +58,42 @@ public class SqliteDialect implements SqlDialect {
     }
 
     private SqliteDialect() {}
+
+    // ---- nested values: selectors -------------------------------------------------------------
+
+    private static final Pattern JSON_NAME = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
+
+    /**
+     * SQLite has no collection, object or map type: the only nested value is JSON, kept as text and
+     * read by the JSON functions. A selector chain is one {@code json_extract} path, counted from
+     * 0, with {@code #} for the end ({@code $[#-1]} is the last). The answer is an SQL value for a
+     * scalar, a string without its quotes, and JSON text for an object or a list; NULL for what the
+     * path does not find.
+     */
+    @Override
+    public String selection(String base, TypeDescriptor baseType, List<Selector> steps) {
+        if (!CoreTypeFamily.JSON.equals(baseType.getTypeFamily())) {
+            throw new KorykiaiException(
+                    "SQLite cannot select from "
+                            + baseType.portable()
+                            + " with a selector: only JSON is a nested value here");
+        }
+        StringBuilder path = new StringBuilder("$");
+        for (Selector step : steps) {
+            if (step.getIndex() != null) {
+                int n = step.getIndex();
+                path.append(n > 0 ? "[" + (n - 1) + "]" : "[#-" + (-n) + "]");
+            } else {
+                String name = step.getId() != null ? step.getId() : step.getName();
+                path.append('.')
+                        .append(
+                                JSON_NAME.matcher(name).matches()
+                                        ? name
+                                        : "\"" + name.replace("\"", "\\\"") + "\"");
+            }
+        }
+        return "json_extract(" + base + ", '" + path.toString().replace("'", "''") + "')";
+    }
 
     private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();
 
