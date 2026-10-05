@@ -181,6 +181,8 @@ public class DateBetweenRewriter {
         }
         if (e.getFunction() != null)
             e.getFunction().getArguments().forEach(arg -> rewriteExpression(arg, restores));
+        if (e.getSelection() != null) rewriteExpression(e.getSelection().getBase(), restores);
+        if (e.getLambda() != null) rewriteExpression(e.getLambda().getBody(), restores);
     }
 
     private static boolean isBetweenWithTemporalUpper(UnaryLogicalExpression u) {

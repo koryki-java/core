@@ -233,6 +233,15 @@ public class CheckOuterJoinFilterRule {
                 }
                 return e.getFunction().getFunc() + "(" + String.join(", ", aliases) + ")";
             }
+            if (e.getSelection() != null) {
+                String base = operand(e.getSelection().getBase());
+                return base == null
+                        ? null
+                        : base
+                                + e.getSelection().getSelectors().stream()
+                                        .map(ai.koryki.iql.IQLSerializer::selector)
+                                        .collect(java.util.stream.Collectors.joining());
+            }
             return null; // a literal or something we cannot name — the message drops the quote
         }
     }

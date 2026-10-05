@@ -5,6 +5,6 @@ SELECT
 FROM
  check_complex t
 WHERE
-  (SELECT E1.V FROM (SELECT COLUMN_VALUE V, ROWNUM RN FROM TABLE(t.scores) Z) E1 WHERE E1.RN = 2) > 10
- AND
   t.address.street = 'Main St 1'
+ AND
+  (SELECT E1.V FROM (SELECT COLUMN_VALUE V, ROWNUM RN FROM TABLE(t.scores) Z) E1 WHERE E1.RN = 2) > 10

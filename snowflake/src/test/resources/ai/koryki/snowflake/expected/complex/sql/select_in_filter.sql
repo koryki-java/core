@@ -5,6 +5,6 @@ SELECT
 FROM
  check_complex t
 WHERE
-  GET(t.scores, 1) > 10
- AND
   GET(t.attrs, 'color') = 'red'
+ AND
+  GET(t.scores, 1) > 10
