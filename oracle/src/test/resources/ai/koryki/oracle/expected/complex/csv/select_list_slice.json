@@ -1,0 +1,5 @@
+Nr : INTEGER
+first_two : ARRAY(TEXT)
+from_second : ARRAY(TEXT)
+up_to_second : ARRAY(TEXT)
+vec_head : ARRAY(FLOAT)

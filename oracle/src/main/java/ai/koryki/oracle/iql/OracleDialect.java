@@ -16,6 +16,7 @@
  */
 package ai.koryki.oracle.iql;
 
+import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.catalog.types.CoreTypeEncoding;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.Families;
@@ -29,14 +30,19 @@ import ai.koryki.iql.functions.FunctionRegistry;
 import ai.koryki.iql.functions.FunctionRenderer;
 import ai.koryki.iql.functions.ReturnTypes;
 import ai.koryki.iql.functions.StandardFunctions;
+import ai.koryki.iql.functions.catalog.ListFunctions;
 import ai.koryki.iql.query.Duration;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
+import ai.koryki.iql.query.Selector;
 import ai.koryki.iql.typing.TimeEncodings;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class OracleDialect implements SqlDialect {
@@ -355,6 +361,268 @@ public class OracleDialect implements SqlDialect {
         return leftSql + " " + operator + " " + renderer.toSql(right, indent);
     }
 
+    // ---- nested values: selectors and lambdas -------------------------------------------------
+
+    /**
+     * Oracle's collections (VARRAY, nested table) have no subscript in SQL, only in PL/SQL, so an
+     * element is a scalar subquery over {@code TABLE(list)} numbered by {@code ROWNUM}, which is
+     * the order of a VARRAY. The size is {@code COUNT(*)} over the same, since {@code CARDINALITY}
+     * is for nested tables only. The attributes of an object type are reached by dot notation,
+     * which needs an alias in front, so the steps after an element are folded into its subquery. A
+     * range is a collection again, built with {@code CAST(MULTISET(...))} to one of the generic
+     * {@code SYS.ODCI*LIST} types, as Oracle cannot make a collection without a named type: only
+     * lists of text, numbers and dates, which is what those types hold. A map does not exist here
+     * (it is JSON); a JSON value takes one {@code JSON_QUERY}, whose path has {@code last} for a
+     * position from the end.
+     */
+    @Override
+    public String selection(String base, TypeDescriptor baseType, List<Selector> steps) {
+        String sql = base;
+        TypeDescriptor type = baseType;
+        List<String[]> frames = new ArrayList<>();
+        for (int i = 0; i < steps.size(); i++) {
+            Selector step = steps.get(i);
+            var family = type.getTypeFamily();
+            if (CoreTypeFamily.JSON.equals(family)) {
+                sql = jsonPath(sql, steps.subList(i, steps.size()));
+                break;
+            } else if (CoreTypeFamily.ARRAY.equals(family)) {
+                if (step.getIndex() != null) {
+                    String alias = "E" + (frames.size() + 1);
+                    frames.add(
+                            new String[] {
+                                "(" + elements(sql, type.element()) + ") " + alias,
+                                alias + ".RN = " + position(sql, step.getIndex())
+                            });
+                    sql = alias + ".V";
+                } else {
+                    sql = slice(sql, type, step);
+                }
+            } else if (CoreTypeFamily.STRUCT.equals(family)) {
+                sql = sql + "." + attribute(type, step);
+            } else {
+                throw new KorykiaiException(
+                        "Oracle cannot select from " + type.portable() + " with a selector");
+            }
+            type = ai.koryki.iql.typing.Selectors.step(type, step);
+        }
+        for (int i = frames.size() - 1; i >= 0; i--) {
+            sql =
+                    "(SELECT "
+                            + sql
+                            + " FROM "
+                            + frames.get(i)[0]
+                            + " WHERE "
+                            + frames.get(i)[1]
+                            + ")";
+        }
+        return sql;
+    }
+
+    private static String size(String list) {
+        return "(SELECT COUNT(*) FROM TABLE(" + list + "))";
+    }
+
+    /** The elements of a collection with their 1-based position: object types by VALUE. */
+    private static String elements(String list, TypeDescriptor element) {
+        boolean object = CoreTypeFamily.STRUCT.equals(element.getTypeFamily());
+        return "SELECT "
+                + (object ? "VALUE(Z)" : "COLUMN_VALUE")
+                + " V, ROWNUM RN FROM TABLE("
+                + list
+                + ") Z";
+    }
+
+    private static String position(String list, int position) {
+        return position > 0 ? String.valueOf(position) : size(list) + " - " + (-position) + " + 1";
+    }
+
+    private static String slice(String list, TypeDescriptor type, Selector step) {
+        List<String> where = new ArrayList<>();
+        if (step.getFrom() != null) {
+            where.add("E.RN >= " + position(list, step.getFrom()));
+        }
+        if (step.getTo() != null) {
+            where.add("E.RN <= " + position(list, step.getTo()));
+        }
+        return nullIfNull(
+                list,
+                "CAST(MULTISET(SELECT E.V FROM ("
+                        + elements(list, type.element())
+                        + ") E WHERE "
+                        + String.join(" AND ", where)
+                        + " ORDER BY E.RN) AS "
+                        + collectionType(type.element())
+                        + ")");
+    }
+
+    /** A collection made from a NULL list is NULL, not the empty one TABLE() would make of it. */
+    private static String nullIfNull(String list, String built) {
+        return "CASE WHEN " + list + " IS NULL THEN NULL ELSE " + built + " END";
+    }
+
+    /**
+     * Oracle cannot build a collection without a named type. The generic ones of SYS hold text,
+     * numbers and dates, so a list of anything else, objects above all, cannot be made here.
+     */
+    private static String collectionType(TypeDescriptor element) {
+        var family = element.getTypeFamily();
+        if (CoreTypeFamily.TEXT.equals(family)) {
+            return "SYS.ODCIVARCHAR2LIST";
+        } else if (CoreTypeFamily.INTEGER.equals(family)
+                || CoreTypeFamily.DECIMAL.equals(family)
+                || CoreTypeFamily.FLOAT.equals(family)) {
+            return "SYS.ODCINUMBERLIST";
+        } else if (CoreTypeFamily.DATE.equals(family)) {
+            return "SYS.ODCIDATELIST";
+        }
+        throw new KorykiaiException(
+                "Oracle cannot build a list of "
+                        + element.portable()
+                        + ": only lists of text, numbers and dates, which the generic collection types hold");
+    }
+
+    private static final Pattern PLAIN_ATTRIBUTE = Pattern.compile("[a-z][a-z0-9_]*");
+
+    private static String attribute(TypeDescriptor type, Selector step) {
+        String name;
+        if (step.getIndex() != null) {
+            int n = type.fieldNames().size();
+            name =
+                    type.fieldNames()
+                            .get(step.getIndex() > 0 ? step.getIndex() - 1 : n + step.getIndex());
+        } else {
+            String wanted = step.getId() != null ? step.getId() : step.getName();
+            name =
+                    type.fieldNames().stream()
+                            .filter(f -> f.equalsIgnoreCase(wanted))
+                            .findFirst()
+                            .orElse(wanted);
+        }
+        return PLAIN_ATTRIBUTE.matcher(name).matches()
+                ? name
+                : "\"" + name.replace("\"", "\"\"") + "\"";
+    }
+
+    private static final Pattern JSON_NAME = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
+
+    /**
+     * One JSON_QUERY for the whole path. Oracle's default (lax) paths treat an object as a list of
+     * one and apply a name to every element of a list, so {@code $[0]} on an object answers the
+     * object and {@code $.a} on a list of objects answers their {@code a}s; DuckDB and the others
+     * answer NULL. Each step is therefore guarded by the {@code type()} of the value it is applied
+     * to: a position needs an array, a name an object. ({@code strict} is not accepted by this
+     * JSON_QUERY form.)
+     */
+    private static String jsonPath(String sql, List<Selector> steps) {
+        StringBuilder path = new StringBuilder("$");
+        List<String> guards = new ArrayList<>();
+        for (Selector step : steps) {
+            guards.add(
+                    "JSON_VALUE("
+                            + sql
+                            + ", '"
+                            + path
+                            + ".type()') = '"
+                            + (step.getIndex() != null ? "array" : "object")
+                            + "'");
+            if (step.getIndex() != null) {
+                int n = step.getIndex();
+                // JSON paths count from 0, and say "last" for the end
+                path.append(
+                        n > 0
+                                ? "[" + (n - 1) + "]"
+                                : n == -1 ? "[last]" : "[last-" + (-n - 1) + "]");
+            } else {
+                String name = step.getId() != null ? step.getId() : step.getName();
+                path.append('.')
+                        .append(
+                                JSON_NAME.matcher(name).matches()
+                                        ? name
+                                        : "\"" + name.replace("\"", "\\\"") + "\"");
+            }
+        }
+        return "CASE WHEN "
+                + String.join(" AND ", guards).replace("''", "''")
+                + " THEN JSON_QUERY("
+                + sql
+                + ", '"
+                + path.toString().replace("'", "''")
+                + "' RETURNING JSON) END";
+    }
+
+    private static final Pattern LAMBDA_NAME = Pattern.compile("_l(\\d+)_");
+
+    /**
+     * Oracle has no lambda, so TRANSFORM and FILTER are a {@code CAST(MULTISET(SELECT ... FROM
+     * TABLE(list)))} to a generic collection type, the element as column {@code X} and its position
+     * as column {@code I} of a derived table named for the depth of the lambda; the parameters of
+     * the lambda are replaced by those columns in the body. A fold has no SQL form in a scalar
+     * position, so REDUCE is refused.
+     */
+    private static String listWithLambda(
+            String name, SqlSelectRenderer renderer, Function function, int indent) {
+        if ("list_reduce".equals(name)) {
+            throw new KorykiaiException(
+                    "list_reduce is not supported on Oracle: a fold has no form in SQL");
+        }
+        Expression listExpression = function.getArguments().get(0);
+        String list = renderer.toSql(listExpression, indent);
+        TypeDescriptor element = renderer.resolveType(listExpression).element();
+        Expression lambda = function.getArguments().get(1);
+        return renderer.lambda(
+                lambda,
+                indent,
+                (names, body) -> {
+                    Matcher depth = LAMBDA_NAME.matcher(names.get(0));
+                    String alias = "LA" + (depth.find() ? depth.group(1) : "0");
+                    String b = replaceName(body, names.get(0), alias + ".X");
+                    if (names.size() > 1) {
+                        b = replaceName(b, names.get(1), alias + ".I");
+                    }
+                    boolean object = CoreTypeFamily.STRUCT.equals(element.getTypeFamily());
+                    String source =
+                            "(SELECT "
+                                    + (object ? "VALUE(Z)" : "COLUMN_VALUE")
+                                    + " X, ROWNUM I FROM TABLE("
+                                    + list
+                                    + ") Z) "
+                                    + alias;
+                    if ("list_transform".equals(name)) {
+                        return nullIfNull(
+                                list,
+                                "CAST(MULTISET(SELECT "
+                                        + b
+                                        + " FROM "
+                                        + source
+                                        + " ORDER BY "
+                                        + alias
+                                        + ".I) AS "
+                                        + collectionType(lambda.getLambda().getBodyType())
+                                        + ")");
+                    }
+                    return nullIfNull(
+                            list,
+                            "CAST(MULTISET(SELECT "
+                                    + alias
+                                    + ".X FROM "
+                                    + source
+                                    + " WHERE "
+                                    + b
+                                    + " ORDER BY "
+                                    + alias
+                                    + ".I) AS "
+                                    + collectionType(element)
+                                    + ")");
+                });
+    }
+
+    private static String replaceName(String body, String name, String replacement) {
+        return Pattern.compile("\\b" + Pattern.quote(name) + "\\b")
+                .matcher(body)
+                .replaceAll(Matcher.quoteReplacement(replacement));
+    }
+
     private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();
 
     @Override
@@ -364,6 +632,17 @@ public class OracleDialect implements SqlDialect {
 
     private static FunctionRenderer buildFunctionRenderer() {
         FunctionRegistry registry = StandardFunctions.registry();
+
+        for (String name : List.of("list_transform", "list_filter", "list_reduce")) {
+            registry.register(
+                    new FunctionDefinition(ListFunctions.supported(name)) {
+                        @Override
+                        protected String renderBody(
+                                SqlSelectRenderer renderer, Function function, int indent) {
+                            return listWithLambda(name, renderer, function, indent);
+                        }
+                    });
+        }
 
         // to_date(value) | to_date(value, format) | to_date(ts, tz) | to_date(year, month, day)
         // CAST(text AS DATE) reads the string with NLS_DATE_FORMAT, which defaults to DD-MON-RR,

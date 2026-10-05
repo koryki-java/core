@@ -1,0 +1,4 @@
+"Nr", "Tags", "Attributes", "Dimensions", "Address"
+"1", "[""red"",""green"",""blue""]", "{""color"":""red"",""size"":""L""}", "{""w"":1.5,""h"":2.5}", "{""street"":""Main St 1"",""geo"":{""lat"":52.52,""lon"":13.405},""phones"":[""+49 30 1"",""+49 30 2""]}"
+"2", "[]", "{}", "", "{""street"":null,""geo"":null,""phones"":[]}"
+"3", "[""x"",null,""z""]", "{""k"":null}", "{""w"":null,""h"":4.0}", "{""street"":""Side Rd 3"",""geo"":{""lat"":null,""lon"":null},""phones"":[null]}"

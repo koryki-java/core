@@ -1,0 +1,9 @@
+Nr : INTEGER
+first_sku : TEXT
+first_price : DECIMAL
+second_option : TEXT
+empty_options : ARRAY(TEXT)
+first_event : TIMESTAMP
+first_day : DATE
+deep_number : JSON
+deep_text : JSON

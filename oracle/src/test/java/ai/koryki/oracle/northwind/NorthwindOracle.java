@@ -88,6 +88,8 @@ public class NorthwindOracle<P extends ResultProcessor<?>> extends OracleDatabas
         Properties props = new Properties();
         props.setProperty("user", user);
         props.setProperty("password", password);
+        // a JSON column is read as its text; without this the driver refuses getObject on it
+        props.setProperty("oracle.jdbc.jsonDefaultGetObjectType", "java.lang.String");
 
         return DriverManager.getConnection(url, props);
     }

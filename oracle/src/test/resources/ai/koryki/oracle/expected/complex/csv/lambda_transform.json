@@ -1,0 +1,4 @@
+Nr : INTEGER
+shouted : ARRAY(TEXT)
+doubled : ARRAY(INTEGER)
+weighted : ARRAY(INTEGER)

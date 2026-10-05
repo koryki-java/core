@@ -1,0 +1,4 @@
+// A function on a selection and a selection on a function: coalesce keeps the structure of its
+// branches, so its result can be selected from.
+FIND check_complex t
+FETCH t.nr, upper(t.tags@1) shouted, coalesce(t.tags, t.tags)@1 first_tag, t.items@1@price * 2 double_price

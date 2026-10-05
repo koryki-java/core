@@ -1,0 +1,8 @@
+// A call with a lambda is a value like any other: it filters, and a selector takes an element of
+// what it returns. The filter is on a selection of the filtered list, which is NULL for an empty
+// one; list_reduce would refuse it.
+FIND check_complex t
+FILTER list_filter(t.scores, x -> @x > 5)@1 > 5
+FETCH t.nr, list_transform(t.tags, x -> upper(@x))@1 first_shouted,
+      list_filter(t.scores, x -> @x > 5)@1 first_big,
+      list_transform(t.items, it -> @it@sku)@-1 last_sku

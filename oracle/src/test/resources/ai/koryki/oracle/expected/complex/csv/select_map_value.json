@@ -1,0 +1,7 @@
+Nr : INTEGER
+color : JSON
+size : JSON
+missing : JSON
+count_a : JSON
+one : JSON
+two : JSON

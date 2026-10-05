@@ -1,0 +1,4 @@
+Nr : INTEGER
+Attributes : JSON
+Counts : JSON
+Lookup : JSON
