@@ -71,7 +71,7 @@ public final class ConversionFunctions {
                                 "Converts a date or text value to a TIMESTAMP. Text input must be ISO 8601 "
                                         + "(`YYYY-MM-DD HH:MM:SS`); a DATE is extended with midnight."));
         r.register(
-                cast("to_boolean", ReturnTypes.BOOLEAN, "BOOLEAN", Families.NUMBER_OR_TEXT)
+                cast("to_boolean", ReturnTypes.BOOLEAN, "BOOLEAN", Families.CASTABLE)
                         .doc(
                                 "Converts a numeric value to BOOLEAN: `0` is false, anything else is true.")
                         .paragraph(
@@ -81,15 +81,15 @@ public final class ConversionFunctions {
                                         + "so compare the result rather than matching it against the text `'true'`."));
         registerToText(r);
         r.register(
-                cast("to_float", ReturnTypes.FLOAT, "FLOAT", Families.NUMBER_OR_TEXT)
+                cast("to_float", ReturnTypes.FLOAT, "FLOAT", Families.CASTABLE)
                         .doc(
                                 "Converts a numeric or text value to single-precision float. Fractional precision "
                                         + "may be lost relative to the source."));
         r.register(
-                cast("to_double", ReturnTypes.DOUBLE, "DOUBLE", Families.NUMBER_OR_TEXT)
+                cast("to_double", ReturnTypes.DOUBLE, "DOUBLE", Families.CASTABLE)
                         .doc("Converts a numeric or text value to double-precision float."));
         r.register(
-                cast("to_integer", ReturnTypes.INTEGER, "INTEGER", Families.NUMBER_OR_TEXT)
+                cast("to_integer", ReturnTypes.INTEGER, "INTEGER", Families.CASTABLE)
                         .doc(
                                 "Converts a numeric or text value to a 32-bit integer. A fractional part is "
                                         + "**rounded**, not truncated, and a half-way value rounds away from zero — "
@@ -97,12 +97,12 @@ public final class ConversionFunctions {
                                         + "first if the value must never be inflated. Overflow behaviour is "
                                         + "dialect-defined."));
         r.register(
-                cast("to_bigint", ReturnTypes.BIGINT, "BIGINT", Families.NUMBER_OR_TEXT)
+                cast("to_bigint", ReturnTypes.BIGINT, "BIGINT", Families.CASTABLE)
                         .doc(
                                 "Converts a numeric or text value to a 64-bit integer. Rounds like `to_integer`; use "
                                         + "it instead when values may exceed ±2 147 483 647."));
         r.register(
-                cast("to_smallint", ReturnTypes.SMALLINT, "SMALLINT", Families.NUMBER_OR_TEXT)
+                cast("to_smallint", ReturnTypes.SMALLINT, "SMALLINT", Families.CASTABLE)
                         .doc(
                                 "Converts a numeric or text value to a 16-bit integer (range −32 768 to 32 767). "
                                         + "Rounds like `to_integer`. Overflow behaviour is dialect-defined."));
@@ -113,7 +113,7 @@ public final class ConversionFunctions {
                         .args(
                                 arg(
                                         "value",
-                                        Families.NUMBER_OR_TEXT,
+                                        Families.CASTABLE,
                                         "the value to convert to a decimal"),
                                 arg(
                                         "precision",
@@ -124,6 +124,7 @@ public final class ConversionFunctions {
                                         CoreTypeFamily.INTEGER,
                                         "number of digits after the decimal point"))
                         .template("CAST({0} AS DECIMAL({1}, {2}))")
+                        .jsonScalar()
                         .doc(
                                 "Converts *value* to a fixed-point decimal. *precision* is the total number of "
                                         + "significant digits, *scale* the digits after the point — "
@@ -138,6 +139,7 @@ public final class ConversionFunctions {
                                         CoreTypeFamily.INTEGER,
                                         "maximum length of the resulting string"))
                         .template("CAST({0} AS VARCHAR({1}))")
+                        .jsonScalar()
                         .doc(
                                 "Converts *value* to a variable-length string with an explicit maximum length — "
                                         + "useful when the target column has a defined width."));
@@ -162,12 +164,21 @@ public final class ConversionFunctions {
             // User-facing KQL type name in the doc: INTERVAL's KQL name is DURATION.
             String kqlType = family == CoreTypeFamily.INTERVAL ? "DURATION" : family.name();
 
-            r.register(
+            FunctionDefinition toText =
                     new FunctionDefinition("to_text", returns)
                             .category(FunctionCategory.CONVERSION)
                             .args(arg("value", family, "the value to convert to text"))
                             .template("CAST({0} AS TEXT)")
-                            .doc("Converts a " + kqlType + " *value* to TEXT."));
+                            .doc("Converts a " + kqlType + " *value* to TEXT.");
+            r.register(
+                    family == CoreTypeFamily.JSON
+                            ? toText.jsonScalar()
+                                    .paragraph(
+                                            "A JSON string gives its text without the quotes, a number its"
+                                                    + " digits; a JSON object or list gives what the dialect makes"
+                                                    + " of it (its JSON text, or NULL where the database has no"
+                                                    + " scalar form of it).")
+                            : toText);
         }
     }
 
@@ -177,10 +188,12 @@ public final class ConversionFunctions {
      */
     public static FunctionDefinition cast(
             String name, ReturnTypeInference type, String sqlType, TypeFamily input) {
-        return new FunctionDefinition(name, type)
-                .category(FunctionCategory.CONVERSION)
-                .args(arg("value", input, "the value to convert"))
-                .template("CAST({0} AS " + sqlType + ")")
-                .doc("Converts *value* to " + sqlType + ".");
+        FunctionDefinition cast =
+                new FunctionDefinition(name, type)
+                        .category(FunctionCategory.CONVERSION)
+                        .args(arg("value", input, "the value to convert"))
+                        .template("CAST({0} AS " + sqlType + ")")
+                        .doc("Converts *value* to " + sqlType + ".");
+        return input == Families.CASTABLE ? cast.jsonScalar() : cast;
     }
 }

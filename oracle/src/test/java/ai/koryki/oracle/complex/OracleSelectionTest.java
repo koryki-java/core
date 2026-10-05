@@ -145,4 +145,18 @@ class OracleSelectionTest {
 
         assertTrue(actual.contains("'$.\"it''s\".type()'"), actual);
     }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource(
+            delimiter = '|',
+            value = {
+                "to_integer(t.doc@n)|THEN JSON_VALUE(t.doc, '$.n') END AS INTEGER)",
+                "to_text(t.doc)|JSON_VALUE(t.doc, '$')",
+            })
+    void aJsonValueIsCastAsTheScalarItHolds(String expression, String expected) {
+        String actual = sql(expression);
+
+        org.junit.jupiter.api.Assertions.assertTrue(
+                actual.contains(expected), () -> expected + " not in: " + actual);
+    }
 }

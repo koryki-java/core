@@ -182,4 +182,18 @@ class SnowflakeSelectionTest {
         // make it twenty-seven times
         assertTrue(six < three * 2.6, () -> three + " characters at depth 3, " + six + " at 6");
     }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource(
+            delimiter = '|',
+            value = {
+                "to_integer(t.doc@n)|CAST((GET_PATH(t.doc, 'n'))::STRING AS INTEGER)",
+                "to_text(t.doc)|(t.doc)::STRING",
+            })
+    void aJsonValueIsCastAsTheScalarItHolds(String expression, String expected) {
+        String actual = sql(expression);
+
+        org.junit.jupiter.api.Assertions.assertTrue(
+                actual.contains(expected), () -> expected + " not in: " + actual);
+    }
 }

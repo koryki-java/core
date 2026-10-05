@@ -105,4 +105,18 @@ class MariadbSelectionTest {
 
         assertTrue(actual.contains("JSON_QUERY(t.doc, '$.\"it''s\"')"), actual);
     }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource(
+            delimiter = '|',
+            value = {
+                "to_integer(t.doc@n)|COALESCE(JSON_QUERY(t.doc, '$.n'), JSON_VALUE(t.doc, '$.n')) END AS INTEGER)",
+                "to_text(t.doc)|CAST(t.doc AS CHAR)",
+            })
+    void aJsonValueIsCastAsTheScalarItHolds(String expression, String expected) {
+        String actual = sql(expression);
+
+        org.junit.jupiter.api.Assertions.assertTrue(
+                actual.contains(expected), () -> expected + " not in: " + actual);
+    }
 }

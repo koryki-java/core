@@ -97,4 +97,18 @@ class SqliteSelectionTest {
 
         assertTrue(e.getMessage().contains("only JSON"), e.getMessage());
     }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource(
+            delimiter = '|',
+            value = {
+                "to_integer(t.doc@n)|ROUND((t.doc ->> '$.n'), 0)",
+                "to_text(t.doc)|json_extract(t.doc, '$')",
+            })
+    void aJsonValueIsCastAsTheScalarItHolds(String expression, String expected) {
+        String actual = sql(expression);
+
+        org.junit.jupiter.api.Assertions.assertTrue(
+                actual.contains(expected), () -> expected + " not in: " + actual);
+    }
 }

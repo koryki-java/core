@@ -21,6 +21,7 @@ import ai.koryki.antlr.Range;
 import ai.koryki.antlr.RangeException;
 import ai.koryki.antlr.Text;
 import ai.koryki.catalog.schema.Relation;
+import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.WallClockEncoding;
 import ai.koryki.iql.functions.FunctionRenderer;
@@ -930,7 +931,63 @@ public class SqlSelectRenderer {
         return (limit.isCounted() ? limit.getNum() + " " : "") + limit.getName();
     }
 
+    /**
+     * The arguments of the function being rendered that are read as the scalar they hold when they
+     * are JSON: a number or a text is wanted, and a JSON string is its text without quotes.
+     */
+    private final java.util.Set<Expression> jsonScalarArguments =
+            java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+
+    /**
+     * Renders with the JSON arguments of a call as scalars: a cast of {@code t.doc@n} is the number
+     * in it, not its JSON text. Only the arguments themselves, not what is inside them.
+     */
+    public String withJsonScalarArguments(
+            java.util.List<Expression> arguments, java.util.function.Supplier<String> body) {
+        java.util.List<Expression> added = new java.util.ArrayList<>();
+        for (Expression argument : arguments) {
+            if (jsonScalarArguments.add(argument)) {
+                added.add(argument);
+            }
+        }
+        try {
+            return body.get();
+        } finally {
+            jsonScalarArguments.removeAll(added);
+        }
+    }
+
+    private String jsonScalarSql(Expression expression, int indent) {
+        TypeDescriptor type = null;
+        try {
+            type = resolveType(expression);
+        } catch (RuntimeException unresolved) {
+            // no type, no conversion: rendered as it is
+        }
+        if (type == null || !CoreTypeFamily.JSON.equals(type.getTypeFamily())) {
+            return null;
+        }
+        if (expression.getSelection() != null) {
+            Expression base = expression.getSelection().getBase();
+            TypeDescriptor baseType = resolveType(base);
+            // a chain that is JSON from its base on is one path, and the dialect may fetch the
+            // scalar at the end of it in one step; one that gets to JSON through a struct or a map
+            // is read as a scalar afterwards
+            if (baseType != null && CoreTypeFamily.JSON.equals(baseType.getTypeFamily())) {
+                return dialect.selectionScalar(
+                        toSql(base, indent), baseType, expression.getSelection().getSelectors());
+            }
+        }
+        return dialect.jsonScalar(toSqlUnparenthesized(expression, indent));
+    }
+
     public String toSql(Expression expression, int indent) {
+        if (jsonScalarArguments.remove(expression)) {
+            String scalar = jsonScalarSql(expression, indent);
+            if (scalar != null) {
+                return scalar;
+            }
+        }
         if (expression.isParenthesized()) {
             return "(" + toSqlUnparenthesized(expression, indent) + ")";
         }

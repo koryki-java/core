@@ -533,6 +533,27 @@ public interface SqlDialect {
     }
 
     /**
+     * A JSON value as the scalar it holds, for a cast or a function that wants a number or a text:
+     * a JSON string without its quotes, a number as a number, null as NULL. What a JSON object or
+     * list gives is the dialect's: its JSON text, or NULL where the database has no scalar form of
+     * it. Refused by default, like {@link #selection}.
+     */
+    default String jsonScalar(String json) {
+        throw new KorykiaiException(
+                getClass().getSimpleName() + " cannot read a JSON value as a scalar yet");
+    }
+
+    /**
+     * The same for a selection from JSON: a dialect that has an operator or a function that fetches
+     * the scalar at a path in one step answers with that, instead of the JSON at the path made
+     * scalar afterwards.
+     */
+    default String selectionScalar(
+            String base, TypeDescriptor baseType, List<ai.koryki.iql.query.Selector> steps) {
+        return jsonScalar(selection(base, baseType, steps));
+    }
+
+    /**
      * A selector chain on a nested value: {@code base@1@name}. Handed over whole, because a dialect
      * may fold it (a JSON path takes every step in one string) and because what a step means
      * depends on the type it meets, which {@link ai.koryki.iql.typing.Selectors#step} follows.

@@ -68,6 +68,20 @@ public class SqliteDialect implements SqlDialect {
      * other dialects do: a string keeps its quotes, an object or a list is its text, and NULL is
      * what the path does not find. ({@code json_extract} would answer a string without its quotes.)
      */
+    /** {@code ->>}: the SQL value at the path, a string without its quotes. */
+    @Override
+    public String selectionScalar(String base, TypeDescriptor baseType, List<Selector> steps) {
+        String path =
+                NestedSql.jsonPath(
+                        steps, "$", NestedSql.FromEnd.HASH, NestedSql.Quoting.DOT, "SQLite");
+        return "(" + base + " ->> " + NestedSql.literal(INSTANCE, path) + ")";
+    }
+
+    @Override
+    public String jsonScalar(String json) {
+        return "json_extract(" + json + ", '$')";
+    }
+
     @Override
     public String selection(String base, TypeDescriptor baseType, List<Selector> steps) {
         if (!CoreTypeFamily.JSON.equals(baseType.getTypeFamily())) {

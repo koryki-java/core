@@ -266,6 +266,23 @@ public class TrinoDialect implements SqlDialect {
         return NestedSql.literal(INSTANCE, NestedSql.key(step));
     }
 
+    /**
+     * {@code json_extract_scalar}: the scalar at the path, text without quotes; NULL for a
+     * non-scalar.
+     */
+    @Override
+    public String selectionScalar(String base, TypeDescriptor baseType, List<Selector> steps) {
+        String path =
+                NestedSql.jsonPath(
+                        steps, "$", NestedSql.FromEnd.NONE, NestedSql.Quoting.BRACKET, "Trino");
+        return "json_extract_scalar(" + base + ", " + NestedSql.literal(INSTANCE, path) + ")";
+    }
+
+    @Override
+    public String jsonScalar(String json) {
+        return "json_extract_scalar(" + json + ", '$')";
+    }
+
     private static String jsonPath(String sql, List<Selector> steps) {
         String path =
                 NestedSql.jsonPath(

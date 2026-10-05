@@ -143,6 +143,23 @@ public class PostgreSqlDialect implements SqlDialect {
      */
     @Override
     public String selection(String base, TypeDescriptor baseType, java.util.List<Selector> steps) {
+        return select(base, baseType, steps, false);
+    }
+
+    /** {@code ->>} at the last step of a JSON path: the scalar there, a string without quotes. */
+    @Override
+    public String selectionScalar(
+            String base, TypeDescriptor baseType, java.util.List<Selector> steps) {
+        return select(base, baseType, steps, true);
+    }
+
+    @Override
+    public String jsonScalar(String json) {
+        return "(" + json + " #>> '{}')";
+    }
+
+    private String select(
+            String base, TypeDescriptor baseType, java.util.List<Selector> steps, boolean scalar) {
         String sql = base;
         TypeDescriptor type = baseType;
         for (int i = 0; i < steps.size(); i++) {
@@ -155,15 +172,15 @@ public class PostgreSqlDialect implements SqlDialect {
                 return NestedSql.bindOnce(
                         sql,
                         ONCE,
-                        ref -> selection(ref, typeHere, steps.subList(from, steps.size())));
+                        ref -> select(ref, typeHere, steps.subList(from, steps.size()), scalar));
             }
             if (CoreTypeFamily.JSON.equals(type.getTypeFamily())) {
-                return jsonPath(sql, steps.subList(i, steps.size()));
+                return jsonPath(sql, steps.subList(i, steps.size()), scalar);
             } else if (CoreTypeFamily.STRUCT.equals(type.getTypeFamily())) {
                 sql = "(" + sql + ")." + fieldName(type, step);
             } else if (CoreTypeFamily.ARRAY.equals(type.getTypeFamily())) {
                 if (CoreTypeFamily.ARRAY.equals(type.element().getTypeFamily())) {
-                    return dimensions(sql, type, steps.subList(i, steps.size()));
+                    return dimensions(sql, type, steps.subList(i, steps.size()), scalar);
                 }
                 sql = arrayStep(sql, step);
             } else {
@@ -211,7 +228,8 @@ public class PostgreSqlDialect implements SqlDialect {
         return NestedSql.identifier(NestedSql.fieldName(type, step), PLAIN_NAME);
     }
 
-    private String dimensions(String sql, TypeDescriptor type, java.util.List<Selector> steps) {
+    private String dimensions(
+            String sql, TypeDescriptor type, java.util.List<Selector> steps, boolean scalar) {
         int depth = 0;
         for (TypeDescriptor t = type;
                 CoreTypeFamily.ARRAY.equals(t.getTypeFamily());
@@ -241,22 +259,23 @@ public class PostgreSqlDialect implements SqlDialect {
         }
         String result = operand(sql) + subscripts;
         java.util.List<Selector> rest = steps.subList(taken, steps.size());
-        return rest.isEmpty() ? result : selection(result, t, rest);
+        return rest.isEmpty() ? result : select(result, t, rest, scalar);
     }
 
     /**
      * {@code (j -> 'a' -> 'b' -> 0)}: names as keys, positions counted from 0, negative from the
      * end.
      */
-    private static String jsonPath(String sql, java.util.List<Selector> steps) {
+    private static String jsonPath(String sql, java.util.List<Selector> steps, boolean scalar) {
         StringBuilder path = new StringBuilder("(" + sql);
-        for (Selector step : steps) {
+        for (int i = 0; i < steps.size(); i++) {
+            Selector step = steps.get(i);
+            String operator = scalar && i == steps.size() - 1 ? " ->> " : " -> ";
             if (step.getIndex() != null) {
                 int n = step.getIndex();
-                path.append(" -> ").append(n > 0 ? n - 1 : n);
+                path.append(operator).append(n > 0 ? n - 1 : n);
             } else {
-                String name = NestedSql.key(step);
-                path.append(" -> ").append(NestedSql.literal(INSTANCE, name));
+                path.append(operator).append(NestedSql.literal(INSTANCE, NestedSql.key(step)));
             }
         }
         return path.append(")").toString();

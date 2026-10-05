@@ -49,6 +49,13 @@ public class FunctionDefinition {
     private SqlTemplate template;
     private boolean unsupported;
     private boolean windowUnsupported;
+
+    /**
+     * Whether an argument that is a JSON value is rendered as the scalar it holds: the function
+     * wants a number or a text, and a JSON string is its text without the quotes.
+     */
+    private boolean jsonScalarArguments;
+
     private final java.util.List<LambdaSpec> lambdas = new java.util.ArrayList<>();
 
     /**
@@ -85,9 +92,19 @@ public class FunctionDefinition {
         this.template = base.template;
         this.unsupported = base.unsupported;
         this.windowUnsupported = base.windowUnsupported;
+        this.jsonScalarArguments = base.jsonScalarArguments;
         this.unsupportedHint = base.unsupportedHint;
         this.fixity = base.fixity;
         this.lambdas.addAll(base.lambdas);
+    }
+
+    /**
+     * Declares that a JSON argument is read as its scalar before the function sees it: a cast, or
+     * any function that takes a number or a text. See {@link SqlSelectRenderer#toSql}.
+     */
+    public FunctionDefinition jsonScalar() {
+        this.jsonScalarArguments = true;
+        return this;
     }
 
     /** Declares that the argument at {@code spec.position()} is a lambda, and what kind. */
@@ -242,7 +259,12 @@ public class FunctionDefinition {
                     "function '" + name + "' does not support an OVER clause in this dialect");
         }
         checkArity(function);
-        String body = renderBody(renderer, function, indent);
+        String body =
+                jsonScalarArguments
+                        ? renderer.withJsonScalarArguments(
+                                function.getArguments(),
+                                () -> renderBody(renderer, function, indent))
+                        : renderBody(renderer, function, indent);
         if (body == null) {
             // fall back to FunctionRegistry.defaultRender, which appends the OVER clause itself
             return null;

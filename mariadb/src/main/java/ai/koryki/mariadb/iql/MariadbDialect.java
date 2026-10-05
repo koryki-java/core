@@ -262,6 +262,15 @@ public class MariadbDialect implements SqlDialect {
      * the {@code JSON_TYPE} of the value it is applied to, a position needing an ARRAY and a name
      * an OBJECT. A scalar string comes back without its quotes, as JSON_VALUE gives it.
      */
+    /**
+     * Already the scalar: JSON_VALUE answers a string without its quotes, and what JSON_QUERY
+     * answers, an object or a list, is its JSON text, which is all a scalar can be of it here.
+     */
+    @Override
+    public String jsonScalar(String json) {
+        return json;
+    }
+
     @Override
     public String selection(String base, TypeDescriptor baseType, List<Selector> steps) {
         if (!CoreTypeFamily.JSON.equals(baseType.getTypeFamily())) {

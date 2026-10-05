@@ -1,0 +1,5 @@
+Nr : INTEGER
+n : INTEGER
+inner_plus_one : INTEGER
+n_text : TEXT
+second : FLOAT

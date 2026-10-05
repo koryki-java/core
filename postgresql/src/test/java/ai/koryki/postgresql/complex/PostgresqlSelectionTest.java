@@ -192,4 +192,19 @@ class PostgresqlSelectionTest {
         // make it twenty-seven times
         assertTrue(six < three * 2.6, () -> three + " characters at depth 3, " + six + " at 6");
     }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource(
+            delimiter = '|',
+            value = {
+                "to_integer(t.doc@n)|CAST((t.doc ->> 'n') AS INTEGER)",
+                "to_text(t.doc@a@b@1)|(t.doc -> 'a' -> 'b' ->> 0)",
+                "to_text(t.doc)|(t.doc #>> '{}')",
+            })
+    void aJsonValueIsCastAsTheScalarItHolds(String expression, String expected) {
+        String actual = sql(expression);
+
+        org.junit.jupiter.api.Assertions.assertTrue(
+                actual.contains(expected), () -> expected + " not in: " + actual);
+    }
 }

@@ -52,6 +52,22 @@ public final class Families {
                             CoreTypeFamily.TEXT));
 
     /**
+     * What the numeric casts and {@code to_text} accept: a number, text, or a JSON value, which is
+     * read as the scalar it holds (a JSON string without its quotes, a number as a number). A JSON
+     * object or list has no scalar; what it gives is up to the dialect, see {@code
+     * SqlDialect#jsonScalar}.
+     */
+    public static final TypeFamily CASTABLE =
+            new FamilyGroup(
+                    "CASTABLE",
+                    Set.of(
+                            CoreTypeFamily.INTEGER,
+                            CoreTypeFamily.DECIMAL,
+                            CoreTypeFamily.FLOAT,
+                            CoreTypeFamily.TEXT,
+                            CoreTypeFamily.JSON));
+
+    /**
      * A date/time value or text — the source domain of the temporal casts (to_date, to_time,
      * to_timestamp).
      */

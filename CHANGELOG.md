@@ -19,6 +19,12 @@ All notable changes to this project are documented here.
   the lambda that declares it, and otherwise an alias as before. A parameter may not be named like an
   alias in sight, nor like the parameter of the lambda around it.
 
+- A JSON value can be cast to the scalar it holds: `to_boolean`, `to_float`, `to_double`,
+  `to_integer`, `to_bigint`, `to_smallint`, `to_decimal`, `to_text` and `to_varchar` accept JSON, so
+  `FILTER to_integer(t.doc@n) > 0` and `to_text(t.attrs@color) = 'red'` work on every dialect that
+  has JSON. New `SqlDialect.jsonScalar` and `selectionScalar` hooks; a dialect with JSON implements
+  them.
+
 ### Changed
 
 - The scripts that create the Northwind database for PostgreSQL, MariaDB, Oracle, SQL Server,

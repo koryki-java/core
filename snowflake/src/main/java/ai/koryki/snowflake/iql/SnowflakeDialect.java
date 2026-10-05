@@ -216,6 +216,12 @@ public class SnowflakeDialect implements SqlDialect {
                 + ")";
     }
 
+    /** A VARIANT as text: a JSON string without its quotes, a number as its digits. */
+    @Override
+    public String jsonScalar(String json) {
+        return "(" + json + ")::STRING";
+    }
+
     /** {@code x -> body}, or {@code (a, b) -> body}: Snowflake's own lambda. */
     @Override
     public String lambda(List<String> parameters, String body) {

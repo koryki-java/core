@@ -500,7 +500,24 @@ public class OracleDialect implements SqlDialect {
      * to: a position needs an array, a name an object. ({@code strict} is not accepted by this
      * JSON_QUERY form.)
      */
+    /**
+     * {@code JSON_VALUE}: the scalar at the path, text without quotes; NULL for an object or list.
+     */
+    @Override
+    public String selectionScalar(String base, TypeDescriptor baseType, List<Selector> steps) {
+        return jsonPath(base, steps, true);
+    }
+
+    @Override
+    public String jsonScalar(String json) {
+        return "JSON_VALUE(" + json + ", '$')";
+    }
+
     private static String jsonPath(String sql, List<Selector> steps) {
+        return jsonPath(sql, steps, false);
+    }
+
+    private static String jsonPath(String sql, List<Selector> steps, boolean scalar) {
         List<String> paths =
                 NestedSql.jsonPaths(
                         steps, "$", NestedSql.FromEnd.LAST, NestedSql.Quoting.DOT, "Oracle");
@@ -517,11 +534,13 @@ public class OracleDialect implements SqlDialect {
         }
         return "CASE WHEN "
                 + String.join(" AND ", guards)
-                + " THEN JSON_QUERY("
+                + " THEN "
+                + (scalar ? "JSON_VALUE(" : "JSON_QUERY(")
                 + sql
                 + ", "
                 + NestedSql.literal(INSTANCE, paths.get(steps.size()))
-                + " RETURNING JSON) END";
+                + (scalar ? "" : " RETURNING JSON")
+                + ") END";
     }
 
     /**

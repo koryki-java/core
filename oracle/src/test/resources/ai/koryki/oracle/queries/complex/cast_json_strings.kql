@@ -1,0 +1,5 @@
+// A JSON string is its text without the quotes once it is cast, so it compares with a text literal:
+// the map of this dialect is a JSON object, and its member is no TEXT until to_text says so.
+FIND check_complex t
+FILTER to_text(t.attrs@color) = 'red'
+FETCH t.nr, to_text(t.attrs@color) color, to_text(t.attrs@size) size

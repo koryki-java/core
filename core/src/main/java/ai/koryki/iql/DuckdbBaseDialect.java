@@ -485,14 +485,43 @@ public class DuckdbBaseDialect implements SqlDialect {
             String base,
             TypeDescriptor baseType,
             java.util.List<ai.koryki.iql.query.Selector> steps) {
+        return select(base, baseType, steps, " -> ");
+    }
+
+    /** The operator {@code ->>} answers the scalar at the path: a string without its quotes. */
+    @Override
+    public String selectionScalar(
+            String base,
+            TypeDescriptor baseType,
+            java.util.List<ai.koryki.iql.query.Selector> steps) {
+        return select(base, baseType, steps, " ->> ");
+    }
+
+    @Override
+    public String jsonScalar(String json) {
+        return "json_extract_string(" + json + ", '$')";
+    }
+
+    private String select(
+            String base,
+            TypeDescriptor baseType,
+            java.util.List<ai.koryki.iql.query.Selector> steps,
+            String jsonOperator) {
         String sql = base;
         TypeDescriptor type = baseType;
         for (int i = 0; i < steps.size(); i++) {
             if (CoreTypeFamily.JSON.equals(type.getTypeFamily())) {
                 return "("
                         + sql
-                        + " -> "
-                        + Literals.quote(jsonPath(steps.subList(i, steps.size())))
+                        + jsonOperator
+                        + NestedSql.literal(
+                                this,
+                                NestedSql.jsonPath(
+                                        steps.subList(i, steps.size()),
+                                        "$",
+                                        NestedSql.FromEnd.HASH,
+                                        NestedSql.Quoting.DOT,
+                                        "DuckDB"))
                         + ")";
             }
             ai.koryki.iql.query.Selector step = steps.get(i);
@@ -523,32 +552,6 @@ public class DuckdbBaseDialect implements SqlDialect {
                 + ":"
                 + (step.getTo() == null ? "" : step.getTo())
                 + "]";
-    }
-
-    private static final Pattern JSON_NAME = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
-
-    /**
-     * {@code $.a."b c"[0]}: names as members, 1-based positions as 0-based, {@code #-n} from the
-     * end.
-     */
-    private static String jsonPath(java.util.List<ai.koryki.iql.query.Selector> steps) {
-        StringBuilder path = new StringBuilder("$");
-        for (ai.koryki.iql.query.Selector step : steps) {
-            if (step.getId() != null || step.getName() != null) {
-                String name = step.getId() != null ? step.getId() : step.getName();
-                if (JSON_NAME.matcher(name).matches()) {
-                    path.append('.').append(name);
-                } else {
-                    path.append(".\"")
-                            .append(name.replace("\\", "\\\\").replace("\"", "\\\""))
-                            .append('"');
-                }
-            } else {
-                int position = step.getIndex();
-                path.append(position > 0 ? "[" + (position - 1) + "]" : "[#" + position + "]");
-            }
-        }
-        return path.toString();
     }
 
     /**

@@ -1,0 +1,7 @@
+// A JSON member is no number until it is cast: to_integer, to_float and to_text read the scalar at the
+// path, a number as a number. The filter is on the cast, so only the object (row 1) passes; the array
+// of row 3 has no member n, and a cast of nothing is NULL.
+FIND check_complex t
+FILTER to_integer(t.doc@n) > 0
+FETCH t.nr, to_integer(t.doc@n) n, to_integer(t.doc@a@b@1) + 1 inner_plus_one,
+      to_text(t.doc@n) n_text, to_float(t.doc@a@b@2) second

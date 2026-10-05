@@ -62,10 +62,21 @@ postfix one: `it@price`.
 "as JSON": the dialect has no map type; the column is a JSON object, its keys are text, and `@1` on it
 is an array position, so an integer key is written `@'1'`.
 
+### Casting JSON
+
+A JSON member is JSON, not a number or a text, so it cannot be compared or summed as it is. The casts
+read the scalar at the path: `to_integer(t.doc@n) > 0`, `sum(to_float(t.doc@price))`,
+`to_text(t.attrs@color) = 'red'`. A JSON string gives its text without the quotes and a number its
+digits, on every dialect, so a cast answers the same everywhere; a member that is not there gives
+NULL. The casts are `to_boolean`, `to_float`, `to_double`, `to_integer`, `to_bigint`, `to_smallint`,
+`to_decimal`, `to_text` and `to_varchar`. A JSON object or list has no scalar: `to_text` of one is its
+JSON text on DuckDB, PostgreSQL, Snowflake, SQLite, SQL Server and MariaDB, and NULL on Trino and
+Oracle.
+
 ### Differences that are kept, not hidden
 
 * **JSON scalars.** DuckDB, PostgreSQL, Trino, Oracle and SQLite answer a JSON string as JSON, with
-  its quotes. SQL Server and MariaDB answer it as plain text: their functions do not say whether a
+  its quotes, unless it is cast (see above). SQL Server and MariaDB answer it as plain text: their functions do not say whether a
   value was a string or a number. Objects and lists are JSON text everywhere; the spacing inside
   them is the engine's own.
 * **Reduce on an empty list** is an error on DuckDB and NULL on Trino.

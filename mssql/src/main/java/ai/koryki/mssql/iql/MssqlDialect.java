@@ -283,6 +283,15 @@ public class MssqlDialect implements SqlDialect {
      * path has no position from the end, which is refused. A scalar string comes back as its text
      * without the quotes: JSON_VALUE does not tell a string from a number.
      */
+    /**
+     * Already the scalar: JSON_VALUE answers a string without its quotes, and what JSON_QUERY
+     * answers, an object or a list, is its JSON text, which is all a scalar can be of it here.
+     */
+    @Override
+    public String jsonScalar(String json) {
+        return json;
+    }
+
     @Override
     public String selection(String base, TypeDescriptor baseType, List<Selector> steps) {
         if (!CoreTypeFamily.JSON.equals(baseType.getTypeFamily())) {
