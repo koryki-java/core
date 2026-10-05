@@ -40,11 +40,11 @@ import org.antlr.v4.runtime.RuleContext;
 /**
  * Where a lambda may stand and what may be in it. A lambda is only an argument, at a position its
  * function declares, with as many parameters as the function takes; its parameters are named once
- * and only exist inside it, so an {@code @x} outside, or one nobody declared, is wrong; and its
- * body is a plain computation on the parameter and on columns: no subselect, no aggregate, no
- * window. A parameter may not be named like an alias visible where the lambda stands: the two would
- * be read as one, since {@code t.price} is a field of the alias and {@code @t@price} a selection
- * from the parameter, and a name that means two things is a mistake waiting to be made.
+ * and only exist inside it, so a name used outside, or one nobody declared, is wrong; and its body
+ * is a plain computation on the parameter and on columns: no subselect, no aggregate, no window. A
+ * parameter may not be named like an alias visible where the lambda stands: the two would be read
+ * as one, since {@code t.price} is a field of the alias and {@code t@price} a selection from the
+ * parameter, and a name that means two things is a mistake waiting to be made.
  *
  * <p>Whether the body has the type the function needs, a yes/no test for a filter, and whether the
  * list is a list at all, are checked where types are: the family of the argument, and {@code
@@ -182,7 +182,7 @@ public class LambdaValidator implements Visitor, Collector<List<Violation>> {
                                     + name
                                     + "; give it another name, so that "
                                     + name
-                                    + ".x and @"
+                                    + ".x and "
                                     + name
                                     + "@x cannot be taken for each other");
                 } else if (scopes.stream().anyMatch(s -> s.contains(name))) {
@@ -199,7 +199,7 @@ public class LambdaValidator implements Visitor, Collector<List<Violation>> {
                 && scopes.stream().noneMatch(s -> s.contains(expression.getParameter()))) {
             violation(
                     expression,
-                    "@" + expression.getParameter() + " is not a parameter of a lambda around it");
+                    expression.getParameter() + " is not a parameter of a lambda around it");
         } else if (insideLambda > 0 && expression.getSelect() != null) {
             violation(expression, "a subselect is not allowed inside a lambda");
         }

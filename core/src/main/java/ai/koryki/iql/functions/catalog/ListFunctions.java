@@ -30,8 +30,8 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Functions that take a list and a lambda: {@code list_transform(c.tags, x -> upper(@x))}, {@code
- * list_filter(c.scores, x -> @x > 10)}, {@code list_reduce(c.scores, (a, b) -> @a + @b)}.
+ * Functions that take a list and a lambda: {@code list_transform(c.tags, x -> upper(x))}, {@code
+ * list_filter(c.scores, x -> x > 10)}, {@code list_reduce(c.scores, (a, b) -> a + b)}.
  *
  * <p>Registered unsupported in the standard catalog and supported again by the dialects that have
  * lambdas, so that every other dialect rejects them with a violation instead of sending a call its

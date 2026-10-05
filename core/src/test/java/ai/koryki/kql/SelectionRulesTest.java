@@ -74,7 +74,7 @@ class SelectionRulesTest {
     void aDateBetweenInsideALambdaIsRewrittenLikeAnyOther() {
         String sql =
                 sql(
-                        "FIND check_complex t FILTER list_filter(t.events, e -> @e@day BETWEEN"
+                        "FIND check_complex t FILTER list_filter(t.events, e -> e@day BETWEEN"
                                 + " \"2026-01-01\" AND \"2026-12-31\")@1@ts > \"2000-01-01 00:00:00\" FETCH t.nr");
 
         assertFalse(sql.contains("BETWEEN"), sql);

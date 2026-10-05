@@ -313,7 +313,7 @@ public class IQLQueryMapper {
             return toSelection(expression);
         } else if (expression.param() != null) {
             Expression bean = build(expression, Expression::new);
-            bean.setParameter(expression.param().getText().substring(1));
+            bean.setParameter(expression.param().getText());
             return bean;
         } else if (expression.MINUS_SIGN() != null) {
             Expression inner = toExpression(expression.expression());
@@ -384,11 +384,28 @@ public class IQLQueryMapper {
         }
     }
 
+    /** The parameters of the lambdas around the node being mapped, innermost first. */
+    private final java.util.Deque<java.util.Set<String>> lambdaScopes =
+            new java.util.ArrayDeque<>();
+
+    private boolean isParameter(String name) {
+        return lambdaScopes.stream().anyMatch(scope -> scope.contains(name));
+    }
+
     private Lambda toLambda(IQLParser.LambdaContext lambda) {
         Lambda bean = build(lambda, Lambda::new);
         for (org.antlr.v4.runtime.tree.TerminalNode id : lambda.lambda_params().ID()) {
             bean.getParameters().add(id.getText());
         }
+        lambdaScopes.push(new java.util.HashSet<>(bean.getParameters()));
+        try {
+            return toLambdaBody(lambda, bean);
+        } finally {
+            lambdaScopes.pop();
+        }
+    }
+
+    private Lambda toLambdaBody(IQLParser.LambdaContext lambda, Lambda bean) {
         IQLParser.Logical_expressionContext body = lambda.lambda_body().logical_expression();
         IQLParser.Unary_logical_expressionContext unary = body.unary_logical_expression();
         // as in KQLQueryMapper: a body that is only a value is that value
@@ -553,7 +570,14 @@ public class IQLQueryMapper {
             e.setLogical(toLogicalNode(argument.logical_expression()));
             return e;
         } else if (argument.expression() != null) {
-            return toExpression(argument.expression());
+            IQLParser.ExpressionContext inner = argument.expression();
+            if (inner.param() != null && !isParameter(inner.param().getText())) {
+                // a bare name that is no parameter here is an alias, as it always was
+                Expression e = build(argument, Expression::new);
+                e.setIdentity(inner.param().getText());
+                return e;
+            }
+            return toExpression(inner);
         } else {
             Expression e = build(argument, Expression::new);
             e.setIdentity(argument.identity.getText());

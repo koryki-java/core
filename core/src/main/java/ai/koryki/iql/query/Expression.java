@@ -38,7 +38,7 @@ public class Expression {
     /** A value with postfix selectors: {@code c.tags@1}, {@code c.items@1@sku}. */
     private Selection selection;
 
-    /** The name of a lambda parameter, written {@code @x} where a value is expected. */
+    /** The name of a lambda parameter, written {@code x} where a value is expected. */
     private String parameter;
 
     /** A lambda, which only ever stands as an argument of a function. */

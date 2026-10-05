@@ -1,1 +1,1 @@
-unsupported: Function [3:13-3:53]: function 'list_reduce' is not supported by this dialect — PostgreSQL has no fold over an array; sum, min, max or string_agg over the unnested elements cover the usual cases
+unsupported: Function [3:13-3:51]: function 'list_reduce' is not supported by this dialect — PostgreSQL has no fold over an array; sum, min, max or string_agg over the unnested elements cover the usual cases

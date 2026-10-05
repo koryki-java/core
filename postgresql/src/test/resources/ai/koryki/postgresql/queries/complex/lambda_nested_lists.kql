@@ -4,6 +4,5 @@
 FIND check_complex t
 FETCH t.nr,
       list_transform(
-          list_transform(list_transform(t.scores, (x, i) -> @x + @i), (x, i) -> @x * 2),
-          (x, i) -> @x - @i) deep
-F
+          list_transform(list_transform(t.scores, (x, i) -> x + i), (x, i) -> x * 2),
+          (x, i) -> x - i) deep

@@ -109,9 +109,9 @@ selector
     | SELECTOR_NAME
 ;
 
-// Same token as a selector; a primary `@x` is a lambda parameter — see KQL.g4.
+// A lambda parameter, used by its name; see KQLRules.g4.
 param
-    : SELECTOR_ID
+    : ID
 ;
 
 temporal_literal

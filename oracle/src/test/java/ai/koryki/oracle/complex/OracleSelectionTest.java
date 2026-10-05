@@ -92,13 +92,13 @@ class OracleSelectionTest {
             delimiter = '|',
             value = {
                 // the element is X and its position I of a derived table named for the depth
-                "list_transform(t.scores, x -> @x * 2)|CAST(MULTISET(SELECT LA0.X * 2 FROM (SELECT COLUMN_VALUE X, ROWNUM I FROM TABLE(t.scores) Z) LA0 ORDER BY LA0.I) AS SYS.ODCINUMBERLIST)",
-                "list_transform(t.scores, (x, i) -> @x * @i)|SELECT LA0.X * LA0.I FROM",
-                "list_filter(t.tags, x -> @x <> 'green')|SELECT LA0.X FROM (SELECT COLUMN_VALUE X, ROWNUM I FROM TABLE(t.tags) Z) LA0 WHERE LA0.X <> 'green' ORDER BY LA0.I) AS SYS.ODCIVARCHAR2LIST",
+                "list_transform(t.scores, x -> x * 2)|CAST(MULTISET(SELECT LA0.X * 2 FROM (SELECT COLUMN_VALUE X, ROWNUM I FROM TABLE(t.scores) Z) LA0 ORDER BY LA0.I) AS SYS.ODCINUMBERLIST)",
+                "list_transform(t.scores, (x, i) -> x * i)|SELECT LA0.X * LA0.I FROM",
+                "list_filter(t.tags, x -> x <> 'green')|SELECT LA0.X FROM (SELECT COLUMN_VALUE X, ROWNUM I FROM TABLE(t.tags) Z) LA0 WHERE LA0.X <> 'green' ORDER BY LA0.I) AS SYS.ODCIVARCHAR2LIST",
                 // an object element: VALUE(), and a step on the parameter by dot notation
-                "list_transform(t.items, it -> @it@price)|SELECT LA0.X.price FROM (SELECT VALUE(Z) X, ROWNUM I FROM TABLE(t.items) Z) LA0",
+                "list_transform(t.items, it -> it@price)|SELECT LA0.X.price FROM (SELECT VALUE(Z) X, ROWNUM I FROM TABLE(t.items) Z) LA0",
                 // a selection on the result of a lambda: TABLE() over the cast
-                "list_transform(t.scores, x -> @x + 1)@1|FROM TABLE(CASE WHEN t.scores IS NULL",
+                "list_transform(t.scores, x -> x + 1)@1|FROM TABLE(CASE WHEN t.scores IS NULL",
             })
     void theShapeOfTheLambda(String expression, String expected) {
         String actual = sql(expression);
@@ -110,9 +110,9 @@ class OracleSelectionTest {
     @CsvSource(
             delimiter = '|',
             value = {
-                "list_filter(t.items, it -> @it@qty > 1)|cannot build a list of STRUCT",
+                "list_filter(t.items, it -> it@qty > 1)|cannot build a list of STRUCT",
                 "t.items@1:2|cannot build a list of STRUCT",
-                "list_transform(t.items, it -> @it@opts)|cannot build a list of ARRAY",
+                "list_transform(t.items, it -> it@opts)|cannot build a list of ARRAY",
             })
     void whatOracleCannotBuildIsRefused(String expression, String message) {
         KorykiaiException e = assertThrows(KorykiaiException.class, () -> sql(expression));
@@ -125,7 +125,7 @@ class OracleSelectionTest {
         RuntimeException e =
                 assertThrows(
                         RuntimeException.class,
-                        () -> sql("list_reduce(t.scores, (a, b) -> @a + @b)"));
+                        () -> sql("list_reduce(t.scores, (a, b) -> a + b)"));
 
         assertTrue(
                 String.valueOf(e.getMessage()).contains("no fold over a collection"),

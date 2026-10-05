@@ -2,4 +2,4 @@
 // every score, and every score combined with every score.
 // (Oracle cannot build a list of lists, so the nested transform is not here.)
 FIND check_complex t
-FETCH t.nr, list_transform(t.scores, x -> @x + t.nr) shifted
+FETCH t.nr, list_transform(t.scores, x -> x + t.nr) shifted

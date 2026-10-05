@@ -45,7 +45,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
- * Selectors ({@code c.tags@1}, {@code @'a key'}) and parameters ({@code @x}) from the grammar into
+ * Selectors ({@code c.tags@1}, {@code @'a key'}) and parameters ({@code x}) from the grammar into
  * the bean, through IQL and back, and out again as KQL. Mapping only: what a step means for a type,
  * and its SQL, come later, so the tests use plausible column names and never resolve or render.
  */
@@ -214,8 +214,8 @@ class SelectorMapperTest {
     }
 
     @Test
-    void aParameterIsNamedWithoutItsSigil() throws IOException {
-        Expression e = fetched("@x");
+    void aParameterIsNamedByItsName() throws IOException {
+        Expression e = fetched("x");
 
         assertEquals("x", e.getParameter());
         assertNull(e.getSelection());
@@ -223,7 +223,7 @@ class SelectorMapperTest {
 
     @Test
     void aSelectorOnAParameterIsASelection() throws IOException {
-        Selection selection = fetched("@it@price").getSelection();
+        Selection selection = fetched("it@price").getSelection();
 
         assertEquals("it", selection.getBase().getParameter());
         assertEquals(List.of("@price"), texts(selection.getSelectors()));
@@ -248,8 +248,8 @@ class SelectorMapperTest {
                 "-p.a@1",
                 "p.a@1 + p.b@2",
                 "coalesce(p.tags@1, 'none')",
-                "@x",
-                "@it@price",
+                "x",
+                "it@price",
             })
     void iqlWrittenAndReadBackIsTheSameIql(String expression) throws IOException {
         String once = iql(bean("FIND products p FETCH " + expression));

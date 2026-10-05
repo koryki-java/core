@@ -53,7 +53,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 /**
  * Lambda arguments on the complex test bed: what the parameters are typed as, what the call
- * returns, and what is refused. The same {@code @x} is an INTEGER over a list of integers and a
+ * returns, and what is refused. The same {@code x} is an INTEGER over a list of integers and a
  * struct over a list of structs, so the types are the point; the engine tests show the values.
  */
 class LambdaTypingTest {
@@ -125,27 +125,27 @@ class LambdaTypingTest {
     @CsvSource(
             delimiter = '|',
             value = {
-                "list_transform(t.tags, x -> upper(@x))|ARRAY(TEXT)",
-                "list_transform(t.scores, x -> @x * 2)|ARRAY(INTEGER)",
+                "list_transform(t.tags, x -> upper(x))|ARRAY(TEXT)",
+                "list_transform(t.scores, x -> x * 2)|ARRAY(INTEGER)",
                 // the second parameter is the position
-                "list_transform(t.scores, (x, i) -> @x * @i)|ARRAY(INTEGER)",
+                "list_transform(t.scores, (x, i) -> x * i)|ARRAY(INTEGER)",
                 // the parameter has the type of the element: a struct, and a step selects from it
-                "list_transform(t.items, it -> @it@price)|ARRAY(DECIMAL)",
-                "list_transform(t.items, it -> @it@opts)|ARRAY(ARRAY(TEXT))",
-                "list_transform(t.events, e -> @e@day)|ARRAY(DATE)",
-                "list_transform(t.matrix, row -> @row@1)|ARRAY(FLOAT)",
-                "list_filter(t.scores, x -> @x > 10)|ARRAY(INTEGER)",
+                "list_transform(t.items, it -> it@price)|ARRAY(DECIMAL)",
+                "list_transform(t.items, it -> it@opts)|ARRAY(ARRAY(TEXT))",
+                "list_transform(t.events, e -> e@day)|ARRAY(DATE)",
+                "list_transform(t.matrix, row -> row@1)|ARRAY(FLOAT)",
+                "list_filter(t.scores, x -> x > 10)|ARRAY(INTEGER)",
                 // a filter of a fixed-size array is a list
-                "list_filter(t.vec, x -> @x > 1)|ARRAY(FLOAT)",
-                "list_filter(t.items, it -> @it@qty > 1)|ARRAY(STRUCT(sku:TEXT,qty:INTEGER,price:DECIMAL,opts:ARRAY(TEXT)))",
-                "list_reduce(t.scores, (a, b) -> @a + @b)|INTEGER",
-                "list_reduce(t.tags, (a, b) -> @a + @b)|TEXT",
-                "list_transform(t.items, it -> list_transform(@it@opts, o -> upper(@o)))|ARRAY(ARRAY(TEXT))",
+                "list_filter(t.vec, x -> x > 1)|ARRAY(FLOAT)",
+                "list_filter(t.items, it -> it@qty > 1)|ARRAY(STRUCT(sku:TEXT,qty:INTEGER,price:DECIMAL,opts:ARRAY(TEXT)))",
+                "list_reduce(t.scores, (a, b) -> a + b)|INTEGER",
+                "list_reduce(t.tags, (a, b) -> a + b)|TEXT",
+                "list_transform(t.items, it -> list_transform(it@opts, o -> upper(o)))|ARRAY(ARRAY(TEXT))",
                 // a lambda inside a lambda sees both
-                "list_transform(t.scores, x -> list_transform(t.scores, y -> @x + @y))|ARRAY(ARRAY(INTEGER))",
+                "list_transform(t.scores, x -> list_transform(t.scores, y -> x + y))|ARRAY(ARRAY(INTEGER))",
                 // and the result is a list like any other
-                "list_transform(t.tags, x -> @x)@1|TEXT",
-                "list_transform(t.items, it -> @it@sku)@2:3|ARRAY(TEXT)",
+                "list_transform(t.tags, x -> x)@1|TEXT",
+                "list_transform(t.items, it -> it@sku)@2:3|ARRAY(TEXT)",
             })
     void theCallReturnsWhatTheLambdaReturns(String expression, String expected) throws IOException {
         assertEquals(expected, typeOf(expression));
@@ -155,15 +155,15 @@ class LambdaTypingTest {
     @CsvSource(
             delimiter = '|',
             value = {
-                "list_transform(t.tags, x -> @y)|is not a parameter",
-                "list_transform(t.tags, (x, x) -> @x)|twice",
-                "list_transform(t.items, x -> list_transform(@x@opts, x -> @x))|hides",
-                "list_transform(t.tags, (a, b, c) -> @a)|1 or 2 parameters",
-                "list_reduce(t.scores, x -> @x)|2 parameters",
-                "upper(x -> @x)|takes no lambda",
-                "@x|is not a parameter",
-                "t.tags@1 + @x|is not a parameter",
-                "list_transform(t.scores, x -> sum(@x))|aggregate sum",
+                "list_transform(t.tags, x -> y)|is not a parameter",
+                "list_transform(t.tags, (x, x) -> x)|twice",
+                "list_transform(t.items, x -> list_transform(x@opts, x -> x))|hides",
+                "list_transform(t.tags, (a, b, c) -> a)|1 or 2 parameters",
+                "list_reduce(t.scores, x -> x)|2 parameters",
+                "upper(x -> x)|takes no lambda",
+                "x|is not a parameter",
+                "t.tags@1 + x|is not a parameter",
+                "list_transform(t.scores, x -> sum(x))|aggregate sum",
                 "list_transform(t.scores, x -> row_number() OVER (ORDER t.nr))|window function",
                 "list_transform(t.scores, x -> (FIND check_complex u FETCH count(u)))|subselect",
             })
@@ -182,7 +182,7 @@ class LambdaTypingTest {
     @CsvSource(
             delimiter = '|',
             value = {
-                "list_transform(t.nr, x -> @x)",
+                "list_transform(t.nr, x -> x)",
                 "list_transform(t.tags, 'x')",
                 "list_filter(t.tags, 'x')",
             })

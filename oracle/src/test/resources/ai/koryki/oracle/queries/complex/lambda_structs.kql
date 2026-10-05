@@ -2,5 +2,5 @@
 // from it. A lambda inside a lambda sees both parameters.
 // (Oracle cannot build a list of lists, so the nested transform is not here.)
 FIND check_complex t
-FETCH t.nr, list_transform(t.items, it -> @it@price * @it@qty) line_totals,
-      list_transform(t.items, it -> @it@sku) skus
+FETCH t.nr, list_transform(t.items, it -> it@price * it@qty) line_totals,
+      list_transform(t.items, it -> it@sku) skus

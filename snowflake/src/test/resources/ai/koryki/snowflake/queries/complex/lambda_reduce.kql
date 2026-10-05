@@ -4,5 +4,5 @@
 // of a NULL does.
 FIND check_complex t
 FILTER t.nr <> 2
-FETCH t.nr, list_reduce(t.scores, (a, b) -> @a + @b) total,
-      list_reduce(t.vec, (a, b) -> @a * @b) product
+FETCH t.nr, list_reduce(t.scores, (a, b) -> a + b) total,
+      list_reduce(t.vec, (a, b) -> a * b) product

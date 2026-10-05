@@ -1,5 +1,5 @@
 -- list_transform does something to every element of a list and gives the list back, element for
--- element. @x is the element; a second parameter is its position, from 1. A NULL element stays NULL.
+-- element. x is the element; a second parameter is its position, from 1. A NULL element stays NULL.
 SELECT
   t.nr
 , transform(t.tags, _l0_x -> upper(_l0_x)) AS shouted

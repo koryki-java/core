@@ -93,7 +93,7 @@ class LambdaMapperTest {
 
     @Test
     void oneParameterAndAValueBody() throws IOException {
-        Lambda l = lambda("list_transform(p.tags, x -> upper(@x))");
+        Lambda l = lambda("list_transform(p.tags, x -> upper(x))");
 
         assertEquals(List.of("x"), l.getParameters());
         assertNull(l.getBody().getLogical());
@@ -102,7 +102,7 @@ class LambdaMapperTest {
 
     @Test
     void severalParametersInTheirOrder() throws IOException {
-        Lambda l = lambda("list_reduce(p.scores, (acc, x) -> @acc + @x)");
+        Lambda l = lambda("list_reduce(p.scores, (acc, x) -> acc + x)");
 
         assertEquals(List.of("acc", "x"), l.getParameters());
         assertEquals("add", l.getBody().getFunction().getFunc());
@@ -111,19 +111,19 @@ class LambdaMapperTest {
 
     @Test
     void aPredicateBodyIsALogicalExpression() throws IOException {
-        Lambda l = lambda("list_filter(p.scores, x -> @x > 2 AND @x < 9)");
+        Lambda l = lambda("list_filter(p.scores, x -> x > 2 AND x < 9)");
 
         assertNotNull(l.getBody().getLogical());
     }
 
     @Test
     void aComparisonAloneIsAPredicateToo() throws IOException {
-        assertNotNull(lambda("list_filter(p.scores, x -> @x > 2)").getBody().getLogical());
+        assertNotNull(lambda("list_filter(p.scores, x -> x > 2)").getBody().getLogical());
     }
 
     @Test
     void aSelectorOnAParameterIsASelection() throws IOException {
-        Lambda l = lambda("list_transform(p.items, it -> @it@price * 2)");
+        Lambda l = lambda("list_transform(p.items, it -> it@price * 2)");
 
         Expression price = l.getBody().getFunction().getArguments().get(0);
         assertEquals("it", price.getSelection().getBase().getParameter());
@@ -131,7 +131,7 @@ class LambdaMapperTest {
 
     @Test
     void lambdasNest() throws IOException {
-        Lambda outer = lambda("list_transform(p.a, x -> list_transform(@x, y -> @y + 1))");
+        Lambda outer = lambda("list_transform(p.a, x -> list_transform(x, y -> y + 1))");
 
         Expression inner = outer.getBody().getFunction().getArguments().get(1);
         assertNotNull(inner.getLambda());
@@ -141,7 +141,7 @@ class LambdaMapperTest {
     @Test
     void theCallItselfIsAnOrdinaryFunction() throws IOException {
         Function f =
-                expressions(bean("FIND products p FETCH list_transform(p.tags, x -> @x)")).stream()
+                expressions(bean("FIND products p FETCH list_transform(p.tags, x -> x)")).stream()
                         .map(Expression::getFunction)
                         .filter(fn -> fn != null)
                         .findFirst()
@@ -156,17 +156,17 @@ class LambdaMapperTest {
     @ParameterizedTest
     @ValueSource(
             strings = {
-                "list_transform(p.tags, x -> upper(@x))",
-                "list_transform(p.tags, x -> @x)",
-                "list_reduce(p.scores, (acc, x) -> @acc + @x)",
-                "list_filter(p.scores, x -> @x > 2 AND @x < 9)",
-                "list_filter(p.scores, x -> NOT @x = 3)",
-                "list_filter(p.items, it -> @it@price > #min)",
-                "list_transform(p.items, it -> @it@price * 2)",
-                "list_transform(p.a, x -> list_transform(@x, y -> @y + 1))",
-                "list_transform(p.tags, (x, i) -> @x)",
-                "coalesce(list_transform(p.tags, x -> @x), p.tags)@1",
-                "list_transform(p.tags, x -> @x)@1:2",
+                "list_transform(p.tags, x -> upper(x))",
+                "list_transform(p.tags, x -> x)",
+                "list_reduce(p.scores, (acc, x) -> acc + x)",
+                "list_filter(p.scores, x -> x > 2 AND x < 9)",
+                "list_filter(p.scores, x -> NOT x = 3)",
+                "list_filter(p.items, it -> it@price > #min)",
+                "list_transform(p.items, it -> it@price * 2)",
+                "list_transform(p.a, x -> list_transform(x, y -> y + 1))",
+                "list_transform(p.tags, (x, i) -> x)",
+                "coalesce(list_transform(p.tags, x -> x), p.tags)@1",
+                "list_transform(p.tags, x -> x)@1:2",
             })
     void iqlWrittenAndReadBackIsTheSameIql(String expression) throws IOException {
         String once = iql(bean("FIND products p FETCH " + expression));
@@ -178,21 +178,21 @@ class LambdaMapperTest {
 
     @Test
     void theIqlWritesTheLambdaWithItsArrow() throws IOException {
-        String iql = iql(bean("FIND products p FETCH list_reduce(p.s, (a, b) -> @a + @b)"));
+        String iql = iql(bean("FIND products p FETCH list_reduce(p.s, (a, b) -> a + b)"));
 
-        assertTrue(iql.contains("list_reduce(p.s, (a, b) -> add(@a, @b))"), iql);
+        assertTrue(iql.contains("list_reduce(p.s, (a, b) -> add(a, b))"), iql);
     }
 
     @Test
     void theIqlTreeHoldsTheSameLambda() throws IOException {
-        Lambda kql = lambda("list_transform(p.tags, x -> upper(@x))");
+        Lambda kql = lambda("list_transform(p.tags, x -> upper(x))");
         Lambda viaIql =
                 expressions(
                                 fromIql(
                                         iql(
                                                 bean(
                                                         "FIND products p FETCH list_transform(p.tags,"
-                                                                + " x -> upper(@x))"))))
+                                                                + " x -> upper(x))"))))
                         .stream()
                         .map(Expression::getLambda)
                         .filter(l -> l != null)
@@ -209,7 +209,7 @@ class LambdaMapperTest {
         List<String> functions = new ArrayList<>();
         new Walker()
                 .walk(
-                        bean("FIND products p FETCH list_transform(p.tags, x -> upper(@x))"),
+                        bean("FIND products p FETCH list_transform(p.tags, x -> upper(x))"),
                         new Visitor() {
                             @Override
                             public boolean visit(Deque<Object> deque, Function function) {
@@ -229,14 +229,81 @@ class LambdaMapperTest {
     @ParameterizedTest
     @ValueSource(
             strings = {
-                "list_transform(p.product_name, x -> upper(@x))",
-                "list_reduce(p.product_name, (a, b) -> @a + @b)",
-                "list_filter(p.product_name, x -> @x > 2 AND @x < 9)",
+                "list_transform(p.product_name, x -> upper(x))",
+                "list_reduce(p.product_name, (a, b) -> a + b)",
+                "list_filter(p.product_name, x -> x > 2 AND x < 9)",
             })
     void theFormatterKeepsTheLambdaAndIsStable(String call) {
         String out = reformat("FIND products p\nFETCH " + call);
 
         assertTrue(out.contains("->"), out);
         assertEquals(out, reformat(out));
+    }
+
+    // ---- a bare name is a parameter inside a lambda that declares it, an alias elsewhere -----
+
+    private static Expression fetchedExpression(String expression) throws IOException {
+        return expressions(bean("FIND products p FETCH " + expression)).get(0);
+    }
+
+    @Test
+    void aBareNameAsAnArgumentIsAnAliasOutsideALambda() throws IOException {
+        Expression argument = fetchedExpression("count(p)").getFunction().getArguments().get(0);
+
+        assertEquals("p", argument.getIdentity());
+        assertNull(argument.getParameter());
+    }
+
+    @Test
+    void aBareNameAsAnArgumentIsAParameterInsideTheLambdaThatDeclaresIt() throws IOException {
+        Lambda l = lambda("list_transform(p.tags, x -> upper(x))");
+
+        Expression argument = l.getBody().getFunction().getArguments().get(0);
+        assertEquals("x", argument.getParameter());
+        assertNull(argument.getIdentity());
+    }
+
+    @Test
+    void aBareNameThatIsNoParameterStaysAnAliasInsideALambdaToo() throws IOException {
+        Lambda l = lambda("list_transform(p.tags, x -> concat(x, count(p)))");
+
+        Expression count = l.getBody().getFunction().getArguments().get(1);
+        assertEquals("p", count.getFunction().getArguments().get(0).getIdentity());
+    }
+
+    @Test
+    void theScopeEndsWithTheLambda() throws IOException {
+        // x is a parameter inside, and after the lambda the same name is an alias again
+        List<Expression> all =
+                expressions(
+                        bean(
+                                "FIND products p FETCH list_transform(p.tags, x -> upper(x)) a,"
+                                        + " count(x) b"));
+
+        Expression count =
+                all.stream()
+                        .filter(
+                                e ->
+                                        e.getFunction() != null
+                                                && "count".equals(e.getFunction().getFunc()))
+                        .findFirst()
+                        .orElseThrow();
+        assertEquals("x", count.getFunction().getArguments().get(0).getIdentity());
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "count(p)",
+                "list_transform(p.tags, x -> upper(x))",
+                "list_transform(p.tags, x -> concat(x, count(p)))",
+                "list_transform(p.a, x -> list_transform(x, y -> y + 1))",
+            })
+    void aNameKeepsWhatItIsThroughIql(String call) throws IOException {
+        String once = iql(bean("FIND products p FETCH " + call));
+
+        String twice = iql(fromIql(once));
+
+        assertEquals(once, twice);
     }
 }

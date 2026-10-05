@@ -179,10 +179,13 @@ selector
 | SELECTOR_NAME
 ;
 
-// Same token as a selector, different position: a primary `@x` can only be a lambda parameter, a
-// postfix `@x` is a field or key. Two rules keep the parse tree self-describing.
+// A lambda parameter, used by the name it was declared with: `x -> x * 2`. A name in expression
+// position is nothing else in the language (a field is `alias.name`, a call `name(`), and a
+// parameter may not be named like an alias, so the name says what it is. As a function argument it
+// also parses where an alias is meant (`count(o)`); the mapper decides by the lambdas around it.
+// A selection from a parameter is the usual postfix one: `x@price`.
 param
- : SELECTOR_ID
+ : ID
 ;
 
 temporal_literal
@@ -221,8 +224,8 @@ argument
  : lambda | expression | logical_expression | identity=ID
 ;
 
-// A lambda is only ever a function argument, never a value of its own: list_transform(c.tags, x -> @x * 2).
-// Parameters are declared as plain IDs and referenced as `@x` (see param); `x.name` stays a field.
+// A lambda is only ever a function argument, never a value of its own: list_transform(c.tags, x -> x * 2).
+// Parameters are declared as plain IDs and used by that name (see param); `x.name` stays a field.
 lambda
  : lambda_params ARROW lambda_body
 ;

@@ -110,15 +110,15 @@ class TrinoSelectionTest {
     @CsvSource(
             delimiter = '|',
             value = {
-                "list_transform(t.tags, x -> upper(@x))|transform(t.tags, _l0_x -> upper(_l0_x))",
-                "list_filter(t.scores, x -> @x > 10)|filter(t.scores, _l0_x -> _l0_x > 10)",
+                "list_transform(t.tags, x -> upper(x))|transform(t.tags, _l0_x -> upper(_l0_x))",
+                "list_filter(t.scores, x -> x > 10)|filter(t.scores, _l0_x -> _l0_x > 10)",
                 // the position: the list zipped with 1..n, cut to the length for an empty list
-                "list_transform(t.scores, (x, i) -> @x * @i)|zip_with(t.scores, slice(sequence(1, greatest(cardinality(t.scores), 1)), 1, cardinality(t.scores)), (_l0_x, _l0_i) -> _l0_x * _l0_i)",
+                "list_transform(t.scores, (x, i) -> x * i)|zip_with(t.scores, slice(sequence(1, greatest(cardinality(t.scores), 1)), 1, cardinality(t.scores)), (_l0_x, _l0_i) -> _l0_x * _l0_i)",
                 // reduce starts with the first element, as in DuckDB
-                "list_reduce(t.scores, (a, b) -> @a + @b)|reduce(slice(t.scores, 2, cardinality(t.scores)), element_at(t.scores, 1), (_l0_a, _l0_b) -> _l0_a + _l0_b, s -> s)",
+                "list_reduce(t.scores, (a, b) -> a + b)|reduce(slice(t.scores, 2, cardinality(t.scores)), element_at(t.scores, 1), (_l0_a, _l0_b) -> _l0_a + _l0_b, s -> s)",
                 // a step on the parameter: a row field, in parentheses
-                "list_transform(t.items, it -> @it@price)|transform(t.items, _l0_it -> (_l0_it).price)",
-                "list_transform(t.scores, x -> list_transform(t.scores, y -> @x + @y))|transform(t.scores, _l0_x -> transform(t.scores, _l1_y -> _l0_x + _l1_y))",
+                "list_transform(t.items, it -> it@price)|transform(t.items, _l0_it -> (_l0_it).price)",
+                "list_transform(t.scores, x -> list_transform(t.scores, y -> x + y))|transform(t.scores, _l0_x -> transform(t.scores, _l1_y -> _l0_x + _l1_y))",
             })
     void theShapeOfTheLambda(String expression, String expected) {
         String actual = sql(expression);
@@ -131,7 +131,7 @@ class TrinoSelectionTest {
         KorykiaiException e =
                 assertThrows(
                         KorykiaiException.class,
-                        () -> sql("list_filter(t.scores, (x, i) -> @x > @i)"));
+                        () -> sql("list_filter(t.scores, (x, i) -> x > i)"));
 
         assertTrue(e.getMessage().contains("not supported on Trino"), e.getMessage());
     }
@@ -139,7 +139,7 @@ class TrinoSelectionTest {
     private static String nestedTransforms(int depth) {
         String list = "t.scores";
         for (int i = 0; i < depth; i++) {
-            list = "list_transform(" + list + ", (x, i) -> @x + @i)";
+            list = "list_transform(" + list + ", (x, i) -> x + i)";
         }
         return list;
     }

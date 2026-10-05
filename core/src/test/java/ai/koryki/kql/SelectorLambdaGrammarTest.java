@@ -29,8 +29,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * Parse-only tests for the postfix selectors ({@code c.tags@1}, {@code s@name}, {@code m@'k'}) and
- * the lambda rules ({@code x -> @x * 2}). Nothing here maps, types or renders; the point is that
- * the grammar accepts exactly these shapes and builds the tree the later phases will rely on.
+ * the lambda rules ({@code x -> x * 2}). Nothing here maps, types or renders; the point is that the
+ * grammar accepts exactly these shapes and builds the tree the later phases will rely on.
  */
 class SelectorLambdaGrammarTest {
 
@@ -122,14 +122,14 @@ class SelectorLambdaGrammarTest {
     @ParameterizedTest
     @ValueSource(
             strings = {
-                "list_transform(p.tags, x -> @x * 2)",
-                "list_filter(p.tags, x -> @x > 2 AND @x < 9)",
-                "list_transform(p.items, it -> @it@price * @it@qty)",
-                "list_reduce(p.tags, (acc, x) -> @acc + @x)",
-                "list_transform(p.tags, (x, i) -> @x * @i)",
-                "list_transform(p.a, x -> list_transform(p.b, y -> @x + @y))",
-                "list_transform(p.tags, x -> @x + p.unit_price)",
-                "list_filter(p.tags, x -> @x@name LIKE 'A')",
+                "list_transform(p.tags, x -> x * 2)",
+                "list_filter(p.tags, x -> x > 2 AND x < 9)",
+                "list_transform(p.items, it -> it@price * it@qty)",
+                "list_reduce(p.tags, (acc, x) -> acc + x)",
+                "list_transform(p.tags, (x, i) -> x * i)",
+                "list_transform(p.a, x -> list_transform(p.b, y -> x + y))",
+                "list_transform(p.tags, x -> x + p.unit_price)",
+                "list_filter(p.tags, x -> x@name LIKE 'A')",
                 "list_transform(p.s, x -> x.price)",
             })
     void lambdasParse(String expression) {
@@ -139,28 +139,28 @@ class SelectorLambdaGrammarTest {
 
     @Test
     void aLambdaIsAnArgument() {
-        String t = tree("list_transform(p.tags, x -> @x * 2)");
+        String t = tree("list_transform(p.tags, x -> x * 2)");
         assertTrue(t.contains("(argument (lambda"), t);
         assertTrue(t.contains("(lambda_params x)"), t);
     }
 
     @Test
     void aPrimarySelectorTokenIsAParameter() {
-        String t = tree("list_transform(p.tags, x -> @x)");
-        assertTrue(t.contains("(param @x)"), t);
+        String t = tree("list_transform(p.tags, x -> x)");
+        assertTrue(t.contains("(param x)"), t);
         assertEquals(0, count(t, "(selector"), t);
     }
 
     @Test
     void aPostfixSelectorTokenAfterAParameterIsASelector() {
-        String t = tree("list_transform(p.tags, x -> @x@price)");
-        assertTrue(t.contains("(param @x)"), t);
+        String t = tree("list_transform(p.tags, x -> x@price)");
+        assertTrue(t.contains("(param x)"), t);
         assertEquals(1, count(t, "(selector"), t);
     }
 
     @Test
     void twoParametersAreListed() {
-        String t = tree("list_reduce(p.tags, (a, b) -> @a + @b)");
+        String t = tree("list_reduce(p.tags, (a, b) -> a + b)");
         assertTrue(t.contains("(lambda_params ( a , b ))"), t);
     }
 
@@ -177,9 +177,21 @@ class SelectorLambdaGrammarTest {
                 "f((1) -> x)",
                 "f(x ->)",
                 "f(-> 1)",
+                // the sigil of a parameter is gone: @x is a selector, and a selector needs a value
+                "f(x -> @x)",
+                "f((a, b) -> @a + @b)",
             })
     void malformedLambdasAreRejected(String expression) {
         assertThrows(RuntimeException.class, () -> parse(FIND + expression), expression);
+    }
+
+    @Test
+    void aBareNameIsAParameterInTheTreeAndTheMapperSaysWhetherItIsAnAlias() {
+        // f(p) parses as a parameter whether or not a lambda declares p: the grammar cannot know,
+        // and the mapper turns it into the alias it always was where no lambda declares it
+        KQLParser.QueryContext q = parse(FIND + "f(p)");
+
+        assertTrue(has(q, KQLParser.ParamContext.class));
     }
 
     /** Existing shapes must still choose the old alternatives. */

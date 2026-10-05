@@ -112,7 +112,7 @@ public class ExpressionTypeResolver {
             TypeDescriptor type = parameters.get(expression.getParameter());
             if (type == null) {
                 throw new KorykiaiException(
-                        "lambda parameter @" + expression.getParameter() + " is not in scope");
+                        "lambda parameter " + expression.getParameter() + " is not in scope");
             }
             return type;
         } else if (expression.getIdentity() != null) {
@@ -278,7 +278,7 @@ public class ExpressionTypeResolver {
      * Gives every lambda argument of the call the types of its parameters, which the function
      * declares from the types of its other arguments, and types its body with them. Nothing is
      * written to the query model: the renderer, which meets the body later and must know what
-     * {@code @x@price} selects from, keeps what is returned here.
+     * {@code x@price} selects from, keeps what is returned here.
      *
      * @return the typing of each lambda, by argument position; a lambda that cannot be typed (an
      *     argument of the wrong type, a parameter count the function does not take) is left out,

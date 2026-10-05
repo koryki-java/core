@@ -1,6 +1,6 @@
 // The parameter is the element, whatever it is: a struct from a list of structs, and a step selects
 // from it. A lambda inside a lambda sees both parameters.
 FIND check_complex t
-FETCH t.nr, list_transform(t.items, it -> @it@price * @it@qty) line_totals,
-      list_transform(t.items, it -> @it@sku) skus,
-      list_transform(t.items, it -> list_transform(@it@opts, o -> upper(@o))) options
+FETCH t.nr, list_transform(t.items, it -> it@price * it@qty) line_totals,
+      list_transform(t.items, it -> it@sku) skus,
+      list_transform(t.items, it -> list_transform(it@opts, o -> upper(o))) options

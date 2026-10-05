@@ -3,6 +3,6 @@
 // parameter of a lambda, a fold.
 FIND check_complex t
 FILTER t.nr <> 2
-FETCH t.nr, list_filter(t.scores, x -> @x > 5)@-1 last_big,
-      list_transform(t.scores, x -> @x * 2)@-2: last_two_doubled,
-      list_transform(list_filter(t.scores, x -> @x > 5), (x, i) -> @x * @i) weighted_big
+FETCH t.nr, list_filter(t.scores, x -> x > 5)@-1 last_big,
+      list_transform(t.scores, x -> x * 2)@-2: last_two_doubled,
+      list_transform(list_filter(t.scores, x -> x > 5), (x, i) -> x * i) weighted_big

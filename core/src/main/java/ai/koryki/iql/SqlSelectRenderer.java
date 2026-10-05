@@ -1188,7 +1188,7 @@ public class SqlSelectRenderer {
                 return renamed;
             }
         }
-        throw new KorykiaiException("lambda parameter @" + name + " is not in scope");
+        throw new KorykiaiException("lambda parameter " + name + " is not in scope");
     }
 
     /**

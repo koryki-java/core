@@ -32,13 +32,16 @@ A selector follows a value and is written `@`:
 ## Lambdas
 
 `list_transform`, `list_filter` and `list_reduce` take a lambda. Its parameters are named, and used
-with an `@`: `list_transform(t.scores, x -> @x * 2)`.
+by that name: `list_transform(t.scores, x -> x * 2)`. A selection from a parameter is the usual
+postfix one: `it@price`.
 
 * `list_transform` and `list_filter`: one parameter (the element) or two (element, position from 1).
 * `list_reduce`: two parameters (state, element); the first element is the initial state, so a list
   of one gives that element.
+* A bare name in a lambda body is its parameter. As a function argument, a bare name outside a lambda
+  that declares it is an alias, as in `count(o)`.
 * A lambda sees the columns of the query as well as its parameters. A parameter may not be named like
-  an alias visible where the lambda stands (`t.price` is a field of the alias, `@t@price` a selection
+  an alias visible where the lambda stands (`t.price` is a field of the alias, `t@price` a selection
   from the parameter), nor like a parameter of a lambda around it; both are refused when the query is
   checked.
 * A NULL list stays NULL.

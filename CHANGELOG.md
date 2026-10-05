@@ -10,12 +10,14 @@ All notable changes to this project are documented here.
   `t.tags@-1`, `t.tags@2:`, `t.dims@w`, `t.attrs@'a key'`, `t.doc@a@b@1` select from a value of the
   type the column has (positions count from 1, from the end when negative, NULL where nothing is);
   `list_transform`, `list_filter` and `list_reduce` take a lambda, `list_transform(t.scores, (x, i)
-  -> @x * @i)`. The grammar, the type model (ARRAY, STRUCT, MAP and JSON as a tree of types with
+  -> x * i)`. The grammar, the type model (ARRAY, STRUCT, MAP and JSON as a tree of types with
   `TypeSyntax`, `TypePath` and `Column.nested`), typing, validation and rendering for every dialect
   are in, with a complex-types test bed per dialect (DuckDB, PostgreSQL, Trino, Snowflake, Oracle;
   SQL Server, MariaDB and SQLite for JSON). `docs/NESTED.md` says what is promised and what each
-  dialect does. A lambda parameter may not be named like an alias in sight, nor like the parameter
-  of the lambda around it.
+  dialect does. A lambda parameter is used by the name it is declared with, `x -> x * 2`, and a
+  selection from it is `it@price`; where a function argument is a bare name it is the parameter of
+  the lambda that declares it, and otherwise an alias as before. A parameter may not be named like an
+  alias in sight, nor like the parameter of the lambda around it.
 
 ### Changed
 

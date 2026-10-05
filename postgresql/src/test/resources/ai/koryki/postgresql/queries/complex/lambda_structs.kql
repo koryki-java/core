@@ -1,6 +1,6 @@
 // The parameter is the element: a composite from an array of composites, and a step selects from it.
 // (A list of lists, as the options of every item, is not possible: PostgreSQL arrays do not nest.)
 FIND check_complex t
-FETCH t.nr, list_transform(t.items, it -> @it@price * @it@qty) line_totals,
-      list_transform(t.items, it -> @it@sku) skus,
-      list_filter(t.items, it -> @it@price > 10)@1@sku first_expensive
+FETCH t.nr, list_transform(t.items, it -> it@price * it@qty) line_totals,
+      list_transform(t.items, it -> it@sku) skus,
+      list_filter(t.items, it -> it@price > 10)@1@sku first_expensive

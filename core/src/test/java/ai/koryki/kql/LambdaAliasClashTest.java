@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * A lambda parameter may not be named like an alias in sight: {@code t.price} is a field of the
- * alias and {@code @t@price} a selection from the parameter, and the two must never be taken for
+ * alias and {@code t@price} a selection from the parameter, and the two must never be taken for
  * each other, whatever the syntax of a parameter is.
  */
 class LambdaAliasClashTest {
@@ -48,7 +48,7 @@ class LambdaAliasClashTest {
     @Test
     void aParameterNamedLikeTheAliasOfTheSelectIsRefused() {
         String message =
-                refusal("FIND check_complex t FETCH t.nr, list_transform(t.scores, t -> @t * 2) d");
+                refusal("FIND check_complex t FETCH t.nr, list_transform(t.scores, t -> t * 2) d");
 
         assertTrue(message.contains("the parameter t has the name of the alias t"), message);
     }
@@ -58,7 +58,7 @@ class LambdaAliasClashTest {
         String message =
                 refusal(
                         "FIND check_complex a, VIA same_check check_complex b"
-                                + " FETCH a.nr, list_transform(a.scores, b -> @b) d");
+                                + " FETCH a.nr, list_transform(a.scores, b -> b) d");
 
         assertTrue(message.contains("the parameter b has the name of the alias b"), message);
     }
@@ -69,7 +69,7 @@ class LambdaAliasClashTest {
                 refusal(
                         "FIND check_complex t"
                                 + " FILTER EXISTS (t VIA same_check check_complex u"
-                                + " FILTER list_filter(u.scores, t -> @t > 1)@1 > 0)"
+                                + " FILTER list_filter(u.scores, t -> t > 1)@1 > 0)"
                                 + " FETCH t.nr");
 
         assertTrue(message.contains("the parameter t has the name of the alias t"), message);
@@ -81,7 +81,7 @@ class LambdaAliasClashTest {
                 refusal(
                         "FIND check_complex t"
                                 + " FILTER EXISTS (t VIA same_check check_complex u"
-                                + " FILTER list_filter(u.scores, u -> @u > 1)@1 > 0)"
+                                + " FILTER list_filter(u.scores, u -> u > 1)@1 > 0)"
                                 + " FETCH t.nr");
 
         assertTrue(message.contains("the parameter u has the name of the alias u"), message);
@@ -89,8 +89,7 @@ class LambdaAliasClashTest {
 
     @Test
     void aParameterWithAnotherNameIsFine() {
-        String sql =
-                sql("FIND check_complex t FETCH t.nr, list_transform(t.scores, x -> @x * 2) d");
+        String sql = sql("FIND check_complex t FETCH t.nr, list_transform(t.scores, x -> x * 2) d");
 
         assertFalse(sql.isBlank());
     }
@@ -100,7 +99,7 @@ class LambdaAliasClashTest {
         // x is an alias in the second select of the set, not where the first lambda stands
         String sql =
                 sql(
-                        "FIND check_complex t FETCH t.nr, list_transform(t.scores, x -> @x * 2) d"
+                        "FIND check_complex t FETCH t.nr, list_transform(t.scores, x -> x * 2) d"
                                 + " UNION FIND check_complex x FETCH x.nr, x.scores d");
 
         assertFalse(sql.isBlank());

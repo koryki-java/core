@@ -1,5 +1,5 @@
 // A lambda sees the columns of the query as well as its parameters: here the row's own nr, added to
 // every score, and every score combined with every score.
 FIND check_complex t
-FETCH t.nr, list_transform(t.scores, x -> @x + t.nr) shifted,
-      list_transform(t.scores, x -> list_transform(t.scores, y -> @x + @y)) sums
+FETCH t.nr, list_transform(t.scores, x -> x + t.nr) shifted,
+      list_transform(t.scores, x -> list_transform(t.scores, y -> x + y)) sums

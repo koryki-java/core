@@ -99,12 +99,12 @@ class SnowflakeSelectionTest {
             value = {
                 // a list that is an expression is evaluated once, in a derived table of one row,
                 // where its size is asked for as well as its elements
-                "list_filter(t.scores, x -> @x > 5)@-1|FROM (SELECT FILTER(t.scores, _l0_x -> _l0_x > 5) AS L) BO_1",
-                "list_filter(t.scores, x -> @x > 5)@-1|GET(BO_1.L, ARRAY_SIZE(BO_1.L) - 1)",
+                "list_filter(t.scores, x -> x > 5)@-1|FROM (SELECT FILTER(t.scores, _l0_x -> _l0_x > 5) AS L) BO_1",
+                "list_filter(t.scores, x -> x > 5)@-1|GET(BO_1.L, ARRAY_SIZE(BO_1.L) - 1)",
                 "coalesce(t.tags, t.tags)@2:|ARRAY_SLICE(BO_1.L, 1, ARRAY_SIZE(BO_1.L))",
                 // the position names the list twice, the fold three times
-                "list_transform(list_filter(t.scores, x -> @x > 5), (x, i) -> @x * @i)|ARRAY_SIZE(BO_1.L)",
-                "list_reduce(list_filter(t.scores, x -> @x > 5), (a, b) -> @a + @b)|REDUCE(ARRAY_SLICE(BO_1.L, 1, ARRAY_SIZE(BO_1.L)), GET(BO_1.L, 0)",
+                "list_transform(list_filter(t.scores, x -> x > 5), (x, i) -> x * i)|ARRAY_SIZE(BO_1.L)",
+                "list_reduce(list_filter(t.scores, x -> x > 5), (a, b) -> a + b)|REDUCE(ARRAY_SLICE(BO_1.L, 1, ARRAY_SIZE(BO_1.L)), GET(BO_1.L, 0)",
                 // a column, and a list read once, are written as they are
                 "t.tags@-1|CASE WHEN ARRAY_SIZE(t.tags) >= 1",
                 "coalesce(t.tags, t.tags)@2|GET(coalesce(t.tags, t.tags), 1)",
@@ -133,19 +133,19 @@ class SnowflakeSelectionTest {
     @CsvSource(
             delimiter = '|',
             value = {
-                "list_transform(t.tags, x -> upper(@x))|TRANSFORM(t.tags, _l0_x -> upper(_l0_x))",
-                "list_filter(t.scores, x -> @x > 10)|FILTER(t.scores, _l0_x -> _l0_x > 10)",
+                "list_transform(t.tags, x -> upper(x))|TRANSFORM(t.tags, _l0_x -> upper(_l0_x))",
+                "list_filter(t.scores, x -> x > 10)|FILTER(t.scores, _l0_x -> _l0_x > 10)",
                 // the position: the 1-based indexes of the list, the element read back with GET at
                 // the index
                 // cast to an integer: inside a lambda an index that is a variant gives undefined
-                "list_transform(t.scores, (x, i) -> @x * @i)|TRANSFORM(ARRAY_GENERATE_RANGE(1, ARRAY_SIZE(t.scores) + 1), _l0_i -> GET(t.scores, CAST(_l0_i AS INTEGER) - 1) * _l0_i)",
-                "list_filter(t.scores, (x, i) -> @x > @i)|TRANSFORM(FILTER(ARRAY_GENERATE_RANGE(1, ARRAY_SIZE(t.scores) + 1), _l0_i -> GET(t.scores, CAST(_l0_i AS INTEGER) - 1) > _l0_i), _l0_i -> GET(t.scores, CAST(_l0_i AS INTEGER) - 1))",
+                "list_transform(t.scores, (x, i) -> x * i)|TRANSFORM(ARRAY_GENERATE_RANGE(1, ARRAY_SIZE(t.scores) + 1), _l0_i -> GET(t.scores, CAST(_l0_i AS INTEGER) - 1) * _l0_i)",
+                "list_filter(t.scores, (x, i) -> x > i)|TRANSFORM(FILTER(ARRAY_GENERATE_RANGE(1, ARRAY_SIZE(t.scores) + 1), _l0_i -> GET(t.scores, CAST(_l0_i AS INTEGER) - 1) > _l0_i), _l0_i -> GET(t.scores, CAST(_l0_i AS INTEGER) - 1))",
                 // reduce starts with the first element, as in DuckDB
-                "list_reduce(t.scores, (a, b) -> @a + @b)|REDUCE(ARRAY_SLICE(t.scores, 1, ARRAY_SIZE(t.scores)), GET(t.scores, 0), (_l0_a, _l0_b) -> _l0_a + _l0_b)",
+                "list_reduce(t.scores, (a, b) -> a + b)|REDUCE(ARRAY_SLICE(t.scores, 1, ARRAY_SIZE(t.scores)), GET(t.scores, 0), (_l0_a, _l0_b) -> _l0_a + _l0_b)",
                 // a step on the parameter: an OBJECT field
-                "list_transform(t.items, it -> @it@price)|TRANSFORM(t.items, _l0_it -> GET(_l0_it, 'price'))",
+                "list_transform(t.items, it -> it@price)|TRANSFORM(t.items, _l0_it -> GET(_l0_it, 'price'))",
                 // a nested lambda that uses only its own parameter
-                "list_transform(t.scores, x -> list_transform(t.scores, y -> @y + 1))|TRANSFORM(t.scores, _l0_x -> TRANSFORM(t.scores, _l1_y -> _l1_y + 1))",
+                "list_transform(t.scores, x -> list_transform(t.scores, y -> y + 1))|TRANSFORM(t.scores, _l0_x -> TRANSFORM(t.scores, _l1_y -> _l1_y + 1))",
             })
     void theShapeOfTheLambda(String expression, String expected) {
         String actual = sql(expression);
@@ -160,7 +160,7 @@ class SnowflakeSelectionTest {
                         KorykiaiException.class,
                         () ->
                                 sql(
-                                        "list_transform(t.scores, x -> list_transform(t.scores, y -> @x + @y))"));
+                                        "list_transform(t.scores, x -> list_transform(t.scores, y -> x + y))"));
 
         assertTrue(e.getMessage().contains("parameter of the lambda around it"), e.getMessage());
     }
@@ -168,7 +168,7 @@ class SnowflakeSelectionTest {
     private static String nestedTransforms(int depth) {
         String list = "t.scores";
         for (int i = 0; i < depth; i++) {
-            list = "list_transform(" + list + ", (x, i) -> @x + @i)";
+            list = "list_transform(" + list + ", (x, i) -> x + i)";
         }
         return list;
     }

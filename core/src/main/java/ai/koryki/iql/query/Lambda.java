@@ -20,10 +20,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * An anonymous function that is an argument of another: {@code x -> @x * 2}, {@code (acc, x)
- * -> @acc + @x}. The parameters are named without their sigil; inside the body they are written
- * {@code @x} (see {@link Expression#getParameter()}). The body is a value or, for a predicate, an
- * expression holding a logical one.
+ * An anonymous function that is an argument of another: {@code x -> x * 2}, {@code (acc, x) -> acc
+ * + x}. The parameters are declared by name; inside the body they are used by that name (see {@link
+ * Expression#getParameter()}). The body is a value or, for a predicate, an expression holding a
+ * logical one.
  *
  * <p>A lambda is never a value of its own: the function it is passed to says how many parameters it
  * takes and of what types. Those types are not kept here, the model stays what was written: the

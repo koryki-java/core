@@ -2,4 +2,4 @@
 // every score. (Snowflake's lambda does not see the parameter of the lambda around it, so the nested
 // form of the shared corpus is not here.)
 FIND check_complex t
-FETCH t.nr, list_transform(t.scores, x -> @x + t.nr) shifted
+FETCH t.nr, list_transform(t.scores, x -> x + t.nr) shifted

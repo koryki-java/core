@@ -412,7 +412,7 @@ public class IQLSerializer {
             b.append(toString(expression.getSelection().getBase(), indent));
             expression.getSelection().getSelectors().forEach(s -> b.append(selector(s)));
         } else if (expression.getParameter() != null) {
-            b.append('@').append(expression.getParameter());
+            b.append(expression.getParameter());
         } else if (expression.getField() != null) {
             b.append(toString(expression.getField(), indent));
         } else if (expression.getText() != null) {
