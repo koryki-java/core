@@ -122,22 +122,22 @@ rather than a person. Give the joined column a header and label it after the thi
 This applies to what the query is split BY. Columns that are separately meaningful — a country and
 a city a reader may want to sort or filter on one at a time — stay separate columns.
 
-## Charts (VISUALISE)
+## Charts (VISUALIZE)
 
-The **FETCH**-Clause may be followed by an optional **VISUALISE**-Clause that renders the result as a
+The **FETCH**-Clause may be followed by an optional **VISUALIZE**-Clause that renders the result as a
 chart. Not every query needs a chart — add one only when a visualisation is meaningful (comparisons,
-distributions, time series, shares). The **VISUALISE**-Clause does not change the returned data.
+distributions, time series, shares). The **VISUALIZE**-Clause does not change the returned data.
 
-**VISUALISE** refers to the column headers (aliases) from the **FETCH**-Clause, not to the raw columns.
+**VISUALIZE** refers to the column headers (aliases) from the **FETCH**-Clause, not to the raw columns.
 
     FIND customers c
     FETCH c.country country, count(c) amount
-    VISUALISE country AS x, amount AS y
+    VISUALIZE country AS x, amount AS y
     DRAW bar
 
 ### Mapping and channels
 
-**VISUALISE** is followed by a comma-separated list of mappings of the form `column AS channel`.
+**VISUALIZE** is followed by a comma-separated list of mappings of the form `column AS channel`.
 Available channels:
 
 - `x`, `y` — position (horizontal / vertical axis)
@@ -176,7 +176,7 @@ Two layers (points plus a trend line):
 
     FIND order_details d
     FETCH d.unit_price price, d.quantity amount
-    VISUALISE price AS x, amount AS y
+    VISUALIZE price AS x, amount AS y
     DRAW point
     DRAW smooth
 
@@ -189,7 +189,7 @@ A time series needs a **date** on the x axis, not a number. `month_begin`, `year
      o order_details d
     FETCH month_begin(o.order_date) month_start,
      sum(d.unit_price * d.quantity) revenue
-    VISUALISE month_start AS x, revenue AS y
+    VISUALIZE month_start AS x, revenue AS y
     DRAW line
 
 `year_month` returns the number `202401` instead. Read as an axis, December to January is 89 units
@@ -204,7 +204,7 @@ not a development over time. So for "trend", "development" or "over time", use `
 A chart can aggregate in the database even when the query itself does not group:
 
     FIND customers c FETCH c.country country
-    VISUALISE country AS x
+    VISUALIZE country AS x
     DRAW bar SETTING aggregate => 'count'
 
 Values for `aggregate`: `'count'`, `'sum'`, `'avg'`, `'min'`, `'max'` (all but `'count'` aggregate the `y` column).
@@ -213,7 +213,7 @@ Values for `aggregate`: `'count'`, `'sum'`, `'avg'`, `'min'`, `'max'` (all but `
 
 Set the title and axis labels with **LABEL** (`title` for the chart title, otherwise the channel name):
 
-    VISUALISE month AS x, revenue AS y
+    VISUALIZE month AS x, revenue AS y
     DRAW line
     LABEL title => 'Revenue per month', x => 'Month', y => 'Revenue'
 
@@ -221,7 +221,7 @@ Set the title and axis labels with **LABEL** (`title` for the chart title, other
 
 Use **FACET** to draw one sub-chart per value of a column:
 
-    VISUALISE month AS x, revenue AS y
+    VISUALIZE month AS x, revenue AS y
     DRAW line
     FACET category_name
 
@@ -229,7 +229,7 @@ Use **FACET** to draw one sub-chart per value of a column:
 
 Use **SCALE** to adjust an axis, e.g. logarithmic:
 
-    VISUALISE product AS x, revenue AS y
+    VISUALIZE product AS x, revenue AS y
     DRAW bar
     SCALE y VIA log
 
@@ -238,7 +238,7 @@ Use **SCALE** to adjust an axis, e.g. logarithmic:
     FIND orders o, o order_details od, od products p, p categories c
     FETCH c.category_name category, month(o.order_date) month,
         sum(od.unit_price * od.quantity) revenue
-    VISUALISE month AS x, revenue AS y, category AS color
+    VISUALIZE month AS x, revenue AS y, category AS color
     DRAW line
     LABEL title => 'Revenue per category and month'
 

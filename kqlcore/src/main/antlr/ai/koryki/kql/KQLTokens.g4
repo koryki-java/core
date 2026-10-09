@@ -19,10 +19,10 @@ lexer grammar KQLTokens;
 
 // Only the tokens core actually needs.
 //
-// Not here: the 22 VISUALISE keywords. They live in KQLVizLexer.g4 of the standalone project
-// kqlvisualise (repository ai.koryki.visualise). So the core lexer does not know the word
-// VISUALISE -- such a query already fails at lexing. That is the price of the clean separation:
-// the message does not name 'VISUALISE' but breaks the word up into unknown character sequences.
+// Not here: the 22 VISUALIZE keywords. They live in KQLVizLexer.g4 of the standalone project
+// kqlvisualize (repository ai.koryki.visualize). So the core lexer does not know the word
+// VISUALIZE -- such a query already fails at lexing. That is the price of the clean separation:
+// the message does not name 'VISUALIZE' but breaks the word up into unknown character sequences.
 //
 // Also removed, because no rule on either side references them:
 //   RANGE SEMICOLON COLON LEFT_CURLY RIGHT_CURLY

@@ -28,13 +28,13 @@ import java.util.regex.Pattern;
  * Reads the KQL grammar as a classpath resource and assembles it into one document.
  *
  * <p>The grammar was once a single {@code KQL.g4} file. Since the split into {@code koryki-kqlcore}
- * (without VISUALISE) and {@code koryki-kqlvisualise} (with), no archive holds it whole: both
+ * (without VISUALIZE) and {@code koryki-kqlvisualize} (with), no archive holds it whole: both
  * artifacts ship several files under the same package path {@code /ai/koryki/kql/} instead. That is
  * why the grammar projects also publish their {@code .g4} as a resource.
  *
  * <p>Which version applies is decided by the classpath alone. Both artifacts ship a subset of the
  * same six files, so neither list is hard-wired here: every known name is attempted and the present
- * ones are read. Including {@code koryki-kqlvisualise} yields six files, {@code koryki-kqlcore}
+ * ones are read. Including {@code koryki-kqlvisualize} yields six files, {@code koryki-kqlcore}
  * four — with no change to this class. Gradle rules out having both through the shared capability.
  *
  * <p>Reading goes exclusively through {@link Class#getResourceAsStream(String)} with a full path,
@@ -118,7 +118,7 @@ public final class KQLGrammar {
             throw new IllegalStateException(
                     "no KQL grammar under "
                             + PACKAGE_PATH
-                            + " on the classpath — is the koryki-kqlcore or koryki-kqlvisualise jar missing?");
+                            + " on the classpath — is the koryki-kqlcore or koryki-kqlvisualize jar missing?");
         }
         return sb.toString();
     }

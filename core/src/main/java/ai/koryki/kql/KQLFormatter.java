@@ -138,8 +138,8 @@ public class KQLFormatter {
     /**
      * Appendix for clauses an extended grammar knows and this one does not.
      *
-     * <p>Empty in core: the grammar from {@code kqlcore} has no VISUALISE rule, so there is nothing
-     * to append here. The {@code visualise} project overrides the method and prints the clause
+     * <p>Empty in core: the grammar from {@code kqlcore} has no VISUALIZE rule, so there is nothing
+     * to append here. The {@code visualize} project overrides the method and prints the clause
      * <em>verbatim</em> from the parse tree — channel, mark and column names in it are user text,
      * not model vocabulary, and may stay unchanged even under translation.
      */

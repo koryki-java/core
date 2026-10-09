@@ -21,7 +21,7 @@ options { tokenVocab=KQLLexer; }
 
 import KQLRules;
 
-// The core variant of the start rule: no visualiseClause. VISUALISE is therefore already unknown
+// The core variant of the start rule: no visualizeClause. VISUALIZE is therefore already unknown
 // to the parser here -- a query using it fails at this point with a syntax error.
 query
  : (WITH (block) (COMMA block)*)? set EOF

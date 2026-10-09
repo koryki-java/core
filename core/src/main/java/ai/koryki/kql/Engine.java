@@ -258,7 +258,7 @@ public class Engine<I extends ColumnInfo, C extends ResultConsumer<I>> extends G
 
     /**
      * Runs SQL and collects the rows. Public on purpose: "execute SQL, return rows" is a general
-     * operation an add-on such as {@code VisualiseEngine} needs, without Engine having to know its
+     * operation an add-on such as {@code VisualizeEngine} needs, without Engine having to know its
      * types for it.
      */
     public ListResult<I> runSql(String sql) {

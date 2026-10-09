@@ -18,7 +18,7 @@
 parser grammar KQLRules;
 
 // All query rules EXCEPT `query`. The start rule deliberately does not live here but in each base
-// grammar: it is the only rule that differs between the core and the visualise variant. Were it
+// grammar: it is the only rule that differs between the core and the visualize variant. Were it
 // here and replaced by an override, the core variant would drag the viz rules along as dead code
 // -- measured: the imported rule stays in the parser even when the overriding query no longer
 // calls it.

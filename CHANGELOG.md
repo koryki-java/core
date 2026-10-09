@@ -97,7 +97,7 @@ All notable changes to this project are documented here.
   operation — `toSql`, `executeKQL`, `validateKQL`, `warningsKQL`, `analyze` — asks it for one
   renderer and uses that one throughout, so an engine built this way can be built once and shared
   between threads. `getRenderer()` returns a new renderer on each call, so what asks it for one —
-  `withInfo`, the visualise engine — is covered too.
+  `withInfo`, the visualize engine — is covered too.
 - The four ready-made services in `koryki-northwind` (`NorthwindService`, `TemporalService`,
   `TypecheckService`, `OraViewService`) take a renderer supplier the same way, in every constructor
   and `build` factory: `NorthwindService.build(database, () -> new SqlQueryRenderer(dialect, zone))`.
