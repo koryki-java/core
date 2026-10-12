@@ -84,7 +84,7 @@ class SnowflakeSelectionTest {
                 "t.deep@1@m@b@1@1|GET(GET(GET(GET(GET(t.deep, 0), 'm'), 'b'), 1), 0)",
                 "t.items@1@opts@2|GET(GET(GET(t.items, 0), 'opts'), 1)",
                 // JSON: one path, counted from 0
-                "t.doc@a@b@1|GET_PATH(t.doc, 'a.b[0]')",
+                "t.doc@x@y@1|GET_PATH(t.doc, 'x.y[0]')",
                 "t.doc@'a b'|GET_PATH(t.doc, '\"a b\"')",
             })
     void theShapeOfTheSelection(String expression, String expected) {

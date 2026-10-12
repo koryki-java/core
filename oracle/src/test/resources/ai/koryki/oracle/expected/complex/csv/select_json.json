@@ -1,6 +1,6 @@
 Nr : INTEGER
-n : JSON
+n : INTEGER
 inner_list : JSON
-inner_first : JSON
+inner_first : INTEGER
 array_first : JSON
 array_last : JSON

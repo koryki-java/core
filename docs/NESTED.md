@@ -140,6 +140,23 @@ NULL. The casts are `to_boolean`, `to_float`, `to_double`, `to_integer`, `to_big
 JSON text on DuckDB, PostgreSQL, Snowflake, SQLite, SQL Server and MariaDB, and NULL on Trino and
 Oracle.
 
+### Declaring what is in a JSON column
+
+JSON has no structure the database can describe, so a catalog may declare the members it relies on,
+in the `nested` list of the column, with the paths of `TypePath` (`.name`, `[]`, `{}`) and a family
+each, one of BOOLEAN, INTEGER, FLOAT, DECIMAL, TEXT:
+
+```json
+"nested": [ {"path": ".n", "typeFamily": "INTEGER"}, {"path": ".a.b[]", "typeFamily": "INTEGER"} ]
+```
+
+A selection that reaches a declared scalar is that scalar: `t.doc@n > 0`, `t.doc@n + 1`,
+`sum(t.doc@a@b@1)` and `GROUP BY t.doc@n` need no cast; the renderer reads the JSON scalar and casts
+it, the way `to_integer(t.doc@n)` does. A step to a declared object or list is JSON again, carrying
+the shape of that member; a member that is not declared is JSON of unknown content, as before. The
+declaration is trusted, not checked: a value of another type gives what the cast gives (NULL or an
+error, the dialect's).
+
 ### Differences that are kept, not hidden
 
 * **JSON scalars.** DuckDB, PostgreSQL, Trino, Oracle and SQLite answer a JSON string as JSON, with

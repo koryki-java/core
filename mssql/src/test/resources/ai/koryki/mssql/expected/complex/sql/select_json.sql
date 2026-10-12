@@ -4,9 +4,9 @@
 -- (A JSON path in SQL Server has no position from the end, so there is no @-1 here.)
 SELECT
   t.nr
-, COALESCE(JSON_QUERY(t.doc, '$.n'), JSON_VALUE(t.doc, '$.n')) AS n
+, CAST(ROUND(COALESCE(JSON_QUERY(t.doc, '$.n'), JSON_VALUE(t.doc, '$.n')), 0) AS INT) AS n
 , COALESCE(JSON_QUERY(t.doc, '$.a.b'), JSON_VALUE(t.doc, '$.a.b')) AS inner_list
-, COALESCE(JSON_QUERY(t.doc, '$.a.b[0]'), JSON_VALUE(t.doc, '$.a.b[0]')) AS inner_first
+, CAST(ROUND(COALESCE(JSON_QUERY(t.doc, '$.a.b[0]'), JSON_VALUE(t.doc, '$.a.b[0]')), 0) AS INT) AS inner_first
 , COALESCE(JSON_QUERY(t.doc, '$[0]'), JSON_VALUE(t.doc, '$[0]')) AS array_first
 FROM
  check_complex t

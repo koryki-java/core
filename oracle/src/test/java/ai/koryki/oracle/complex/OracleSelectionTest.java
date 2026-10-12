@@ -76,7 +76,7 @@ class OracleSelectionTest {
                 "t.items@1@opts@2|(SELECT (SELECT E2.V FROM (SELECT COLUMN_VALUE V, ROWNUM RN FROM TABLE(E1.V.opts) Z) E2 WHERE E2.RN = 2) FROM (SELECT VALUE(Z) V, ROWNUM RN FROM TABLE(t.items) Z) E1 WHERE E1.RN = 1)",
                 // JSON: one path, counted from 0, "last" for the end, every step guarded by the
                 // type of what it is applied to (a lax path would unwrap lists and wrap objects)
-                "t.doc@a@b@1|CASE WHEN JSON_VALUE(t.doc, '$.type()') = 'object' AND JSON_VALUE(t.doc, '$.a.type()') = 'object' AND JSON_VALUE(t.doc, '$.a.b.type()') = 'array' THEN JSON_QUERY(t.doc, '$.a.b[0]' RETURNING JSON) END",
+                "t.doc@x@y@1|CASE WHEN JSON_VALUE(t.doc, '$.type()') = 'object' AND JSON_VALUE(t.doc, '$.x.type()') = 'object' AND JSON_VALUE(t.doc, '$.x.y.type()') = 'array' THEN JSON_QUERY(t.doc, '$.x.y[0]' RETURNING JSON) END",
                 "t.doc@-1|JSON_QUERY(t.doc, '$[last]' RETURNING JSON)",
                 "t.doc@-3|JSON_QUERY(t.doc, '$[last-2]' RETURNING JSON)",
                 "t.doc@'a b'|JSON_QUERY(t.doc, '$.\"a b\"' RETURNING JSON)",

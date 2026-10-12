@@ -76,7 +76,7 @@ class DuckdbSelectionTest {
                 "t.deep@1@m@b@1@1|t.deep[1]['m']['b'][1][1]",
                 "t.items@1@opts@2|t.items[1]['opts'][2]",
                 // JSON: one path, counted from 0, the last as #-1
-                "t.doc@a@b@1|(t.doc -> '$.a.b[0]')",
+                "t.doc@x@y@1|(t.doc -> '$.x.y[0]')",
                 "t.doc@1|(t.doc -> '$[0]')",
                 "t.doc@-1|(t.doc -> '$[#-1]')",
                 "t.doc@-2|(t.doc -> '$[#-2]')",
@@ -136,7 +136,12 @@ class DuckdbSelectionTest {
             delimiter = '|',
             value = {
                 "to_integer(t.doc@n)|CAST((t.doc ->> '$.n') AS INTEGER)",
-                "to_text(t.doc@a@b@1)|CAST((t.doc ->> '$.a.b[0]') AS TEXT)",
+                "to_text(t.doc@x@y@1)|CAST((t.doc ->> '$.x.y[0]') AS TEXT)",
+                // a member the catalog declares is cast by itself, and once only
+                "t.doc@n + 1|CAST((t.doc ->> '$.n') AS INTEGER) + 1",
+                "t.doc@a@b@1|CAST((t.doc ->> '$.a.b[0]') AS INTEGER)",
+                "to_text(t.doc@a@b@1)|CAST(CAST((t.doc ->> '$.a.b[0]') AS INTEGER) AS TEXT)",
+                "to_integer(t.doc@a@b@1)|CAST((t.doc ->> '$.a.b[0]') AS INTEGER)",
                 "to_text(t.doc)|json_extract_string(t.doc, '$')",
             })
     void aJsonValueIsCastAsTheScalarItHolds(String expression, String expected) {

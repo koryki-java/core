@@ -5,7 +5,7 @@ SELECT
   t.nr
 , CAST((GET_PATH(t.doc, 'n'))::STRING AS INTEGER) AS n
 , CAST((GET_PATH(t.doc, 'a.b[0]'))::STRING AS INTEGER) + 1 AS inner_plus_one
-, CAST((GET_PATH(t.doc, 'n'))::STRING AS TEXT) AS n_text
+, CAST(CAST((GET_PATH(t.doc, 'n'))::STRING AS INTEGER) AS TEXT) AS n_text
 , CAST((GET_PATH(t.doc, 'a.b[1]'))::STRING AS FLOAT) AS second
 FROM
  check_complex t

@@ -979,14 +979,73 @@ public class SqlSelectRenderer {
         }
     }
 
+    /**
+     * Selections whose scalar the catalog declares inside a JSON column ({@code t.doc@n} with
+     * {@code .n: INTEGER}) and that are being rendered as the cast the declaration implies.
+     */
+    private final java.util.Set<Expression> declaredScalars =
+            java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+
+    /**
+     * The conversion function a selection needs when it reaches a scalar the catalog declares
+     * inside JSON: the dialect reads the JSON scalar and casts it, so the value takes part in
+     * comparisons and aggregates like any column. Null for every other selection.
+     */
+    private String declaredJsonScalar(Expression expression) {
+        if (declaredScalars.contains(expression)) {
+            return null;
+        }
+        TypeDescriptor type;
+        TypeDescriptor baseType;
+        try {
+            type = resolveType(expression);
+            baseType = resolveType(expression.getSelection().getBase());
+        } catch (RuntimeException unresolved) {
+            return null;
+        }
+        if (type == null
+                || baseType == null
+                || !CoreTypeFamily.JSON.equals(baseType.getTypeFamily())
+                || baseType.shape() == null
+                || CoreTypeFamily.JSON.equals(type.getTypeFamily())) {
+            return null;
+        }
+        if (CoreTypeFamily.BOOLEAN.equals(type.getTypeFamily())) {
+            return "to_boolean";
+        } else if (CoreTypeFamily.INTEGER.equals(type.getTypeFamily())) {
+            return "to_integer";
+        } else if (CoreTypeFamily.FLOAT.equals(type.getTypeFamily())) {
+            return "to_double";
+        } else if (CoreTypeFamily.DECIMAL.equals(type.getTypeFamily())) {
+            return "to_decimal";
+        } else if (CoreTypeFamily.TEXT.equals(type.getTypeFamily())) {
+            return "to_text";
+        }
+        return null;
+    }
+
+    private static boolean castDecimal(String function) {
+        return "to_decimal".equals(function);
+    }
+
+    private static Expression numberExpression(int number) {
+        Expression e = new Expression();
+        e.setNumber(number);
+        return e;
+    }
+
     private String jsonScalarSql(Expression expression, int indent) {
+        boolean declared =
+                declaredScalars.contains(expression)
+                        || (expression.getSelection() != null
+                                && declaredJsonScalar(expression) != null);
         TypeDescriptor type = null;
         try {
             type = resolveType(expression);
         } catch (RuntimeException unresolved) {
             // no type, no conversion: rendered as it is
         }
-        if (type == null || !CoreTypeFamily.JSON.equals(type.getTypeFamily())) {
+        if (!declared && (type == null || !CoreTypeFamily.JSON.equals(type.getTypeFamily()))) {
             return null;
         }
         if (expression.getSelection() != null) {
@@ -1051,6 +1110,24 @@ public class SqlSelectRenderer {
             return toSqlInline(expression.getLogical(), indent);
         } else if (expression.getSelection() != null) {
             Expression base = expression.getSelection().getBase();
+            String cast = declaredJsonScalar(expression);
+            if (cast != null) {
+                Function call = new Function();
+                call.setFunc(cast);
+                call.getArguments().add(expression);
+                if (castDecimal(cast)) {
+                    call.getArguments().add(numberExpression(38));
+                    call.getArguments().add(numberExpression(10));
+                }
+                Expression wrapper = new Expression();
+                wrapper.setFunction(call);
+                declaredScalars.add(expression);
+                try {
+                    return toSql(wrapper, indent);
+                } finally {
+                    declaredScalars.remove(expression);
+                }
+            }
             return dialect.selection(
                     toSql(base, indent),
                     resolveType(base),

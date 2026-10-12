@@ -1,0 +1,5 @@
+// JSON whose members the catalog declares (.n INTEGER, .a.b[] INTEGER) needs no cast: the member is
+// a number in comparisons, arithmetic and aggregates. A member that is not declared stays JSON.
+FIND check_complex t
+FILTER t.doc@n > 0
+FETCH t.nr, t.doc@n + 1 n_plus_one, t.doc@a@b@2 * 2 second_doubled, t.doc@1 undeclared

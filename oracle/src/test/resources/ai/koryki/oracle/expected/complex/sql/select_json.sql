@@ -3,9 +3,9 @@
 -- and the array in row 3 both answer.
 SELECT
   t.nr
-, CASE WHEN JSON_VALUE(t.doc, '$.type()') = 'object' THEN JSON_QUERY(t.doc, '$.n' RETURNING JSON) END AS n
+, CAST(CASE WHEN JSON_VALUE(t.doc, '$.type()') = 'object' THEN JSON_VALUE(t.doc, '$.n') END AS INTEGER) AS n
 , CASE WHEN JSON_VALUE(t.doc, '$.type()') = 'object' AND JSON_VALUE(t.doc, '$.a.type()') = 'object' THEN JSON_QUERY(t.doc, '$.a.b' RETURNING JSON) END AS inner_list
-, CASE WHEN JSON_VALUE(t.doc, '$.type()') = 'object' AND JSON_VALUE(t.doc, '$.a.type()') = 'object' AND JSON_VALUE(t.doc, '$.a.b.type()') = 'array' THEN JSON_QUERY(t.doc, '$.a.b[0]' RETURNING JSON) END AS inner_first
+, CAST(CASE WHEN JSON_VALUE(t.doc, '$.type()') = 'object' AND JSON_VALUE(t.doc, '$.a.type()') = 'object' AND JSON_VALUE(t.doc, '$.a.b.type()') = 'array' THEN JSON_VALUE(t.doc, '$.a.b[0]') END AS INTEGER) AS inner_first
 , CASE WHEN JSON_VALUE(t.doc, '$.type()') = 'array' THEN JSON_QUERY(t.doc, '$[0]' RETURNING JSON) END AS array_first
 , CASE WHEN JSON_VALUE(t.doc, '$.type()') = 'array' THEN JSON_QUERY(t.doc, '$[last]' RETURNING JSON) END AS array_last
 FROM

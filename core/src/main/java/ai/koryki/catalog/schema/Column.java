@@ -30,10 +30,12 @@ public class Column {
     private String dialectType;
 
     /**
-     * For a nested column (ARRAY, STRUCT, MAP) only: what the catalog knows about leaves inside it
-     * that the type spelling in {@link #dialectType} cannot say, such as the encoding of a
-     * timestamp stored as epoch seconds. Everything structural comes from {@link #dialectType};
-     * this only refines leaves, and null means no refinement.
+     * For a nested column (ARRAY, STRUCT, MAP): what the catalog knows about leaves inside it that
+     * the type spelling in {@link #dialectType} cannot say, such as the encoding of a timestamp
+     * stored as epoch seconds. Everything structural comes from {@link #dialectType}; this only
+     * refines leaves, and null means no refinement. For a JSON column there is no spelling: the
+     * entries declare the members the column holds ({@code .n: INTEGER}, {@code .a.b[]: INTEGER}),
+     * and together they are the shape of the JSON.
      */
     private List<NestedType> nested;
 

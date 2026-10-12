@@ -82,6 +82,13 @@ public class TypeDescriptor {
     /** ARRAY only: the fixed size of a DuckDB {@code T[n]}, or -1 for a list. */
     private final int length;
 
+    /**
+     * JSON only: what the catalog declares about the content, a tree of ARRAY, STRUCT, MAP and
+     * scalars, or null for JSON of unknown content. The value stays JSON in the database; the shape
+     * is what a selector chain may rely on.
+     */
+    private final TypeDescriptor shape;
+
     public TypeDescriptor(
             String physicalTypeName, TypeEncoding typeEncoding, TypeFamily typeFamily) {
         this(physicalTypeName, typeEncoding, typeFamily, -1, -1);
@@ -113,6 +120,29 @@ public class TypeDescriptor {
             List<TypeDescriptor> children,
             List<String> fieldNames,
             int length) {
+        this(
+                physicalTypeName,
+                typeEncoding,
+                typeFamily,
+                precision,
+                scale,
+                children,
+                fieldNames,
+                length,
+                null);
+    }
+
+    private TypeDescriptor(
+            String physicalTypeName,
+            TypeEncoding typeEncoding,
+            TypeFamily typeFamily,
+            int precision,
+            int scale,
+            List<TypeDescriptor> children,
+            List<String> fieldNames,
+            int length,
+            TypeDescriptor shape) {
+        this.shape = shape;
         this.children = List.copyOf(children);
         this.fieldNames = List.copyOf(fieldNames);
         this.length = length;
@@ -217,6 +247,28 @@ public class TypeDescriptor {
         return SIMPLE_NAME.matcher(name).matches() ? name : '"' + name.replace("\"", "\"\"") + '"';
     }
 
+    /** The same JSON type with a declared content; null removes it. */
+    public TypeDescriptor withShape(TypeDescriptor shape) {
+        if (typeFamily != CoreTypeFamily.JSON) {
+            throw new IllegalStateException("only JSON has a shape, this is " + portable());
+        }
+        return new TypeDescriptor(
+                physicalTypeName,
+                typeEncoding,
+                typeFamily,
+                precision,
+                scale,
+                children,
+                fieldNames,
+                length,
+                shape);
+    }
+
+    /** The declared content of a JSON value, or null when nothing is declared. */
+    public TypeDescriptor shape() {
+        return shape;
+    }
+
     public boolean isComplex() {
         return typeFamily == CoreTypeFamily.ARRAY
                 || typeFamily == CoreTypeFamily.STRUCT
@@ -315,6 +367,9 @@ public class TypeDescriptor {
                     .mapToObj(i -> fieldNames.get(i) + ":" + children.get(i).portable())
                     .collect(Collectors.joining(",", "STRUCT(", ")"));
         }
+        if (shape != null) {
+            return "JSON(" + shape.portable() + ")";
+        }
         return typeFamily.name();
     }
 
@@ -333,7 +388,7 @@ public class TypeDescriptor {
                 + ", scale="
                 + scale
                 // a scalar prints exactly as before; only a container shows its tree
-                + (isComplex() ? ", type=" + portable() : "")
+                + (isComplex() || shape != null ? ", type=" + portable() : "")
                 + '}';
     }
 
@@ -348,7 +403,8 @@ public class TypeDescriptor {
                 && Objects.equals(physicalTypeName, that.physicalTypeName)
                 && Objects.equals(typeEncoding, that.typeEncoding)
                 && children.equals(that.children)
-                && fieldNames.equals(that.fieldNames);
+                && fieldNames.equals(that.fieldNames)
+                && Objects.equals(shape, that.shape);
     }
 
     @Override
@@ -361,6 +417,7 @@ public class TypeDescriptor {
                 typeEncoding,
                 children,
                 fieldNames,
-                length);
+                length,
+                shape);
     }
 }

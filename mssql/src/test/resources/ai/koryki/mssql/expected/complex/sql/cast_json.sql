@@ -5,7 +5,7 @@ SELECT
   t.nr
 , CAST(ROUND(COALESCE(JSON_QUERY(t.doc, '$.n'), JSON_VALUE(t.doc, '$.n')), 0) AS INT) AS n
 , CAST(ROUND(COALESCE(JSON_QUERY(t.doc, '$.a.b[0]'), JSON_VALUE(t.doc, '$.a.b[0]')), 0) AS INT) + 1 AS inner_plus_one
-, CAST(COALESCE(JSON_QUERY(t.doc, '$.n'), JSON_VALUE(t.doc, '$.n')) AS VARCHAR(MAX)) AS n_text
+, CAST(CAST(ROUND(COALESCE(JSON_QUERY(t.doc, '$.n'), JSON_VALUE(t.doc, '$.n')), 0) AS INT) AS VARCHAR(MAX)) AS n_text
 , CAST(COALESCE(JSON_QUERY(t.doc, '$.a.b[1]'), JSON_VALUE(t.doc, '$.a.b[1]')) AS FLOAT) AS second
 FROM
  check_complex t

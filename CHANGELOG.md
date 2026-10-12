@@ -19,6 +19,11 @@ All notable changes to this project are documented here.
   the lambda that declares it, and otherwise an alias as before. A parameter may not be named like an
   alias in sight, nor like the parameter of the lambda around it.
 
+- Typed JSON: a catalog declares the members of a JSON column (`nested` with `.n: INTEGER`,
+  `.a.b[]: INTEGER`), and a selection that reaches one is that scalar, so `FILTER t.doc@n > 0`,
+  arithmetic, `sum` and `GROUP BY` work without a cast. `TypeDescriptor.shape()` carries the declared
+  content of a JSON type; the complex catalogs declare `doc`.
+
 - Flatten views: `FlattenViews` (module `tools`, task `flattenViews`) generates, for a list column,
   the view with one row per element (parent key, `ordinal`, struct fields or `value`) in the SQL of
   DuckDB, PostgreSQL, Trino, Snowflake and Oracle, plus the catalog and model entries and the relation

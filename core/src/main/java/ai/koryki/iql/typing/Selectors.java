@@ -92,7 +92,7 @@ public final class Selectors {
             }
             return type.value();
         } else if (CoreTypeFamily.JSON.equals(type.getTypeFamily())) {
-            return type;
+            return inJson(type, shape -> member(shape, name));
         }
         throw refused(type, text, "by name; that needs a struct, a map or JSON");
     }
@@ -122,7 +122,7 @@ public final class Selectors {
             }
             return type.value();
         } else if (CoreTypeFamily.JSON.equals(type.getTypeFamily())) {
-            return type;
+            return inJson(type, shape -> element(shape));
         }
         throw refused(type, text, "by position; that needs a list, a struct, a map or JSON");
     }
@@ -136,6 +136,38 @@ public final class Selectors {
             return TypeDescriptor.array(type.element());
         }
         throw refused(type, text, "as a range; that needs a list");
+    }
+
+    /**
+     * A step into JSON. Unshaped JSON stays JSON. With a declared shape the step follows it: a
+     * member that is declared gives its type, a scalar as itself (the renderer reads the scalar out
+     * of the JSON), a container as JSON with the shape of that member; a member that is not
+     * declared is JSON of unknown content.
+     */
+    private static TypeDescriptor inJson(
+            TypeDescriptor json, java.util.function.Function<TypeDescriptor, TypeDescriptor> step) {
+        TypeDescriptor shape = json.shape();
+        if (shape == null) {
+            return json;
+        }
+        TypeDescriptor next = step.apply(shape);
+        if (next == null) {
+            return json.withShape(null);
+        }
+        return next.isComplex() ? json.withShape(next) : next;
+    }
+
+    private static TypeDescriptor member(TypeDescriptor shape, String name) {
+        if (CoreTypeFamily.STRUCT.equals(shape.getTypeFamily())) {
+            return shape.field(name).orElse(null);
+        } else if (CoreTypeFamily.MAP.equals(shape.getTypeFamily())) {
+            return shape.value();
+        }
+        return null;
+    }
+
+    private static TypeDescriptor element(TypeDescriptor shape) {
+        return CoreTypeFamily.ARRAY.equals(shape.getTypeFamily()) ? shape.element() : null;
     }
 
     private static SelectorException refused(TypeDescriptor type, String text, String why) {

@@ -208,9 +208,23 @@ class SelectorTypingTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"t.doc@a", "t.doc@a@b@1", "t.doc@1", "t.doc@'a key'"})
+    @ValueSource(strings = {"t.doc@x", "t.doc@x@y@1", "t.doc@1", "t.doc@'a key'", "t.doc@a@c"})
     void jsonStaysJson(String expression) throws IOException {
         assertEquals("JSON", typeOf(expression));
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            delimiter = '|',
+            value = {
+                "t.doc@n|INTEGER",
+                "t.doc@a@b@1|INTEGER",
+                "t.doc@a@b@-1|INTEGER",
+                "t.doc@a|JSON(STRUCT(b:ARRAY(INTEGER)))",
+                "t.doc@a@b|JSON(ARRAY(INTEGER))",
+            })
+    void aDeclaredJsonMemberHasItsType(String expression, String expected) throws IOException {
+        assertEquals(expected, typeOf(expression));
     }
 
     @Test
@@ -281,7 +295,7 @@ class SelectorTypingTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"t.tags@1", "t.dims@w", "t.lookup@1", "t.doc@a@b@1"})
+    @ValueSource(strings = {"t.tags@1", "t.dims@w", "t.lookup@1", "t.doc@x@y@1", "t.doc@a@b@1"})
     void aStepThatFitsIsNoViolation(String expression) throws IOException {
         assertTrue(violations(expression).isEmpty());
     }

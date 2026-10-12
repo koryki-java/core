@@ -84,7 +84,7 @@ class PostgresqlSelectionTest {
                 "t.items@1@opts@2|((t.items[1]).opts)[2]",
                 // jsonb: a path of arrows, 1-based in KQL and 0-based in jsonb
                 "t.attrs@color|(t.attrs -> 'color')",
-                "t.doc@a@b@1|(t.doc -> 'a' -> 'b' -> 0)",
+                "t.doc@x@y@1|(t.doc -> 'x' -> 'y' -> 0)",
                 "t.doc@-1|(t.doc -> -1)",
             })
     void theShapeOfTheSelection(String expression, String expected) {

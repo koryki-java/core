@@ -95,6 +95,13 @@ public interface TypeDescriptorParser {
             }
         }
 
+        if (CoreTypeFamily.JSON.equals(family)
+                && column.getNested() != null
+                && !column.getNested().isEmpty()) {
+            return parseJson(dialectType, typeName, typeEncoding)
+                    .withShape(ShapedJson.build(column.getName(), column.getNested()));
+        }
+
         if (family instanceof CoreTypeFamily core) {
             return switch (core) {
                 case BLOB -> parseBlob(dialectType, typeEncoding);

@@ -5,8 +5,8 @@ SELECT
 , (t.attrs -> 'color') AS color
 , (t.counts -> 'a') AS count_a
 , (t.lookup -> '1') AS one
-, (t.doc -> 'n') AS n
-, (t.doc -> 'a' -> 'b' -> 0) AS inner_first
+, CAST((t.doc ->> 'n') AS INTEGER) AS n
+, CAST((t.doc -> 'a' -> 'b' ->> 0) AS INTEGER) AS inner_first
 , (t.doc -> 0) AS array_first
 , (t.doc -> -1) AS array_last
 , (t.deep -> 0 -> 'm' -> 'a' -> 1) AS deep_number

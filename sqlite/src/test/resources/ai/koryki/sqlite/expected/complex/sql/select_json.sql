@@ -3,9 +3,9 @@
 -- and the array in row 3 both answer.
 SELECT
   t.nr
-, (t.doc -> '$.n') AS n
+, CAST(ROUND((t.doc ->> '$.n'), 0) AS INTEGER) AS n
 , (t.doc -> '$.a.b') AS inner_list
-, (t.doc -> '$.a.b[0]') AS inner_first
+, CAST(ROUND((t.doc ->> '$.a.b[0]'), 0) AS INTEGER) AS inner_first
 , (t.doc -> '$[0]') AS array_first
 , (t.doc -> '$[#-1]') AS array_last
 FROM

@@ -28,14 +28,14 @@ import java.util.function.UnaryOperator;
  */
 public final class TypePath {
 
-    private enum Kind {
+    enum Kind {
         ELEMENT,
         KEY,
         VALUE,
         FIELD
     }
 
-    private record Step(Kind kind, String name) {}
+    record Step(Kind kind, String name) {}
 
     private final String text;
     private final List<Step> steps;
@@ -43,6 +43,10 @@ public final class TypePath {
     private TypePath(String text, List<Step> steps) {
         this.text = text;
         this.steps = steps;
+    }
+
+    List<Step> steps() {
+        return steps;
     }
 
     public static TypePath parse(String path) {

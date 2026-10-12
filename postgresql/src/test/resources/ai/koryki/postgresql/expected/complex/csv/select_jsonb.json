@@ -2,8 +2,8 @@ Nr : INTEGER
 color : JSON
 count_a : JSON
 one : JSON
-n : JSON
-inner_first : JSON
+n : INTEGER
+inner_first : INTEGER
 array_first : JSON
 array_last : JSON
 deep_number : JSON

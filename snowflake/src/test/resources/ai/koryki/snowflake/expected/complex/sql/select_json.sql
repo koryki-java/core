@@ -4,9 +4,9 @@
 -- and the array in row 3 both answer.
 SELECT
   t.nr
-, GET_PATH(t.doc, 'n') AS n
+, CAST((GET_PATH(t.doc, 'n'))::STRING AS INTEGER) AS n
 , GET_PATH(t.doc, 'a.b') AS inner_list
-, GET_PATH(t.doc, 'a.b[0]') AS inner_first
+, CAST((GET_PATH(t.doc, 'a.b[0]'))::STRING AS INTEGER) AS inner_first
 , GET_PATH(t.doc, '[0]') AS array_first
 FROM
  check_complex t

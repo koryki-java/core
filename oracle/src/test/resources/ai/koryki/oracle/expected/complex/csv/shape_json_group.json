@@ -1,0 +1,3 @@
+n : INTEGER
+rows_per_n : INTEGER
+total_first : INTEGER

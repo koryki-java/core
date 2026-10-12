@@ -83,7 +83,7 @@ class TrinoSelectionTest {
                 "t.deep@1@m@b@1@1|element_at(element_at((element_at(element_at(t.deep, 1), 'm')).b, 1), 1)",
                 "t.items@1@opts@2|element_at((element_at(t.items, 1)).opts, 2)",
                 // JSON: one path, counted from 0
-                "t.doc@a@b@1|json_extract(t.doc, '$.a.b[0]')",
+                "t.doc@x@y@1|json_extract(t.doc, '$.x.y[0]')",
                 "t.doc@'a b'|json_extract(t.doc, '$[\"a b\"]')",
             })
     void theShapeOfTheSelection(String expression, String expected) {

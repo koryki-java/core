@@ -5,7 +5,7 @@ SELECT
   t.nr
 , CAST(json_extract_scalar(t.doc, '$.n') AS INTEGER) AS n
 , CAST(json_extract_scalar(t.doc, '$.a.b[0]') AS INTEGER) + 1 AS inner_plus_one
-, CAST(json_extract_scalar(t.doc, '$.n') AS VARCHAR) AS n_text
+, CAST(CAST(json_extract_scalar(t.doc, '$.n') AS INTEGER) AS VARCHAR) AS n_text
 , CAST(json_extract_scalar(t.doc, '$.a.b[1]') AS REAL) AS second
 FROM
  check_complex t

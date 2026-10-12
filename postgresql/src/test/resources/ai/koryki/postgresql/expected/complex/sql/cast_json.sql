@@ -5,7 +5,7 @@ SELECT
   t.nr
 , CAST((t.doc ->> 'n') AS INTEGER) AS n
 , CAST((t.doc -> 'a' -> 'b' ->> 0) AS INTEGER) + 1 AS inner_plus_one
-, CAST((t.doc ->> 'n') AS TEXT) AS n_text
+, CAST(CAST((t.doc ->> 'n') AS INTEGER) AS TEXT) AS n_text
 , CAST((t.doc -> 'a' -> 'b' ->> 1) AS FLOAT) AS second
 FROM
  check_complex t

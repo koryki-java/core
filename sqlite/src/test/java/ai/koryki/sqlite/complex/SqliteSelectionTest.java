@@ -60,8 +60,8 @@ class SqliteSelectionTest {
             value = {
                 // one -> path, counted from 0, # for the end; JSON text, so a string keeps its
                 // quotes
-                "t.doc@n|(t.doc -> '$.n')",
-                "t.doc@a@b@1|(t.doc -> '$.a.b[0]')",
+                "t.doc@z|(t.doc -> '$.z')",
+                "t.doc@x@y@1|(t.doc -> '$.x.y[0]')",
                 "t.doc@-1|(t.doc -> '$[#-1]')",
                 "t.doc@-3|(t.doc -> '$[#-3]')",
                 "t.doc@'a b'|(t.doc -> '$.\"a b\"')",

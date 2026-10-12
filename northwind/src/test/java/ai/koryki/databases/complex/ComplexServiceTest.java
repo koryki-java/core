@@ -57,7 +57,7 @@ class ComplexServiceTest {
                     Map.entry(
                             "deep",
                             "ARRAY(MAP(TEXT,STRUCT(a:ARRAY(INTEGER),b:MAP(INTEGER,ARRAY(TEXT)))))"),
-                    Map.entry("doc", "JSON"),
+                    Map.entry("doc", "JSON(STRUCT(n:INTEGER,a:STRUCT(b:ARRAY(INTEGER))))"),
                     Map.entry("odd", "STRUCT(Odd Name:INTEGER,x:INTEGER)"));
 
     @Test
