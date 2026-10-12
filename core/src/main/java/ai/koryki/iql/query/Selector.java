@@ -16,22 +16,6 @@
  */
 package ai.koryki.iql.query;
 
-/**
- * One step of a postfix selection on a nested value, one member per way to write it. Exactly one
- * way is set:
- *
- * <ul>
- *   <li>{@link #getIndex()}: {@code @1}, {@code @-1}; a position, 1-based, negative from the end;
- *   <li>{@link #getFrom()} and/or {@link #getTo()}: {@code @1:3}, {@code @2:}, {@code @:3}; a
- *       range, 1-based and inclusive, an open end is null;
- *   <li>{@link #getId()}: {@code @name}; a field or key written as an identifier;
- *   <li>{@link #getName()}: {@code @'a key'}; a field or key written as a quoted name, which allows
- *       any characters.
- * </ul>
- *
- * What a step means, a list position, a struct field or a map key, depends on the type of the value
- * it is applied to, so the bean only says what was written.
- */
 public class Selector {
 
     private Integer index;

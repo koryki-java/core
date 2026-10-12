@@ -19,11 +19,6 @@ package ai.koryki.iql.query;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * A value and the steps taken into it: {@code c.items@1@sku} is the base {@code c.items} and two
- * selectors. A chain is kept as one node, not as nested ones, because a dialect renders it as a
- * whole: a JSON path folds all its steps into one string.
- */
 public class Selection {
 
     private Expression base;
