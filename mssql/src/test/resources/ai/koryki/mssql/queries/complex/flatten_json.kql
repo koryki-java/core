@@ -1,0 +1,3 @@
+// An array inside JSON, flattened by a generated view: one row per element, joined back to the row.
+FIND check_complex_doc_a_b b, b VIA doc_a_b_of_check_complex check_complex t
+FETCH t.nr, b.ordinal, b.value, b.value * 10 tenfold

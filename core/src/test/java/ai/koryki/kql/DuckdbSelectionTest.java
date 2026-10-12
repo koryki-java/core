@@ -142,6 +142,9 @@ class DuckdbSelectionTest {
                 "t.doc@a@b@1|CAST((t.doc ->> '$.a.b[0]') AS INTEGER)",
                 "to_text(t.doc@a@b@1)|CAST(CAST((t.doc ->> '$.a.b[0]') AS INTEGER) AS TEXT)",
                 "to_integer(t.doc@a@b@1)|CAST((t.doc ->> '$.a.b[0]') AS INTEGER)",
+                // a declared JSON array is a list for the list functions
+                "list_size(t.doc@a@b)|len(CAST((t.doc -> '$.a.b') AS INTEGER[]))",
+                "list_transform(t.doc@a@b, x -> x * 2)|list_transform(CAST((t.doc -> '$.a.b') AS INTEGER[]), _l0_x -> _l0_x * 2)",
                 "to_text(t.doc)|json_extract_string(t.doc, '$')",
             })
     void aJsonValueIsCastAsTheScalarItHolds(String expression, String expected) {

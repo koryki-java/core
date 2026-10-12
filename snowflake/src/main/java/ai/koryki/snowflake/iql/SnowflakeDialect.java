@@ -236,6 +236,16 @@ public class SnowflakeDialect implements SqlDialect {
     }
 
     /** A VARIANT as text: a JSON string without its quotes, a number as its digits. */
+    /** A VARIANT array to an ARRAY whose elements are cast one by one. */
+    @Override
+    public String jsonList(String json, TypeDescriptor element) {
+        return "TRANSFORM(CAST("
+                + json
+                + " AS ARRAY), e -> CAST(e AS "
+                + declaredScalarType(element)
+                + "))";
+    }
+
     @Override
     public String jsonScalar(String json) {
         return "(" + json + ")::STRING";

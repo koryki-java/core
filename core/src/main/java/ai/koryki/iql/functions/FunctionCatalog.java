@@ -38,6 +38,14 @@ public interface FunctionCatalog {
         return null;
     }
 
+    /**
+     * Whether a JSON array the catalog declares as a list of scalars is a list in queries: only
+     * where the dialect has list functions to apply to it. Elsewhere it stays JSON.
+     */
+    default boolean jsonArraysAreLists() {
+        return overloads("list_size").stream().anyMatch(f -> !f.isUnsupported());
+    }
+
     /** Overload set of a function name; empty = unknown to this catalog (validation skips it). */
     default List<FunctionDefinition> overloads(String name) {
         return List.of();

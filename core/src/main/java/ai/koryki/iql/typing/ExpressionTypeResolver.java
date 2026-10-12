@@ -102,9 +102,14 @@ public class ExpressionTypeResolver {
             TypeDescriptor base = resolve(expression.getSelection().getBase());
             // an unresolved base (a function the catalog does not know) stays unresolved; whoever
             // reports that has the position
-            return base == null
-                    ? null
-                    : Selectors.apply(base, expression.getSelection().getSelectors());
+            if (base == null) {
+                return null;
+            }
+            TypeDescriptor selected =
+                    Selectors.apply(base, expression.getSelection().getSelectors());
+            return catalog != null && catalog.jsonArraysAreLists()
+                    ? Selectors.listOf(base, selected)
+                    : selected;
         } else if (expression.getLambda() != null) {
             // a lambda has no type of its own; the function it is passed to types its body
             return null;

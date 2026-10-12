@@ -1,0 +1,3 @@
+// The elements of the JSON array are rows: a sum, a count and an extreme over them.
+FIND check_complex_doc_a_b b
+FETCH count(b.ordinal) elements, sum(b.value) total, max(b.value) biggest

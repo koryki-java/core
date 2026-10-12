@@ -55,6 +55,24 @@ public final class Selectors {
         return type;
     }
 
+    /**
+     * A chain through JSON that ends at a list of scalars the catalog declares is that list: its
+     * functions and lambdas apply, and the renderer converts the JSON array into the dialect's
+     * list. A list of objects, or of lists, stays JSON.
+     */
+    public static TypeDescriptor listOf(TypeDescriptor base, TypeDescriptor type) {
+        if (base != null
+                && CoreTypeFamily.JSON.equals(base.getTypeFamily())
+                && type != null
+                && CoreTypeFamily.JSON.equals(type.getTypeFamily())
+                && type.shape() != null
+                && CoreTypeFamily.ARRAY.equals(type.shape().getTypeFamily())
+                && !type.shape().element().isComplex()) {
+            return TypeDescriptor.array(type.shape().element());
+        }
+        return type;
+    }
+
     /** The type after one step; a renderer follows the chain with it. */
     public static TypeDescriptor step(TypeDescriptor type, Selector step) {
         String text = IQLSerializer.selector(step);

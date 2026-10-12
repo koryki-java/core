@@ -1,0 +1,4 @@
+Nr : INTEGER
+size : INTEGER
+total : INTEGER
+has_six : BOOLEAN

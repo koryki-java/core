@@ -108,6 +108,17 @@ FIND check_complex_items i, i VIA items_of_check_complex check_complex t
 FETCH t.nr, i.sku, sum(i.qty * i.price) revenue
 ```
 
+SQL Server, MariaDB and SQLite have no lists, but an array inside a JSON column that the catalog
+declares (`.a.b[]: INTEGER`) is flattened the same way, named by its path:
+
+```
+./gradlew :tools:flattenViews -Pflatten.args="sqlite db.json model.json check_complex out-dir doc:.a.b"
+```
+
+gives `check_complex_doc_a_b` (`json_each`, `JSON_TABLE` or `CROSS APPLY OPENJSON`) with the relation
+`doc_a_b_of_check_complex`; the elements are scalars or objects whose members are scalars. A row
+whose document has no array there has no elements.
+
 The generator needs a table key. It handles lists of structs and of scalars for DuckDB, PostgreSQL,
 Trino, Snowflake and Oracle, and refuses lists of lists and of maps. The complex test beds carry the
 three views `check_complex_tags`, `_items` and `_events`. Two differences remain: Snowflake `FLATTEN`
@@ -156,6 +167,13 @@ it, the way `to_integer(t.doc@n)` does. A step to a declared object or list is J
 the shape of that member; a member that is not declared is JSON of unknown content, as before. The
 declaration is trusted, not checked: a value of another type gives what the cast gives (NULL or an
 error, the dialect's).
+
+A declared list of scalars (`.a.b[]: INTEGER`) is a list: `list_size(t.doc@a@b)`,
+`list_sum(t.doc@a@b)` and `list_transform(t.doc@a@b, x -> x * 10)` work, and the dialect converts the
+JSON array into its own list (DuckDB and Trino a cast, PostgreSQL `jsonb_array_elements_text`,
+Snowflake `TRANSFORM`, Oracle `JSON_TABLE`). A list of objects or of lists stays JSON. Oracle
+applies the functions but refuses a lambda over such a list, because the list is built where Oracle
+returns nothing. SQL Server, MariaDB and SQLite have no list functions, so the array stays JSON.
 
 ### Differences that are kept, not hidden
 

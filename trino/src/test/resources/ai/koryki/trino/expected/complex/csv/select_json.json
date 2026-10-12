@@ -1,5 +1,5 @@
 Nr : INTEGER
 n : INTEGER
-inner_list : JSON
+inner_list : ARRAY(INTEGER)
 inner_first : INTEGER
 array_first : JSON

@@ -1,0 +1,4 @@
+// A JSON array whose elements the catalog declares (.a.b[] INTEGER) is a list: the list functions
+// and lambdas apply to it. Row 1 holds [5, 6]; the others have no such array.
+FIND check_complex t
+FETCH t.nr, list_size(t.doc@a@b) size, list_sum(t.doc@a@b) total, list_contains(t.doc@a@b, 6) has_six

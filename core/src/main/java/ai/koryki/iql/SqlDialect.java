@@ -554,6 +554,39 @@ public interface SqlDialect {
     }
 
     /**
+     * A JSON array whose elements the catalog declares as scalars, as the dialect's list of {@code
+     * element}: {@code t.doc@a@b} where {@code .a.b[]} is INTEGER. The default leaves the JSON as
+     * it is, which is right for a dialect without lists; it has no list functions to apply to it.
+     *
+     * @param json the SQL of the JSON array
+     * @param element the declared type of its elements, a scalar
+     */
+    default String jsonList(String json, TypeDescriptor element) {
+        return json;
+    }
+
+    /**
+     * The SQL name of the scalar types a catalog may declare inside JSON, for a cast: BOOLEAN,
+     * INTEGER, FLOAT, DECIMAL and TEXT. ANSI spelling; a dialect with other names overrides.
+     */
+    default String declaredScalarType(TypeDescriptor type) {
+        CoreTypeFamily family = (CoreTypeFamily) type.getTypeFamily();
+        return switch (family) {
+            case BOOLEAN -> "BOOLEAN";
+            case INTEGER -> "INTEGER";
+            case FLOAT -> "DOUBLE";
+            case DECIMAL -> "DECIMAL(38, 10)";
+            case TEXT -> "VARCHAR";
+            default ->
+                    throw new KorykiaiException(
+                            getClass().getSimpleName()
+                                    + " has no cast to "
+                                    + type.portable()
+                                    + " inside JSON");
+        };
+    }
+
+    /**
      * A selector chain on a nested value: {@code base@1@name}. Handed over whole, because a dialect
      * may fold it (a JSON path takes every step in one string) and because what a step means
      * depends on the type it meets, which {@link ai.koryki.iql.typing.Selectors#step} follows.

@@ -201,4 +201,20 @@ class OracleSelectionTest {
 
         assertTrue(e.getMessage().contains("can be shown or sorted"), e.getMessage());
     }
+
+    @Test
+    void aJsonArrayIsAListForTheFunctionsButNotForALambda() {
+        String size = sql("list_size(t.doc@a@b)");
+        assertTrue(size.contains("JSON_TABLE(") && size.contains("SYS.ODCINUMBERLIST"), size);
+
+        for (String lambda :
+                new String[] {
+                    "list_transform(t.doc@a@b, x -> x * 2)",
+                    "list_filter(t.doc@a@b, x -> x > 1)",
+                    "list_any(t.doc@a@b, x -> x > 1)"
+                }) {
+            KorykiaiException e = assertThrows(KorykiaiException.class, () -> sql(lambda));
+            assertTrue(e.getMessage().contains("JSON array on Oracle"), e.getMessage());
+        }
+    }
 }

@@ -278,6 +278,12 @@ public class TrinoDialect implements SqlDialect {
         return "json_extract_scalar(" + base + ", " + NestedSql.literal(INSTANCE, path) + ")";
     }
 
+    /** A JSON array to a Trino array by a cast; anything that is not an array gives NULL. */
+    @Override
+    public String jsonList(String json, TypeDescriptor element) {
+        return "CAST(" + json + " AS ARRAY(" + declaredScalarType(element) + "))";
+    }
+
     @Override
     public String jsonScalar(String json) {
         return "json_extract_scalar(" + json + ", '$')";

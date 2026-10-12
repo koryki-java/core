@@ -5,7 +5,7 @@
 SELECT
   t.nr
 , CAST((GET_PATH(t.doc, 'n'))::STRING AS INTEGER) AS n
-, GET_PATH(t.doc, 'a.b') AS inner_list
+, TRANSFORM(CAST(GET_PATH(t.doc, 'a.b') AS ARRAY), e -> CAST(e AS INTEGER)) AS inner_list
 , CAST((GET_PATH(t.doc, 'a.b[0]'))::STRING AS INTEGER) AS inner_first
 , GET_PATH(t.doc, '[0]') AS array_first
 FROM

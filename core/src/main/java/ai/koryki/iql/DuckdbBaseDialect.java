@@ -497,6 +497,12 @@ public class DuckdbBaseDialect implements SqlDialect {
         return select(base, baseType, steps, " ->> ");
     }
 
+    /** A JSON array converts to a list by a cast: {@code CAST(j AS INTEGER[])}. */
+    @Override
+    public String jsonList(String json, TypeDescriptor element) {
+        return "CAST(" + json + " AS " + declaredScalarType(element) + "[])";
+    }
+
     @Override
     public String jsonScalar(String json) {
         return "json_extract_string(" + json + ", '$')";

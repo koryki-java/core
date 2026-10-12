@@ -199,4 +199,77 @@ class FlattenViewsTest {
         assertThrows(
                 IllegalArgumentException.class, () -> FlattenViews.of(schema, "t", Dialect.DUCKDB));
     }
+
+    private static Schema jsonDb() {
+        Table docs = new Table("docs");
+        Column doc = column("doc", "JSON", "JSON", 0);
+        doc.setNested(
+                List.of(
+                        new ai.koryki.catalog.schema.NestedType(".a.b[]", "INTEGER", null),
+                        new ai.koryki.catalog.schema.NestedType(".rows[].sku", "TEXT", null),
+                        new ai.koryki.catalog.schema.NestedType(".rows[].qty", "INTEGER", null)));
+        docs.setColumns(new ArrayList<>(List.of(column("id", "INTEGER", "INTEGER", 1), doc)));
+        Schema schema = new Schema("docs");
+        schema.addTable(docs);
+        return schema;
+    }
+
+    @Test
+    void sqliteReadsAJsonArrayWithJsonEach() {
+        View v = FlattenViews.ofJson(jsonDb(), "docs", Dialect.SQLITE, "doc", ".a.b");
+
+        assertEquals("docs_doc_a_b", v.name());
+        assertTrue(v.sql().contains("j.key + 1 AS ordinal, j.value AS value"), v.sql());
+        assertTrue(v.sql().contains("json_each(t.doc, '$.a.b') j"), v.sql());
+        assertTrue(v.sql().contains("json_type(t.doc, '$.a.b') = 'array'"), v.sql());
+        assertEquals("doc_a_b_of_docs", v.relation().getName());
+    }
+
+    @Test
+    void mariadbReadsAJsonArrayWithJsonTable() {
+        View v = FlattenViews.ofJson(jsonDb(), "docs", Dialect.MARIADB, "doc", ".a.b[]");
+
+        assertTrue(
+                v.sql()
+                        .contains(
+                                "JSON_TABLE(t.doc, '$.a.b[*]' COLUMNS (ordinal FOR ORDINALITY, `value` INT PATH '$'))"),
+                v.sql());
+    }
+
+    @Test
+    void sqlServerReadsAJsonArrayWithOpenjsonAndOnlyOfAnArray() {
+        View v = FlattenViews.ofJson(jsonDb(), "docs", Dialect.MSSQL, "doc", ".a.b");
+
+        assertTrue(v.sql().contains("CREATE OR ALTER VIEW docs_doc_a_b AS"), v.sql());
+        assertTrue(v.sql().contains("CAST(j.[key] AS INT) + 1 AS ordinal"), v.sql());
+        assertTrue(
+                v.sql()
+                        .contains(
+                                "CROSS APPLY OPENJSON(CASE WHEN LEFT(JSON_QUERY(t.doc, '$.a.b'), 1) = '['"),
+                v.sql());
+    }
+
+    @Test
+    void anArrayOfObjectsHasAColumnForEachMember() {
+        View v = FlattenViews.ofJson(jsonDb(), "docs", Dialect.SQLITE, "doc", ".rows");
+
+        assertTrue(
+                v.sql()
+                        .contains(
+                                "json_extract(j.value, '$.sku') AS sku, json_extract(j.value, '$.qty') AS qty"),
+                v.sql());
+        assertEquals(
+                List.of("id", "ordinal", "sku", "qty"),
+                v.table().getColumns().stream().map(Column::getName).toList());
+    }
+
+    @Test
+    void aPathThatIsNoArrayOrAColumnWithoutMembersIsRefused() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> FlattenViews.ofJson(jsonDb(), "docs", Dialect.SQLITE, "doc", ".a"));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> FlattenViews.ofJson(db(), "things", Dialect.SQLITE, "title", ".a"));
+    }
 }

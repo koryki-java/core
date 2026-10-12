@@ -221,7 +221,7 @@ class SelectorTypingTest {
                 "t.doc@a@b@1|INTEGER",
                 "t.doc@a@b@-1|INTEGER",
                 "t.doc@a|JSON(STRUCT(b:ARRAY(INTEGER)))",
-                "t.doc@a@b|JSON(ARRAY(INTEGER))",
+                "t.doc@a@b|ARRAY(INTEGER)",
             })
     void aDeclaredJsonMemberHasItsType(String expression, String expected) throws IOException {
         assertEquals(expected, typeOf(expression));

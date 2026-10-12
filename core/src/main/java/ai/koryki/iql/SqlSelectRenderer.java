@@ -1128,10 +1128,20 @@ public class SqlSelectRenderer {
                     declaredScalars.remove(expression);
                 }
             }
-            return dialect.selection(
-                    toSql(base, indent),
-                    resolveType(base),
-                    expression.getSelection().getSelectors());
+            TypeDescriptor baseType = resolveType(base);
+            String selected =
+                    dialect.selection(
+                            toSql(base, indent),
+                            baseType,
+                            expression.getSelection().getSelectors());
+            TypeDescriptor type = resolveType(expression);
+            if (baseType != null
+                    && CoreTypeFamily.JSON.equals(baseType.getTypeFamily())
+                    && type != null
+                    && CoreTypeFamily.ARRAY.equals(type.getTypeFamily())) {
+                return dialect.jsonList(selected, type.element());
+            }
+            return selected;
         } else if (expression.getLambda() != null) {
             return lambdaSql(expression, indent);
         } else if (expression.getParameter() != null) {

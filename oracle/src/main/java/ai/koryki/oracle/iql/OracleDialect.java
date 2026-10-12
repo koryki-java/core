@@ -508,6 +508,27 @@ public class OracleDialect implements SqlDialect {
         return jsonPath(base, steps, true);
     }
 
+    /**
+     * A JSON array to a collection of the generic result types: the elements through JSON_TABLE, in
+     * their order. Oracle has no boolean column type, so a list of booleans is refused.
+     */
+    @Override
+    public String jsonList(String json, TypeDescriptor element) {
+        boolean text = CoreTypeFamily.TEXT.equals(element.getTypeFamily());
+        if (CoreTypeFamily.BOOLEAN.equals(element.getTypeFamily())) {
+            throw new KorykiaiException("Oracle cannot read a JSON array of booleans as a list");
+        }
+        return "CASE WHEN JSON_VALUE("
+                + json
+                + ", '$.type()') = 'array' THEN CAST(MULTISET(SELECT jt.v FROM JSON_TABLE("
+                + json
+                + ", '$[*]' COLUMNS (ord FOR ORDINALITY, v "
+                + (text ? "VARCHAR2(4000)" : "NUMBER")
+                + " PATH '$')) jt ORDER BY jt.ord) AS "
+                + (text ? "SYS.ODCIVARCHAR2LIST" : "SYS.ODCINUMBERLIST")
+                + ") END";
+    }
+
     @Override
     public String jsonScalar(String json) {
         return "JSON_VALUE(" + json + ", '$')";
@@ -599,6 +620,7 @@ public class OracleDialect implements SqlDialect {
             TypeDescriptor element,
             String list,
             int indent) {
+        refuseJsonList(all ? "list_all" : "list_any", list);
         String alias = "LA" + renderer.lambdaDepth();
         return renderer.lambda(
                 lambda,
@@ -623,6 +645,21 @@ public class OracleDialect implements SqlDialect {
                 });
     }
 
+    /**
+     * The lambda functions run over a derived table that reads the list again; a list built from a
+     * JSON array in the same place is a correlated subquery in a derived table, which Oracle
+     * answers with an empty result and no error. Refused rather than rendered.
+     */
+    private static void refuseJsonList(String function, String list) {
+        if (list.contains("JSON_TABLE(")) {
+            throw new KorykiaiException(
+                    function
+                            + " cannot be applied to a JSON array on Oracle: the list is built"
+                            + " inside a derived table, where Oracle returns nothing."
+                            + " The list functions without a lambda work.");
+        }
+    }
+
     private static String lambdaOver(
             String name,
             SqlSelectRenderer renderer,
@@ -630,6 +667,7 @@ public class OracleDialect implements SqlDialect {
             TypeDescriptor element,
             String list,
             int indent) {
+        refuseJsonList(name, list);
         String alias = "LA" + renderer.lambdaDepth();
         return renderer.lambda(
                 lambda,

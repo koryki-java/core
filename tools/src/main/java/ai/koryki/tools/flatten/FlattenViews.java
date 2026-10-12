@@ -56,13 +56,20 @@ public final class FlattenViews {
 
     private FlattenViews() {}
 
-    /** The dialects that have lists to flatten. */
+    /**
+     * The dialects that have lists to flatten, and those that have JSON arrays only (SQLITE,
+     * MARIADB, MSSQL): the latter flatten an array a catalog declares inside a JSON column, see
+     * {@link #ofJson}.
+     */
     public enum Dialect {
         DUCKDB,
         POSTGRESQL,
         TRINO,
         SNOWFLAKE,
-        ORACLE
+        ORACLE,
+        SQLITE,
+        MARIADB,
+        MSSQL
     }
 
     /**
@@ -111,9 +118,93 @@ public final class FlattenViews {
                 }
                 continue;
             }
-            views.add(view(table, keys, column, type.element(), dialect));
+            views.add(
+                    view(
+                            table,
+                            keys,
+                            column.getName(),
+                            type.element(),
+                            sql(
+                                    dialect,
+                                    table.getName() + "_" + column.getName(),
+                                    table.getName(),
+                                    keys,
+                                    column.getName(),
+                                    type.element(),
+                                    fieldsOf(type.element()))));
         }
         return views;
+    }
+
+    /**
+     * The view of an array inside a JSON column, for the dialects that have JSON and no lists. The
+     * catalog declares the array and its elements in the {@code nested} of the column ({@code
+     * .a.b[] : INTEGER}); {@code path} names it, {@code .a.b} or {@code .a.b[]}. The view is called
+     * {@code <table>_<column>_<fields joined by _>} and, like a list view, has the key, {@code
+     * ordinal} and {@code value} or the fields of the elements, which are scalars.
+     */
+    public static View ofJson(
+            Schema db, String tableName, Dialect dialect, String columnName, String path) {
+        Table table =
+                db.getTable(tableName)
+                        .orElseThrow(() -> new IllegalArgumentException("no table " + tableName));
+        List<Column> keys =
+                table.getColumns().stream()
+                        .filter(c -> c.getPkPos() > 0)
+                        .sorted(Comparator.comparingInt(Column::getPkPos))
+                        .toList();
+        if (keys.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "the table " + tableName + " has no key: the elements need one to belong to");
+        }
+        Column column =
+                table.getColumns().stream()
+                        .filter(c -> c.getName().equals(columnName))
+                        .findFirst()
+                        .orElseThrow(
+                                () ->
+                                        new IllegalArgumentException(
+                                                "no column " + tableName + "." + columnName));
+        TypeDescriptor type = PARSER.parse(column);
+        if (type.shape() == null) {
+            throw new IllegalArgumentException(
+                    "the column " + columnName + " declares no members of its JSON");
+        }
+        String bare = path.endsWith("[]") ? path.substring(0, path.length() - 2) : path;
+        TypeDescriptor array = ai.koryki.catalog.types.TypePath.parse(bare).get(type.shape());
+        if (!CoreTypeFamily.ARRAY.equals(array.getTypeFamily())
+                || array.element().isComplex() && !struct(array.element())) {
+            throw new IllegalArgumentException(
+                    bare + " is " + array.portable() + ", not a list of scalars or objects");
+        }
+        List<String> names = new ArrayList<>();
+        StringBuilder jsonPath = new StringBuilder("$");
+        for (String step : bare.substring(1).split("\\.")) {
+            if (!PLAIN.matcher(step).matches()) {
+                throw new IllegalArgumentException("the member " + step + " has no plain name");
+            }
+            names.add(step);
+            jsonPath.append('.').append(step);
+        }
+        String source = columnName + "_" + String.join("_", names);
+        TypeDescriptor element = array.element();
+        return view(
+                table,
+                keys,
+                source,
+                element,
+                jsonSql(
+                        dialect,
+                        table.getName() + "_" + source,
+                        table.getName(),
+                        keys,
+                        columnName,
+                        jsonPath.toString(),
+                        element));
+    }
+
+    private static List<String> fieldsOf(TypeDescriptor element) {
+        return struct(element) ? element.fieldNames() : List.of("value");
     }
 
     private static boolean flat(TypeDescriptor element) {
@@ -126,14 +217,9 @@ public final class FlattenViews {
     }
 
     private static View view(
-            Table table,
-            List<Column> keys,
-            Column column,
-            TypeDescriptor element,
-            Dialect dialect) {
-        String name = table.getName() + "_" + column.getName();
-        List<String> fields = struct(element) ? element.fieldNames() : List.of("value");
-        String sql = sql(dialect, name, table.getName(), keys, column.getName(), element, fields);
+            Table table, List<Column> keys, String source, TypeDescriptor element, String sql) {
+        String name = table.getName() + "_" + source;
+        List<String> fields = fieldsOf(element);
 
         Table viewTable = new Table();
         viewTable.setName(name);
@@ -142,7 +228,7 @@ public final class FlattenViews {
                 "One row per element of the list "
                         + table.getName()
                         + "."
-                        + column.getName()
+                        + source
                         + ", with its position in it.");
         List<Column> columns = new ArrayList<>();
         for (Column key : keys) {
@@ -179,9 +265,9 @@ public final class FlattenViews {
         }
         viewTable.setColumns(columns);
 
-        String relationName = column.getName() + "_of_" + table.getName();
+        String relationName = source + "_of_" + table.getName();
         Relation relation = new Relation(relationName);
-        relation.setComment("the elements of the list " + column.getName());
+        relation.setComment("the elements of the list " + source);
         relation.setStartTable(name);
         relation.setEndTable(table.getName());
         relation.setSymmetric(false);
@@ -202,7 +288,7 @@ public final class FlattenViews {
 
         Link link = new Link();
         link.setName(relationName);
-        link.setComment("the elements of the list " + column.getName() + " of a row");
+        link.setComment("the elements of the list " + source + " of a row");
         link.setRelations(new ArrayList<>(List.of(relationName)));
         return new View(name, sql, viewTable, relation, entity, link);
     }
@@ -317,6 +403,144 @@ public final class FlattenViews {
         }
     }
 
+    /**
+     * The view over a JSON array: SQLite {@code json_each}, MariaDB {@code JSON_TABLE}, SQL Server
+     * {@code OPENJSON}.
+     */
+    private static String jsonSql(
+            Dialect dialect,
+            String view,
+            String table,
+            List<Column> keys,
+            String column,
+            String jsonPath,
+            TypeDescriptor element) {
+        boolean struct = struct(element);
+        List<String> fields = fieldsOf(element);
+        String parentKeys =
+                keys.stream().map(k -> "t." + id(k.getName())).collect(Collectors.joining(", "));
+        String doc = "t." + id(column);
+        switch (dialect) {
+            case SQLITE:
+                return "CREATE VIEW "
+                        + view
+                        + " AS\nSELECT "
+                        + parentKeys
+                        + ", j.key + 1 AS ordinal, "
+                        + fields.stream()
+                                .map(
+                                        f ->
+                                                struct
+                                                        ? "json_extract(j.value, '$."
+                                                                + f
+                                                                + "') AS "
+                                                                + id(f)
+                                                        : "j.value AS value")
+                                .collect(Collectors.joining(", "))
+                        + "\nFROM "
+                        + table
+                        + " t, json_each("
+                        + doc
+                        + ", '"
+                        + jsonPath
+                        + "') j\nWHERE json_type("
+                        + doc
+                        + ", '"
+                        + jsonPath
+                        + "') = 'array';";
+            case MARIADB:
+                return "CREATE OR REPLACE VIEW "
+                        + view
+                        + " AS\nSELECT "
+                        + parentKeys
+                        + ", jt.ordinal, "
+                        + fields.stream()
+                                .map(f -> "jt." + backtick(f) + " AS " + backtick(f))
+                                .collect(Collectors.joining(", "))
+                        + "\nFROM "
+                        + table
+                        + " t, JSON_TABLE("
+                        + doc
+                        + ", '"
+                        + jsonPath
+                        + "[*]' COLUMNS (ordinal FOR ORDINALITY, "
+                        + fields.stream()
+                                .map(
+                                        f ->
+                                                backtick(f)
+                                                        + " "
+                                                        + jsonType(
+                                                                dialect,
+                                                                struct
+                                                                        ? element.field(f)
+                                                                                .orElseThrow()
+                                                                        : element)
+                                                        + " PATH '"
+                                                        + (struct ? "$." + f : "$")
+                                                        + "'")
+                                .collect(Collectors.joining(", "))
+                        + ")) jt;";
+            case MSSQL:
+                String array = "JSON_QUERY(" + doc + ", '" + jsonPath + "')";
+                return "CREATE OR ALTER VIEW "
+                        + view
+                        + " AS\nSELECT "
+                        + parentKeys
+                        + ", CAST(j.[key] AS INT) + 1 AS ordinal, "
+                        + fields.stream()
+                                .map(
+                                        f ->
+                                                "CAST("
+                                                        + (struct
+                                                                ? "JSON_VALUE(j.value, '$."
+                                                                        + f
+                                                                        + "')"
+                                                                : "j.value")
+                                                        + " AS "
+                                                        + jsonType(
+                                                                dialect,
+                                                                struct
+                                                                        ? element.field(f)
+                                                                                .orElseThrow()
+                                                                        : element)
+                                                        + ") AS ["
+                                                        + f
+                                                        + "]")
+                                .collect(Collectors.joining(", "))
+                        + "\nFROM "
+                        + table
+                        + " t CROSS APPLY OPENJSON(CASE WHEN LEFT("
+                        + array
+                        + ", 1) = '[' THEN "
+                        + array
+                        + " END) j;";
+            default:
+                throw new IllegalArgumentException(dialect + " has lists; use of()");
+        }
+    }
+
+    private static String backtick(String name) {
+        return "`" + name.replace("`", "``") + "`";
+    }
+
+    /** The column type of a scalar read out of JSON. */
+    private static String jsonType(Dialect dialect, TypeDescriptor type) {
+        var family = type.getTypeFamily();
+        boolean mssql = dialect == Dialect.MSSQL;
+        if (CoreTypeFamily.INTEGER.equals(family)) {
+            return mssql ? "INT" : "INT";
+        } else if (CoreTypeFamily.FLOAT.equals(family)) {
+            return mssql ? "FLOAT" : "DOUBLE";
+        } else if (CoreTypeFamily.DECIMAL.equals(family)) {
+            return "DECIMAL(38, 10)";
+        } else if (CoreTypeFamily.BOOLEAN.equals(family)) {
+            return mssql ? "BIT" : "TINYINT(1)";
+        } else if (CoreTypeFamily.TEXT.equals(family)) {
+            return mssql ? "NVARCHAR(4000)" : "VARCHAR(4000)";
+        }
+        throw new IllegalArgumentException("a JSON member of " + type.portable() + " is not read");
+    }
+
     /** What a field of a Snowflake variant is cast to, by what the field is. */
     private static String snowflakeType(TypeDescriptor type) {
         var family = type.getTypeFamily();
@@ -360,8 +584,10 @@ public final class FlattenViews {
      * the views added, to a directory.
      *
      * <pre>
-     * FlattenViews dialect db.json model.json table out-directory [column ...]
+     * FlattenViews dialect db.json model.json table out-directory [column | column:.json.path ...]
      * </pre>
+     *
+     * A {@code column:path} names an array inside a JSON column, for the dialects with JSON only.
      */
     public static void main(String[] args) throws java.io.IOException {
         if (args.length < 5) {
@@ -373,8 +599,25 @@ public final class FlattenViews {
         tools.jackson.databind.ObjectMapper mapper = new tools.jackson.databind.ObjectMapper();
         Schema db = mapper.readValue(new java.io.File(args[1]), Schema.class);
         Model model = mapper.readValue(new java.io.File(args[2]), Model.class);
-        List<View> views =
-                of(db, args[3], dialect, java.util.Arrays.copyOfRange(args, 5, args.length));
+        List<View> views = new ArrayList<>();
+        List<String> lists = new ArrayList<>();
+        for (String c : java.util.Arrays.copyOfRange(args, 5, args.length)) {
+            int colon = c.indexOf(':');
+            if (colon > 0) {
+                views.add(
+                        ofJson(
+                                db,
+                                args[3],
+                                dialect,
+                                c.substring(0, colon),
+                                c.substring(colon + 1)));
+            } else {
+                lists.add(c);
+            }
+        }
+        if (views.isEmpty() || !lists.isEmpty()) {
+            views.addAll(of(db, args[3], dialect, lists.toArray(new String[0])));
+        }
         merge(db, model, views);
 
         java.nio.file.Path out = java.nio.file.Path.of(args[4]);

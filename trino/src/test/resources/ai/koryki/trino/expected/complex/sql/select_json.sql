@@ -5,7 +5,7 @@
 SELECT
   t.nr
 , CAST(json_extract_scalar(t.doc, '$.n') AS INTEGER) AS n
-, json_extract(t.doc, '$.a.b') AS inner_list
+, CAST(json_extract(t.doc, '$.a.b') AS ARRAY(INTEGER)) AS inner_list
 , CAST(json_extract_scalar(t.doc, '$.a.b[0]') AS INTEGER) AS inner_first
 , json_extract(t.doc, '$[0]') AS array_first
 FROM

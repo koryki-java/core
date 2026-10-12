@@ -153,6 +153,28 @@ public class PostgreSqlDialect implements SqlDialect {
         return select(base, baseType, steps, true);
     }
 
+    /**
+     * A jsonb array to a PostgreSQL array: its elements as text, cast one by one, in their order.
+     * Anything that is not an array gives NULL.
+     */
+    @Override
+    public String jsonList(String json, TypeDescriptor element) {
+        return "CASE WHEN jsonb_typeof("
+                + json
+                + ") = 'array' THEN ARRAY(SELECT CAST(e.v AS "
+                + declaredScalarType(element)
+                + ") FROM jsonb_array_elements_text("
+                + json
+                + ") WITH ORDINALITY AS e(v, i) ORDER BY e.i) END";
+    }
+
+    @Override
+    public String declaredScalarType(TypeDescriptor type) {
+        return CoreTypeFamily.FLOAT.equals(type.getTypeFamily())
+                ? "DOUBLE PRECISION"
+                : SqlDialect.super.declaredScalarType(type);
+    }
+
     @Override
     public String jsonScalar(String json) {
         return "(" + json + " #>> '{}')";
