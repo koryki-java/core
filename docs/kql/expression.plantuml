@@ -6,7 +6,8 @@ skinparam legendBackgroundColor white
 'title expression
 
 expression =
- "(", expression, ")"
+ expression, selector
+| "(", expression, ")"
 | "-", expression
 | "+", expression
 | expression, ("*" | "/"), expression
@@ -14,6 +15,7 @@ expression =
 | temporal_literal
 | field
 | function
+| "ID"
 | "INT"
 | "NUMBER"
 | "SQ_STRING"

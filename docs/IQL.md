@@ -87,6 +87,9 @@ Query
 | `LogicalExpression` | A boolean expression tree (AND/OR/NOT/predicate) |
 | `UnaryLogicalExpression` | A leaf predicate (`left op right`, `EXISTS`, or parenthesised group) |
 | `Function` | A function call with arguments and an optional `Window` definition |
+| `Selection` | A postfix selector chain on an expression: a `base` and its `Selector`s (`t.items@1@sku`) |
+| `Selector` | One step of a selection: a position (`index`), a range (`from`/`to`), or a name (`id`, `name`) |
+| `Lambda` | The parameters and the body of a lambda argument; only ever an argument of a `Function` |
 | `Out` / `Group` / `Order` | SELECT list item / GROUP BY item / ORDER BY item |
 
 Every bean created by `IQL2Bean` is registered in a `Map<Object, RuleContext>` that maps each bean back to its source parse-tree node. This allows all downstream stages (validation, SQL rendering) to produce error messages with precise source-text locations.
@@ -192,12 +195,36 @@ Semantic validation is run after bean construction and before SQL generation. `V
 
 **`FunctionValidator`** — detects structurally invalid expressions: an expression that simultaneously contains an aggregate function (e.g., `SUM`, `COUNT`) and a raw column reference is flagged, as this cannot be correctly classified as either a SELECT item or a HAVING predicate.
 
+**`SelectorValidator`** and **`LambdaValidator`** — check selector chains against the type of the value they select from, and lambda parameters, arity and body against the function that takes them (see [Nested values](#nested-values-selections-and-lambdas)).
+
 **`SchemaValidator`** — verifies all names referenced in the query exist in the configured model/schema:
 - Each `Source` name must correspond to a known entity or a declared CTE block ID
 - Each `Field` alias must refer to a `Source` that is visible in the current scope
 - Each `Field` attribute name must match either a known model attribute or an `OUT` header declared in the referenced entity/CTE
 
 Both validators produce `Violation` objects that carry the offending bean, its source-text `Range`, a human-readable message, and optionally a second `Range` pointing to a related definition. Any violations cause `ValidateException` to be thrown.
+
+
+### Nested values: selections and lambdas
+
+A selector chain is an `Expression` with a `Selection`; a lambda is an `Expression` with a `Lambda`; a
+lambda parameter in a body is an `Expression` with a `parameter`. `KQLQueryMapper` decides by the
+lambda scopes around a bare name whether it is a parameter or an alias (`count(o)`), and refuses a
+parameter named like an alias in sight.
+
+What a step means depends on the type it meets, which the grammar cannot know. `typing/Selectors`
+follows a chain through a `TypeDescriptor` (ARRAY, STRUCT, MAP, JSON) and is used by three consumers:
+`SelectorValidator` reports a step that does not fit, `ExpressionTypeResolver` types the result, and
+the renderer hands the chain, with the type of its base, to the dialect (`SqlDialect.selection`). A
+lambda is typed from its function: `FunctionDefinition` declares the parameter types from the types of
+the other arguments, `LambdaValidator` checks the body, and `SqlSelectRenderer.lambda` renders it with
+the parameters bound to what the dialect makes of them.
+
+A JSON column whose members the catalog declares carries a `shape` on its `TypeDescriptor`; a selection
+that reaches a declared scalar is rendered as the scalar (`jsonScalar` plus a cast), and one that
+reaches a declared list of scalars as a list (`jsonList`) where the dialect has list functions.
+
+The user-facing description is [NESTED.md](NESTED.md); `INTERMEDIATE_MODEL.plantuml` shows the beans.
 
 
 ### Identifier Handling (`Identifier`)

@@ -54,3 +54,29 @@ Remember our business question:
 Find customers who have ordered more than 3 Seafood items but have 0 orders for Condiments.
 
 
+## Reaching into nested values
+
+Some columns hold more than one value: a list of tags, a struct with an address, a map of attributes,
+a JSON document. KQL reaches into them with a postfix selector, `@`, and works on lists with a
+lambda, an expression with a named parameter and an arrow:
+
+    FIND orders o
+    FILTER o.items@1@qty > 1 AND 'gift' IN o.tags
+    FETCH o.id,
+          o.items@1@sku first_sku,
+          list_size(o.tags) tags,
+          list_transform(o.scores, x -> x * 10) tenfold
+
+- `o.items@1@sku` is the `sku` of the first element of the list `items`; positions count from 1, and
+  from the end when negative (`@-1` is the last).
+- `list_transform(o.scores, x -> x * 10)` applies the lambda to every element; `list_filter` keeps
+  the elements the lambda accepts, `list_reduce` folds them.
+- A position or a key that is not there gives NULL, not an error.
+- Where the catalog declares the members of a JSON column, `o.doc@n > 0` and `sum(o.doc@a@b@1)` work
+  without a cast.
+- One row per element, to group by what is inside a list ("revenue by sku"), is a generated view that
+  the semantic layer treats like any other entity.
+
+[Nested Values](NESTED.md) is the reference: which selector fits which type, the list functions, what
+each database does, and the flatten views.
+

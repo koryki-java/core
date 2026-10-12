@@ -15,6 +15,15 @@ class Expression {
 class Function {
 }
 
+class Selection {
+}
+
+class Selector {
+}
+
+class Lambda {
+}
+
 class Group {
 }
 
@@ -102,6 +111,13 @@ Expression -l-* "0..1" Column
 Expression -u-* "0..1" Select
 Expression -u-* "0..1" Exists
 Expression -r-* "0..1" Function
+Expression -d-* "0..1" Selection
+Expression -d-* "0..1" Lambda
+
+Selection -r-* "1..n" Selector
+Selection -u-* "1" Expression
+Lambda -u-* "1" Expression
+Function -d-* "0..n" Lambda
 
 Function -r-* "0..1" Window
 

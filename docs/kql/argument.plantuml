@@ -6,7 +6,7 @@ skinparam legendBackgroundColor white
 'title argument
 
 argument =
-expression | "ID"
+lambda | expression | logical_expression | "ID"
 ;
 
 @endebnf
