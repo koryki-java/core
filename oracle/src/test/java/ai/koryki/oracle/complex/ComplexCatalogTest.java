@@ -59,7 +59,9 @@ class ComplexCatalogTest {
         EXPECTED.put("items", "ARRAY(STRUCT(sku:TEXT,qty:INTEGER,price:DECIMAL,opts:ARRAY(TEXT)))");
         EXPECTED.put("events", "ARRAY(STRUCT(ts:TIMESTAMP,day:DATE))");
         EXPECTED.put("deep", "JSON");
-        EXPECTED.put("doc", "JSON(STRUCT(n:INTEGER,a:STRUCT(b:ARRAY(INTEGER))))");
+        EXPECTED.put(
+                "doc",
+                "JSON(STRUCT(n:INTEGER,a:STRUCT(b:ARRAY(INTEGER)),s:TEXT,b:BOOLEAN,d:DECIMAL))");
         EXPECTED.put("odd", "STRUCT(Odd Name:INTEGER,x:INTEGER)");
     }
 

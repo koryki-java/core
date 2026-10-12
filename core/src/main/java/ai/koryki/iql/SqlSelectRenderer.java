@@ -1011,7 +1011,7 @@ public class SqlSelectRenderer {
             return null;
         }
         if (CoreTypeFamily.BOOLEAN.equals(type.getTypeFamily())) {
-            return "to_boolean";
+            return "json_boolean";
         } else if (CoreTypeFamily.INTEGER.equals(type.getTypeFamily())) {
             return "to_integer";
         } else if (CoreTypeFamily.FLOAT.equals(type.getTypeFamily())) {
@@ -1030,7 +1030,7 @@ public class SqlSelectRenderer {
 
     private static Expression numberExpression(int number) {
         Expression e = new Expression();
-        e.setNumber(number);
+        e.setNumber(java.math.BigInteger.valueOf(number));
         return e;
     }
 
@@ -1111,6 +1111,24 @@ public class SqlSelectRenderer {
         } else if (expression.getSelection() != null) {
             Expression base = expression.getSelection().getBase();
             String cast = declaredJsonScalar(expression);
+            if ("json_boolean".equals(cast)) {
+                // not to_boolean, which reads a number: the dialect says how JSON true is read
+                declaredScalars.add(expression);
+                try {
+                    return dialect.jsonBoolean(jsonScalarSql(expression, indent));
+                } finally {
+                    declaredScalars.remove(expression);
+                }
+            }
+            if ("to_text".equals(cast)) {
+                // a text is the scalar itself: a cast of the JSON would keep the quotes of a string
+                declaredScalars.add(expression);
+                try {
+                    return jsonScalarSql(expression, indent);
+                } finally {
+                    declaredScalars.remove(expression);
+                }
+            }
             if (cast != null) {
                 Function call = new Function();
                 call.setFunc(cast);

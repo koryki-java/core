@@ -626,6 +626,16 @@ public interface SqlDialect {
     }
 
     /**
+     * A boolean read out of JSON, from the scalar a path gave ({@link #jsonScalar}): JSON {@code
+     * true} and {@code false} arrive as the texts {@code 'true'} and {@code 'false'} on most
+     * engines and as 1 and 0 on SQLite. Not {@code to_boolean}, which reads a number and calls
+     * everything but zero true.
+     */
+    default String jsonBoolean(String scalar) {
+        return "CAST(" + scalar + " AS BOOLEAN)";
+    }
+
+    /**
      * The SQL name of the scalar types a catalog may declare inside JSON, for a cast: BOOLEAN,
      * INTEGER, FLOAT, DECIMAL and TEXT. ANSI spelling; a dialect with other names overrides.
      */

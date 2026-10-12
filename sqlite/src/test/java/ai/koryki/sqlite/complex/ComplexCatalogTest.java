@@ -44,7 +44,9 @@ class ComplexCatalogTest {
 
     static {
         EXPECTED.put("nr", "INTEGER");
-        EXPECTED.put("doc", "JSON(STRUCT(n:INTEGER,a:STRUCT(b:ARRAY(INTEGER))))");
+        EXPECTED.put(
+                "doc",
+                "JSON(STRUCT(n:INTEGER,a:STRUCT(b:ARRAY(INTEGER)),s:TEXT,b:BOOLEAN,d:DECIMAL))");
     }
 
     private static LinkResolver resolver() {

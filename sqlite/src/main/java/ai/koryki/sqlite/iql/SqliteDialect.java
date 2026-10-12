@@ -82,6 +82,12 @@ public class SqliteDialect implements SqlDialect {
         return "json_extract(" + json + ", '$')";
     }
 
+    /** {@code ->>} answers 1 and 0 for JSON true and false, and the text for a JSON string. */
+    @Override
+    public String jsonBoolean(String scalar) {
+        return "(" + scalar + " IN (1, 'true'))";
+    }
+
     @Override
     public NestedSupport nestedSupport() {
         return NestedSupport.jsonOnly("SQLite", true);

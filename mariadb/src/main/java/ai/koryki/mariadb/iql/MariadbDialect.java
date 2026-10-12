@@ -271,6 +271,14 @@ public class MariadbDialect implements SqlDialect {
         return json;
     }
 
+    /**
+     * JSON_VALUE answers the text 'true' or 'false'; comparing a text with 0 would call both true.
+     */
+    @Override
+    public String jsonBoolean(String scalar) {
+        return "(" + scalar + " = 'true')";
+    }
+
     @Override
     public NestedSupport nestedSupport() {
         return NestedSupport.jsonOnly("MariaDB", true);

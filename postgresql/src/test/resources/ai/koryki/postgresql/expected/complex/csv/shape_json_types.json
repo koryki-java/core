@@ -1,0 +1,6 @@
+Nr : INTEGER
+s : TEXT
+shouted : TEXT
+b : BOOLEAN
+d_plus_one : DECIMAL
+total : DECIMAL

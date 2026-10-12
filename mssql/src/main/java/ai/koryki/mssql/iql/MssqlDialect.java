@@ -292,6 +292,12 @@ public class MssqlDialect implements SqlDialect {
         return json;
     }
 
+    /** BIT has no BOOLEAN to cast to; the text 'true' converts to 1. */
+    @Override
+    public String jsonBoolean(String scalar) {
+        return "CAST(" + scalar + " AS BIT)";
+    }
+
     @Override
     public NestedSupport nestedSupport() {
         return NestedSupport.jsonOnly("SQL Server", false);
