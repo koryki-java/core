@@ -17,13 +17,18 @@
 package ai.koryki.catalog.schema.types;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.koryki.catalog.CatalogLoader;
+import ai.koryki.catalog.SchemaCopy;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeDescriptorParser;
+import ai.koryki.catalog.types.TypeTree;
 import org.junit.jupiter.api.Test;
 
 /** A nested column as the catalog writes it: db.json in, descriptor out, and a faithful copy. */
@@ -36,8 +41,16 @@ class NestedColumnCatalogTest {
               { "name": "tags", "typeFamily": "ARRAY", "dialectType": "VARCHAR[]" },
               { "name": "events", "typeFamily": "ARRAY",
                 "dialectType": "STRUCT(ts BIGINT, day DATE)[]",
-                "nested": [ { "path": "[].ts", "typeFamily": "TIMESTAMP",
-                              "typeEncoding": "EPOCH:SECONDS" } ] }
+                "element": { "typeFamily": "STRUCT", "fields": [
+                  { "name": "ts", "label": "Timestamp", "typeFamily": "TIMESTAMP",
+                    "typeEncoding": "EPOCH:SECONDS", "dialectType": "BIGINT" },
+                  { "name": "day", "typeFamily": "DATE", "dialectType": "DATE" } ] } },
+              { "name": "address", "typeFamily": "STRUCT", "fields": [
+                { "name": "street", "typeFamily": "TEXT" },
+                { "name": "geo", "typeFamily": "STRUCT", "fields": [
+                  { "name": "lat", "typeFamily": "FLOAT", "unit": "deg" },
+                  { "name": "lon", "typeFamily": "FLOAT" } ] },
+                { "name": "phones", "typeFamily": "ARRAY", "element": { "typeFamily": "TEXT" } } ] }
             ] } ], "relations": [] }
             """;
 
@@ -54,7 +67,7 @@ class NestedColumnCatalogTest {
         TypeDescriptorParser parser = new TypeDescriptorParser() {};
 
         assertEquals("ARRAY(TEXT)", parser.parse(column(schema, "tags")).portable());
-        assertNull(column(schema, "tags").getNested(), "no refinement means null, as before");
+        assertFalse(TypeTree.hasTree(column(schema, "tags")), "a spelling alone stays a spelling");
 
         TypeDescriptor events = parser.parse(column(schema, "events"));
         assertEquals("ARRAY(STRUCT(ts:TIMESTAMP,day:DATE))", events.portable());
@@ -64,15 +77,35 @@ class NestedColumnCatalogTest {
     }
 
     @Test
-    void aDeepCopyKeepsTheRefinement() {
+    void aColumnWithoutASpellingIsItsTree() {
+        Schema schema = CatalogLoader.readSchemaJson(DB);
+
+        TypeDescriptor address = new TypeDescriptorParser() {}.parse(column(schema, "address"));
+
+        assertEquals(
+                "STRUCT(street:TEXT,geo:STRUCT(lat:FLOAT,lon:FLOAT),phones:ARRAY(TEXT))",
+                address.portable());
+    }
+
+    @Test
+    void theNodesCarryWhatASpellingCannot() {
+        Schema schema = CatalogLoader.readSchemaJson(DB);
+
+        Column ts = column(schema, "events").getElement().getFields().get(0);
+        Column lat = column(schema, "address").getFields().get(1).getFields().get(0);
+
+        assertEquals("Timestamp", ts.getLabel());
+        assertEquals("deg", lat.getUnit());
+    }
+
+    @Test
+    void aDeepCopyKeepsTheTree() {
         Column original = column(CatalogLoader.readSchemaJson(DB), "events");
 
-        Column copy = Schema.deepCopy(original);
+        Column copy = SchemaCopy.deepCopy(original);
 
-        assertEquals(1, copy.getNested().size());
-        assertEquals("[].ts", copy.getNested().get(0).getPath());
-        assertEquals("TIMESTAMP", copy.getNested().get(0).getTypeFamily());
-        assertEquals("EPOCH:SECONDS", copy.getNested().get(0).getTypeEncoding());
+        assertEquals("Timestamp", copy.getElement().getFields().get(0).getLabel());
+        assertEquals("EPOCH:SECONDS", copy.getElement().getFields().get(0).getTypeEncoding());
         assertEquals(
                 new TypeDescriptorParser() {}.parse(original),
                 new TypeDescriptorParser() {}.parse(copy));
@@ -80,6 +113,24 @@ class NestedColumnCatalogTest {
 
     @Test
     void aDeepCopyOfAPlainColumnStaysPlain() {
-        assertNull(Schema.deepCopy(column(CatalogLoader.readSchemaJson(DB), "tags")).getNested());
+        Column copy = SchemaCopy.deepCopy(column(CatalogLoader.readSchemaJson(DB), "tags"));
+
+        assertFalse(TypeTree.hasTree(copy));
+        assertNull(copy.getElement());
+    }
+
+    @Test
+    void aSpellingThatDisagreesWithTheTreeIsRefused() {
+        String db = DB.replace("STRUCT(ts BIGINT, day DATE)[]", "STRUCT(ts BIGINT, d DATE)[]");
+
+        IllegalArgumentException e =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () ->
+                                new TypeDescriptorParser() {}.parse(
+                                        column(CatalogLoader.readSchemaJson(db), "events")));
+
+        assertTrue(e.getMessage().contains("column 'events'"), e.getMessage());
+        assertTrue(e.getMessage().contains("dialectType"), e.getMessage());
     }
 }

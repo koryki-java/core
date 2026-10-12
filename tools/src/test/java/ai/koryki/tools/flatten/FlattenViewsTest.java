@@ -203,11 +203,18 @@ class FlattenViewsTest {
     private static Schema jsonDb() {
         Table docs = new Table("docs");
         Column doc = column("doc", "JSON", "JSON", 0);
-        doc.setNested(
-                List.of(
-                        new ai.koryki.catalog.schema.NestedType(".a.b[]", "INTEGER", null),
-                        new ai.koryki.catalog.schema.NestedType(".rows[].sku", "TEXT", null),
-                        new ai.koryki.catalog.schema.NestedType(".rows[].qty", "INTEGER", null)));
+        Column b = column(null, "ARRAY", null, 0);
+        b.setName("b");
+        b.setElement(column(null, "INTEGER", null, 0));
+        Column a = column(null, "STRUCT", null, 0);
+        a.setName("a");
+        a.setFields(List.of(b));
+        Column row = column(null, "STRUCT", null, 0);
+        row.setFields(List.of(column("sku", "TEXT", null, 0), column("qty", "INTEGER", null, 0)));
+        Column rows = column(null, "ARRAY", null, 0);
+        rows.setName("rows");
+        rows.setElement(row);
+        doc.setFields(List.of(a, rows));
         docs.setColumns(new ArrayList<>(List.of(column("id", "INTEGER", "INTEGER", 1), doc)));
         Schema schema = new Schema("docs");
         schema.addTable(docs);

@@ -11,7 +11,7 @@ All notable changes to this project are documented here.
   type the column has (positions count from 1, from the end when negative, NULL where nothing is);
   `list_transform`, `list_filter` and `list_reduce` take a lambda, `list_transform(t.scores, (x, i)
   -> x * i)`. The grammar, the type model (ARRAY, STRUCT, MAP and JSON as a tree of types with
-  `TypeSyntax`, `TypePath` and `Column.nested`), typing, validation and rendering for every dialect
+  `TypeSyntax`, `TypePath` and the recursive `Column`), typing, validation and rendering for every dialect
   are in, with a complex-types test bed per dialect (DuckDB, PostgreSQL, Trino, Snowflake, Oracle;
   SQL Server, MariaDB and SQLite for JSON). `docs/NESTED.md` says what is promised and what each
   dialect does. A lambda parameter is used by the name it is declared with, `x -> x * 2`, and a
@@ -19,8 +19,15 @@ All notable changes to this project are documented here.
   the lambda that declares it, and otherwise an alias as before. A parameter may not be named like an
   alias in sight, nor like the parameter of the lambda around it.
 
-- Typed JSON: a catalog declares the members of a JSON column (`nested` with `.n: INTEGER`,
-  `.a.b[]: INTEGER`), and a selection that reaches one is that scalar, so `FILTER t.doc@n > 0`,
+- A nested column describes its own structure in `db.json`: `Column` is recursive, with `fields`
+  (STRUCT), `element` and `length` (ARRAY) and `key` and `value` (MAP), and every node can carry a
+  label, a unit, a quantity, a presentation and an encoding of its own. The tree is the type and a
+  `dialectType` spelling is checked against it. This replaces `Column.nested`, which could only
+  refine a leaf. `TypeTree` writes the tree of a `TypeDescriptor`, `./gradlew :tools:typeTrees` that of
+  a whole catalog.
+
+- Typed JSON: a catalog declares the members of a JSON column (`fields`, `element` and `value` on the
+  column, `n` INTEGER and `a.b` an array of INTEGER), and a selection that reaches one is that scalar, so `FILTER t.doc@n > 0`,
   arithmetic, `sum` and `GROUP BY` work without a cast. `TypeDescriptor.shape()` carries the declared
   content of a JSON type; the complex catalogs declare `doc`.
 

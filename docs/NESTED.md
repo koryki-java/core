@@ -175,15 +175,45 @@ NULL. The casts are `to_boolean`, `to_float`, `to_double`, `to_integer`, `to_big
 JSON text on DuckDB, PostgreSQL, Snowflake, SQLite, SQL Server and MariaDB, and NULL on Trino and
 Oracle.
 
-### Declaring what is in a JSON column
+### Describing a nested column in the catalog
 
-JSON has no structure the database can describe, so a catalog may declare the members it relies on,
-in the `nested` list of the column, with the paths of `TypePath` (`.name`, `[]`, `{}`) and a family
-each, one of BOOLEAN, INTEGER, FLOAT, DECIMAL, TEXT:
+A nested column describes its own structure in `db.json`, with the same node a column is, to any
+depth. A STRUCT has `fields`, an ARRAY an `element` (and a `length` when its size is fixed), a MAP a
+`key` and a `value`:
 
 ```json
-"nested": [ {"path": ".n", "typeFamily": "INTEGER"}, {"path": ".a.b[]", "typeFamily": "INTEGER"} ]
+{ "name": "address", "label": "Address", "typeFamily": "STRUCT",
+  "dialectType": "STRUCT(street VARCHAR, geo STRUCT(lat DOUBLE, lon DOUBLE), phones VARCHAR[])",
+  "fields": [
+    { "name": "street", "typeFamily": "TEXT", "dialectType": "VARCHAR" },
+    { "name": "geo", "typeFamily": "STRUCT", "fields": [
+        { "name": "lat", "label": "Latitude", "typeFamily": "FLOAT", "unit": "deg" },
+        { "name": "lon", "typeFamily": "FLOAT" } ] },
+    { "name": "phones", "typeFamily": "ARRAY", "element": { "typeFamily": "TEXT" } } ] }
 ```
+
+A node has what a column has: a label, a description, a unit, a quantity, a presentation, an encoding
+(`"typeEncoding": "EPOCH:SECONDS"` on a BIGINT that is a timestamp) and a `dialectType`, which a leaf
+may leave out (it is then the plain name of its family). The tree is the type. The `dialectType` of
+the column, if it is a spelling of the same type, is checked against it and refused when it is not.
+A column without a tree is read from its spelling, as before; `TypeTrees` (`./gradlew
+:tools:typeTrees`) writes the tree of a spelling, for a catalog to start from.
+
+### Declaring what is in a JSON column
+
+JSON has no structure the database can describe, so a JSON column may list the members it is known to
+hold, with the same nodes: `fields` for an object, `element` for an array, `value` for an object of
+one kind of value (the keys are text). The members are scalars of the families BOOLEAN, INTEGER,
+FLOAT, DECIMAL or TEXT, or objects and arrays of them:
+
+```json
+{ "name": "doc", "typeFamily": "JSON", "dialectType": "JSON", "fields": [
+    { "name": "n", "typeFamily": "INTEGER" },
+    { "name": "a", "typeFamily": "STRUCT", "fields": [
+        { "name": "b", "typeFamily": "ARRAY", "element": { "typeFamily": "INTEGER" } } ] } ] }
+```
+
+Nothing is said about the members not listed.
 
 A selection that reaches a declared scalar is that scalar: `t.doc@n > 0`, `t.doc@n + 1`,
 `sum(t.doc@a@b@1)` and `GROUP BY t.doc@n` need no cast; the renderer reads the JSON scalar and casts

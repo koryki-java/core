@@ -30,14 +30,22 @@ public class Column {
     private String dialectType;
 
     /**
-     * For a nested column (ARRAY, STRUCT, MAP): what the catalog knows about leaves inside it that
-     * the type spelling in {@link #dialectType} cannot say, such as the encoding of a timestamp
-     * stored as epoch seconds. Everything structural comes from {@link #dialectType}; this only
-     * refines leaves, and null means no refinement. For a JSON column there is no spelling: the
-     * entries declare the members the column holds ({@code .n: INTEGER}, {@code .a.b[]: INTEGER}),
-     * and together they are the shape of the JSON.
+     * The structure of a nested column, as the same thing a column is: a node with a family, a
+     * dialect type, an encoding, a label and a unit of its own. A STRUCT has {@link #fields}, an
+     * ARRAY an {@link #element} (and a {@link #length} when its size is fixed), a MAP a {@link
+     * #key} and a {@link #value}; a node inside them is described in the same way, to any depth. A
+     * JSON column with children says which members it is known to hold, and nothing about the rest.
+     *
+     * <p>Optional: a nested column without them is read from the spelling in {@link #dialectType}.
+     * Where both are given they must describe the same type, which the loader checks. The tree is
+     * what carries the labels, units and encodings of the parts, which a spelling cannot.
      */
-    private List<NestedType> nested;
+    private List<Column> fields;
+
+    private Column element;
+    private Column key;
+    private Column value;
+    private Integer length;
 
     private Boolean nullable;
     private int pkPos;
@@ -171,12 +179,45 @@ public class Column {
         return typeEncoding;
     }
 
-    public List<NestedType> getNested() {
-        return nested;
+    public List<Column> getFields() {
+        return fields;
     }
 
-    public void setNested(List<NestedType> nested) {
-        this.nested = nested;
+    public void setFields(List<Column> fields) {
+        this.fields = fields;
+    }
+
+    public Column getElement() {
+        return element;
+    }
+
+    public void setElement(Column element) {
+        this.element = element;
+    }
+
+    public Column getKey() {
+        return key;
+    }
+
+    public void setKey(Column key) {
+        this.key = key;
+    }
+
+    public Column getValue() {
+        return value;
+    }
+
+    public void setValue(Column value) {
+        this.value = value;
+    }
+
+    /** The fixed size of an ARRAY node, or null for a list. */
+    public Integer getLength() {
+        return length;
+    }
+
+    public void setLength(Integer length) {
+        this.length = length;
     }
 
     public void setTypeEncoding(String typeEncoding) {

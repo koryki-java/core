@@ -596,7 +596,10 @@ public final class FlattenViews {
             System.exit(2);
         }
         Dialect dialect = Dialect.valueOf(args[0].toUpperCase(Locale.ROOT));
-        tools.jackson.databind.ObjectMapper mapper = new tools.jackson.databind.ObjectMapper();
+        tools.jackson.databind.ObjectMapper mapper =
+                tools.jackson.databind.json.JsonMapper.builder()
+                        .addMixIn(Column.class, TreeProperties.class)
+                        .build();
         Schema db = mapper.readValue(new java.io.File(args[1]), Schema.class);
         Model model = mapper.readValue(new java.io.File(args[2]), Model.class);
         List<View> views = new ArrayList<>();
@@ -628,5 +631,31 @@ public final class FlattenViews {
         mapper.writerWithDefaultPrettyPrinter().writeValue(out.resolve("db.json").toFile(), db);
         mapper.writerWithDefaultPrettyPrinter()
                 .writeValue(out.resolve("model.json").toFile(), model);
+    }
+
+    /**
+     * How a column writes its tree: only the parts it has. The catalog classes carry no annotations
+     * of their own; what a writer wants left out is said here.
+     */
+    abstract static class TreeProperties {
+        @com.fasterxml.jackson.annotation.JsonInclude(
+                com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        abstract List<Column> getFields();
+
+        @com.fasterxml.jackson.annotation.JsonInclude(
+                com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        abstract Column getElement();
+
+        @com.fasterxml.jackson.annotation.JsonInclude(
+                com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        abstract Column getKey();
+
+        @com.fasterxml.jackson.annotation.JsonInclude(
+                com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        abstract Column getValue();
+
+        @com.fasterxml.jackson.annotation.JsonInclude(
+                com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        abstract Integer getLength();
     }
 }

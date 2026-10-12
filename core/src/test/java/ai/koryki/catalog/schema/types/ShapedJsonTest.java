@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.koryki.catalog.schema.Column;
-import ai.koryki.catalog.schema.NestedType;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeDescriptorParser;
 import java.util.List;
@@ -34,28 +33,52 @@ class ShapedJsonTest {
 
     private static final TypeDescriptorParser PARSER = new TypeDescriptorParser() {};
 
-    private static TypeDescriptor json(String... pathsAndFamilies) {
-        Column column = new Column("doc");
-        column.setTypeFamily("JSON");
-        column.setDialectType("JSON");
-        java.util.List<NestedType> nested = new java.util.ArrayList<>();
-        for (int i = 0; i < pathsAndFamilies.length; i += 2) {
-            nested.add(new NestedType(pathsAndFamilies[i], pathsAndFamilies[i + 1], null));
-        }
-        column.setNested(nested);
-        return PARSER.parse(column);
+    private static Column member(String name, String family) {
+        Column c = new Column(name);
+        c.setTypeFamily(family);
+        return c;
+    }
+
+    private static Column object(String name, Column... fields) {
+        Column c = member(name, "STRUCT");
+        c.setFields(List.of(fields));
+        return c;
+    }
+
+    private static Column list(String name, Column element) {
+        Column c = member(name, "ARRAY");
+        c.setElement(element);
+        return c;
+    }
+
+    private static Column json(Column... fields) {
+        Column c = new Column("doc");
+        c.setTypeFamily("JSON");
+        c.setDialectType("JSON");
+        c.setFields(List.of(fields));
+        return c;
     }
 
     @Test
     void membersMakeAStructAListAndAMap() {
+        Column map = member("m", "MAP");
+        map.setValue(member(null, "TEXT"));
+
+        TypeDescriptor type =
+                PARSER.parse(
+                        json(
+                                member("n", "INTEGER"),
+                                object("a", list("b", member(null, "INTEGER"))),
+                                map));
+
         assertEquals(
                 "JSON(STRUCT(n:INTEGER,a:STRUCT(b:ARRAY(INTEGER)),m:MAP(TEXT,TEXT)))",
-                json(".n", "INTEGER", ".a.b[]", "INTEGER", ".m{}", "TEXT").portable());
+                type.portable());
     }
 
     @Test
-    void theColumnStaysJsonAndWithoutDeclarationsHasNoShape() {
-        TypeDescriptor shaped = json(".n", "INTEGER");
+    void theColumnStaysJsonAndWithoutMembersHasNoShape() {
+        TypeDescriptor shaped = PARSER.parse(json(member("n", "INTEGER")));
         assertEquals("JSON", shaped.getTypeFamily().name());
         assertEquals("STRUCT(n:INTEGER)", shaped.shape().portable());
 
@@ -63,14 +86,27 @@ class ShapedJsonTest {
         plain.setTypeFamily("JSON");
         plain.setDialectType("JSON");
         assertNull(PARSER.parse(plain).shape());
-        plain.setNested(List.of());
+        plain.setFields(List.of());
         assertNull(PARSER.parse(plain).shape());
     }
 
     @Test
+    void anArrayOrMapAtTheTopIsTheShapeOfTheDocument() {
+        Column array = new Column("doc");
+        array.setTypeFamily("JSON");
+        array.setElement(member(null, "INTEGER"));
+
+        assertEquals("JSON(ARRAY(INTEGER))", PARSER.parse(array).portable());
+    }
+
+    @Test
     void theShapeTakesPartInEquality() {
-        assertEquals(json(".n", "INTEGER"), json(".n", "INTEGER"));
-        assertNotEquals(json(".n", "INTEGER"), json(".n", "TEXT"));
+        assertEquals(
+                PARSER.parse(json(member("n", "INTEGER"))),
+                PARSER.parse(json(member("n", "INTEGER"))));
+        assertNotEquals(
+                PARSER.parse(json(member("n", "INTEGER"))),
+                PARSER.parse(json(member("n", "TEXT"))));
     }
 
     @Test
@@ -83,31 +119,20 @@ class ShapedJsonTest {
     @Test
     void aMemberIsAScalarOfAKnownFamily() {
         IllegalArgumentException e =
-                assertThrows(IllegalArgumentException.class, () -> json(".d", "DATE"));
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> PARSER.parse(json(member("d", "DATE"))));
         assertTrue(
                 e.getMessage().contains("BOOLEAN, INTEGER, FLOAT, DECIMAL or TEXT"),
                 e.getMessage());
-        assertThrows(IllegalArgumentException.class, () -> json(".d", "ARRAY"));
     }
 
     @Test
-    void aMemberCannotBeDeclaredTwiceOrAsTwoKinds() {
-        assertTrue(
-                assertThrows(
-                                IllegalArgumentException.class,
-                                () -> json(".n", "INTEGER", ".n", "TEXT"))
-                        .getMessage()
-                        .contains("declared twice"));
-        assertTrue(
-                assertThrows(
-                                IllegalArgumentException.class,
-                                () -> json(".a", "INTEGER", ".a.b", "INTEGER"))
-                        .getMessage()
-                        .contains("more than one"));
-    }
+    void aJsonObjectHasNoKey() {
+        Column c = new Column("doc");
+        c.setTypeFamily("JSON");
+        c.setKey(member(null, "TEXT"));
 
-    @Test
-    void aJsonObjectHasNoKeyStep() {
-        assertThrows(IllegalArgumentException.class, () -> json("<>", "TEXT"));
+        assertThrows(IllegalArgumentException.class, () -> PARSER.parse(c));
     }
 }

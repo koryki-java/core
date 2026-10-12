@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.koryki.catalog.schema.Column;
-import ai.koryki.catalog.schema.NestedType;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeDescriptorParser;
@@ -340,14 +339,40 @@ class NestedTypeParserTest {
         assertTrue(e.getMessage().contains("column 'c'"), e.getMessage());
     }
 
-    // ---- catalog refinement of a leaf ---------------------------------------------------------
+    // ---- the nodes of a column ----------------------------------------------------------------
+
+    private static Column leaf(String name, String family, String encoding, String dialectType) {
+        Column c = new Column(name);
+        c.setTypeFamily(family);
+        c.setTypeEncoding(encoding);
+        c.setDialectType(dialectType);
+        return c;
+    }
+
+    private static Column struct(String name, Column... fields) {
+        Column c = new Column(name);
+        c.setTypeFamily("STRUCT");
+        c.setFields(List.of(fields));
+        return c;
+    }
+
+    private static Column array(String name, Column element) {
+        Column c = new Column(name);
+        c.setTypeFamily("ARRAY");
+        c.setElement(element);
+        return c;
+    }
 
     @Test
-    void aNestedDeclarationRefinesOneLeaf() {
-        Column column = new Column("events");
-        column.setTypeFamily("ARRAY");
+    void aLeafNodeRefinesTheSpelledType() {
+        Column column =
+                array(
+                        "events",
+                        struct(
+                                null,
+                                leaf("ts", "TIMESTAMP", "EPOCH:SECONDS", "BIGINT"),
+                                leaf("day", "DATE", null, "DATE")));
         column.setDialectType("STRUCT(ts BIGINT, day DATE)[]");
-        column.setNested(List.of(new NestedType("[].ts", "TIMESTAMP", "EPOCH:SECONDS")));
 
         TypeDescriptor d = PARSER.parse(column);
 
@@ -355,59 +380,72 @@ class NestedTypeParserTest {
         assertEquals(CoreTypeFamily.TIMESTAMP, ts.getTypeFamily());
         assertEquals("EPOCH:SECONDS", ts.getTypeEncoding().name());
         assertEquals("BIGINT", ts.getPhysicalTypeName());
-        // the sibling leaf and the shape are untouched
         assertEquals(CoreTypeFamily.DATE, d.element().field("day").orElseThrow().getTypeFamily());
         assertEquals("STRUCT(ts:TIMESTAMP,day:DATE)", d.element().portable());
-        assertEquals("STRUCT(ts BIGINT, day DATE)[]", d.getPhysicalTypeName());
     }
 
     @Test
-    void aNestedDeclarationReachesIntoMapsAndQuotedFields() {
-        Column column = new Column("c");
-        column.setTypeFamily("MAP");
-        column.setDialectType("MAP(VARCHAR, STRUCT(\"Odd Name\" BIGINT))");
-        column.setNested(List.of(new NestedType("{}.\"Odd Name\"", "TIMESTAMP", "EPOCH:MILLIS")));
+    void aTreeReachesIntoMapsAndQuotedFields() {
+        Column map = new Column("c");
+        map.setTypeFamily("MAP");
+        map.setKey(leaf(null, "TEXT", null, "VARCHAR"));
+        map.setValue(struct(null, leaf("Odd Name", "TIMESTAMP", "EPOCH:MILLIS", "BIGINT")));
 
-        TypeDescriptor leaf = PARSER.parse(column).value().field("Odd Name").orElseThrow();
+        TypeDescriptor leaf = PARSER.parse(map).value().field("Odd Name").orElseThrow();
 
         assertEquals("EPOCH:MILLIS", leaf.getTypeEncoding().name());
     }
 
     @Test
-    void aNestedDeclarationMustFitTheTree() {
-        Column column = new Column("c");
-        column.setTypeFamily("ARRAY");
-        column.setDialectType("INTEGER[]");
+    void aFixedSizeArrayKeepsItsLength() {
+        Column vec = array("vec", leaf(null, "FLOAT", null, "DOUBLE"));
+        vec.setLength(3);
 
-        for (String path : List.of(".x", "{}", "<>", "[][]", "[].x", "", "[", ".")) {
-            column.setNested(List.of(new NestedType(path, "INTEGER", null)));
+        assertEquals("ARRAY(FLOAT,3)", PARSER.parse(vec).portable());
+    }
+
+    @Test
+    void aNodeThatCannotBeReadIsRefusedWithTheColumnsName() {
+        Column noElement = new Column("c");
+        noElement.setTypeFamily("ARRAY");
+        noElement.setElement(leaf(null, "INTEGER", null, null));
+        noElement.setElement(null);
+        noElement.setFields(List.of(leaf("x", "INTEGER", null, null)));
+
+        Column noFields = new Column("c");
+        noFields.setTypeFamily("STRUCT");
+        noFields.setElement(leaf(null, "INTEGER", null, null));
+
+        Column noValue = new Column("c");
+        noValue.setTypeFamily("MAP");
+        noValue.setKey(leaf(null, "TEXT", null, null));
+
+        Column unnamedField = struct("c", leaf(null, "INTEGER", null, null));
+
+        Column noFamily = array("c", leaf(null, null, null, null));
+
+        for (Column bad : List.of(noElement, noFields, noValue, unnamedField, noFamily)) {
             IllegalArgumentException e =
-                    assertThrows(IllegalArgumentException.class, () -> PARSER.parse(column), path);
-            assertTrue(e.getMessage().contains("column 'c'"), path + ": " + e.getMessage());
+                    assertThrows(IllegalArgumentException.class, () -> PARSER.parse(bad));
+            assertTrue(e.getMessage().contains("column 'c"), e.getMessage());
         }
     }
 
     @Test
-    void aNestedDeclarationOnAContainerIsRefused() {
-        Column column = new Column("c");
-        column.setTypeFamily("ARRAY");
-        column.setDialectType("INTEGER[][]");
-        column.setNested(List.of(new NestedType("[]", "INTEGER", null)));
+    void anEncodingOfAnotherFamilyOnALeafIsRefused() {
+        Column column = array("c", leaf(null, "INTEGER", "EPOCH:SECONDS", "BIGINT"));
 
-        IllegalArgumentException e =
-                assertThrows(IllegalArgumentException.class, () -> PARSER.parse(column));
-
-        assertTrue(e.getMessage().contains("only a leaf"), e.getMessage());
+        assertThrows(IllegalArgumentException.class, () -> PARSER.parse(column));
     }
 
     @Test
-    void anEncodingOfAnotherFamilyOnALeafIsRefused() {
-        Column column = new Column("c");
-        column.setTypeFamily("ARRAY");
-        column.setDialectType("BIGINT[]");
-        column.setNested(List.of(new NestedType("[]", "INTEGER", "EPOCH:SECONDS")));
+    void aLeafWithoutADialectTypeIsThePlainNameOfItsFamily() {
+        Column column = array("c", leaf(null, "TEXT", null, null));
 
-        assertThrows(IllegalArgumentException.class, () -> PARSER.parse(column));
+        TypeDescriptor d = PARSER.parse(column);
+
+        assertEquals("ARRAY(TEXT)", d.portable());
+        assertEquals("VARCHAR", d.element().getPhysicalTypeName());
     }
 
     // ---- the descriptor itself ----------------------------------------------------------------

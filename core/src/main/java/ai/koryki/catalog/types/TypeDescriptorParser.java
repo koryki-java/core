@@ -17,7 +17,6 @@
 package ai.koryki.catalog.types;
 
 import ai.koryki.catalog.schema.Column;
-import ai.koryki.catalog.schema.NestedType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -65,6 +64,12 @@ public interface TypeDescriptorParser {
                             + family.name());
         }
 
+        // A column that carries its structure (fields, element, key, value) is read from it; the
+        // spelling, if it has one, has to agree.
+        if (TypeTree.hasTree(column)) {
+            return parseTree(column, family, typeEncoding, dialectType);
+        }
+
         // A nested spelling (INTEGER[], STRUCT(...), MAP(...)) is a tree and has its own reader; a
         // column that declares a container family goes there too, so that a flat name under a
         // container family reports the mismatch instead of "Invalid dialectType format".
@@ -93,13 +98,6 @@ public interface TypeDescriptorParser {
             for (String part : parts) {
                 params.add(Integer.parseInt(part.trim()));
             }
-        }
-
-        if (CoreTypeFamily.JSON.equals(family)
-                && column.getNested() != null
-                && !column.getNested().isEmpty()) {
-            return parseJson(dialectType, typeName, typeEncoding)
-                    .withShape(ShapedJson.build(column.getName(), column.getNested()));
         }
 
         if (family instanceof CoreTypeFamily core) {
@@ -161,51 +159,215 @@ public interface TypeDescriptorParser {
                             + "' is a "
                             + root.getTypeFamily().name());
         }
-        if (column.getNested() != null) {
-            for (NestedType n : column.getNested()) {
-                root = parseNested(column, root, n);
-            }
-        }
         return root;
     }
 
-    /** Replaces the leaf at the declared path by the same physical type, refined by the catalog. */
-    private TypeDescriptor parseNested(Column column, TypeDescriptor root, NestedType nested) {
-        TypePath path;
-        try {
-            path = TypePath.parse(nested.getPath());
-        } catch (IllegalArgumentException e) {
+    /**
+     * A column that describes its own structure: the type is built from its nodes, to any depth,
+     * and a spelling in {@code dialectType}, if there is one, has to be the same type.
+     */
+    default TypeDescriptor parseTree(
+            Column column, TypeFamily declared, TypeEncoding encoding, String dialectType) {
+        if (encoding != null && !CoreTypeFamily.JSON.equals(declared)) {
             throw new IllegalArgumentException(
-                    "column '" + column.getName() + "': " + e.getMessage(), e);
+                    "column '"
+                            + column.getName()
+                            + "': a nested column has no encoding of its own; "
+                            + "an encoding belongs to a leaf, declared on its node");
         }
+        TypeDescriptor type;
         try {
-            return path.replace(
-                    root,
-                    leaf -> {
-                        if (leaf.isComplex()) {
-                            throw new IllegalArgumentException(
-                                    "'"
-                                            + nested.getPath()
-                                            + "' names a "
-                                            + leaf.portable()
-                                            + ", only a leaf carries a family and an encoding");
-                        }
-                        Column refined = new Column(column.getName() + nested.getPath());
-                        refined.setTypeFamily(
-                                nested.getTypeFamily() != null
-                                        ? nested.getTypeFamily()
-                                        : leaf.getTypeFamily().name());
-                        refined.setTypeEncoding(nested.getTypeEncoding());
-                        refined.setDialectType(leaf.getPhysicalTypeName());
-                        return parse(refined);
-                    });
+            if (CoreTypeFamily.JSON.equals(declared)) {
+                type =
+                        parseJson(dialectType == null ? "JSON" : dialectType, "JSON", encoding)
+                                .withShape(members(column, column.getName()));
+            } else {
+                type = node(column, column.getName());
+            }
         } catch (IllegalArgumentException e) {
-            String message = String.valueOf(e.getMessage());
-            throw message.startsWith("column '")
+            throw e.getMessage() != null && e.getMessage().startsWith("column '")
                     ? e
                     : new IllegalArgumentException(
-                            "column '" + column.getName() + "': " + message, e);
+                            "column '" + column.getName() + "': " + e.getMessage(), e);
         }
+        if (!CoreTypeFamily.JSON.equals(declared)
+                && dialectType != null
+                && TypeSyntax.looksComplex(dialectType)) {
+            TypeDescriptor spelled;
+            try {
+                spelled = TypeSyntax.parse(dialectType, this::parseLeaf);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException(
+                        "column '" + column.getName() + "': " + e.getMessage(), e);
+            }
+            if (!agrees(column, spelled)) {
+                throw new IllegalArgumentException(
+                        "column '"
+                                + column.getName()
+                                + "': its fields describe "
+                                + type.portable()
+                                + " but dialectType '"
+                                + dialectType
+                                + "' spells "
+                                + spelled.portable());
+            }
+        }
+        return type;
+    }
+
+    /**
+     * Whether a spelling and the nodes describe the same structure: the same containers, field
+     * names and sizes, and for a leaf that says its dialect type, the same physical type. The
+     * family of a leaf may differ, because a leaf is refined by an encoding (a BIGINT that is a
+     * timestamp).
+     */
+    private static boolean agrees(Column node, TypeDescriptor spelled) {
+        TypeFamily family = TypeFamilyRegistry.of(node.getTypeFamily());
+        if (CoreTypeFamily.ARRAY.equals(family)) {
+            return CoreTypeFamily.ARRAY.equals(spelled.getTypeFamily())
+                    && (node.getLength() == null ? -1 : node.getLength()) == spelled.length()
+                    && node.getElement() != null
+                    && agrees(node.getElement(), spelled.element());
+        } else if (CoreTypeFamily.MAP.equals(family)) {
+            return CoreTypeFamily.MAP.equals(spelled.getTypeFamily())
+                    && node.getKey() != null
+                    && node.getValue() != null
+                    && agrees(node.getKey(), spelled.key())
+                    && agrees(node.getValue(), spelled.value());
+        } else if (CoreTypeFamily.STRUCT.equals(family)) {
+            if (!CoreTypeFamily.STRUCT.equals(spelled.getTypeFamily())
+                    || node.getFields() == null
+                    || node.getFields().size() != spelled.children().size()) {
+                return false;
+            }
+            for (int i = 0; i < node.getFields().size(); i++) {
+                if (!node.getFields().get(i).getName().equalsIgnoreCase(spelled.fieldNames().get(i))
+                        || !agrees(node.getFields().get(i), spelled.children().get(i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return spelled.isComplex()
+                ? false
+                : node.getDialectType() == null
+                        || node.getDialectType()
+                                .replaceAll("\\s+", "")
+                                .equalsIgnoreCase(
+                                        spelled.getPhysicalTypeName().replaceAll("\\s+", ""));
+    }
+
+    /** One node of a nested column as a type: a container from its children, a leaf as a column. */
+    private TypeDescriptor node(Column node, String where) {
+        if (node.getTypeFamily() == null) {
+            throw new IllegalArgumentException(
+                    "column '" + where + "': a node of a nested column has no typeFamily");
+        }
+        TypeFamily family = TypeFamilyRegistry.of(node.getTypeFamily());
+        if (CoreTypeFamily.ARRAY.equals(family)) {
+            if (node.getElement() == null) {
+                throw new IllegalArgumentException(
+                        "column '" + where + "': an ARRAY has an element");
+            }
+            return TypeDescriptor.array(
+                    node(node.getElement(), where + "[]"),
+                    node.getLength() == null ? -1 : node.getLength());
+        } else if (CoreTypeFamily.STRUCT.equals(family)) {
+            if (node.getFields() == null || node.getFields().isEmpty()) {
+                throw new IllegalArgumentException("column '" + where + "': a STRUCT has fields");
+            }
+            List<String> names = new ArrayList<>();
+            List<TypeDescriptor> types = new ArrayList<>();
+            for (Column field : node.getFields()) {
+                if (field.getName() == null || field.getName().isBlank()) {
+                    throw new IllegalArgumentException(
+                            "column '" + where + "': a field of a STRUCT has a name");
+                }
+                names.add(field.getName());
+                types.add(node(field, where + "." + field.getName()));
+            }
+            return TypeDescriptor.struct(names, types);
+        } else if (CoreTypeFamily.MAP.equals(family)) {
+            if (node.getKey() == null || node.getValue() == null) {
+                throw new IllegalArgumentException(
+                        "column '" + where + "': a MAP has a key and a value");
+            }
+            return TypeDescriptor.map(
+                    node(node.getKey(), where + "<>"), node(node.getValue(), where + "{}"));
+        } else if (CoreTypeFamily.JSON.equals(family) && TypeTree.hasTree(node)) {
+            return parseJson(
+                            node.getDialectType() == null ? "JSON" : node.getDialectType(),
+                            "JSON",
+                            TypeEncodingRegistry.ofNullable(node.getTypeEncoding()))
+                    .withShape(members(node, where));
+        }
+        Column leaf = new Column(where);
+        leaf.setTypeFamily(node.getTypeFamily());
+        leaf.setTypeEncoding(node.getTypeEncoding());
+        leaf.setDialectType(
+                node.getDialectType() != null ? node.getDialectType() : defaultType(family));
+        return parse(leaf);
+    }
+
+    /** The physical type of a leaf that does not say: the plain name of its family. */
+    private static String defaultType(TypeFamily family) {
+        if (CoreTypeFamily.TEXT.equals(family)) {
+            return "VARCHAR";
+        } else if (CoreTypeFamily.FLOAT.equals(family)) {
+            return "DOUBLE";
+        }
+        return family.name();
+    }
+
+    /**
+     * What a JSON node says about its content: a STRUCT of the members it lists, an ARRAY of its
+     * element, a MAP with text keys of its value. The members are scalars of the families a JSON
+     * value can be read as, or such a shape again. Nothing is said about members not listed.
+     */
+    private TypeDescriptor members(Column json, String where) {
+        if (json.getFields() != null && !json.getFields().isEmpty()) {
+            List<String> names = new ArrayList<>();
+            List<TypeDescriptor> types = new ArrayList<>();
+            for (Column field : json.getFields()) {
+                names.add(field.getName());
+                types.add(member(field, where + "." + field.getName()));
+            }
+            return TypeDescriptor.struct(names, types);
+        } else if (json.getElement() != null) {
+            return TypeDescriptor.array(member(json.getElement(), where + "[]"));
+        } else if (json.getValue() != null) {
+            return TypeDescriptor.map(TypeDescriptor.TEXT, member(json.getValue(), where + "{}"));
+        } else if (json.getKey() != null) {
+            throw new IllegalArgumentException(
+                    "column '"
+                            + where
+                            + "': a JSON object has text keys, a key cannot be declared");
+        }
+        throw new IllegalArgumentException(
+                "column '" + where + "': a JSON node declares no members");
+    }
+
+    private TypeDescriptor member(Column node, String where) {
+        TypeFamily family = TypeFamilyRegistry.of(node.getTypeFamily());
+        if (TypeTree.hasTree(node)) {
+            return members(node, where);
+        } else if (CoreTypeFamily.BOOLEAN.equals(family)) {
+            return TypeDescriptor.BOOLEAN;
+        } else if (CoreTypeFamily.INTEGER.equals(family)) {
+            return TypeDescriptor.INTEGER;
+        } else if (CoreTypeFamily.FLOAT.equals(family)) {
+            return TypeDescriptor.DOUBLE;
+        } else if (CoreTypeFamily.DECIMAL.equals(family)) {
+            return TypeDescriptor.DECIMAL;
+        } else if (CoreTypeFamily.TEXT.equals(family)) {
+            return TypeDescriptor.TEXT;
+        }
+        throw new IllegalArgumentException(
+                "column '"
+                        + where
+                        + "': a JSON member can be declared BOOLEAN, INTEGER, FLOAT, DECIMAL or TEXT,"
+                        + " or have members of its own, not "
+                        + node.getTypeFamily());
     }
 
     /**

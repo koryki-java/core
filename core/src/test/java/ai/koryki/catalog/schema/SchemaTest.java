@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.koryki.catalog.CatalogLoader;
+import ai.koryki.catalog.SchemaCopy;
 import ai.koryki.catalog.Util;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -76,11 +77,11 @@ class SchemaTest {
         Schema db = CatalogLoader.db(DB);
         db.setSchemaPrefix("sales");
 
-        assertEquals("sales", Schema.deepCopy(db).getSchemaPrefix());
+        assertEquals("sales", SchemaCopy.deepCopy(db).getSchemaPrefix());
     }
 
     @Test
     void aDeepCopyOfACatalogWithoutOneStillHasNone() {
-        assertNull(Schema.deepCopy(CatalogLoader.db(DB)).getSchemaPrefix());
+        assertNull(SchemaCopy.deepCopy(CatalogLoader.db(DB)).getSchemaPrefix());
     }
 }

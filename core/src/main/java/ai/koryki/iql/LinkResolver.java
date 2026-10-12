@@ -19,6 +19,7 @@ package ai.koryki.iql;
 import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.antlr.Range;
 import ai.koryki.antlr.RangeException;
+import ai.koryki.catalog.SchemaCopy;
 import ai.koryki.catalog.domain.Attribute;
 import ai.koryki.catalog.domain.Entity;
 import ai.koryki.catalog.domain.Link;
@@ -337,7 +338,7 @@ public class LinkResolver {
         }
 
         // A copy: this instance is the schema's own and is handed to every other query.
-        Relation flipped = Schema.deepCopy(relation);
+        Relation flipped = SchemaCopy.deepCopy(relation);
         flipped.setStartTable(relation.getEndTable());
         flipped.setEndTable(relation.getStartTable());
         flipped.setStartColumns(relation.getEndColumns());
