@@ -72,6 +72,16 @@ tasks.register('argTypeAudit', JavaExec) {
     mainClass = 'ai.koryki.tools.docs.FunctionArgTypeAudit'
 }
 
+// The table of what each dialect declares for nested values, in docs/NESTED.md (see NestedSupportMatrix):
+//   ./gradlew :tools:nestedMatrix
+tasks.register('nestedMatrix', JavaExec) {
+    group = 'documentation'
+    description = 'Rewrites the generated dialect capability table in docs/NESTED.md.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'ai.koryki.tools.docs.NestedSupportMatrix'
+    args rootProject.file('docs/NESTED.md').path
+}
+
 // Views that flatten the list columns of a table into one row per element (see FlattenViews):
 //   ./gradlew :tools:flattenViews -Pflatten.args="duckdb db.json model.json check_complex out items events"
 tasks.register('flattenViews', JavaExec) {

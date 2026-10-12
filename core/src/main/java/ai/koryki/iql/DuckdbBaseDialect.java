@@ -481,6 +481,11 @@ public class DuckdbBaseDialect implements SqlDialect {
      * path, {@code (j -> '$.a.b[0]')}, with {@code #-1} for the last element.
      */
     @Override
+    public NestedSupport nestedSupport() {
+        return NestedSupport.full("DuckDB");
+    }
+
+    @Override
     public String selection(
             String base,
             TypeDescriptor baseType,

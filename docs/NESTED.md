@@ -124,7 +124,31 @@ Trino, Snowflake and Oracle, and refuses lists of lists and of maps. The complex
 three views `check_complex_tags`, `_items` and `_events`. Two differences remain: Snowflake `FLATTEN`
 drops NULL elements, and the ordinal of an Oracle nested table follows storage order.
 
+## What the dialects declare
+
+What an engine can do with nested values is declared by the dialect (`SqlDialect.nestedSupport()`),
+and a use it cannot express is a violation of the query, with a position, before any SQL is built.
+This table is generated from those declarations.
+
+<!-- nested-support:begin (generated: ./gradlew :tools:nestedMatrix) -->
+
+| | list | struct | map | JSON | JSON from the end | lambda over a JSON array |
+|---|---|---|---|---|---|---|
+| DuckDB | yes | yes | yes | yes | yes | yes |
+| Oracle | yes | yes | no | yes | yes | no |
+| Snowflake | yes | yes | yes | yes | no | yes |
+| SQL Server | no | no | no | yes | no | no list |
+| PostgreSQL | yes | yes | no | yes | yes | yes |
+| MariaDB | no | no | no | yes | yes | no list |
+| SQLite | no | no | no | yes | yes | no list |
+| Trino | yes | yes | yes | yes | no | yes |
+
+<!-- nested-support:end -->
+
 ## What the dialects do
+
+The details behind the declarations above, by hand: what each engine does with what it accepts. Where
+the two disagree, the table above is the declaration and this one is out of date.
 
 | | list | range | struct | map | JSON | JSON from the end | transform, filter | position parameter | reduce |
 |---|---|---|---|---|---|---|---|---|---|

@@ -328,6 +328,66 @@ public interface SqlDialect {
     }
 
     /**
+     * What this engine can do with nested values: the kinds of value a selector may reach into,
+     * whether a JSON position may count from the end, and whether a lambda may be applied to a list
+     * made from a JSON array. Declared rather than discovered, like {@link #intervalSupport()}, so
+     * that a use the engine cannot express is a positioned violation of the query and the support
+     * matrix of {@code docs/NESTED.md} is generated from it.
+     *
+     * @param name the engine as a message names it
+     * @param selectable the families a selector may be applied to: ARRAY, STRUCT, MAP, JSON
+     * @param jsonFromEnd whether a JSON path can count from the end ({@code t.doc@-1})
+     * @param lambdaOverJsonList whether {@code list_transform} and its kind take a list that is a
+     *     JSON array declared in the catalog
+     */
+    record NestedSupport(
+            String name,
+            java.util.Set<CoreTypeFamily> selectable,
+            boolean jsonFromEnd,
+            boolean lambdaOverJsonList) {
+
+        /** Everything, as DuckDB has it. */
+        public static NestedSupport full(String name) {
+            return new NestedSupport(
+                    name,
+                    java.util.EnumSet.of(
+                            CoreTypeFamily.ARRAY,
+                            CoreTypeFamily.STRUCT,
+                            CoreTypeFamily.MAP,
+                            CoreTypeFamily.JSON),
+                    true,
+                    true);
+        }
+
+        /** An engine with JSON and no other nested value. */
+        public static NestedSupport jsonOnly(String name, boolean jsonFromEnd) {
+            return new NestedSupport(
+                    name, java.util.EnumSet.of(CoreTypeFamily.JSON), jsonFromEnd, true);
+        }
+
+        public NestedSupport without(CoreTypeFamily family) {
+            java.util.Set<CoreTypeFamily> rest = java.util.EnumSet.copyOf(selectable);
+            rest.remove(family);
+            return new NestedSupport(name, rest, jsonFromEnd, lambdaOverJsonList);
+        }
+
+        public NestedSupport withoutJsonFromEnd() {
+            return new NestedSupport(name, selectable, false, lambdaOverJsonList);
+        }
+
+        public NestedSupport withoutLambdaOverJsonList() {
+            return new NestedSupport(name, selectable, jsonFromEnd, false);
+        }
+    }
+
+    /**
+     * @see NestedSupport
+     */
+    default NestedSupport nestedSupport() {
+        return NestedSupport.full(getClass().getSimpleName());
+    }
+
+    /**
      * A duration's components with year, quarter and month folded into one MONTH step, the day and
      * clock components left as they are.
      *

@@ -376,6 +376,11 @@ public class OracleDialect implements SqlDialect {
      * position from the end.
      */
     @Override
+    public NestedSupport nestedSupport() {
+        return NestedSupport.full("Oracle").without(CoreTypeFamily.MAP).withoutLambdaOverJsonList();
+    }
+
+    @Override
     public String selection(String base, TypeDescriptor baseType, List<Selector> steps) {
         String sql = base;
         TypeDescriptor type = baseType;

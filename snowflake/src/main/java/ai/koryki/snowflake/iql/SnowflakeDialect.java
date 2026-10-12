@@ -105,6 +105,11 @@ public class SnowflakeDialect implements SqlDialect {
      * (VARIANT) takes one {@code GET_PATH}, which has no position from the end either.
      */
     @Override
+    public NestedSupport nestedSupport() {
+        return NestedSupport.full("Snowflake").withoutJsonFromEnd();
+    }
+
+    @Override
     public String selection(String base, TypeDescriptor baseType, List<Selector> steps) {
         String sql = base;
         TypeDescriptor type = baseType;

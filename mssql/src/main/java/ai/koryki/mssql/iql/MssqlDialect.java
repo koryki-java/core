@@ -293,6 +293,11 @@ public class MssqlDialect implements SqlDialect {
     }
 
     @Override
+    public NestedSupport nestedSupport() {
+        return NestedSupport.jsonOnly("SQL Server", false);
+    }
+
+    @Override
     public String selection(String base, TypeDescriptor baseType, List<Selector> steps) {
         if (!CoreTypeFamily.JSON.equals(baseType.getTypeFamily())) {
             throw new KorykiaiException(

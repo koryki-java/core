@@ -124,6 +124,7 @@ public class Validator {
                 // Derived from the declaration rather than wired per dialect: the dialect states
                 // what it can do in intervalSupport() and contributes nothing else here.
                 violations.addAll(Walker.apply(bean, new DurationValueValidator(context, dialect)));
+                violations.addAll(Walker.apply(bean, new NestedSupportValidator(context, dialect)));
                 for (Collector<List<Violation>> v : dialect.validators(context)) {
                     violations.addAll(Walker.apply(bean, v));
                 }

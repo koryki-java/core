@@ -28,6 +28,12 @@ All notable changes to this project are documented here.
   `t.doc@a@b` on DuckDB, PostgreSQL, Trino, Snowflake and (without lambdas) Oracle. New
   `SqlDialect.jsonList` and `declaredScalarType` hooks.
 
+- `SqlDialect.nestedSupport()` declares what an engine can do with nested values (the kinds of value
+  a selector may reach into, JSON positions from the end, a lambda over a list made from a JSON array).
+  A use it cannot express is now a positioned `unsupported` violation of the query
+  (`NestedSupportValidator`) instead of an exception while rendering, and the support table in
+  `docs/NESTED.md` is generated from the declarations (`./gradlew :tools:nestedMatrix`).
+
 - Flatten views: `FlattenViews` (module `tools`, task `flattenViews`) generates, for a list column,
   the view with one row per element (parent key, `ordinal`, struct fields or `value`) in the SQL of
   DuckDB, PostgreSQL, Trino, Snowflake and Oracle, plus the catalog and model entries and the relation

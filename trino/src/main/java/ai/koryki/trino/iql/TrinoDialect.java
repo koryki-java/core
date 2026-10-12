@@ -171,6 +171,11 @@ public class TrinoDialect implements SqlDialect {
      * json_extract} with a path counted from 0, which has no position from the end.
      */
     @Override
+    public NestedSupport nestedSupport() {
+        return NestedSupport.full("Trino").withoutJsonFromEnd();
+    }
+
+    @Override
     public String selection(String base, TypeDescriptor baseType, List<Selector> steps) {
         String sql = base;
         TypeDescriptor type = baseType;

@@ -142,6 +142,11 @@ public class PostgreSqlDialect implements SqlDialect {
      * one has no portable meaning, so both are refused instead of rendering a NULL.
      */
     @Override
+    public NestedSupport nestedSupport() {
+        return NestedSupport.full("PostgreSQL").without(CoreTypeFamily.MAP);
+    }
+
+    @Override
     public String selection(String base, TypeDescriptor baseType, java.util.List<Selector> steps) {
         return select(base, baseType, steps, false);
     }

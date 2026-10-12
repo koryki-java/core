@@ -272,6 +272,11 @@ public class MariadbDialect implements SqlDialect {
     }
 
     @Override
+    public NestedSupport nestedSupport() {
+        return NestedSupport.jsonOnly("MariaDB", true);
+    }
+
+    @Override
     public String selection(String base, TypeDescriptor baseType, List<Selector> steps) {
         if (!CoreTypeFamily.JSON.equals(baseType.getTypeFamily())) {
             throw new KorykiaiException(

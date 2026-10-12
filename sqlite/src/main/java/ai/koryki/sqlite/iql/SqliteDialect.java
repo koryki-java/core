@@ -83,6 +83,11 @@ public class SqliteDialect implements SqlDialect {
     }
 
     @Override
+    public NestedSupport nestedSupport() {
+        return NestedSupport.jsonOnly("SQLite", true);
+    }
+
+    @Override
     public String selection(String base, TypeDescriptor baseType, List<Selector> steps) {
         if (!CoreTypeFamily.JSON.equals(baseType.getTypeFamily())) {
             throw new KorykiaiException(
