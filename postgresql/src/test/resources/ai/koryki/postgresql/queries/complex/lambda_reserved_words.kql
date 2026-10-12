@@ -1,0 +1,5 @@
+// Words that are reserved in SQL are legal names for a lambda parameter.
+FIND check_complex t
+FETCH t.nr,
+      list_transform(t.scores, select -> select * 2) doubled,
+      list_filter(t.scores, end -> end > 1) big

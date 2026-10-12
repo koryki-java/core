@@ -1,0 +1,8 @@
+Nr : INTEGER
+quote_key : JSON
+backslash_key : JSON
+bracket_key : JSON
+quote_member : JSON
+backslash_member : JSON
+path_member : JSON
+dotted_member : JSON

@@ -1,0 +1,4 @@
+// The same for a fold, which has two parameters: where the dialect has one.
+FIND check_complex t
+FILTER t.nr <> 2
+FETCH t.nr, list_reduce(t.scores, (order, case) -> order + case) total

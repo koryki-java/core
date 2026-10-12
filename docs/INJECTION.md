@@ -54,9 +54,10 @@ injection would be worth.
 
 ## Injection paths
 
-Five places take text from outside and put it into a statement. Four are real paths with real
-barriers; the fifth section lists what looks like a path and is not, and says why — because "this
-one is safe" is a claim that has to be checkable, not remembered.
+Six places take text from outside and put it into a statement. Five are real paths with real
+barriers; section 5 lists what looks like a path and is not, and says why — because "this
+one is safe" is a claim that has to be checkable, not remembered. Section 6 is the newest path:
+the names inside a nested value.
 
 ### 1. Values — KQL and IQL string literals
 
@@ -169,6 +170,33 @@ transpiler, not assumed: where a row shows rendered SQL, that is what it actuall
 | placeholders `#name` | `PlaceholderValidator` refuses a query that still has one — the pipeline stops before rendering |
 | custom operators | `custom=ID`, so the alphabet is `[a-z_][a-z0-9_]*`; no payload fits in it |
 | result output (CSV, XML) | `XMLStreamWriter.writeCharacters` escapes; CSV quotes — a different threat model, not this one |
+
+### 6. Selector keys — names inside a nested value
+
+A selector names something inside a value: `t.attrs@'a key'` a map key, `t.doc@'a"b'` a JSON member,
+`t.dims@w` a struct field. The name is the author's text, and the dialect writes it into the
+statement in whichever way its engine reaches into the value — and that is four different ways:
+
+| Written as | Where | Example |
+|---|---|---|
+| a text literal | a map key, a struct field name handed to a function | `element_at(t.attrs, 'k')`, `GET(t.dims, 'w')` |
+| the body of a JSON path inside a literal | a JSON member | `(t.doc -> '$."a b"')` — two quotings, the path's and the literal's |
+| a quoted identifier | a struct field | `(t.dims).w`, `t.dims.w`, `(t.dims)."odd name"` |
+
+A name that is not a plain identifier is quoted for the path (`"` escaped as the path syntax says)
+and the result is then written as a literal through `NestedSql.literal`, which doubles the quote and
+applies `SqlDialect.textLiteral`, so a backslash is doubled on MariaDB and Snowflake too. A struct
+field is matched against the declared names (`NestedSql.fieldName`), and a name the type does not
+have is refused when the query is checked; a field is written as an identifier through
+`NestedSql.identifier`, quoted when it is not plain.
+
+A **lambda parameter** is a bare word of the query, `[a-z_][a-z0-9_]*`, so no payload fits in it, but
+the words that are reserved in SQL are legal parameter names. The renderers write a parameter as a
+derived alias (`_l0_x`) or as `LA0.X`, never as the bare word.
+
+**Barrier:** B2 (the literal) and B3 (the identifier), applied to the key by `NestedSql` — one place,
+for all eight dialects, as R1 requires. `HostileSelectorTest` (tools) holds every dialect to it for a
+dozen keys, and the corpus `hostile_keys` / `hostile_json_keys` runs them on the live engines.
 
 ## Barriers
 
@@ -417,7 +445,9 @@ Current coverage:
 | `security/CommentInjectionTest` | core | 4 — CR, LF, CRLF, and `lineComment` itself |
 | `HostileLiteralTest` | tools | 1 and 3, **for all eight dialects**, each read with its own literal syntax; plus the generated-input pass over paths 1 and 4 |
 | `HostileIdentifierTest` | tools | 2, for all eight dialects — spaces, keywords, embedded quotes, the CTE list |
+| `HostileSelectorTest` | tools | 6, for all eight dialects — hostile map keys, struct fields and JSON members, in chains and as function arguments; reserved words as lambda parameters |
 | `SqlInjectionEngineTest` | duckdb | all four, against a running engine |
+| corpus `hostile_keys`, `hostile_json_keys`, `lambda_reserved_words` | every dialect | 6, against live engines |
 | `HostileNameSnowflakeTest`, `MixedCaseNameOracleTest` | snowflake, oracle | 2, against live engines |
 
 The two `tools` tests are the cross-dialect layer, and they are there because `core` cannot see the
