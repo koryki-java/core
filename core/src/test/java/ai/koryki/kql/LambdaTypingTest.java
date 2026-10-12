@@ -166,6 +166,11 @@ class LambdaTypingTest {
                 "list_transform(t.scores, x -> sum(x))|aggregate sum",
                 "list_transform(t.scores, x -> row_number() OVER (ORDER t.nr))|window function",
                 "list_transform(t.scores, x -> (FIND check_complex u FETCH count(u)))|subselect",
+                // a predicate has to answer yes or no
+                "list_filter(t.scores, x -> x)|answers yes or no, but this one gives INTEGER",
+                "list_filter(t.tags, x -> 'a')|answers yes or no, but this one gives TEXT",
+                "list_any(t.scores, x -> x * 2)|answers yes or no",
+                "list_all(t.scores, x -> x + 1)|answers yes or no",
             })
     void aLambdaThatIsWrongIsAViolation(String expression, String message) throws IOException {
         List<Violation> violations = violations(expression);

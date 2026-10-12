@@ -101,6 +101,7 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         checkAnchorFirst(function);
         checkConditionalReconciliation(function);
         checkListSize(function);
+        checkLambdaPredicate(function);
         checkLogicalArguments(function);
         checkProjectionOnly(deque, function);
         checkWindowOnly(function);
@@ -242,6 +243,51 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
                                         + " of '"
                                         + function.getFunc()
                                         + "'"));
+            }
+        }
+    }
+
+    /**
+     * A lambda that is a predicate ({@code list_filter}, {@code list_any}, {@code list_all}) has to
+     * answer yes or no. Its body is typed with the parameters bound, so {@code x -> x * 2} is an
+     * INTEGER where a BOOLEAN is wanted, which the database would reject (or, worse, read as it
+     * pleases). A body that cannot be typed is left to whoever reports why.
+     */
+    private void checkLambdaPredicate(Function function) {
+        if (!typeChecks() || scopes.isEmpty() || functions == null) {
+            return;
+        }
+        List<Expression> args = function.getArguments();
+        for (int i = 0; i < args.size(); i++) {
+            if (args.get(i).getLambda() == null) {
+                continue;
+            }
+            ai.koryki.iql.functions.LambdaSpec spec =
+                    functions.lambda(function.getFunc(), args.size(), i);
+            if (spec == null || !spec.predicate()) {
+                continue;
+            }
+            ExpressionTypeResolver types =
+                    new ExpressionTypeResolver(resolver, scopes.peek(), functions);
+            TypeDescriptor body;
+            try {
+                var typing = types.bindLambdas(function).get(i);
+                body = typing == null ? null : typing.bodyType();
+            } catch (RuntimeException unresolved) {
+                continue;
+            }
+            if (body != null
+                    && body.getTypeFamily() != null
+                    && !ai.koryki.catalog.types.CoreTypeFamily.BOOLEAN.equals(
+                            body.getTypeFamily())) {
+                violations.add(
+                        new Violation(
+                                "type",
+                                args.get(i),
+                                Range.of(iqlToContext, args.get(i)),
+                                function.getFunc()
+                                        + " takes a lambda that answers yes or no, but this one gives "
+                                        + body.portable()));
             }
         }
     }
