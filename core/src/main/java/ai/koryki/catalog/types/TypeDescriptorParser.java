@@ -257,6 +257,46 @@ public interface TypeDescriptorParser {
                                         spelled.getPhysicalTypeName().replaceAll("\\s+", ""));
     }
 
+    /**
+     * The children a node has, by name, for a message and for the rule that a family takes its own.
+     */
+    private static List<String> childrenOf(Column node) {
+        List<String> found = new ArrayList<>();
+        if (node.getFields() != null && !node.getFields().isEmpty()) {
+            found.add("fields");
+        }
+        if (node.getElement() != null) {
+            found.add("element");
+        }
+        if (node.getKey() != null) {
+            found.add("key");
+        }
+        if (node.getValue() != null) {
+            found.add("value");
+        }
+        return found;
+    }
+
+    /**
+     * A node has the children its family takes and no others: a stray one is a mistake in the
+     * catalog.
+     */
+    private static void takesOnly(Column node, String where, String... allowed) {
+        List<String> stray = new ArrayList<>(childrenOf(node));
+        stray.removeAll(List.of(allowed));
+        if (!stray.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "column '"
+                            + where
+                            + "': a "
+                            + node.getTypeFamily()
+                            + " has "
+                            + (allowed.length == 0 ? "no children" : String.join(" and ", allowed))
+                            + ", not "
+                            + String.join(" and ", stray));
+        }
+    }
+
     /** One node of a nested column as a type: a container from its children, a leaf as a column. */
     private TypeDescriptor node(Column node, String where) {
         if (node.getTypeFamily() == null) {
@@ -265,6 +305,7 @@ public interface TypeDescriptorParser {
         }
         TypeFamily family = TypeFamilyRegistry.of(node.getTypeFamily());
         if (CoreTypeFamily.ARRAY.equals(family)) {
+            takesOnly(node, where, "element");
             if (node.getElement() == null) {
                 throw new IllegalArgumentException(
                         "column '" + where + "': an ARRAY has an element");
@@ -273,6 +314,7 @@ public interface TypeDescriptorParser {
                     node(node.getElement(), where + "[]"),
                     node.getLength() == null ? -1 : node.getLength());
         } else if (CoreTypeFamily.STRUCT.equals(family)) {
+            takesOnly(node, where, "fields");
             if (node.getFields() == null || node.getFields().isEmpty()) {
                 throw new IllegalArgumentException("column '" + where + "': a STRUCT has fields");
             }
@@ -288,6 +330,7 @@ public interface TypeDescriptorParser {
             }
             return TypeDescriptor.struct(names, types);
         } else if (CoreTypeFamily.MAP.equals(family)) {
+            takesOnly(node, where, "key", "value");
             if (node.getKey() == null || node.getValue() == null) {
                 throw new IllegalArgumentException(
                         "column '" + where + "': a MAP has a key and a value");
@@ -301,6 +344,7 @@ public interface TypeDescriptorParser {
                             TypeEncodingRegistry.ofNullable(node.getTypeEncoding()))
                     .withShape(members(node, where));
         }
+        takesOnly(node, where);
         Column leaf = new Column(where);
         leaf.setTypeFamily(node.getTypeFamily());
         leaf.setTypeEncoding(node.getTypeEncoding());
@@ -325,6 +369,14 @@ public interface TypeDescriptorParser {
      * value can be read as, or such a shape again. Nothing is said about members not listed.
      */
     private TypeDescriptor members(Column json, String where) {
+        if (childrenOf(json).size() > 1) {
+            throw new IllegalArgumentException(
+                    "column '"
+                            + where
+                            + "': a JSON node lists the members of an object (fields), or the"
+                            + " element of an array, or the value of an object, not "
+                            + String.join(" and ", childrenOf(json)));
+        }
         if (json.getFields() != null && !json.getFields().isEmpty()) {
             List<String> names = new ArrayList<>();
             List<TypeDescriptor> types = new ArrayList<>();

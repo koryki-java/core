@@ -279,4 +279,48 @@ class FlattenViewsTest {
                 IllegalArgumentException.class,
                 () -> FlattenViews.ofJson(db(), "things", Dialect.SQLITE, "title", ".a"));
     }
+
+    @Test
+    void theColumnsOfAViewSayWhatTheNodesOfTheElementSay() {
+        Schema schema = db();
+        Column items = schema.getTable("things").orElseThrow().getColumns().get(1);
+        Column element = new Column();
+        element.setTypeFamily("STRUCT");
+        Column sku = column("sku", "TEXT", "VARCHAR", 0);
+        sku.setLabel("SKU");
+        Column price = column("price", "DECIMAL", "DECIMAL(10,2)", 0);
+        price.setLabel("Unit price");
+        price.setUnit("EUR");
+        price.setQuantity("money");
+        price.setPresentation("DECIMALS:2");
+        element.setFields(List.of(sku, column("qty", "INTEGER", "INTEGER", 0), price));
+        items.setElement(element);
+
+        View v = FlattenViews.of(schema, "things", Dialect.DUCKDB, "items").get(0);
+
+        Column viewPrice =
+                v.table().getColumns().stream()
+                        .filter(c -> c.getName().equals("price"))
+                        .findFirst()
+                        .orElseThrow();
+        assertEquals("Unit price", viewPrice.getLabel());
+        assertEquals("EUR", viewPrice.getUnit());
+        assertEquals("money", viewPrice.getQuantity());
+        assertEquals("DECIMALS:2", viewPrice.getPresentation());
+        assertEquals(
+                "SKU",
+                v.entity().getAttributes().stream()
+                        .filter(a -> a.getName().equals("sku"))
+                        .findFirst()
+                        .orElseThrow()
+                        .getLabel());
+        // a field the catalog says nothing about keeps the generated label
+        assertEquals(
+                "Qty",
+                v.table().getColumns().stream()
+                        .filter(c -> c.getName().equals("qty"))
+                        .findFirst()
+                        .orElseThrow()
+                        .getLabel());
+    }
 }

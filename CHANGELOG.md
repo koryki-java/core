@@ -26,6 +26,12 @@ All notable changes to this project are documented here.
   refine a leaf. `TypeTree` writes the tree of a `TypeDescriptor`, `./gradlew :tools:typeTrees` that of
   a whole catalog.
 
+- The nodes of a nested column carry labels, descriptions, units, quantities and presentations, and
+  `NestedNodes.node` finds the node a selector chain ends at, so what a consumer explains a nested
+  result column by is in the catalog (the complex catalogs have it on every part). The flatten views
+  inherit the annotations of the element. A node whose children do not fit its family (an ARRAY with
+  fields) is refused when the catalog is read.
+
 - Typed JSON: a catalog declares the members of a JSON column (`fields`, `element` and `value` on the
   column, `n` INTEGER and `a.b` an array of INTEGER), and a selection that reaches one is that scalar, so `FILTER t.doc@n > 0`,
   arithmetic, `sum` and `GROUP BY` work without a cast. `TypeDescriptor.shape()` carries the declared

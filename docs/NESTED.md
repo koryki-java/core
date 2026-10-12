@@ -196,6 +196,13 @@ A node has what a column has: a label, a description, a unit, a quantity, a pres
 (`"typeEncoding": "EPOCH:SECONDS"` on a BIGINT that is a timestamp) and a `dialectType`, which a leaf
 may leave out (it is then the plain name of its family). The tree is the type. The `dialectType` of
 the column, if it is a spelling of the same type, is checked against it and refused when it is not.
+The part a selector chain ends at is found with `NestedNodes.node(column, steps)`: `t.address@geo@lat` is
+the `lat` node of the `geo` node of `address`, and what the catalog says there (its label, its unit,
+its quantity) is what a result column made of it is explained by. The flatten views take the same
+annotations from the element's nodes, so the columns of "revenue by sku" are labelled and measured as
+the list's fields are. Each node can carry any of these; the complex catalogs have them on all of
+theirs. A node may say nothing, and a column without a tree says nothing about its parts.
+
 A column without a tree is read from its spelling, as before; `TypeTrees` (`./gradlew
 :tools:typeTrees`) writes the tree of a spelling, for a catalog to start from.
 

@@ -124,6 +124,7 @@ public final class FlattenViews {
                             keys,
                             column.getName(),
                             type.element(),
+                            column.getElement(),
                             sql(
                                     dialect,
                                     table.getName() + "_" + column.getName(),
@@ -188,11 +189,22 @@ public final class FlattenViews {
         }
         String source = columnName + "_" + String.join("_", names);
         TypeDescriptor element = array.element();
+        List<ai.koryki.iql.query.Selector> steps = new ArrayList<>();
+        for (String step : names) {
+            ai.koryki.iql.query.Selector selector = new ai.koryki.iql.query.Selector();
+            selector.setId(step);
+            steps.add(selector);
+        }
+        Column elementNode =
+                ai.koryki.iql.typing.NestedNodes.node(column, steps)
+                        .map(Column::getElement)
+                        .orElse(null);
         return view(
                 table,
                 keys,
                 source,
                 element,
+                elementNode,
                 jsonSql(
                         dialect,
                         table.getName() + "_" + source,
@@ -201,6 +213,39 @@ public final class FlattenViews {
                         columnName,
                         jsonPath.toString(),
                         element));
+    }
+
+    /** The node of the element, or of one of its fields, that carries the annotations. */
+    private static Column annotated(Column elementNode, boolean struct, int field) {
+        if (elementNode == null) {
+            return null;
+        }
+        if (!struct) {
+            return elementNode;
+        }
+        return elementNode.getFields() != null && field < elementNode.getFields().size()
+                ? elementNode.getFields().get(field)
+                : null;
+    }
+
+    /** What the catalog said about the part, said again about the column of the view. */
+    private static void inherit(Column column, Column node) {
+        if (node == null) {
+            return;
+        }
+        if (node.getLabel() != null) {
+            column.setLabel(node.getLabel());
+        }
+        if (node.getDescription() != null) {
+            column.setDescription(node.getDescription());
+        }
+        if (node.getComment() != null) {
+            column.setComment(node.getComment());
+        }
+        column.setUnit(node.getUnit());
+        column.setQuantity(node.getQuantity());
+        column.setPresentation(node.getPresentation());
+        column.setTypeEncoding(node.getTypeEncoding());
     }
 
     private static List<String> fieldsOf(TypeDescriptor element) {
@@ -216,8 +261,18 @@ public final class FlattenViews {
         return CoreTypeFamily.STRUCT.equals(element.getTypeFamily());
     }
 
+    /**
+     * @param elementNode what the catalog says about the element, or null when it says nothing: its
+     *     label, description, unit, quantity, presentation and encoding go to the columns of the
+     *     view
+     */
     private static View view(
-            Table table, List<Column> keys, String source, TypeDescriptor element, String sql) {
+            Table table,
+            List<Column> keys,
+            String source,
+            TypeDescriptor element,
+            Column elementNode,
+            String sql) {
         String name = table.getName() + "_" + source;
         List<String> fields = fieldsOf(element);
 
@@ -261,6 +316,7 @@ public final class FlattenViews {
             field.setTypeFamily(fieldType.getTypeFamily().name());
             field.setDialectType(fieldType.getPhysicalTypeName());
             field.setNullable(true);
+            inherit(field, annotated(elementNode, struct(element), i));
             columns.add(field);
         }
         viewTable.setColumns(columns);

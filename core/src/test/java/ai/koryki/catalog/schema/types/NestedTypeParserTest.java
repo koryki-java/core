@@ -432,6 +432,32 @@ class NestedTypeParserTest {
     }
 
     @Test
+    void aNodeWithChildrenOfAnotherFamilyIsRefused() {
+        Column arrayWithFields = array("c", leaf(null, "INTEGER", null, null));
+        arrayWithFields.setFields(List.of(leaf("x", "INTEGER", null, null)));
+
+        Column structWithElement = struct("c", leaf("x", "INTEGER", null, null));
+        structWithElement.setElement(leaf(null, "INTEGER", null, null));
+
+        Column scalarWithKids = leaf("c", "INTEGER", null, "INTEGER");
+        scalarWithKids.setElement(leaf(null, "INTEGER", null, null));
+
+        Column mapWithElement = new Column("c");
+        mapWithElement.setTypeFamily("MAP");
+        mapWithElement.setKey(leaf(null, "TEXT", null, null));
+        mapWithElement.setValue(leaf(null, "TEXT", null, null));
+        mapWithElement.setElement(leaf(null, "TEXT", null, null));
+
+        for (Column bad :
+                List.of(arrayWithFields, structWithElement, scalarWithKids, mapWithElement)) {
+            IllegalArgumentException e =
+                    assertThrows(IllegalArgumentException.class, () -> PARSER.parse(bad));
+            assertTrue(e.getMessage().contains("column 'c'"), e.getMessage());
+            assertTrue(e.getMessage().contains(" has "), e.getMessage());
+        }
+    }
+
+    @Test
     void anEncodingOfAnotherFamilyOnALeafIsRefused() {
         Column column = array("c", leaf(null, "INTEGER", "EPOCH:SECONDS", "BIGINT"));
 
