@@ -56,7 +56,7 @@ class SchemaCopyTest {
         concepts.put("zero", new Concept());
 
         Column billing = new Column("billing");
-        billing.setConcept("address");
+        billing.setConceptRef("address");
         Table table = new Table("orders");
         table.setColumns(new ArrayList<>(List.of(billing)));
 
@@ -71,7 +71,7 @@ class SchemaCopyTest {
     void aColumnKeepsItsConcept() {
         Schema copy = SchemaCopy.deepCopy(schema());
 
-        assertEquals("address", copy.getTables().get(0).getColumns().get(0).getConcept());
+        assertEquals("address", copy.getTables().get(0).getColumns().get(0).getConceptRef());
     }
 
     @Test

@@ -59,7 +59,7 @@ public final class ConceptConverter {
                 if (TypeTree.hasTree(column)) {
                     String name = table.getName() + "_" + column.getName();
                     converter.put(name, converter.concept(column, name));
-                    column.setConcept(name);
+                    column.setConceptRef(name);
                 }
             }
         }

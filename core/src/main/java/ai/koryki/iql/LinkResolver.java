@@ -92,7 +92,7 @@ public class LinkResolver {
                                                 // a column that refers to a concept is typed from
                                                 // it, any other from what it declares itself
                                                 TypeDescriptor d =
-                                                        c.getConcept() != null
+                                                        c.getConceptRef() != null
                                                                 ? concepts.descriptor(c, parser)
                                                                 : parser.parse(c);
                                                 columnToTypedescriptor.put(c, d);

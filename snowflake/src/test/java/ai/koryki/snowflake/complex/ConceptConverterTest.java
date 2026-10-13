@@ -56,7 +56,7 @@ class ConceptConverterTest {
             Table before = OLD.getTables().get(t);
             for (int c = 0; c < before.getColumns().size(); c++) {
                 Column column = NEW.getTables().get(t).getColumns().get(c);
-                if (column.getConcept() != null) {
+                if (column.getConceptRef() != null) {
                     assertEquals(
                             PARSER.parse(before.getColumns().get(c)),
                             resolver.descriptor(column, PARSER),
@@ -82,7 +82,7 @@ class ConceptConverterTest {
                                 || column.getValue() != null;
                 assertEquals(
                         nested,
-                        column.getConcept() != null,
+                        column.getConceptRef() != null,
                         table.getName() + "." + column.getName());
             }
         }
@@ -109,7 +109,7 @@ class ConceptConverterTest {
 
     @Test
     void theObjectSpellingsStayWhereTheyAre() {
-        assertEquals("check_complex_dims", column("dims").getConcept());
+        assertEquals("check_complex_dims", column("dims").getConceptRef());
         assertEquals("OBJECT(w DOUBLE, h DOUBLE)", column("dims").getDialectType());
     }
 }

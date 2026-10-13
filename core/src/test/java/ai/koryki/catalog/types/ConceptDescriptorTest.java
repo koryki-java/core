@@ -53,7 +53,7 @@ class ConceptDescriptorTest {
 
     private static Column viaConcept() {
         Column column = new Column("c");
-        column.setConcept("k");
+        column.setConceptRef("k");
         return column;
     }
 

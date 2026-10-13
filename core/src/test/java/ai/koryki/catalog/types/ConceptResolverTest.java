@@ -45,7 +45,7 @@ class ConceptResolverTest {
 
     private static Column column(String name, String concept) {
         Column column = new Column(name);
-        column.setConcept(concept);
+        column.setConceptRef(concept);
         return column;
     }
 

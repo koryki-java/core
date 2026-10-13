@@ -45,7 +45,7 @@ class ConceptsJsonTest {
             { "name": "complex",
               "tables": [ { "name": "orders", "columns": [
                 { "name": "id", "typeFamily": "INTEGER", "dialectType": "INTEGER", "pkPos": 1 },
-                { "name": "billing", "concept": "address",
+                { "name": "billing", "conceptRef": "address",
                   "typeFamily": "STRUCT", "dialectType": "STRUCT(street VARCHAR)" }
               ] } ],
               "relations": [],
@@ -89,9 +89,9 @@ class ConceptsJsonTest {
         Schema schema = CatalogLoader.readSchemaJson(DB);
 
         Column billing = schema.getTables().get(0).getColumns().get(1);
-        assertEquals("address", billing.getConcept());
+        assertEquals("address", billing.getConceptRef());
         assertEquals("STRUCT", billing.getTypeFamily());
-        assertNull(schema.getTables().get(0).getColumns().get(0).getConcept());
+        assertNull(schema.getTables().get(0).getColumns().get(0).getConceptRef());
     }
 
     @Test

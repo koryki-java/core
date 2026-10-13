@@ -47,11 +47,11 @@ public final class ConceptResolver {
      *     not have
      */
     public Concept concept(Column column) {
-        if (column.getConcept() == null) {
+        if (column.getConceptRef() == null) {
             throw new IllegalArgumentException(
                     "column '" + column.getName() + "': it refers to no concept");
         }
-        return find(column.getConcept(), "column '" + column.getName() + "'");
+        return find(column.getConceptRef(), "column '" + column.getName() + "'");
     }
 
     /**

@@ -55,7 +55,7 @@ class ConceptConverterTest {
             Table before = OLD.getTables().get(t);
             for (int c = 0; c < before.getColumns().size(); c++) {
                 Column column = NEW.getTables().get(t).getColumns().get(c);
-                if (column.getConcept() != null) {
+                if (column.getConceptRef() != null) {
                     converted++;
                     assertEquals(
                             PARSER.parse(before.getColumns().get(c)),
@@ -90,6 +90,6 @@ class ConceptConverterTest {
 
     @Test
     void aScalarColumnIsLeftAlone() {
-        assertNull(column(NEW, "nr").getConcept());
+        assertNull(column(NEW, "nr").getConceptRef());
     }
 }

@@ -50,9 +50,9 @@ public class Column {
     /**
      * The name of a concept in {@code Schema.getConcepts()}: what this column is, where the concept
      * says it (structure, unit, presentation, label). Beside the fields above, which a column still
-     * carries itself; nothing reads this yet.
+     * carries itself and which are read when it has no reference.
      */
-    private String concept;
+    private String conceptRef;
 
     private Boolean nullable;
     private int pkPos;
@@ -253,11 +253,11 @@ public class Column {
         this.presentation = presentation;
     }
 
-    public String getConcept() {
-        return concept;
+    public String getConceptRef() {
+        return conceptRef;
     }
 
-    public void setConcept(String concept) {
-        this.concept = concept;
+    public void setConceptRef(String conceptRef) {
+        this.conceptRef = conceptRef;
     }
 }

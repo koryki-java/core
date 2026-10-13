@@ -55,7 +55,7 @@ class ConceptSpellingAgreementTest {
         Schema schema = new Schema();
         schema.setConcepts(new LinkedHashMap<>(Map.of("k", concept)));
         Column column = new Column("c");
-        column.setConcept("k");
+        column.setConceptRef("k");
         column.setDialectType(columnSpelling);
         return new ConceptResolver(schema).descriptor(column, PARSER);
     }
@@ -163,7 +163,7 @@ class ConceptSpellingAgreementTest {
                                 "inner",
                                 inner)));
         Column column = new Column("c");
-        column.setConcept("k");
+        column.setConceptRef("k");
 
         String message =
                 assertThrows(

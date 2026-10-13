@@ -44,7 +44,7 @@ class LinkResolverConceptTest {
         Schema schema = ConceptConverter.convert(OLD);
         for (Table table : schema.getTables()) {
             for (Column column : table.getColumns()) {
-                if (column.getConcept() != null) {
+                if (column.getConceptRef() != null) {
                     column.setDialectType(null);
                     column.setFields(null);
                     column.setElement(null);
@@ -68,7 +68,7 @@ class LinkResolverConceptTest {
             for (int c = 0; c < OLD.getTables().get(t).getColumns().size(); c++) {
                 Column old = OLD.getTables().get(t).getColumns().get(c);
                 Column column = bare.getTables().get(t).getColumns().get(c);
-                if (column.getConcept() != null) {
+                if (column.getConceptRef() != null) {
                     nested++;
                 }
                 assertEquals(
@@ -86,7 +86,7 @@ class LinkResolverConceptTest {
         LinkResolver resolver = new LinkResolver(Locale.ENGLISH, converted, MODEL, true);
         Column nr = converted.getTables().get(0).getColumns().get(0);
 
-        assertEquals(null, nr.getConcept());
+        assertEquals(null, nr.getConceptRef());
         assertEquals("INTEGER", resolver.getTypeDescriptor(nr).portable());
     }
 }

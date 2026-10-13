@@ -51,7 +51,7 @@ class ConceptConverterTest {
             for (int c = 0; c < before.getColumns().size(); c++) {
                 Column old = before.getColumns().get(c);
                 Column column = after.getColumns().get(c);
-                if (column.getConcept() == null) {
+                if (column.getConceptRef() == null) {
                     continue;
                 }
                 converted++;
@@ -74,13 +74,13 @@ class ConceptConverterTest {
     void aScalarColumnIsLeftAlone() {
         Column nr = NEW.getTables().get(0).getColumns().get(0);
         assertEquals("nr", nr.getName());
-        assertNull(nr.getConcept());
+        assertNull(nr.getConceptRef());
     }
 
     @Test
     void theOldFieldsStayBesideTheReference() {
         Column dims = column("check_complex", "dims");
-        assertEquals("check_complex_dims", dims.getConcept());
+        assertEquals("check_complex_dims", dims.getConceptRef());
         assertNotNull(dims.getFields());
         assertEquals("STRUCT(w DOUBLE, h DOUBLE)", dims.getDialectType());
     }
@@ -183,7 +183,7 @@ class ConceptConverterTest {
         Schema converted = ConceptConverter.convert(old);
         Column column = converted.getTables().get(0).getColumns().get(0);
 
-        assertEquals("t_doc", column.getConcept());
+        assertEquals("t_doc", column.getConceptRef());
         assertEquals("STRUCT", converted.getConcepts().get("t_doc").getTypeFamily());
         assertEquals("JSON", converted.getConcepts().get("t_doc").getTypeEncoding());
         assertEquals(dialectType, converted.getConcepts().get("t_doc").getDialectType());
@@ -194,7 +194,7 @@ class ConceptConverterTest {
 
     @Test
     void theOriginalSchemaIsNotChanged() {
-        assertNull(column(OLD, "check_complex", "dims").getConcept());
+        assertNull(column(OLD, "check_complex", "dims").getConceptRef());
         assertTrue(OLD.getConcepts() == null || OLD.getConcepts().isEmpty());
     }
 

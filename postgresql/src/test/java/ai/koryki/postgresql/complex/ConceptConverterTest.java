@@ -48,7 +48,7 @@ class ConceptConverterTest {
             for (int c = 0; c < before.getColumns().size(); c++) {
                 Column old = before.getColumns().get(c);
                 Column column = NEW.getTables().get(t).getColumns().get(c);
-                if (column.getConcept() != null) {
+                if (column.getConceptRef() != null) {
                     String where = before.getName() + "." + old.getName();
                     TypeDescriptor expected = PARSER.parse(old);
                     assertEquals(expected, resolver.descriptor(column, PARSER), where);
@@ -76,7 +76,7 @@ class ConceptConverterTest {
                                 || column.getValue() != null;
                 assertEquals(
                         nested,
-                        column.getConcept() != null,
+                        column.getConceptRef() != null,
                         table.getName() + "." + column.getName());
             }
         }
@@ -107,7 +107,7 @@ class ConceptConverterTest {
                         .filter(c -> c.getName().equals("dims"))
                         .findFirst()
                         .orElseThrow();
-        assertEquals("check_complex_dims", dims.getConcept());
+        assertEquals("check_complex_dims", dims.getConceptRef());
         assertEquals("ROW(w DOUBLE PRECISION, h DOUBLE PRECISION)", dims.getDialectType());
     }
 }
