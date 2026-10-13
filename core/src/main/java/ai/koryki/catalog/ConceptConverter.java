@@ -43,8 +43,10 @@ public final class ConceptConverter {
     private ConceptConverter() {}
 
     /**
-     * A copy of the schema in which every nested column with nodes refers to a concept; the
-     * concepts the schema already had are kept.
+     * A copy of the schema in which every column that says its type has a concept of its own: a
+     * scalar column the one it declares, a nested column the one its nodes describe. The nodes
+     * below the column are concepts of the schema, named by their path. A column that has a concept
+     * or refers to one is left as it is, and so are the concepts the schema already had.
      *
      * @throws IllegalArgumentException when two nodes would get the same concept name
      */
@@ -56,15 +58,31 @@ public final class ConceptConverter {
         }
         for (Table table : copy.getTables()) {
             for (Column column : table.getColumns()) {
-                if (TypeTree.hasTree(column)) {
-                    String name = table.getName() + "_" + column.getName();
-                    converter.put(name, converter.concept(column, name));
-                    column.setConceptRef(name);
+                if (column.getConcept() == null
+                        && column.getConceptRef() == null
+                        && convertible(column)) {
+                    column.setConcept(
+                            converter.concept(column, table.getName() + "_" + column.getName()));
                 }
             }
         }
         copy.setConcepts(converter.concepts);
         return copy;
+    }
+
+    /**
+     * Whether the column says enough to have a concept: a scalar with its family, or a container
+     * with its nodes. A container that is only a spelling stays as it is.
+     */
+    private static boolean convertible(Column column) {
+        if (column.getTypeFamily() == null) {
+            return false;
+        }
+        boolean container =
+                "ARRAY".equals(column.getTypeFamily())
+                        || "STRUCT".equals(column.getTypeFamily())
+                        || "MAP".equals(column.getTypeFamily());
+        return !container || TypeTree.hasTree(column);
     }
 
     private void put(String name, Concept concept) {

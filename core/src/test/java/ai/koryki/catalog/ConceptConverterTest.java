@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.koryki.catalog.schema.Column;
+import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.schema.Table;
 import ai.koryki.catalog.types.ConceptResolver;
@@ -51,7 +52,8 @@ class ConceptConverterTest {
             for (int c = 0; c < before.getColumns().size(); c++) {
                 Column old = before.getColumns().get(c);
                 Column column = after.getColumns().get(c);
-                if (column.getConceptRef() == null) {
+                assertNull(column.getConceptRef());
+                if (column.getConcept() == null) {
                     continue;
                 }
                 converted++;
@@ -62,7 +64,8 @@ class ConceptConverterTest {
                         expected.portable(), resolver.descriptor(column, PARSER).portable(), where);
             }
         }
-        assertTrue(converted >= 15, "the nested columns of the bed: " + converted);
+        int columns = OLD.getTables().stream().mapToInt(t -> t.getColumns().size()).sum();
+        assertEquals(columns, converted, "every column of the bed has a concept of its own");
     }
 
     @Test
@@ -71,16 +74,21 @@ class ConceptConverterTest {
     }
 
     @Test
-    void aScalarColumnIsLeftAlone() {
+    void aScalarColumnHasTheConceptItDeclares() {
         Column nr = NEW.getTables().get(0).getColumns().get(0);
         assertEquals("nr", nr.getName());
+        assertEquals("Nr", nr.getConcept().getLabel());
+        assertEquals("Row identifier (primary key)", nr.getConcept().getDescription());
+        assertEquals("INTEGER", nr.getConcept().getTypeFamily());
+        assertEquals("SMALLINT", nr.getConcept().getDialectType());
         assertNull(nr.getConceptRef());
     }
 
     @Test
-    void theOldFieldsStayBesideTheReference() {
+    void theOldFieldsStayBesideTheConcept() {
         Column dims = column("check_complex", "dims");
-        assertEquals("check_complex_dims", dims.getConceptRef());
+        assertEquals("STRUCT", dims.getConcept().getTypeFamily());
+        assertNull(dims.getConceptRef());
         assertNotNull(dims.getFields());
         assertEquals("STRUCT(w DOUBLE, h DOUBLE)", dims.getDialectType());
     }
@@ -91,14 +99,14 @@ class ConceptConverterTest {
         assertEquals("m", NEW.getConcepts().get("check_complex_dims_w").getUnit());
         assertEquals(
                 "check_complex_address_geo",
-                NEW.getConcepts().get("check_complex_address").getEntries().get("geo"));
+                column("check_complex", "address").getConcept().getEntries().get("geo"));
         assertEquals(
                 "check_complex_address_street",
-                NEW.getConcepts().get("check_complex_address").getEntries().get("street"));
+                column("check_complex", "address").getConcept().getEntries().get("street"));
         assertEquals(
-                "VARCHAR", NEW.getConcepts().get("check_complex_attrs").getEntries().get("key"));
+                "VARCHAR", column("check_complex", "attrs").getConcept().getEntries().get("key"));
         assertEquals(
-                Integer.valueOf(2), NEW.getConcepts().get("check_complex_matrix").getArraySize());
+                Integer.valueOf(2), column("check_complex", "matrix").getConcept().getArraySize());
     }
 
     @Test
@@ -112,15 +120,24 @@ class ConceptConverterTest {
             }
         }
         java.util.Set<String> kept = new java.util.TreeSet<>();
-        NEW.getConcepts()
-                .values()
+        java.util.List<Concept> all = new java.util.ArrayList<>(NEW.getConcepts().values());
+        NEW.getTables()
                 .forEach(
-                        c -> {
-                            kept.add("label=" + c.getLabel());
-                            kept.add("unit=" + c.getUnit());
-                            kept.add("quantity=" + c.getQuantity());
-                            kept.add("description=" + c.getDescription());
-                        });
+                        t ->
+                                t.getColumns()
+                                        .forEach(
+                                                c -> {
+                                                    if (c.getConcept() != null) {
+                                                        all.add(c.getConcept());
+                                                    }
+                                                }));
+        all.forEach(
+                c -> {
+                    kept.add("label=" + c.getLabel());
+                    kept.add("unit=" + c.getUnit());
+                    kept.add("quantity=" + c.getQuantity());
+                    kept.add("description=" + c.getDescription());
+                });
         said.removeAll(kept);
         assertEquals(java.util.Set.of(), said);
     }
@@ -183,18 +200,86 @@ class ConceptConverterTest {
         Schema converted = ConceptConverter.convert(old);
         Column column = converted.getTables().get(0).getColumns().get(0);
 
-        assertEquals("t_doc", column.getConceptRef());
-        assertEquals("STRUCT", converted.getConcepts().get("t_doc").getTypeFamily());
-        assertEquals("JSON", converted.getConcepts().get("t_doc").getTypeEncoding());
-        assertEquals(dialectType, converted.getConcepts().get("t_doc").getDialectType());
+        assertNull(column.getConceptRef());
+        assertEquals("STRUCT", column.getConcept().getTypeFamily());
+        assertEquals("JSON", column.getConcept().getTypeEncoding());
+        assertEquals(dialectType, column.getConcept().getDialectType());
         assertEquals(
                 PARSER.parse(old.getTables().get(0).getColumns().get(0)),
                 new ConceptResolver(converted).descriptor(column, PARSER));
     }
 
     @Test
+    void aScalarColumnKeepsEverythingItSays() {
+        Schema converted =
+                ConceptConverter.convert(
+                        CatalogLoader.readSchemaJson(
+                                """
+                                { "name": "d", "relations": [], "tables": [ { "name": "t", "columns": [
+                                  { "name": "price", "label": "Price", "comment": "net",
+                                    "description": "What it costs", "typeFamily": "DECIMAL",
+                                    "dialectType": "DECIMAL(10,2)", "unit": "EUR",
+                                    "quantity": "money", "presentation": "DECIMALS:2",
+                                    "nullable": true } ] } ] }
+                                """));
+        Column price = converted.getTables().get(0).getColumns().get(0);
+        Concept concept = price.getConcept();
+
+        assertEquals("Price", concept.getLabel());
+        assertEquals("net", concept.getComment());
+        assertEquals("What it costs", concept.getDescription());
+        assertEquals("EUR", concept.getUnit());
+        assertEquals("money", concept.getQuantity());
+        assertEquals("DECIMALS:2", concept.getPresentation());
+        assertEquals("DECIMAL", concept.getTypeFamily());
+        assertEquals("DECIMAL(10,2)", concept.getDialectType());
+        // what belongs to the column in the table stays on it
+        assertEquals(Boolean.TRUE, price.getNullable());
+    }
+
+    @Test
+    void aColumnThatHasAConceptAlreadyIsLeftAsItIs() {
+        Schema old =
+                CatalogLoader.readSchemaJson(
+                        """
+                        { "name": "d", "relations": [], "tables": [ { "name": "t", "columns": [
+                          { "name": "a", "typeFamily": "INTEGER", "dialectType": "INTEGER",
+                            "conceptRef": "count" },
+                          { "name": "b", "typeFamily": "INTEGER", "dialectType": "INTEGER",
+                            "concept": { "label": "Mine", "typeFamily": "INTEGER",
+                                         "dialectType": "BIGINT" } } ] } ],
+                          "concepts": { "count": { "typeFamily": "INTEGER",
+                                                   "dialectType": "INTEGER" } } }
+                        """);
+
+        Schema converted = ConceptConverter.convert(old);
+        Column a = converted.getTables().get(0).getColumns().get(0);
+        Column b = converted.getTables().get(0).getColumns().get(1);
+
+        assertEquals("count", a.getConceptRef());
+        assertNull(a.getConcept());
+        assertNull(b.getConceptRef());
+        assertEquals("Mine", b.getConcept().getLabel());
+        assertEquals("BIGINT", b.getConcept().getDialectType());
+    }
+
+    @Test
+    void aContainerThatIsOnlyASpellingHasNoConceptYet() {
+        Schema converted =
+                ConceptConverter.convert(
+                        CatalogLoader.readSchemaJson(
+                                """
+                                { "name": "d", "relations": [], "tables": [ { "name": "t", "columns": [
+                                  { "name": "tags", "typeFamily": "ARRAY",
+                                    "dialectType": "VARCHAR[]" } ] } ] }
+                                """));
+
+        assertNull(converted.getTables().get(0).getColumns().get(0).getConcept());
+    }
+
+    @Test
     void theOriginalSchemaIsNotChanged() {
-        assertNull(column(OLD, "check_complex", "dims").getConceptRef());
+        assertNull(column(OLD, "check_complex", "dims").getConcept());
         assertTrue(OLD.getConcepts() == null || OLD.getConcepts().isEmpty());
     }
 

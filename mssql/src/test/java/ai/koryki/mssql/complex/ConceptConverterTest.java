@@ -55,7 +55,7 @@ class ConceptConverterTest {
             Table before = OLD.getTables().get(t);
             for (int c = 0; c < before.getColumns().size(); c++) {
                 Column column = NEW.getTables().get(t).getColumns().get(c);
-                if (column.getConceptRef() != null) {
+                if (column.getConcept() != null) {
                     converted++;
                     assertEquals(
                             PARSER.parse(before.getColumns().get(c)),
@@ -64,7 +64,8 @@ class ConceptConverterTest {
                 }
             }
         }
-        assertEquals(1, converted);
+        assertEquals(
+                OLD.getTables().stream().mapToInt(t -> t.getColumns().size()).sum(), converted);
     }
 
     @Test
@@ -74,7 +75,7 @@ class ConceptConverterTest {
 
     @Test
     void theDocumentIsAStructStoredAsJson() {
-        Concept doc = NEW.getConcepts().get("check_complex_doc");
+        Concept doc = column(NEW, "doc").getConcept();
         assertEquals("STRUCT", doc.getTypeFamily());
         assertEquals("JSON", doc.getTypeEncoding());
         assertEquals("VARCHAR", doc.getDialectType());
@@ -89,7 +90,8 @@ class ConceptConverterTest {
     }
 
     @Test
-    void aScalarColumnIsLeftAlone() {
+    void aScalarColumnHasItsOwnConcept() {
+        assertEquals("INTEGER", column(NEW, "nr").getConcept().getTypeFamily());
         assertNull(column(NEW, "nr").getConceptRef());
     }
 }

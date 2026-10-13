@@ -17,6 +17,7 @@
 package ai.koryki.snowflake.complex;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import ai.koryki.catalog.CatalogLoader;
@@ -56,7 +57,7 @@ class ConceptConverterTest {
             Table before = OLD.getTables().get(t);
             for (int c = 0; c < before.getColumns().size(); c++) {
                 Column column = NEW.getTables().get(t).getColumns().get(c);
-                if (column.getConceptRef() != null) {
+                if (column.getConcept() != null) {
                     assertEquals(
                             PARSER.parse(before.getColumns().get(c)),
                             resolver.descriptor(column, PARSER),
@@ -72,18 +73,10 @@ class ConceptConverterTest {
     }
 
     @Test
-    void everyNestedColumnHasAConcept() {
+    void everyColumnHasAConcept() {
         for (Table table : NEW.getTables()) {
             for (Column column : table.getColumns()) {
-                boolean nested =
-                        column.getFields() != null
-                                || column.getElement() != null
-                                || column.getKey() != null
-                                || column.getValue() != null;
-                assertEquals(
-                        nested,
-                        column.getConceptRef() != null,
-                        table.getName() + "." + column.getName());
+                assertNotNull(column.getConcept(), table.getName() + "." + column.getName());
             }
         }
     }
@@ -91,14 +84,14 @@ class ConceptConverterTest {
     /** Snowflake has maps: a MAP concept is native, only the document is stored as JSON. */
     @Test
     void aNativeMapHasNoEncodingAndTheDocumentIsJson() {
-        Concept attrs = NEW.getConcepts().get("check_complex_attrs");
+        Concept attrs = column("attrs").getConcept();
         assertEquals("MAP", attrs.getTypeFamily());
         assertNull(attrs.getTypeEncoding());
         assertEquals(
                 "MAP(TEXT,TEXT)",
                 new ConceptResolver(NEW).descriptor(column("attrs"), PARSER).portable());
 
-        Concept doc = NEW.getConcepts().get("check_complex_doc");
+        Concept doc = column("doc").getConcept();
         assertEquals("STRUCT", doc.getTypeFamily());
         assertEquals("JSON", doc.getTypeEncoding());
         assertEquals("VARIANT", doc.getDialectType());
@@ -109,7 +102,7 @@ class ConceptConverterTest {
 
     @Test
     void theObjectSpellingsStayWhereTheyAre() {
-        assertEquals("check_complex_dims", column("dims").getConceptRef());
+        assertNotNull(column("dims").getConcept());
         assertEquals("OBJECT(w DOUBLE, h DOUBLE)", column("dims").getDialectType());
     }
 }

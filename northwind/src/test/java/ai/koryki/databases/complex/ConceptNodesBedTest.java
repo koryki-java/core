@@ -123,6 +123,6 @@ class ConceptNodesBedTest {
 
         assertTrue(node("tags", range).isEmpty());
         assertTrue(node("nr", at(1)).isEmpty());
-        assertNull(column("nr").getConceptRef());
+        assertNull(NODES.node(column("nr"), List.of(at(1))).orElse(null));
     }
 }

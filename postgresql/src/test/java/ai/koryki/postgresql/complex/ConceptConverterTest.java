@@ -17,6 +17,7 @@
 package ai.koryki.postgresql.complex;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import ai.koryki.catalog.CatalogLoader;
 import ai.koryki.catalog.ConceptConverter;
@@ -40,6 +41,13 @@ class ConceptConverterTest {
     private static final Schema OLD = CatalogLoader.db(ComplexCatalogTest.DB);
     private static final Schema NEW = ConceptConverter.convert(OLD);
 
+    private static Column column(String name) {
+        return NEW.getTables().get(0).getColumns().stream()
+                .filter(c -> c.getName().equals(name))
+                .findFirst()
+                .orElseThrow();
+    }
+
     @Test
     void everyConvertedColumnTypesAsItDidBefore() {
         ConceptResolver resolver = new ConceptResolver(NEW);
@@ -48,7 +56,7 @@ class ConceptConverterTest {
             for (int c = 0; c < before.getColumns().size(); c++) {
                 Column old = before.getColumns().get(c);
                 Column column = NEW.getTables().get(t).getColumns().get(c);
-                if (column.getConceptRef() != null) {
+                if (column.getConcept() != null) {
                     String where = before.getName() + "." + old.getName();
                     TypeDescriptor expected = PARSER.parse(old);
                     assertEquals(expected, resolver.descriptor(column, PARSER), where);
@@ -66,25 +74,17 @@ class ConceptConverterTest {
      * Maps and lists stored as jsonb convert too: their concept is the container, stored as JSON.
      */
     @Test
-    void everyNestedColumnHasAConcept() {
+    void everyColumnHasAConcept() {
         for (Table table : NEW.getTables()) {
             for (Column column : table.getColumns()) {
-                boolean nested =
-                        column.getFields() != null
-                                || column.getElement() != null
-                                || column.getKey() != null
-                                || column.getValue() != null;
-                assertEquals(
-                        nested,
-                        column.getConceptRef() != null,
-                        table.getName() + "." + column.getName());
+                assertNotNull(column.getConcept(), table.getName() + "." + column.getName());
             }
         }
     }
 
     @Test
     void aMapStoredAsJsonbIsAMapConceptWithTheEncodingJson() {
-        Concept attrs = NEW.getConcepts().get("check_complex_attrs");
+        Concept attrs = column("attrs").getConcept();
         assertEquals("MAP", attrs.getTypeFamily());
         assertEquals("JSONB", attrs.getDialectType());
         assertEquals("JSON", attrs.getTypeEncoding());
@@ -107,7 +107,7 @@ class ConceptConverterTest {
                         .filter(c -> c.getName().equals("dims"))
                         .findFirst()
                         .orElseThrow();
-        assertEquals("check_complex_dims", dims.getConceptRef());
+        assertNotNull(dims.getConcept());
         assertEquals("ROW(w DOUBLE PRECISION, h DOUBLE PRECISION)", dims.getDialectType());
     }
 }

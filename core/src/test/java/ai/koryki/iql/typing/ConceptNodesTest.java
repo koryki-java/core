@@ -55,9 +55,15 @@ class ConceptNodesTest {
 
     @Test
     void aColumnWithoutAConceptHasNoNode() {
+        assertEquals(Optional.empty(), NODES.node(new Column("nothing"), List.of()));
+    }
+
+    @Test
+    void aScalarColumnHasItsConceptAndNothingBelowIt() {
         Column nr = NEW.getTables().get(0).getColumns().get(0);
 
-        assertEquals(Optional.empty(), NODES.node(nr, List.of()));
+        assertEquals("Nr", NODES.node(nr, List.of()).orElseThrow().getLabel());
+        assertEquals(Optional.empty(), NODES.node(nr, List.of(at(1))));
     }
 
     @Test
@@ -112,7 +118,7 @@ class ConceptNodesTest {
 
     @Test
     void aChainMayStartAtAConcept() {
-        Concept address = NEW.getConcepts().get("check_complex_address");
+        Concept address = column("address").getConcept();
 
         Concept lat = NODES.node(address, List.of(id("geo"), id("lat"))).orElseThrow();
 
@@ -121,12 +127,13 @@ class ConceptNodesTest {
     }
 
     @Test
-    void aColumnWithAConceptOfItsOwnIsWalkedLikeAReferencedOne() {
-        Column dims = column("dims");
-        Column own = new Column("own");
-        own.setConcept(NEW.getConcepts().get(dims.getConceptRef()));
+    void aColumnThatRefersToAConceptIsWalkedLikeOneWithItsOwn() {
+        Schema referenced = ConceptConverter.convert(CatalogLoader.db(ComplexService.DB));
+        referenced.getConcepts().put("dims", column("dims").getConcept());
+        Column refers = new Column("refers");
+        refers.setConceptRef("dims");
 
-        Concept w = NODES.node(own, List.of(id("w"))).orElseThrow();
+        Concept w = new ConceptNodes(referenced).node(refers, List.of(id("w"))).orElseThrow();
 
         assertEquals("Width", w.getLabel());
         assertEquals("m", w.getUnit());

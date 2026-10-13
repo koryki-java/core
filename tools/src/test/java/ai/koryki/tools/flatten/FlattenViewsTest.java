@@ -373,7 +373,7 @@ class FlattenViewsTest {
 
         assertTrue(
                 schema.getTable("docs").orElseThrow().getColumns().stream()
-                        .allMatch(c -> c.getConceptRef() == null));
+                        .allMatch(c -> c.getConcept() == null && c.getConceptRef() == null));
     }
 
     @Test

@@ -17,7 +17,6 @@
 package ai.koryki.iql;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.koryki.catalog.CatalogLoader;
 import ai.koryki.catalog.ConceptConverter;
@@ -39,12 +38,14 @@ class LinkResolverConceptTest {
 
     private static final Schema OLD = CatalogLoader.db(ComplexService.DB);
 
-    /** The bed converted, its nested columns left with nothing but the reference. */
+    /** The bed converted, its columns left with nothing but their concept. */
     private static Schema bare() {
         Schema schema = ConceptConverter.convert(OLD);
         for (Table table : schema.getTables()) {
             for (Column column : table.getColumns()) {
-                if (column.getConceptRef() != null) {
+                if (column.getConcept() != null) {
+                    column.setTypeFamily(null);
+                    column.setTypeEncoding(null);
                     column.setDialectType(null);
                     column.setFields(null);
                     column.setElement(null);
@@ -63,58 +64,11 @@ class LinkResolverConceptTest {
         LinkResolver before = new LinkResolver(Locale.ENGLISH, OLD, MODEL, true);
         LinkResolver after = new LinkResolver(Locale.ENGLISH, bare, MODEL, true);
 
-        int nested = 0;
-        for (int t = 0; t < OLD.getTables().size(); t++) {
-            for (int c = 0; c < OLD.getTables().get(t).getColumns().size(); c++) {
-                Column old = OLD.getTables().get(t).getColumns().get(c);
-                Column column = bare.getTables().get(t).getColumns().get(c);
-                if (column.getConceptRef() != null) {
-                    nested++;
-                }
-                assertEquals(
-                        before.getTypeDescriptor(old),
-                        after.getTypeDescriptor(column),
-                        OLD.getTables().get(t).getName() + "." + old.getName());
-            }
-        }
-        assertTrue(nested >= 15, "nested columns of the bed: " + nested);
-    }
-
-    @Test
-    void aColumnWithoutAConceptIsTypedAsBefore() {
-        Schema converted = ConceptConverter.convert(OLD);
-        LinkResolver resolver = new LinkResolver(Locale.ENGLISH, converted, MODEL, true);
-        Column nr = converted.getTables().get(0).getColumns().get(0);
-
-        assertEquals(null, nr.getConceptRef());
-        assertEquals("INTEGER", resolver.getTypeDescriptor(nr).portable());
-    }
-
-    /** The bed with the concept of every nested column moved into the column, nothing else left. */
-    private static Schema inline() {
-        Schema schema = bare();
-        for (Table table : schema.getTables()) {
-            for (Column column : table.getColumns()) {
-                if (column.getConceptRef() != null) {
-                    column.setConcept(schema.getConcepts().get(column.getConceptRef()));
-                    column.setConceptRef(null);
-                }
-            }
-        }
-        return schema;
-    }
-
-    @Test
-    void aColumnWithAConceptOfItsOwnIsTypedFromIt() {
-        Schema inline = inline();
-        LinkResolver before = new LinkResolver(Locale.ENGLISH, OLD, MODEL, true);
-        LinkResolver after = new LinkResolver(Locale.ENGLISH, inline, MODEL, true);
-
         int own = 0;
         for (int t = 0; t < OLD.getTables().size(); t++) {
             for (int c = 0; c < OLD.getTables().get(t).getColumns().size(); c++) {
                 Column old = OLD.getTables().get(t).getColumns().get(c);
-                Column column = inline.getTables().get(t).getColumns().get(c);
+                Column column = bare.getTables().get(t).getColumns().get(c);
                 if (column.getConcept() != null) {
                     own++;
                 }
@@ -124,6 +78,57 @@ class LinkResolverConceptTest {
                         OLD.getTables().get(t).getName() + "." + old.getName());
             }
         }
-        assertTrue(own >= 15, "columns with a concept of their own: " + own);
+        int columns = OLD.getTables().stream().mapToInt(t -> t.getColumns().size()).sum();
+        assertEquals(columns, own, "every column has its concept and nothing else");
+    }
+
+    @Test
+    void aColumnWithoutAConceptIsTypedFromWhatItDeclares() {
+        LinkResolver resolver = new LinkResolver(Locale.ENGLISH, OLD, MODEL, true);
+        Column nr = OLD.getTables().get(0).getColumns().get(0);
+
+        assertEquals(null, nr.getConcept());
+        assertEquals(null, nr.getConceptRef());
+        assertEquals("INTEGER", resolver.getTypeDescriptor(nr).portable());
+    }
+
+    /** The bed with the concept of every column moved into the schema, the column naming it. */
+    private static Schema referenced() {
+        Schema schema = bare();
+        for (Table table : schema.getTables()) {
+            for (Column column : table.getColumns()) {
+                if (column.getConcept() != null) {
+                    String name = table.getName() + "_" + column.getName() + "_concept";
+                    schema.getConcepts().put(name, column.getConcept());
+                    column.setConcept(null);
+                    column.setConceptRef(name);
+                }
+            }
+        }
+        return schema;
+    }
+
+    @Test
+    void aColumnThatRefersToAConceptIsTypedFromIt() {
+        Schema referenced = referenced();
+        LinkResolver before = new LinkResolver(Locale.ENGLISH, OLD, MODEL, true);
+        LinkResolver after = new LinkResolver(Locale.ENGLISH, referenced, MODEL, true);
+
+        int own = 0;
+        for (int t = 0; t < OLD.getTables().size(); t++) {
+            for (int c = 0; c < OLD.getTables().get(t).getColumns().size(); c++) {
+                Column old = OLD.getTables().get(t).getColumns().get(c);
+                Column column = referenced.getTables().get(t).getColumns().get(c);
+                if (column.getConceptRef() != null) {
+                    own++;
+                }
+                assertEquals(
+                        before.getTypeDescriptor(old),
+                        after.getTypeDescriptor(column),
+                        OLD.getTables().get(t).getName() + "." + old.getName());
+            }
+        }
+        int columns = OLD.getTables().stream().mapToInt(t -> t.getColumns().size()).sum();
+        assertEquals(columns, own, "every column refers to its concept");
     }
 }
