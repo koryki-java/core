@@ -17,15 +17,18 @@
 package ai.koryki.tools;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import ai.koryki.antlr.KorykiaiException;
+import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.databases.complex.duckdb.ComplexService;
 import ai.koryki.iql.DuckdbBaseDialect;
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.SqlDialect;
 import ai.koryki.iql.SqlQueryRenderer;
+import ai.koryki.iql.validate.ValidateException;
 import ai.koryki.kql.KQLTranspiler;
 import ai.koryki.mariadb.iql.MariadbDialect;
 import ai.koryki.mssql.iql.MssqlDialect;
@@ -143,11 +146,59 @@ class HostileSelectorTest {
         eachKey((name, d, key, word) -> render(name, d, "t.attrs@" + kql(key), word));
     }
 
+    /**
+     * A struct field is named by the catalog and by nobody else: a name the type does not have is
+     * refused when the query is checked, and no SQL is built from it. So the text of a hostile key
+     * never reaches a statement through a struct; the way a field name does get there, from the
+     * catalog, is what the test below holds to quoting.
+     */
     @Test
-    void aHostileStructFieldStaysInsideItsQuotesOnEveryDialect() {
-        // the name need not be a field: an unknown one is rendered as written, so it is as hostile
-        // as a key, and every dialect that writes a field as an identifier must quote it
-        eachKey((name, d, key, word) -> render(name, d, "t.dims@" + kql(key), word));
+    void aHostileStructFieldIsRefusedAndNoSqlIsBuilt() {
+        eachKey(
+                (name, d, key, word) -> {
+                    ValidateException e =
+                            assertThrows(
+                                    ValidateException.class,
+                                    () -> sql(d.sql(), "t.dims@" + kql(key)),
+                                    name + ": no SQL for the field " + key);
+                    assertTrue(
+                            e.getViolations().stream()
+                                    .anyMatch(v -> v.getMessage().contains("no field")),
+                            name + ": " + e.getMessage());
+                });
+    }
+
+    /** The contrast: a field the type has is written, on every engine that has structs. */
+    @Test
+    void aRealStructFieldIsWrittenOnTheEnginesThatHaveStructs() {
+        for (Map.Entry<String, Dialect> e : DIALECTS.entrySet()) {
+            if (e.getValue().sql().nestedSupport().selectable().contains(CoreTypeFamily.STRUCT)) {
+                String sql = sql(e.getValue().sql(), "t.dims@w");
+                assertTrue(sql.toLowerCase().contains("w"), e.getKey() + ":\n" + sql);
+            }
+        }
+    }
+
+    /**
+     * What the catalog may name a field: {@code "Odd Name"} has a space and capitals, and each
+     * engine that has structs has to write it as an identifier, quoted, or as a literal. Written
+     * bare it would be two words of SQL.
+     */
+    @Test
+    void aStructFieldThatIsNoPlainNameIsQuotedOnEveryDialect() {
+        int rendered = 0;
+        for (Map.Entry<String, Dialect> e : DIALECTS.entrySet()) {
+            Dialect d = e.getValue();
+            if (!d.sql().nestedSupport().selectable().contains(CoreTypeFamily.STRUCT)) {
+                continue;
+            }
+            render(e.getKey(), d, "t.odd@'Odd Name'", "Odd Name");
+            assertTrue(
+                    sql(d.sql(), "t.odd@'Odd Name'").contains("Odd Name"),
+                    e.getKey() + " writes the field");
+            rendered++;
+        }
+        assertTrue(rendered >= 5, "every engine with structs was checked: " + rendered);
     }
 
     @Test
