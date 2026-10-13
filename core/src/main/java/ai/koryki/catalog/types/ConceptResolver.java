@@ -19,7 +19,11 @@ package ai.koryki.catalog.types;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Schema;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Finds the concept a name or a column refers to in the {@code concepts} of a schema.
@@ -94,6 +98,51 @@ public final class ConceptResolver {
                                 + String.join(", ", concepts.keySet()));
             }
         }
+    }
+
+    /**
+     * Whether no concept contains itself: following the entries that name concepts never leads back
+     * to a concept already on the way. A type is a finite tree, so a concept inside itself has
+     * none. A concept used twice, by two members or by two concepts, is shared and not a cycle.
+     *
+     * @throws IllegalArgumentException for the first cycle, with the names along it, from the
+     *     concept that comes round again: {@code address -> position -> address}
+     */
+    public void checkCycles() {
+        Map<String, Concept> concepts = schema.getConcepts();
+        if (concepts == null) {
+            return;
+        }
+        Set<String> done = new HashSet<>();
+        for (String name : concepts.keySet()) {
+            follow(name, concepts, new ArrayList<>(), done);
+        }
+    }
+
+    private static void follow(
+            String name, Map<String, Concept> concepts, List<String> way, Set<String> done) {
+        int at = way.indexOf(name);
+        if (at >= 0) {
+            List<String> cycle = new ArrayList<>(way.subList(at, way.size()));
+            cycle.add(name);
+            throw new IllegalArgumentException(
+                    "concept cycle: "
+                            + String.join(" -> ", cycle)
+                            + "; a concept cannot contain itself, a type is finite");
+        }
+        if (!done.add(name)) {
+            return;
+        }
+        way.add(name);
+        Map<String, String> entries = concepts.get(name).getEntries();
+        if (entries != null) {
+            for (String value : entries.values()) {
+                if (value != null && concepts.containsKey(value)) {
+                    follow(value, concepts, way, done);
+                }
+            }
+        }
+        way.remove(way.size() - 1);
     }
 
     private static boolean spelling(String value, TypeDescriptorParser parser) {
