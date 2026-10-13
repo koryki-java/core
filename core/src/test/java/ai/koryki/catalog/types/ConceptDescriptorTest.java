@@ -89,19 +89,19 @@ class ConceptDescriptorTest {
     }
 
     @Test
-    void aJsonConceptWithEntriesIsNotTypedYet() {
-        Concept json = concept("JSON", "JSON");
-        json.setEntries(new LinkedHashMap<>(Map.of("n", "INTEGER")));
+    void aScalarConceptWithEntriesIsRefused() {
+        Concept text = concept("TEXT", "VARCHAR");
+        text.setEntries(new LinkedHashMap<>(Map.of("n", "INTEGER")));
 
         String message =
                 assertThrows(
                                 IllegalArgumentException.class,
                                 () ->
-                                        new ConceptResolver(schema(json))
+                                        new ConceptResolver(schema(text))
                                                 .descriptor(viaConcept(), PARSER))
                         .getMessage();
 
-        assertTrue(message.contains("is not typed yet"), message);
+        assertTrue(message.contains("which its family does not take"), message);
     }
 
     private static Schema schema(Map<String, Concept> concepts) {
@@ -231,6 +231,100 @@ class ConceptDescriptorTest {
 
         assertEquals(
                 spelled("MAP(VARCHAR, STRUCT(lat DOUBLE, lon DOUBLE))", "MAP"), viaConcept(schema));
+    }
+
+    private static Column member(String name, String family) {
+        Column member = new Column(name);
+        member.setTypeFamily(family);
+        return member;
+    }
+
+    private static Column oldJson(Column... fields) {
+        Column json = new Column("c");
+        json.setTypeFamily("JSON");
+        json.setDialectType("JSON");
+        json.setFields(java.util.List.of(fields));
+        return json;
+    }
+
+    private static Concept json(String... namesAndValues) {
+        Concept json = concept("JSON", "JSON");
+        Map<String, String> entries = new LinkedHashMap<>();
+        for (int i = 0; i < namesAndValues.length; i += 2) {
+            entries.put(namesAndValues[i], namesAndValues[i + 1]);
+        }
+        json.setEntries(entries);
+        return json;
+    }
+
+    @Test
+    void aJsonConceptWithoutEntriesIsPlainJson() {
+        assertEquals(spelled("JSON", "JSON"), viaConcept(schema(concept("JSON", "JSON"))));
+    }
+
+    @Test
+    void aJsonConceptShapesLikeAColumnWithFields() {
+        Schema schema =
+                schema(
+                        Map.of(
+                                "k", json("n", "count", "color", "VARCHAR", "price", "money"),
+                                "count", concept("INTEGER", "BIGINT"),
+                                "money", concept("DECIMAL", "DECIMAL(10,2)")));
+        Column old =
+                oldJson(
+                        member("n", "INTEGER"),
+                        member("color", "TEXT"),
+                        member("price", "DECIMAL"));
+
+        assertEquals(PARSER.parse(old), viaConcept(schema));
+    }
+
+    @Test
+    void theMembersMayBeContainers() {
+        Schema schema =
+                schema(
+                        Map.of(
+                                "k", json("tags", "tag_list", "dims", "size", "flags", "flag_map"),
+                                "tag_list", array("VARCHAR", 3),
+                                "size", struct("w", "DOUBLE", "h", "DOUBLE"),
+                                "flag_map", map("VARCHAR", "BOOLEAN")));
+
+        Column tags = new Column("tags");
+        tags.setTypeFamily("ARRAY");
+        tags.setElement(member("element", "TEXT"));
+        Column dims = new Column("dims");
+        dims.setTypeFamily("STRUCT");
+        dims.setFields(java.util.List.of(member("w", "FLOAT"), member("h", "FLOAT")));
+        Column flags = new Column("flags");
+        flags.setTypeFamily("MAP");
+        flags.setValue(member("value", "BOOLEAN"));
+
+        assertEquals(PARSER.parse(oldJson(tags, dims, flags)), viaConcept(schema));
+    }
+
+    @Test
+    void aJsonMemberOfAnotherJsonConceptIsItsShape() {
+        Schema schema =
+                schema(
+                        Map.of(
+                                "k", json("inner", "other"),
+                                "other", json("n", "INTEGER")));
+        Column inner = new Column("inner");
+        inner.setTypeFamily("JSON");
+        inner.setFields(java.util.List.of(member("n", "INTEGER")));
+
+        assertEquals(PARSER.parse(oldJson(inner)), viaConcept(schema));
+    }
+
+    @Test
+    void aJsonMemberOfAFamilyJsonCannotHoldIsRefused() {
+        Schema schema = schema(Map.of("k", json("d", "DATE")));
+
+        String message =
+                assertThrows(IllegalArgumentException.class, () -> viaConcept(schema)).getMessage();
+
+        assertTrue(message.contains("a JSON member can be declared"), message);
+        assertTrue(message.contains(".d"), message);
     }
 
     @Test

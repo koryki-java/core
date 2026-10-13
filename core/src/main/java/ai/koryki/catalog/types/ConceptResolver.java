@@ -70,8 +70,9 @@ public final class ConceptResolver {
      * element}, a STRUCT concept the struct of its entries, in their order, a MAP concept the map
      * of its {@code key} and {@code value}; each of them is the name of a concept or a type
      * spelling. The entry names are the member names as the database has them; their translation
-     * follows later. JSON with entries follows in a later step. The schema is assumed to have
-     * passed {@link #check}; a cycle would not end.
+     * follows later. A JSON concept with entries is JSON with the shape of an object with those
+     * members, as a column declares it with fields. The schema is assumed to have passed {@link
+     * #check}; a cycle would not end.
      *
      * @param parser reads the dialect type and the spellings; a dialect may know names others do
      *     not
@@ -104,19 +105,85 @@ public final class ConceptResolver {
                     entry(concept.getEntries().get("key"), where, parser),
                     entry(concept.getEntries().get("value"), where, parser));
         }
+        if (CoreTypeFamily.JSON.name().equals(concept.getTypeFamily())
+                && concept.getEntries() != null
+                && !concept.getEntries().isEmpty()) {
+            List<String> names = new ArrayList<>();
+            List<TypeDescriptor> types = new ArrayList<>();
+            for (Map.Entry<String, String> member : concept.getEntries().entrySet()) {
+                names.add(member.getKey());
+                types.add(
+                        member(
+                                entry(member.getValue(), where, parser),
+                                where + "." + member.getKey()));
+            }
+            Concept plain = new Concept();
+            plain.setTypeFamily(concept.getTypeFamily());
+            plain.setTypeEncoding(concept.getTypeEncoding());
+            plain.setDialectType(concept.getDialectType());
+            return descriptor(plain, where, parser).withShape(TypeDescriptor.struct(names, types));
+        }
         if (concept.getEntries() != null || concept.getArraySize() != null) {
             throw new IllegalArgumentException(
                     where
                             + ": a "
                             + concept.getTypeFamily()
-                            + " concept with entries is not typed yet; only a scalar, an ARRAY, a"
-                            + " STRUCT and a MAP are");
+                            + " concept has entries or a size, which its family does not take");
         }
         Column scalar = new Column(where);
         scalar.setTypeFamily(concept.getTypeFamily());
         scalar.setTypeEncoding(concept.getTypeEncoding());
         scalar.setDialectType(concept.getDialectType());
         return parser.parse(scalar);
+    }
+
+    /**
+     * What a JSON value says about a member: the family of a scalar, not the dialect's spelling of
+     * it, and the same for the members of a container; a list has no fixed size, the keys of an
+     * object are text or integers. A JSON member with a shape of its own is that shape.
+     */
+    private static TypeDescriptor member(TypeDescriptor type, String where) {
+        TypeFamily family = type.getTypeFamily();
+        if (CoreTypeFamily.JSON.equals(family) && type.shape() != null) {
+            return type.shape();
+        } else if (CoreTypeFamily.ARRAY.equals(family)) {
+            return TypeDescriptor.array(member(type.element(), where + "[]"));
+        } else if (CoreTypeFamily.STRUCT.equals(family)) {
+            List<TypeDescriptor> types = new ArrayList<>();
+            for (int i = 0; i < type.fieldNames().size(); i++) {
+                types.add(member(type.children().get(i), where + "." + type.fieldNames().get(i)));
+            }
+            return TypeDescriptor.struct(type.fieldNames(), types);
+        } else if (CoreTypeFamily.MAP.equals(family)) {
+            TypeFamily key = type.key().getTypeFamily();
+            if (!CoreTypeFamily.TEXT.equals(key) && !CoreTypeFamily.INTEGER.equals(key)) {
+                throw new IllegalArgumentException(
+                        where
+                                + ": the keys of a JSON object are text, or integers written as"
+                                + " text, not "
+                                + key.name());
+            }
+            return TypeDescriptor.map(
+                    CoreTypeFamily.INTEGER.equals(key)
+                            ? TypeDescriptor.INTEGER
+                            : TypeDescriptor.TEXT,
+                    member(type.value(), where + "{}"));
+        } else if (CoreTypeFamily.BOOLEAN.equals(family)) {
+            return TypeDescriptor.BOOLEAN;
+        } else if (CoreTypeFamily.INTEGER.equals(family)) {
+            return TypeDescriptor.INTEGER;
+        } else if (CoreTypeFamily.FLOAT.equals(family)) {
+            return TypeDescriptor.DOUBLE;
+        } else if (CoreTypeFamily.DECIMAL.equals(family)) {
+            return TypeDescriptor.DECIMAL;
+        } else if (CoreTypeFamily.TEXT.equals(family)) {
+            return TypeDescriptor.TEXT;
+        }
+        throw new IllegalArgumentException(
+                where
+                        + ": a JSON member can be declared BOOLEAN, INTEGER, FLOAT, DECIMAL or TEXT,"
+                        + " or have members of its own, not "
+                        + family.name());
     }
 
     /** The type an entry refers to: a concept of the schema, else a type spelling. */
