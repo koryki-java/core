@@ -28,7 +28,8 @@ import java.util.Map;
  * Writes the structure a nested column declares with its own nodes (element, key, value, fields) as
  * concepts, so that the column refers to a concept instead. The result is a copy: the old fields
  * stay beside the reference until nothing reads them, and a column without nodes (a scalar, or a
- * nested column read from its spelling alone) is left as it is.
+ * nested column read from its spelling alone) is left as it is, and so is a JSON column whose
+ * content is a list or a map of one kind of value (element, key, value).
  *
  * <p>The names are mechanical: the concept of a column is {@code table_column}, and every node
  * below it adds its role ({@code element}, {@code key}, {@code value}) or its field name. A node
@@ -55,7 +56,7 @@ public final class ConceptConverter {
         }
         for (Table table : copy.getTables()) {
             for (Column column : table.getColumns()) {
-                if (TypeTree.hasTree(column)) {
+                if (TypeTree.hasTree(column) && !shapesJsonAsAWhole(column)) {
                     String name = table.getName() + "_" + column.getName();
                     converter.put(name, converter.concept(column, name));
                     column.setConcept(name);
@@ -64,6 +65,17 @@ public final class ConceptConverter {
         }
         copy.setConcepts(converter.concepts);
         return copy;
+    }
+
+    /**
+     * JSON whose content is a list or an object with one kind of value: a JSON concept has only the
+     * members of an object so far, so such a column keeps its fields until the concept can say it.
+     */
+    private static boolean shapesJsonAsAWhole(Column column) {
+        return "JSON".equals(column.getTypeFamily())
+                && (column.getElement() != null
+                        || column.getKey() != null
+                        || column.getValue() != null);
     }
 
     private void put(String name, Concept concept) {
