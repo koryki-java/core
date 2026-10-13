@@ -26,22 +26,20 @@ import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.iql.query.Selector;
 import ai.koryki.iql.typing.ConceptNodes;
-import ai.koryki.iql.typing.NestedNodes;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.TreeSet;
 import org.junit.jupiter.api.Test;
 
 /**
- * Parity with {@link NestedNodes}: for every chain over the complex bed that either of them can
- * start, the concepts say what the nodes of the column said.
+ * The parts of the JSON columns of the PostgreSQL bed, where maps and lists are JSON: how a chain
+ * enters a container that is stored as JSON.
  */
 class ConceptNodesTest {
 
-    private static final Schema OLD = CatalogLoader.db(ComplexCatalogTest.DB);
-    private static final Schema NEW = ConceptConverter.convert(OLD);
-    private static final ConceptNodes NODES = new ConceptNodes(NEW);
+    private static final Schema SCHEMA =
+            ConceptConverter.convert(CatalogLoader.db(ComplexCatalogTest.DB));
+
+    private static final ConceptNodes NODES = new ConceptNodes(SCHEMA);
 
     private static Selector id(String name) {
         Selector s = new Selector();
@@ -55,110 +53,56 @@ class ConceptNodesTest {
         return s;
     }
 
-    private static Selector range() {
-        Selector s = new Selector();
-        s.setFrom(1);
-        return s;
-    }
-
-    /** Every name the bed gives a field, a few that it does not, positions and a range. */
-    private static List<Selector> alphabet() {
-        TreeSet<String> names = new TreeSet<>(List.of("nothing", "W", "ELEMENT"));
-        OLD.getTables().forEach(t -> t.getColumns().forEach(c -> collect(c, names)));
-        List<Selector> all = new ArrayList<>();
-        names.forEach(n -> all.add(id(n)));
-        for (int position : new int[] {1, 2, 3, -1, -2, 9}) {
-            all.add(at(position));
-        }
-        all.add(range());
-        return all;
-    }
-
-    private static void collect(Column node, TreeSet<String> names) {
-        if (node.getFields() != null) {
-            node.getFields()
-                    .forEach(
-                            f -> {
-                                names.add(f.getName());
-                                collect(f, names);
-                            });
-        }
-        for (Column child : new Column[] {node.getElement(), node.getKey(), node.getValue()}) {
-            if (child != null) {
-                collect(child, names);
-            }
-        }
-    }
-
-    private int compared;
-
-    private void same(Column old, Column converted, List<Selector> steps, List<Selector> alphabet) {
-        Optional<Column> before = NestedNodes.node(old, steps);
-        Optional<Concept> after = NODES.node(converted, steps);
-        String where =
-                old.getName()
-                        + " "
-                        + steps.stream().map(s -> s.getId() + "/" + s.getIndex()).toList();
-
-        assertEquals(before.isPresent(), after.isPresent(), where);
-        compared++;
-        if (before.isEmpty()) {
-            return;
-        }
-        assertEquals(before.get().getLabel(), after.get().getLabel(), where + " label");
-        assertEquals(before.get().getUnit(), after.get().getUnit(), where + " unit");
-        assertEquals(before.get().getQuantity(), after.get().getQuantity(), where + " quantity");
-        assertEquals(
-                before.get().getPresentation(),
-                after.get().getPresentation(),
-                where + " presentation");
-        assertEquals(
-                before.get().getDescription(),
-                after.get().getDescription(),
-                where + " description");
-        if (steps.size() < 4) {
-            for (Selector next : alphabet) {
-                List<Selector> longer = new ArrayList<>(steps);
-                longer.add(next);
-                same(old, converted, longer, alphabet);
-            }
-        }
-    }
-
-    @Test
-    void everyChainOverTheBedSaysWhatTheNodesSaid() {
-        List<Selector> alphabet = alphabet();
-        for (int t = 0; t < OLD.getTables().size(); t++) {
-            for (int c = 0; c < OLD.getTables().get(t).getColumns().size(); c++) {
-                Column old = OLD.getTables().get(t).getColumns().get(c);
-                Column converted = NEW.getTables().get(t).getColumns().get(c);
-                if (converted.getConcept() != null) {
-                    same(old, converted, List.of(), alphabet);
-                }
-            }
-        }
-        assertTrue(compared > 5000, "chains compared: " + compared);
-    }
-
-    @Test
-    void aColumnWithoutAConceptHasNoNode() {
-        Column nr = NEW.getTables().get(0).getColumns().get(0);
-
-        assertEquals(Optional.empty(), NODES.node(nr, List.of()));
-    }
-
-    @Test
-    void aFieldOfAStructCarriesItsLabelAndUnit() {
-        Column dims =
-                NEW.getTables().get(0).getColumns().stream()
-                        .filter(c -> c.getName().equals("dims"))
+    private static Optional<Concept> node(String column, Selector... steps) {
+        Column c =
+                SCHEMA.getTables().get(0).getColumns().stream()
+                        .filter(x -> x.getName().equals(column))
                         .findFirst()
                         .orElseThrow();
+        return NODES.node(c, List.of(steps));
+    }
 
-        Concept w = NODES.node(dims, List.of(id("w"))).orElseThrow();
+    @Test
+    void aJsonObjectIsEnteredByMemberNameNotByPosition() {
+        assertEquals("Number", node("doc", id("n")).orElseThrow().getLabel());
+        assertEquals("Amount", node("doc", id("D")).orElseThrow().getLabel());
+        assertTrue(node("doc", id("unlisted")).isEmpty());
+        assertTrue(node("doc", at(1)).isEmpty());
+    }
 
-        assertEquals("Width", w.getLabel());
-        assertEquals("m", w.getUnit());
-        assertEquals("length", w.getQuantity());
+    @Test
+    void aJsonListIsEnteredByPositionNotByName() {
+        assertTrue(node("deep", at(1)).isPresent());
+        assertTrue(node("deep", at(-1)).isPresent());
+        assertTrue(node("deep", id("anything")).isEmpty());
+    }
+
+    @Test
+    void aJsonMapWithTextKeysIsEnteredByKeyOnly() {
+        assertEquals("Attribute value", node("attrs", id("color")).orElseThrow().getLabel());
+        assertTrue(node("attrs", at(1)).isEmpty());
+    }
+
+    @Test
+    void aJsonMapWithIntegerKeysIsEnteredByPositionToo() {
+        assertEquals("Name", node("lookup", at(1)).orElseThrow().getLabel());
+        assertEquals("Name", node("lookup", id("1")).orElseThrow().getLabel());
+    }
+
+    @Test
+    void theValueOfAJsonMapCarriesItsUnit() {
+        Concept count = node("counts", id("anything")).orElseThrow();
+
+        assertEquals("Count", count.getLabel());
+        assertEquals("1", count.getUnit());
+        assertEquals("count", count.getQuantity());
+    }
+
+    @Test
+    void thePartsOfAJsonListAreFoundBelowIt() {
+        // deep is a list of maps whose values are structs: a, b
+        assertTrue(node("deep", at(1), id("k"), id("a")).isPresent());
+        assertTrue(node("deep", at(1), id("k"), id("a"), at(1)).isPresent());
+        assertTrue(node("deep", at(1), id("k"), id("nothing")).isEmpty());
     }
 }

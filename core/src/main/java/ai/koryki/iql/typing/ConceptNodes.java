@@ -31,10 +31,9 @@ import java.util.Optional;
 
 /**
  * What the catalog knows about the part of a nested column a selector chain ends at, read from the
- * concepts: {@link NestedNodes} does the same from the nodes a column declares itself. {@code
- * t.address@geo@lat} is the concept the {@code lat} entry of the {@code geo} entry of the concept
- * of {@code address} refers to, and a consumer that explains a result column (a heading, a unit)
- * reads its label, unit, quantity and presentation there.
+ * concepts. {@code t.address@geo@lat} is the concept the {@code lat} entry of the {@code geo} entry
+ * of the concept of {@code address} refers to, and a consumer that explains a result column (a
+ * heading, a unit) reads its label, unit, quantity and presentation there.
  *
  * <p>The steps follow the same rules as the types do. A struct is entered by a field name, without
  * regard to case, or by a position (from the end when negative); a list by a position, to its

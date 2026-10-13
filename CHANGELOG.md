@@ -27,7 +27,7 @@ All notable changes to this project are documented here.
   a whole catalog.
 
 - The nodes of a nested column carry labels, descriptions, units, quantities and presentations, and
-  `NestedNodes.node` finds the node a selector chain ends at, so what a consumer explains a nested
+  `ConceptNodes.node` finds the concept a selector chain ends at, so what a consumer explains a nested
   result column by is in the catalog (the complex catalogs have it on every part). The flatten views
   inherit the annotations of the element. A node whose children do not fit its family (an ARRAY with
   fields) is refused when the catalog is read.
