@@ -64,6 +64,32 @@ public final class ConceptResolver {
     }
 
     /**
+     * The type of a column whose concept is a scalar: the same descriptor the parser makes of a
+     * column that declares the family, the encoding and the dialect type itself. Containers (a
+     * concept with entries or a size) follow in later steps.
+     *
+     * @param parser reads the dialect type; a dialect may know names others do not
+     * @throws IllegalArgumentException when the column has no concept, the schema lacks it, or the
+     *     concept is not a scalar
+     */
+    public TypeDescriptor descriptor(Column column, TypeDescriptorParser parser) {
+        Concept concept = concept(column);
+        if (concept.getEntries() != null || concept.getArraySize() != null) {
+            throw new IllegalArgumentException(
+                    "column '"
+                            + column.getName()
+                            + "': concept '"
+                            + column.getConcept()
+                            + "' has entries or a size; only a scalar concept is typed so far");
+        }
+        Column scalar = new Column(column.getName());
+        scalar.setTypeFamily(concept.getTypeFamily());
+        scalar.setTypeEncoding(concept.getTypeEncoding());
+        scalar.setDialectType(concept.getDialectType());
+        return parser.parse(scalar);
+    }
+
+    /**
      * Whether every entry of every concept refers to something: the value of an entry is the name
      * of a concept of the schema, or a type spelling ({@code VARCHAR}, {@code DOUBLE[3]}, {@code
      * STRUCT(lat DOUBLE)}) the parser can read. A name wins over a spelling.
