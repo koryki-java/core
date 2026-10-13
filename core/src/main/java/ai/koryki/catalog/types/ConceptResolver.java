@@ -70,10 +70,10 @@ public final class ConceptResolver {
      * element}, a STRUCT concept the struct of its entries, in their order, a MAP concept the map
      * of its {@code key} and {@code value}; each of them is the name of a concept or a type
      * spelling. The entry names are the member names as the database has them; their translation
-     * follows later. A container whose dialect type is JSON ({@code JSON}, {@code JSONB}) is JSON
-     * of that content: the type is JSON and the container, reduced to what a JSON value says, is
-     * its shape; a JSON concept without a container is JSON of unknown content. The schema is
-     * assumed to have passed {@link #check}; a cycle would not end.
+     * follows later. A container with the encoding {@code JSON} is stored as JSON, whatever its
+     * dialect type: the type is JSON and the container, reduced to what a JSON value says, is its
+     * shape; a JSON concept without a container is JSON of unknown content. The schema is assumed
+     * to have passed {@link #check}; a cycle would not end.
      *
      * @param parser reads the dialect type and the spellings; a dialect may know names others do
      *     not
@@ -186,17 +186,18 @@ public final class ConceptResolver {
     }
 
     /**
-     * The type of a container concept. When its dialect type is a JSON type ({@code JSON}, {@code
-     * JSONB}) the container is stored as JSON: the type is JSON, and the container, reduced to what
-     * a JSON value says, is its shape. Otherwise its own spelling, if it has one, has to agree.
+     * The type of a container concept. When its encoding is {@link CoreTypeEncoding#JSON} the
+     * container is stored as JSON, in the physical type its dialect type names: the type is JSON,
+     * and the container, reduced to what a JSON value says, is its shape. Otherwise its own
+     * spelling, if it has one, has to agree.
      */
     private static TypeDescriptor stored(
             TypeDescriptor type, Concept concept, String where, TypeDescriptorParser parser) {
-        if (parser.storesJson(concept.getDialectType())) {
+        if (CoreTypeEncoding.JSON.name().equals(concept.getTypeEncoding())) {
             Column json = new Column(where);
             json.setTypeFamily(CoreTypeFamily.JSON.name());
-            json.setTypeEncoding(concept.getTypeEncoding());
-            json.setDialectType(concept.getDialectType());
+            json.setDialectType(
+                    concept.getDialectType() != null ? concept.getDialectType() : "JSON");
             return parser.parse(json).withShape(member(type, where));
         }
         agree(type, concept.getDialectType(), where, parser);
@@ -392,6 +393,13 @@ public final class ConceptResolver {
         } catch (IllegalArgumentException unknown) {
             return unknown.getMessage();
         }
+        if (CoreTypeEncoding.JSON.name().equals(concept.getTypeEncoding())
+                && !(CoreTypeFamily.ARRAY.equals(family)
+                        || CoreTypeFamily.STRUCT.equals(family)
+                        || CoreTypeFamily.MAP.equals(family))) {
+            return "the encoding JSON belongs to an ARRAY, a STRUCT or a MAP, not to a "
+                    + family.name();
+        }
         if (concept.getArraySize() != null
                 && (!CoreTypeFamily.ARRAY.equals(family) || concept.getArraySize() <= 0)) {
             return CoreTypeFamily.ARRAY.equals(family)
@@ -407,7 +415,7 @@ public final class ConceptResolver {
         } else if (CoreTypeFamily.JSON.equals(family) && !keys.isEmpty()) {
             return "a JSON has no entries, not "
                     + quoted(keys)
-                    + "; its content is a STRUCT, ARRAY or MAP whose dialectType is JSON";
+                    + "; its content is a STRUCT, ARRAY or MAP with the encoding JSON";
         }
         return keys.isEmpty()
                 ? null

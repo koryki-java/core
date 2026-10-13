@@ -20,7 +20,6 @@ import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.schema.Table;
-import ai.koryki.catalog.types.TypeDescriptorParser;
 import ai.koryki.catalog.types.TypeTree;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -30,7 +29,7 @@ import java.util.Map;
  * concepts, so that the column refers to a concept instead. The result is a copy: the old fields
  * stay beside the reference until nothing reads them, and a column without nodes (a scalar, or a
  * nested column read from its spelling alone) is left as it is. A JSON column with content becomes
- * the container it describes (ARRAY, MAP or STRUCT) whose dialect type is the JSON type.
+ * the container it describes (ARRAY, MAP or STRUCT) with the encoding JSON.
  *
  * <p>The names are mechanical: the concept of a column is {@code table_column}, and every node
  * below it adds its role ({@code element}, {@code key}, {@code value}) or its field name. A node
@@ -50,15 +49,6 @@ public final class ConceptConverter {
      * @throws IllegalArgumentException when two nodes would get the same concept name
      */
     public static Schema convert(Schema schema) {
-        return convert(schema, new TypeDescriptorParser() {});
-    }
-
-    /**
-     * As {@link #convert(Schema)}; the parser says which dialect types store JSON. A JSON column
-     * with content whose dialect type does not (SQL Server keeps it in VARCHAR, SQLite in TEXT,
-     * Snowflake in VARIANT) keeps its fields: the concept could not say it is JSON.
-     */
-    public static Schema convert(Schema schema, TypeDescriptorParser parser) {
         Schema copy = SchemaCopy.deepCopy(schema);
         ConceptConverter converter = new ConceptConverter();
         if (copy.getConcepts() != null) {
@@ -66,7 +56,7 @@ public final class ConceptConverter {
         }
         for (Table table : copy.getTables()) {
             for (Column column : table.getColumns()) {
-                if (TypeTree.hasTree(column) && storable(column, parser)) {
+                if (TypeTree.hasTree(column)) {
                     String name = table.getName() + "_" + column.getName();
                     converter.put(name, converter.concept(column, name));
                     column.setConcept(name);
@@ -75,10 +65,6 @@ public final class ConceptConverter {
         }
         copy.setConcepts(converter.concepts);
         return copy;
-    }
-
-    private static boolean storable(Column column, TypeDescriptorParser parser) {
-        return !"JSON".equals(column.getTypeFamily()) || parser.storesJson(column.getDialectType());
     }
 
     private void put(String name, Concept concept) {
@@ -128,6 +114,7 @@ public final class ConceptConverter {
         concept.setEntries(entries);
         concept.setArraySize(node.getLength());
         if ("JSON".equals(node.getTypeFamily())) {
+            concept.setTypeEncoding("JSON");
             concept.setDialectType(node.getDialectType() != null ? node.getDialectType() : "JSON");
         }
         return concept;

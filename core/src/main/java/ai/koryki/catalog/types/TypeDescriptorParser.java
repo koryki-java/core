@@ -512,16 +512,6 @@ public interface TypeDescriptorParser {
         };
     }
 
-    /**
-     * Whether a dialect type stores JSON: a container concept with such a dialect type is JSON of
-     * that content. {@code JSON} and {@code JSONB} do; a dialect that keeps JSON in another type
-     * ({@code VARIANT}, or text) says so by overriding this, since the name alone does not tell.
-     */
-    default boolean storesJson(String dialectType) {
-        return dialectType != null
-                && (dialectType.equalsIgnoreCase("JSON") || dialectType.equalsIgnoreCase("JSONB"));
-    }
-
     default TypeDescriptor parseExtended(
             Column column,
             TypeFamily family,

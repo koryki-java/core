@@ -30,6 +30,8 @@ import ai.koryki.catalog.types.TypeDescriptorParser;
 import ai.koryki.catalog.types.TypeTree;
 import ai.koryki.databases.complex.duckdb.ComplexService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 /** The converter on the DuckDB complex bed: every column types as it did before. */
 class ConceptConverterTest {
@@ -167,40 +169,27 @@ class ConceptConverterTest {
                 "DATE", converted.getConcepts().get("t_events_element").getEntries().get("day"));
     }
 
-    @Test
-    void jsonKeptInAnotherTypeKeepsItsFieldsUntilTheParserKnowsIt() {
-        String db =
-                """
-                { "name": "d", "relations": [], "tables": [ { "name": "t", "columns": [
-                  { "name": "doc", "typeFamily": "JSON", "dialectType": "%s",
-                    "fields": [ { "name": "n", "typeFamily": "INTEGER" } ] } ] } ] }
-                """;
-        Schema varchar = CatalogLoader.readSchemaJson(db.formatted("VARCHAR"));
-        Schema json = CatalogLoader.readSchemaJson(db.formatted("JSON"));
+    @ParameterizedTest
+    @CsvSource({"JSON", "JSONB", "VARCHAR", "TEXT", "VARIANT"})
+    void jsonInAnyPhysicalTypeBecomesAContainerWithTheEncodingJson(String dialectType) {
+        Schema old =
+                CatalogLoader.readSchemaJson(
+                        """
+                        { "name": "d", "relations": [], "tables": [ { "name": "t", "columns": [
+                          { "name": "doc", "typeFamily": "JSON", "dialectType": "%s",
+                            "fields": [ { "name": "n", "typeFamily": "INTEGER" } ] } ] } ] }
+                        """
+                                .formatted(dialectType));
+        Schema converted = ConceptConverter.convert(old);
+        Column column = converted.getTables().get(0).getColumns().get(0);
 
-        assertNull(
-                ConceptConverter.convert(varchar)
-                        .getTables()
-                        .get(0)
-                        .getColumns()
-                        .get(0)
-                        .getConcept());
+        assertEquals("t_doc", column.getConcept());
+        assertEquals("STRUCT", converted.getConcepts().get("t_doc").getTypeFamily());
+        assertEquals("JSON", converted.getConcepts().get("t_doc").getTypeEncoding());
+        assertEquals(dialectType, converted.getConcepts().get("t_doc").getDialectType());
         assertEquals(
-                "t_doc",
-                ConceptConverter.convert(json).getTables().get(0).getColumns().get(0).getConcept());
-        TypeDescriptorParser varcharIsJson =
-                new TypeDescriptorParser() {
-                    @Override
-                    public boolean storesJson(String dialectType) {
-                        return "VARCHAR".equals(dialectType);
-                    }
-                };
-        Schema converted = ConceptConverter.convert(varchar, varcharIsJson);
-        assertEquals(
-                "JSON(STRUCT(n:INTEGER))",
-                new ConceptResolver(converted)
-                        .descriptor(converted.getTables().get(0).getColumns().get(0), varcharIsJson)
-                        .portable());
+                PARSER.parse(old.getTables().get(0).getColumns().get(0)),
+                new ConceptResolver(converted).descriptor(column, PARSER));
     }
 
     @Test

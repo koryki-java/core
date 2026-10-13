@@ -83,10 +83,11 @@ class ConceptConverterTest {
     }
 
     @Test
-    void aMapStoredAsJsonbIsAMapConceptWithAJsonbDialectType() {
+    void aMapStoredAsJsonbIsAMapConceptWithTheEncodingJson() {
         Concept attrs = NEW.getConcepts().get("check_complex_attrs");
         assertEquals("MAP", attrs.getTypeFamily());
         assertEquals("JSONB", attrs.getDialectType());
+        assertEquals("JSON", attrs.getTypeEncoding());
         assertEquals("VARCHAR", attrs.getEntries().get("key"));
         TypeDescriptor type =
                 new ConceptResolver(NEW)

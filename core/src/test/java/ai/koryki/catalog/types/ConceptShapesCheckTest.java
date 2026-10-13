@@ -115,8 +115,42 @@ class ConceptShapesCheckTest {
                 "JSON",
                 null,
                 "n=INTEGER",
-                "a JSON has no entries, not 'n'; its content is a STRUCT, ARRAY or MAP whose"
-                        + " dialectType is JSON");
+                "a JSON has no entries, not 'n'; its content is a STRUCT, ARRAY or MAP with the"
+                        + " encoding JSON");
+    }
+
+    @Test
+    void theEncodingJsonBelongsToAContainer() {
+        for (String family : new String[] {"ARRAY", "STRUCT", "MAP"}) {
+            Concept concept = new Concept();
+            concept.setTypeFamily(family);
+            concept.setTypeEncoding("JSON");
+            concept.setEntries(
+                    new java.util.LinkedHashMap<>(
+                            family.equals("ARRAY")
+                                    ? java.util.Map.of("element", "VARCHAR")
+                                    : family.equals("MAP")
+                                            ? java.util.Map.of("key", "VARCHAR", "value", "VARCHAR")
+                                            : java.util.Map.of("a", "VARCHAR")));
+            Schema schema = new Schema();
+            schema.setConcepts(new java.util.LinkedHashMap<>(java.util.Map.of("c", concept)));
+            new ConceptResolver(schema).checkShapes();
+        }
+        for (String family : new String[] {"TEXT", "JSON"}) {
+            Concept concept = new Concept();
+            concept.setTypeFamily(family);
+            concept.setTypeEncoding("JSON");
+            Schema schema = new Schema();
+            schema.setConcepts(new java.util.LinkedHashMap<>(java.util.Map.of("c", concept)));
+            assertEquals(
+                    "concept 'c': the encoding JSON belongs to an ARRAY, a STRUCT or a MAP, not to"
+                            + " a "
+                            + family,
+                    assertThrows(
+                                    IllegalArgumentException.class,
+                                    () -> new ConceptResolver(schema).checkShapes())
+                            .getMessage());
+        }
     }
 
     @Test

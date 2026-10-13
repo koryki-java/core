@@ -257,6 +257,7 @@ Enum of built-in non-native encodings for standard cross-dialect patterns.
 | `INTERVAL_DAY_SECOND` | `INTERVAL` | Day-second interval |
 | `CALENDAR_DISTANCE` | `INTERVAL` | Calendar-based distance |
 | `INSTANT` | `TIMESTAMP` | UTC instant |
+| `JSON` | `JSON` | A container concept (ARRAY, STRUCT, MAP) stored as a JSON value, in whatever type its dialect type names |
 
 ---
 

@@ -249,6 +249,7 @@ class ConceptDescriptorTest {
 
     private static Concept json(String... namesAndValues) {
         Concept json = concept("STRUCT", "JSON");
+        json.setTypeEncoding("JSON");
         Map<String, String> entries = new LinkedHashMap<>();
         for (int i = 0; i < namesAndValues.length; i += 2) {
             entries.put(namesAndValues[i], namesAndValues[i + 1]);
@@ -320,6 +321,7 @@ class ConceptDescriptorTest {
     void anArrayStoredAsJsonIsJsonOfAList() {
         Concept list = array("INTEGER", 3);
         list.setDialectType("JSONB");
+        list.setTypeEncoding("JSON");
         Column old = new Column("c");
         old.setTypeFamily("JSON");
         old.setDialectType("JSONB");
@@ -335,6 +337,7 @@ class ConceptDescriptorTest {
     void aMapStoredAsJsonIsJsonOfAnObjectWithOneKindOfValue() {
         Concept map = map("INTEGER", "VARCHAR");
         map.setDialectType("JSONB");
+        map.setTypeEncoding("JSON");
         Column old = new Column("c");
         old.setTypeFamily("JSON");
         old.setDialectType("JSONB");
@@ -353,10 +356,33 @@ class ConceptDescriptorTest {
         TypeDescriptor nativeMap = viaConcept(schema(map("VARCHAR", "INTEGER")));
         Concept stored = map("VARCHAR", "INTEGER");
         stored.setDialectType("JSON");
+        stored.setTypeEncoding("JSON");
 
         assertEquals(CoreTypeFamily.MAP, nativeMap.getTypeFamily());
         assertEquals(CoreTypeFamily.JSON, viaConcept(schema(stored)).getTypeFamily());
         assertEquals(nativeMap.portable(), viaConcept(schema(stored)).shape().portable());
+    }
+
+    @Test
+    void theDialectTypeAloneDoesNotMakeAContainerJson() {
+        Concept map = map("VARCHAR", "INTEGER");
+        map.setDialectType("JSON");
+
+        assertEquals(CoreTypeFamily.MAP, viaConcept(schema(map)).getTypeFamily());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"VARCHAR", "TEXT", "VARIANT", "JSONB", "VARCHAR(4000)"})
+    void theEncodingMakesAContainerJsonInAnyPhysicalType(String dialectType) {
+        Concept map = map("VARCHAR", "INTEGER");
+        map.setDialectType(dialectType);
+        map.setTypeEncoding("JSON");
+
+        TypeDescriptor type = viaConcept(schema(map));
+
+        assertEquals(CoreTypeFamily.JSON, type.getTypeFamily());
+        assertEquals(dialectType, type.getPhysicalTypeName());
+        assertEquals("JSON(MAP(TEXT,INTEGER))", type.portable());
     }
 
     @Test
