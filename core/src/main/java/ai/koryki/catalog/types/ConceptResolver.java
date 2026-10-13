@@ -101,6 +101,44 @@ public final class ConceptResolver {
     }
 
     /**
+     * Whether no concept is named like a type. A name is looked up before a spelling, so a concept
+     * called {@code varchar} would take the place of the type {@code VARCHAR} in every entry that
+     * says it, and a catalog would change its meaning by the name of one concept. The names of the
+     * families ({@code TEXT}, {@code STRUCT}) are taken, whatever the case, and so is everything
+     * the parser reads as a type: {@code double}, {@code DECIMAL(10,2)}.
+     *
+     * @param parser reads a spelling; a dialect may know names others do not
+     * @throws IllegalArgumentException for the first concept with such a name
+     */
+    public void checkNames(TypeDescriptorParser parser) {
+        Map<String, Concept> concepts = schema.getConcepts();
+        if (concepts == null) {
+            return;
+        }
+        for (String name : concepts.keySet()) {
+            if (isFamily(name) || spelling(name, parser)) {
+                throw new IllegalArgumentException(
+                        "concept '"
+                                + name
+                                + "': the name is a type, and an entry that says "
+                                + name
+                                + " would refer to the concept instead of the type; call it"
+                                + " something else");
+            }
+        }
+    }
+
+    private static boolean isFamily(String name) {
+        String upper = name.toUpperCase(java.util.Locale.ROOT);
+        for (CoreTypeFamily family : CoreTypeFamily.values()) {
+            if (family.name().equals(upper)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Whether the entries of every concept are the ones its family has: an ARRAY has the one entry
      * {@code element}, a MAP the two entries {@code key} and {@code value}, a STRUCT at least one
      * entry, and a scalar none. JSON may list the members it is known to hold, any number. An
