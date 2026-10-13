@@ -89,15 +89,15 @@ class ConceptDescriptorTest {
     }
 
     @Test
-    void aStructConceptIsNotTypedYet() {
-        Concept struct = concept("STRUCT", null);
-        struct.setEntries(new LinkedHashMap<>(Map.of("x", "VARCHAR")));
+    void aMapConceptIsNotTypedYet() {
+        Concept map = concept("MAP", null);
+        map.setEntries(new LinkedHashMap<>(Map.of("key", "VARCHAR", "value", "INTEGER")));
 
         String message =
                 assertThrows(
                                 IllegalArgumentException.class,
                                 () ->
-                                        new ConceptResolver(schema(struct))
+                                        new ConceptResolver(schema(map))
                                                 .descriptor(viaConcept(), PARSER))
                         .getMessage();
 
@@ -162,6 +162,46 @@ class ConceptDescriptorTest {
                                 "row", array("INTEGER", 2)));
 
         assertEquals(spelled("INTEGER[2][]", "ARRAY"), viaConcept(schema));
+    }
+
+    private static Concept struct(String... namesAndValues) {
+        Concept struct = concept("STRUCT", null);
+        Map<String, String> entries = new LinkedHashMap<>();
+        for (int i = 0; i < namesAndValues.length; i += 2) {
+            entries.put(namesAndValues[i], namesAndValues[i + 1]);
+        }
+        struct.setEntries(entries);
+        return struct;
+    }
+
+    @ParameterizedTest(name = "{1}")
+    @CsvSource(
+            delimiter = '|',
+            value = {
+                "street,VARCHAR|STRUCT(street VARCHAR)",
+                "street,VARCHAR,no,INTEGER|STRUCT(street VARCHAR, no INTEGER)",
+                "no,INTEGER,street,VARCHAR|STRUCT(no INTEGER, street VARCHAR)",
+                "tags,VARCHAR[]|STRUCT(tags VARCHAR[])",
+                "Odd Name,VARCHAR|STRUCT(\"Odd Name\" VARCHAR)"
+            })
+    void aStructConceptTypesLikeItsSpelling(String entries, String spelling) {
+        String[] parts = entries.split(",");
+        assertEquals(spelled(spelling, "STRUCT"), viaConcept(schema(struct(parts))));
+    }
+
+    @Test
+    void theFieldsMayBeConcepts() {
+        Schema schema =
+                schema(
+                        Map.of(
+                                "k", struct("geo", "position", "phones", "phone_list"),
+                                "position", struct("lat", "latitude", "lon", "latitude"),
+                                "latitude", concept("FLOAT", "DOUBLE"),
+                                "phone_list", array("VARCHAR", 3)));
+
+        assertEquals(
+                spelled("STRUCT(geo STRUCT(lat DOUBLE, lon DOUBLE), phones VARCHAR[3])", "STRUCT"),
+                viaConcept(schema));
     }
 
     @Test

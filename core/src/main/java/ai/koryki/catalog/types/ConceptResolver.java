@@ -67,9 +67,10 @@ public final class ConceptResolver {
      * The type of a column from its concept. A scalar concept gives the descriptor the parser makes
      * of a column that declares the family, the encoding and the dialect type itself; an ARRAY
      * concept gives the list (or the fixed-size array, with {@code arraySize}) of its {@code
-     * element}, which is the name of a concept or a type spelling. STRUCT, MAP and JSON with
-     * entries follow in later steps. The schema is assumed to have passed {@link #check}; a cycle
-     * would not end.
+     * element}, a STRUCT concept the struct of its entries, in their order; each of them is the
+     * name of a concept or a type spelling. The entry names are the member names as the database
+     * has them; their translation follows later. MAP and JSON with entries follow in later steps.
+     * The schema is assumed to have passed {@link #check}; a cycle would not end.
      *
      * @param parser reads the dialect type and the spellings; a dialect may know names others do
      *     not
@@ -82,19 +83,28 @@ public final class ConceptResolver {
 
     private TypeDescriptor descriptor(Concept concept, String where, TypeDescriptorParser parser) {
         if (CoreTypeFamily.ARRAY.name().equals(concept.getTypeFamily())) {
-            TypeDescriptor element = entry(concept, "element", where, parser);
+            TypeDescriptor element = entry(concept.getEntries().get("element"), where, parser);
             Integer size = concept.getArraySize();
             return size == null
                     ? TypeDescriptor.array(element)
                     : TypeDescriptor.array(element, size);
+        }
+        if (CoreTypeFamily.STRUCT.name().equals(concept.getTypeFamily())) {
+            List<String> names = new ArrayList<>();
+            List<TypeDescriptor> types = new ArrayList<>();
+            for (Map.Entry<String, String> field : concept.getEntries().entrySet()) {
+                names.add(field.getKey());
+                types.add(entry(field.getValue(), where, parser));
+            }
+            return TypeDescriptor.struct(names, types);
         }
         if (concept.getEntries() != null || concept.getArraySize() != null) {
             throw new IllegalArgumentException(
                     where
                             + ": a "
                             + concept.getTypeFamily()
-                            + " concept with entries is not typed yet; only a scalar and an ARRAY"
-                            + " are");
+                            + " concept with entries is not typed yet; only a scalar, an ARRAY and"
+                            + " a STRUCT are");
         }
         Column scalar = new Column(where);
         scalar.setTypeFamily(concept.getTypeFamily());
@@ -104,9 +114,7 @@ public final class ConceptResolver {
     }
 
     /** The type an entry refers to: a concept of the schema, else a type spelling. */
-    private TypeDescriptor entry(
-            Concept concept, String key, String where, TypeDescriptorParser parser) {
-        String value = concept.getEntries().get(key);
+    private TypeDescriptor entry(String value, String where, TypeDescriptorParser parser) {
         Map<String, Concept> concepts = schema.getConcepts();
         if (concepts != null && concepts.containsKey(value)) {
             return descriptor(concepts.get(value), where + ", concept '" + value + "'", parser);
