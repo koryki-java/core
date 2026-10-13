@@ -160,4 +160,49 @@ class ConceptNodesTest {
         assertEquals("m", w.getUnit());
         assertEquals("length", w.getQuantity());
     }
+
+    private static Column column(String name) {
+        return NEW.getTables().get(0).getColumns().stream()
+                .filter(c -> c.getName().equals(name))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    @Test
+    void anEntryThatIsASpellingSaysItsDialectTypeAndFamily() {
+        // the elements of the rows of matrix are the plain spelling DOUBLE
+        Concept element = NODES.node(column("matrix"), List.of(at(1), at(1))).orElseThrow();
+
+        assertEquals("FLOAT", element.getTypeFamily());
+        assertEquals("DOUBLE", element.getDialectType());
+        assertEquals(null, element.getLabel());
+    }
+
+    @Test
+    void aSpellingOfAContainerSaysItsDialectTypeAndNoFamily() {
+        Concept spelled =
+                new ConceptNodes(NEW)
+                        .fields(inline("STRUCT", java.util.Map.of("v", "VARCHAR[]")))
+                        .get(0);
+
+        assertEquals("VARCHAR[]", spelled.getDialectType());
+        assertEquals(null, spelled.getTypeFamily());
+    }
+
+    private static Concept inline(String family, java.util.Map<String, String> entries) {
+        Concept concept = new Concept();
+        concept.setTypeFamily(family);
+        concept.setEntries(new java.util.LinkedHashMap<>(entries));
+        return concept;
+    }
+
+    @Test
+    void aChainMayStartAtAConcept() {
+        Concept address = NEW.getConcepts().get("check_complex_address");
+
+        Concept lat = NODES.node(address, List.of(id("geo"), id("lat"))).orElseThrow();
+
+        assertEquals("Latitude", lat.getLabel());
+        assertEquals(Optional.of(address), NODES.node(address, List.of()));
+    }
 }

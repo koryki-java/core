@@ -20,7 +20,9 @@ import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.types.CoreTypeFamily;
+import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeDescriptorParser;
+import ai.koryki.catalog.types.TypeSyntax;
 import ai.koryki.iql.query.Selector;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,10 +42,10 @@ import java.util.Optional;
  * JSON}) a struct is entered by name only, a list by position only, and a map by a position only
  * when its keys are integers. A range selects a list of elements, which is no node.
  *
- * <p>An entry that is a type spelling and not a concept says nothing: it is found, and has no
- * label, unit or quantity, and nothing below it. Where the catalog has no part at all (a column
- * without concept, a name that is no entry) the answer is empty, and the caller falls back to the
- * column.
+ * <p>An entry that is a type spelling and not a concept says nothing: it is found, has no label,
+ * unit or quantity and nothing below it, and says its dialect type and, for a scalar, its family.
+ * Where the catalog has no part at all (a column without concept, a name that is no entry) the
+ * answer is empty, and the caller falls back to the column.
  */
 public final class ConceptNodes {
 
@@ -58,7 +60,12 @@ public final class ConceptNodes {
         if (column.getConcept() == null) {
             return Optional.empty();
         }
-        Concept node = schema.getConcepts().get(column.getConcept());
+        return node(schema.getConcepts().get(column.getConcept()), steps);
+    }
+
+    /** The concept at the end of the chain, walked from a concept: itself for no steps. */
+    public Optional<Concept> node(Concept from, List<Selector> steps) {
+        Concept node = from;
         for (Selector step : steps) {
             if (node == null) {
                 return Optional.empty();
@@ -156,7 +163,7 @@ public final class ConceptNodes {
 
     /**
      * What an entry refers to: the concept of that name, or for a spelling a concept that says
-     * nothing.
+     * nothing but its dialect type and, for a scalar, its family.
      */
     private Concept resolve(String value) {
         Concept concept = schema.getConcepts() == null ? null : schema.getConcepts().get(value);
@@ -165,6 +172,14 @@ public final class ConceptNodes {
         }
         Concept spelled = new Concept();
         spelled.setDialectType(value);
+        try {
+            TypeDescriptor type = TypeSyntax.parse(value, new TypeDescriptorParser() {}::parseLeaf);
+            if (!type.isComplex()) {
+                spelled.setTypeFamily(type.getTypeFamily().name());
+            }
+        } catch (IllegalArgumentException unreadable) {
+            // a spelling this parser does not know says nothing more
+        }
         return spelled;
     }
 }
