@@ -27,6 +27,7 @@ import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Relation;
 import ai.koryki.catalog.schema.Schema;
+import ai.koryki.catalog.types.ConceptResolver;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeDescriptorParser;
 import ai.koryki.iql.query.JoinColumns;
@@ -80,6 +81,7 @@ public class LinkResolver {
         this.strict = strict;
 
         TypeDescriptorParser parser = new TypeDescriptorParser() {};
+        ConceptResolver concepts = new ConceptResolver(db);
 
         db.getTables()
                 .forEach(
@@ -87,7 +89,12 @@ public class LinkResolver {
                             t.getColumns()
                                     .forEach(
                                             c -> {
-                                                TypeDescriptor d = parser.parse(c);
+                                                // a column that refers to a concept is typed from
+                                                // it, any other from what it declares itself
+                                                TypeDescriptor d =
+                                                        c.getConcept() != null
+                                                                ? concepts.descriptor(c, parser)
+                                                                : parser.parse(c);
                                                 columnToTypedescriptor.put(c, d);
                                             });
                         });
