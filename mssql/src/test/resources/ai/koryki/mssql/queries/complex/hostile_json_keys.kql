@@ -1,7 +1,11 @@
-// The same for the dialects that hold only JSON: the member of a path.
+// The same for the dialects that hold only JSON: the member of a path. See hostile_keys for how a
+// backslash is written: 'x\\' OR 1=1 --' is the value x\' OR 1=1 -- , and a backslash at the very
+// end, 'x\', has to be in the last item of the query.
 FIND check_complex t
 FETCH t.nr,
       t.doc@'x\' OR 1=1 --' quote_member,
-      t.doc@'a\\b' backslash_member,
+      t.doc@'a\b' backslash_member,
+      t.doc@'x\\' OR 1=1 --' backslash_quote_member,
       t.doc@'x"] || $ ; DROP TABLE check_complex; --' path_member,
-      t.doc@a@'b.c' dotted_member
+      t.doc@a@'b.c' dotted_member,
+      t.doc@'x\' trailing_member
