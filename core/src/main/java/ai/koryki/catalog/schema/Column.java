@@ -47,6 +47,13 @@ public class Column {
     private Column value;
     private Integer length;
 
+    /**
+     * The name of a concept in {@code Schema.getConcepts()}: what this column is, where the concept
+     * says it (structure, unit, presentation, label). Beside the fields above, which a column still
+     * carries itself; nothing reads this yet.
+     */
+    private String concept;
+
     private Boolean nullable;
     private int pkPos;
 
@@ -244,5 +251,13 @@ public class Column {
 
     public void setPresentation(String presentation) {
         this.presentation = presentation;
+    }
+
+    public String getConcept() {
+        return concept;
+    }
+
+    public void setConcept(String concept) {
+        this.concept = concept;
     }
 }

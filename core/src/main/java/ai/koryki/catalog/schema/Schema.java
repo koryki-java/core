@@ -16,9 +16,7 @@
  */
 package ai.koryki.catalog.schema;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -31,6 +29,7 @@ public class Schema {
     private String schemaPrefix;
     private List<Table> tables;
     private List<Relation> relations;
+    private Map<String, Concept> concepts;
 
     public Schema() {
         this(null);
@@ -141,5 +140,13 @@ public class Schema {
 
     public List<Relation> linkRelations(String startTable, String endTable) {
         return linkRelations(startTable, endTable, null);
+    }
+
+    public Map<String, Concept> getConcepts() {
+        return concepts;
+    }
+
+    public void setConcepts(Map<String, Concept> concepts) {
+        this.concepts = concepts;
     }
 }

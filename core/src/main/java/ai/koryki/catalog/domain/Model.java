@@ -17,7 +17,9 @@
 package ai.koryki.catalog.domain;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -29,6 +31,12 @@ public class Model {
     private String description;
     private List<Entity> entities;
     private List<Link> links;
+
+    /**
+     * The concepts of the schema in the language of this model, by the name of the concept; see
+     * {@link Notion}.
+     */
+    private Map<String, Notion> notions = new LinkedHashMap<>();
 
     public Model() {
         this(null);
@@ -103,6 +111,14 @@ public class Model {
         this.label = label;
     }
 
+    public Map<String, Notion> getNotions() {
+        return notions;
+    }
+
+    public void setNotions(Map<String, Notion> notions) {
+        this.notions = notions;
+    }
+
     public static Model deepCopy(Model Locale) {
         Model copy = new Model();
         copy.setName(Locale.getName());
@@ -113,6 +129,33 @@ public class Model {
         copy.setEntities(
                 Locale.getEntities().stream().map(Model::deepCopy).collect(Collectors.toList()));
         copy.setLinks(Locale.getLinks().stream().map(Model::deepCopy).collect(Collectors.toList()));
+        if (Locale.getNotions() != null) {
+            Map<String, Notion> notions = new LinkedHashMap<>();
+            Locale.getNotions().forEach((name, notion) -> notions.put(name, deepCopy(notion)));
+            copy.setNotions(notions);
+        }
+        return copy;
+    }
+
+    public static Notion deepCopy(Notion notion) {
+        Notion copy = new Notion();
+        copy.setLabel(notion.getLabel());
+        copy.setComment(notion.getComment());
+        copy.setDescription(notion.getDescription());
+        if (notion.getMembers() != null) {
+            Map<String, Member> members = new LinkedHashMap<>();
+            notion.getMembers().forEach((key, member) -> members.put(key, deepCopy(member)));
+            copy.setMembers(members);
+        }
+        return copy;
+    }
+
+    public static Member deepCopy(Member member) {
+        Member copy = new Member();
+        copy.setName(member.getName());
+        copy.setLabel(member.getLabel());
+        copy.setComment(member.getComment());
+        copy.setDescription(member.getDescription());
         return copy;
     }
 
