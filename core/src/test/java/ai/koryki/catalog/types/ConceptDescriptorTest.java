@@ -89,19 +89,79 @@ class ConceptDescriptorTest {
     }
 
     @Test
-    void aContainerConceptIsNotTypedYet() {
-        Concept array = concept("ARRAY", null);
-        array.setEntries(new LinkedHashMap<>(Map.of("element", "VARCHAR")));
+    void aStructConceptIsNotTypedYet() {
+        Concept struct = concept("STRUCT", null);
+        struct.setEntries(new LinkedHashMap<>(Map.of("x", "VARCHAR")));
 
         String message =
                 assertThrows(
                                 IllegalArgumentException.class,
                                 () ->
-                                        new ConceptResolver(schema(array))
+                                        new ConceptResolver(schema(struct))
                                                 .descriptor(viaConcept(), PARSER))
                         .getMessage();
 
-        assertTrue(message.contains("only a scalar concept is typed so far"), message);
+        assertTrue(message.contains("is not typed yet"), message);
+    }
+
+    private static Schema schema(Map<String, Concept> concepts) {
+        Schema schema = new Schema();
+        schema.setConcepts(new LinkedHashMap<>(concepts));
+        return schema;
+    }
+
+    private static Concept array(String element, Integer size) {
+        Concept array = concept("ARRAY", null);
+        array.setEntries(new LinkedHashMap<>(Map.of("element", element)));
+        array.setArraySize(size);
+        return array;
+    }
+
+    private static TypeDescriptor spelled(String dialectType, String family) {
+        Column old = new Column("c");
+        old.setTypeFamily(family);
+        old.setDialectType(dialectType);
+        return PARSER.parse(old);
+    }
+
+    private static TypeDescriptor viaConcept(Schema schema) {
+        return new ConceptResolver(schema).descriptor(viaConcept(), PARSER);
+    }
+
+    @ParameterizedTest(name = "{0}, size {1}")
+    @CsvSource(
+            value = {
+                "VARCHAR, null, VARCHAR[]",
+                "INTEGER, null, INTEGER[]",
+                "DOUBLE, 3, DOUBLE[3]",
+                "VARCHAR[], null, VARCHAR[][]",
+                "'DECIMAL(10,2)', null, 'DECIMAL(10,2)[]'"
+            },
+            nullValues = "null")
+    void anArrayConceptTypesLikeItsSpelling(String element, Integer size, String spelling) {
+        assertEquals(spelled(spelling, "ARRAY"), viaConcept(schema(array(element, size))));
+    }
+
+    @Test
+    void theElementMayBeAScalarConcept() {
+        Schema schema =
+                schema(
+                        Map.of(
+                                "k", array("latitude", 3),
+                                "latitude", concept("FLOAT", "DOUBLE")));
+
+        assertEquals(spelled("DOUBLE[3]", "ARRAY"), viaConcept(schema));
+    }
+
+    @Test
+    void theElementMayBeAnArrayConcept() {
+        Schema schema =
+                schema(
+                        Map.of(
+                                "k", array("row", null),
+                                "row", array("INTEGER", 2)));
+
+        assertEquals(spelled("INTEGER[2][]", "ARRAY"), viaConcept(schema));
     }
 
     @Test
