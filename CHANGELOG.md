@@ -32,6 +32,16 @@ All notable changes to this project are documented here.
   inherit the annotations of the element. A node whose children do not fit its family (an ARRAY with
   fields) is refused when the catalog is read.
 
+- A JSON column that stores a map (PostgreSQL, Oracle) can say so: `value`, and `key` INTEGER when the
+  keys are integers written as text, make `t.attrs@color` a text and `t.lookup@1` the member `"1"`,
+  as on a dialect with maps. What the catalog declares about JSON also survives `coalesce` and `CASE`
+  when every branch declares the same, and the same elements in a fixed size and in a list reconcile
+  to a list. A lambda that is a predicate (`list_filter`, `list_any`, `list_all`) has to answer yes
+  or no, and the message for a JSON value where a list or a number is wanted says what to do.
+  `NestedSupport.comparable` declares the nested values an engine takes in a comparison, a grouping,
+  an ordering or `min`/`max` (Oracle takes no collection), and a query that does it is a positioned
+  violation instead of an ORA error.
+
 - Typed JSON: a catalog declares the members of a JSON column (`fields`, `element` and `value` on the
   column, `n` INTEGER and `a.b` an array of INTEGER), and a selection that reaches one is that scalar, so `FILTER t.doc@n > 0`,
   arithmetic, `sum` and `GROUP BY` work without a cast. `TypeDescriptor.shape()` carries the declared

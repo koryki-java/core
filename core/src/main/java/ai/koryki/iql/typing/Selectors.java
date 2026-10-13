@@ -110,7 +110,7 @@ public final class Selectors {
             }
             return type.value();
         } else if (CoreTypeFamily.JSON.equals(type.getTypeFamily())) {
-            return inJson(type, shape -> member(shape, name));
+            return inJson(type, shape -> member(shape, name, text));
         }
         throw refused(type, text, "by name; that needs a struct, a map or JSON");
     }
@@ -140,7 +140,7 @@ public final class Selectors {
             }
             return type.value();
         } else if (CoreTypeFamily.JSON.equals(type.getTypeFamily())) {
-            return inJson(type, shape -> element(shape));
+            return inJson(type, shape -> positional(shape, text));
         }
         throw refused(type, text, "by position; that needs a list, a struct, a map or JSON");
     }
@@ -175,17 +175,78 @@ public final class Selectors {
         return next.isComplex() ? json.withShape(next) : next;
     }
 
-    private static TypeDescriptor member(TypeDescriptor shape, String name) {
+    private static TypeDescriptor member(TypeDescriptor shape, String name, String text) {
         if (CoreTypeFamily.STRUCT.equals(shape.getTypeFamily())) {
             return shape.field(name).orElse(null);
         } else if (CoreTypeFamily.MAP.equals(shape.getTypeFamily())) {
+            if (!CoreTypeFamily.TEXT.equals(shape.key().getTypeFamily())) {
+                throw new SelectorException(
+                        text
+                                + " selects a text key, but the keys of "
+                                + shape.portable()
+                                + " are "
+                                + shape.key().portable());
+            }
             return shape.value();
         }
         return null;
     }
 
-    private static TypeDescriptor element(TypeDescriptor shape) {
-        return CoreTypeFamily.ARRAY.equals(shape.getTypeFamily()) ? shape.element() : null;
+    /** A position in a declared shape: the element of a list, or the value of an integer key. */
+    private static TypeDescriptor positional(TypeDescriptor shape, String text) {
+        if (CoreTypeFamily.ARRAY.equals(shape.getTypeFamily())) {
+            return shape.element();
+        } else if (CoreTypeFamily.MAP.equals(shape.getTypeFamily())) {
+            if (!CoreTypeFamily.INTEGER.equals(shape.key().getTypeFamily())) {
+                throw new SelectorException(
+                        text
+                                + " selects an integer key, but the keys of "
+                                + shape.portable()
+                                + " are "
+                                + shape.key().portable());
+            }
+            return shape.value();
+        }
+        return null;
+    }
+
+    /**
+     * The steps of a chain from JSON as the path will name them: where the shape says an object has
+     * integer keys (JSON keys are text, so {@code 1} is the member {@code "1"}), a position is the
+     * key it names, written as a name. Every other step is as it was.
+     */
+    public static List<Selector> jsonKeys(TypeDescriptor base, List<Selector> steps) {
+        if (base == null
+                || !CoreTypeFamily.JSON.equals(base.getTypeFamily())
+                || base.shape() == null) {
+            return steps;
+        }
+        List<Selector> out = new java.util.ArrayList<>();
+        TypeDescriptor type = base;
+        for (Selector step : steps) {
+            TypeDescriptor shape = type.shape();
+            if (shape != null
+                    && step.getIndex() != null
+                    && CoreTypeFamily.MAP.equals(shape.getTypeFamily())
+                    && CoreTypeFamily.INTEGER.equals(shape.key().getTypeFamily())) {
+                Selector key = new Selector();
+                key.setName(String.valueOf(step.getIndex()));
+                out.add(key);
+            } else {
+                out.add(step);
+            }
+            try {
+                type = step(type, step);
+            } catch (SelectorException ended) {
+                out.addAll(steps.subList(out.size(), steps.size()));
+                return out;
+            }
+            if (!CoreTypeFamily.JSON.equals(type.getTypeFamily())) {
+                out.addAll(steps.subList(out.size(), steps.size()));
+                return out;
+            }
+        }
+        return out;
     }
 
     private static SelectorException refused(TypeDescriptor type, String text, String why) {

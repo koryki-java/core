@@ -61,6 +61,8 @@ public final class NestedNodes {
         List<Column> fields = node.getFields();
         if ("STRUCT".equals(family) || ("JSON".equals(family) && fields != null && named)) {
             return field(fields, step, named, name);
+        } else if ("JSON".equals(family) && !named && node.getKey() != null) {
+            return node.getValue();
         } else if ("ARRAY".equals(family) || "JSON".equals(family) && !named) {
             return node.getElement();
         } else if ("MAP".equals(family) || "JSON".equals(family)) {

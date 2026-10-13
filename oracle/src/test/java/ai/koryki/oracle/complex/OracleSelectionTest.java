@@ -141,7 +141,7 @@ class OracleSelectionTest {
 
     @Test
     void aQuoteInAKeyStaysInsideTheLiteralOfItsGuardToo() {
-        String actual = sql("t.attrs@'it\\'s'@x");
+        String actual = sql("t.doc@'it\\'s'@x");
 
         assertTrue(actual.contains("'$.\"it''s\".type()'"), actual);
     }

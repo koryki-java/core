@@ -1,9 +1,9 @@
 Nr : INTEGER
-color : JSON
-count_a : JSON
-one : JSON
+color : TEXT
+count_a : INTEGER
+one : TEXT
 n : INTEGER
 inner_first : INTEGER
 array_first : JSON
 array_last : JSON
-deep_number : JSON
+deep_number : INTEGER

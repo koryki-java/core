@@ -1,7 +1,7 @@
 Nr : INTEGER
-quote_key : JSON
-backslash_key : JSON
-bracket_key : JSON
+quote_key : TEXT
+backslash_key : TEXT
+bracket_key : TEXT
 quote_member : JSON
 backslash_member : JSON
 path_member : JSON

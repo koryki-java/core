@@ -336,6 +336,8 @@ public interface SqlDialect {
      *
      * @param name the engine as a message names it
      * @param selectable the families a selector may be applied to: ARRAY, STRUCT, MAP, JSON
+     * @param comparable the families the engine takes as an operand of a comparison, a grouping, an
+     *     ordering or {@code min} / {@code max}: Oracle rejects a collection in all of them
      * @param jsonFromEnd whether a JSON path can count from the end ({@code t.doc@-1})
      * @param lambdaOverJsonList whether {@code list_transform} and its kind take a list that is a
      *     JSON array declared in the catalog
@@ -343,40 +345,57 @@ public interface SqlDialect {
     record NestedSupport(
             String name,
             java.util.Set<CoreTypeFamily> selectable,
+            java.util.Set<CoreTypeFamily> comparable,
             boolean jsonFromEnd,
             boolean lambdaOverJsonList) {
 
+        private static java.util.Set<CoreTypeFamily> all() {
+            return java.util.EnumSet.of(
+                    CoreTypeFamily.ARRAY,
+                    CoreTypeFamily.STRUCT,
+                    CoreTypeFamily.MAP,
+                    CoreTypeFamily.JSON);
+        }
+
         /** Everything, as DuckDB has it. */
         public static NestedSupport full(String name) {
-            return new NestedSupport(
-                    name,
-                    java.util.EnumSet.of(
-                            CoreTypeFamily.ARRAY,
-                            CoreTypeFamily.STRUCT,
-                            CoreTypeFamily.MAP,
-                            CoreTypeFamily.JSON),
-                    true,
-                    true);
+            return new NestedSupport(name, all(), all(), true, true);
         }
 
         /** An engine with JSON and no other nested value. */
         public static NestedSupport jsonOnly(String name, boolean jsonFromEnd) {
             return new NestedSupport(
-                    name, java.util.EnumSet.of(CoreTypeFamily.JSON), jsonFromEnd, true);
+                    name,
+                    java.util.EnumSet.of(CoreTypeFamily.JSON),
+                    java.util.EnumSet.of(CoreTypeFamily.JSON),
+                    jsonFromEnd,
+                    true);
         }
 
         public NestedSupport without(CoreTypeFamily family) {
             java.util.Set<CoreTypeFamily> rest = java.util.EnumSet.copyOf(selectable);
             rest.remove(family);
-            return new NestedSupport(name, rest, jsonFromEnd, lambdaOverJsonList);
+            java.util.Set<CoreTypeFamily> compare = java.util.EnumSet.copyOf(comparable);
+            compare.remove(family);
+            return new NestedSupport(name, rest, compare, jsonFromEnd, lambdaOverJsonList);
+        }
+
+        /**
+         * The engine rejects a value of this kind as an operand of a comparison, a grouping, an
+         * ordering.
+         */
+        public NestedSupport notComparable(CoreTypeFamily family) {
+            java.util.Set<CoreTypeFamily> compare = java.util.EnumSet.copyOf(comparable);
+            compare.remove(family);
+            return new NestedSupport(name, selectable, compare, jsonFromEnd, lambdaOverJsonList);
         }
 
         public NestedSupport withoutJsonFromEnd() {
-            return new NestedSupport(name, selectable, false, lambdaOverJsonList);
+            return new NestedSupport(name, selectable, comparable, false, lambdaOverJsonList);
         }
 
         public NestedSupport withoutLambdaOverJsonList() {
-            return new NestedSupport(name, selectable, jsonFromEnd, false);
+            return new NestedSupport(name, selectable, comparable, jsonFromEnd, false);
         }
     }
 

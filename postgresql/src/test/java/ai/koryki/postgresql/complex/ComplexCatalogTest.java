@@ -53,12 +53,13 @@ class ComplexCatalogTest {
         EXPECTED.put(
                 "address",
                 "STRUCT(street:TEXT,geo:STRUCT(lat:FLOAT,lon:FLOAT),phones:ARRAY(TEXT))");
-        EXPECTED.put("attrs", "JSON");
-        EXPECTED.put("counts", "JSON");
-        EXPECTED.put("lookup", "JSON");
+        EXPECTED.put("attrs", "JSON(MAP(TEXT,TEXT))");
+        EXPECTED.put("counts", "JSON(MAP(TEXT,INTEGER))");
+        EXPECTED.put("lookup", "JSON(MAP(INTEGER,TEXT))");
         EXPECTED.put("items", "ARRAY(STRUCT(sku:TEXT,qty:INTEGER,price:DECIMAL,opts:ARRAY(TEXT)))");
         EXPECTED.put("events", "ARRAY(STRUCT(ts:TIMESTAMP,day:DATE))");
-        EXPECTED.put("deep", "JSON");
+        EXPECTED.put(
+                "deep", "JSON(ARRAY(MAP(TEXT,STRUCT(a:ARRAY(INTEGER),b:MAP(TEXT,ARRAY(TEXT))))))");
         EXPECTED.put(
                 "doc",
                 "JSON(STRUCT(n:INTEGER,a:STRUCT(b:ARRAY(INTEGER)),s:TEXT,b:BOOLEAN,d:DECIMAL))");

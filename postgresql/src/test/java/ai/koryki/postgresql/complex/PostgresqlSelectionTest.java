@@ -83,7 +83,10 @@ class PostgresqlSelectionTest {
                 "t.items@1@sku|(t.items[1]).sku",
                 "t.items@1@opts@2|((t.items[1]).opts)[2]",
                 // jsonb: a path of arrows, 1-based in KQL and 0-based in jsonb
-                "t.attrs@color|(t.attrs -> 'color')",
+                "t.attrs@color|(t.attrs ->> 'color')",
+                // a map the catalog declares is its value's type, so the text without the quotes
+                // of a JSON string; an object it does not describe stays JSON
+                "t.doc@x|(t.doc -> 'x')",
                 "t.doc@x@y@1|(t.doc -> 'x' -> 'y' -> 0)",
                 "t.doc@-1|(t.doc -> -1)",
             })
@@ -97,7 +100,7 @@ class PostgresqlSelectionTest {
     void aQuoteInAKeyStaysInsideItsLiteral() {
         String actual = sql("t.attrs@'it\\'s'");
 
-        assertTrue(actual.contains("t.attrs -> 'it''s'"), actual);
+        assertTrue(actual.contains("t.attrs ->> 'it''s'"), actual);
     }
 
     @ParameterizedTest

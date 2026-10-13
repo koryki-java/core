@@ -73,7 +73,7 @@ public final class TypeTree {
                 out.put("length", structure.length());
             }
         } else if (CoreTypeFamily.MAP.equals(structure.getTypeFamily())) {
-            if (!json) {
+            if (!json || !CoreTypeFamily.TEXT.equals(structure.key().getTypeFamily())) {
                 out.put("key", node(null, structure.key(), json));
             }
             out.put("value", node(null, structure.value(), json));

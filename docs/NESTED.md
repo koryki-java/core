@@ -132,16 +132,16 @@ This table is generated from those declarations.
 
 <!-- nested-support:begin (generated: ./gradlew :tools:nestedMatrix) -->
 
-| | list | struct | map | JSON | JSON from the end | lambda over a JSON array |
-|---|---|---|---|---|---|---|
-| DuckDB | yes | yes | yes | yes | yes | yes |
-| Oracle | yes | yes | no | yes | yes | no |
-| Snowflake | yes | yes | yes | yes | no | yes |
-| SQL Server | no | no | no | yes | no | no list |
-| PostgreSQL | yes | yes | no | yes | yes | yes |
-| MariaDB | no | no | no | yes | yes | no list |
-| SQLite | no | no | no | yes | yes | no list |
-| Trino | yes | yes | yes | yes | no | yes |
+| | list | struct | map | JSON | JSON from the end | lambda over a JSON array | compare a list |
+|---|---|---|---|---|---|---|---|
+| DuckDB | yes | yes | yes | yes | yes | yes | yes |
+| Oracle | yes | yes | no | yes | yes | no | no |
+| Snowflake | yes | yes | yes | yes | no | yes | yes |
+| SQL Server | no | no | no | yes | no | no list | no list |
+| PostgreSQL | yes | yes | no | yes | yes | yes | yes |
+| MariaDB | no | no | no | yes | yes | no list | no list |
+| SQLite | no | no | no | yes | yes | no list | no list |
+| Trino | yes | yes | yes | yes | no | yes | yes |
 
 <!-- nested-support:end -->
 
@@ -161,8 +161,10 @@ the two disagree, the table above is the declaration and this one is out of date
 | MariaDB | no | no | no | no | yes | yes | no | no | no |
 | SQLite | no | no | no | no | yes | yes | no | no | no |
 
-"as JSON": the dialect has no map type; the column is a JSON object, its keys are text, and `@1` on it
-is an array position, so an integer key is written `@'1'`.
+"as JSON": the dialect has no map type; the column is a JSON object. A catalog that declares what the
+object holds (`value`, and `key` INTEGER when the keys are integers written as text) makes it a map for
+a query: `t.attrs@color` is a text and `t.lookup@1` the member `"1"`, as on a dialect with maps. Without
+that declaration `@1` on it is an array position, and an integer key is written `@'1'`.
 
 ### Casting JSON
 

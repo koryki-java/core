@@ -369,13 +369,16 @@ public interface TypeDescriptorParser {
      * value can be read as, or such a shape again. Nothing is said about members not listed.
      */
     private TypeDescriptor members(Column json, String where) {
-        if (childrenOf(json).size() > 1) {
+        List<String> given = childrenOf(json);
+        boolean object = given.contains("value") && given.contains("key") && given.size() == 2;
+        if (given.size() > 1 && !object) {
             throw new IllegalArgumentException(
                     "column '"
                             + where
                             + "': a JSON node lists the members of an object (fields), or the"
-                            + " element of an array, or the value of an object, not "
-                            + String.join(" and ", childrenOf(json)));
+                            + " element of an array, or the value of an object (with the type of its"
+                            + " keys, if they are not text), not "
+                            + String.join(" and ", given));
         }
         if (json.getFields() != null && !json.getFields().isEmpty()) {
             List<String> names = new ArrayList<>();
@@ -388,12 +391,24 @@ public interface TypeDescriptorParser {
         } else if (json.getElement() != null) {
             return TypeDescriptor.array(member(json.getElement(), where + "[]"));
         } else if (json.getValue() != null) {
-            return TypeDescriptor.map(TypeDescriptor.TEXT, member(json.getValue(), where + "{}"));
+            TypeDescriptor key = TypeDescriptor.TEXT;
+            if (json.getKey() != null) {
+                TypeFamily keyFamily = TypeFamilyRegistry.of(json.getKey().getTypeFamily());
+                if (CoreTypeFamily.INTEGER.equals(keyFamily)) {
+                    key = TypeDescriptor.INTEGER;
+                } else if (!CoreTypeFamily.TEXT.equals(keyFamily)) {
+                    throw new IllegalArgumentException(
+                            "column '"
+                                    + where
+                                    + "': the keys of a JSON object are text, or integers written as"
+                                    + " text, not "
+                                    + json.getKey().getTypeFamily());
+                }
+            }
+            return TypeDescriptor.map(key, member(json.getValue(), where + "{}"));
         } else if (json.getKey() != null) {
             throw new IllegalArgumentException(
-                    "column '"
-                            + where
-                            + "': a JSON object has text keys, a key cannot be declared");
+                    "column '" + where + "': the keys of a JSON object come with its value");
         }
         throw new IllegalArgumentException(
                 "column '" + where + "': a JSON node declares no members");

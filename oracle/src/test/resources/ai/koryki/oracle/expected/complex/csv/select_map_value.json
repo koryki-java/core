@@ -1,7 +1,7 @@
 Nr : INTEGER
-color : JSON
-size : JSON
-missing : JSON
-count_a : JSON
-one : JSON
-two : JSON
+color : TEXT
+size : TEXT
+missing : TEXT
+count_a : INTEGER
+one : TEXT
+two : TEXT

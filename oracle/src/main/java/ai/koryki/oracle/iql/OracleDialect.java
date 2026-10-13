@@ -377,7 +377,10 @@ public class OracleDialect implements SqlDialect {
      */
     @Override
     public NestedSupport nestedSupport() {
-        return NestedSupport.full("Oracle").without(CoreTypeFamily.MAP).withoutLambdaOverJsonList();
+        return NestedSupport.full("Oracle")
+                .without(CoreTypeFamily.MAP)
+                .notComparable(CoreTypeFamily.ARRAY)
+                .withoutLambdaOverJsonList();
     }
 
     @Override

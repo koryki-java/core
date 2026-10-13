@@ -77,6 +77,20 @@ class NestedSupportTest {
         }
     }
 
+    /** The violations of a whole query body, {@code FILTER ... FETCH ...}. */
+    private static List<Violation> violationsOf(SqlDialect dialect, String body) {
+        try {
+            KQLTranspiler.builder("FIND check_complex t " + body, ComplexService.resolver())
+                    .functions(dialect.getFunctionRenderer())
+                    .dialect(dialect)
+                    .build()
+                    .getSql(new SqlQueryRenderer(dialect, ZoneId.of("UTC")));
+            return List.of();
+        } catch (ValidateException e) {
+            return e.getViolations();
+        }
+    }
+
     private static boolean unsupported(List<Violation> violations) {
         return violations.stream().anyMatch(Violation::isUnsupported);
     }
@@ -132,6 +146,48 @@ class NestedSupportTest {
                     unsupported(v),
                     e.getKey() + " list_transform over a JSON array: " + v);
         }
+    }
+
+    @Test
+    void aListIsCompared_Grouped_OrderedAndExtremedOnlyWhereTheEngineTakesIt() {
+        for (String fetch : new String[] {"max(t.scores) m", "min(t.tags) m"}) {
+            for (Map.Entry<String, SqlDialect> e : DIALECTS.entrySet()) {
+                if (!e.getValue()
+                        .nestedSupport()
+                        .selectable()
+                        .contains(ai.koryki.catalog.types.CoreTypeFamily.ARRAY)) {
+                    continue;
+                }
+                List<Violation> v = violations(e.getValue(), fetch);
+                assertEquals(
+                        e.getKey().equals("oracle"),
+                        unsupported(v),
+                        e.getKey() + " " + fetch + ": " + v);
+            }
+        }
+    }
+
+    @Test
+    void aListInAComparisonOrAGroupingIsRefusedWhereTheEngineCannotTakeIt() {
+        List<Violation> equal =
+                violationsOf(OracleDialect.INSTANCE, "FILTER t.tags = t.tags FETCH t.nr");
+        List<Violation> group = violationsOf(OracleDialect.INSTANCE, "FETCH t.tags, count(t.nr) n");
+
+        assertTrue(unsupported(equal), equal.toString());
+        assertTrue(unsupported(group), group.toString());
+        assertTrue(
+                equal.stream().anyMatch(v -> v.getMessage().contains("Oracle cannot compare")),
+                equal.toString());
+        assertTrue(
+                group.stream().anyMatch(v -> v.getMessage().contains("cannot group by")),
+                group.toString());
+        // the engines that take a list take it, and a scalar next to it is never in question
+        assertTrue(
+                !unsupported(
+                        violationsOf(
+                                DuckdbBaseDialect.INSTANCE, "FILTER t.tags = t.tags FETCH t.nr")));
+        assertTrue(
+                !unsupported(violationsOf(OracleDialect.INSTANCE, "FILTER t.nr = 1 FETCH t.nr")));
     }
 
     @Test

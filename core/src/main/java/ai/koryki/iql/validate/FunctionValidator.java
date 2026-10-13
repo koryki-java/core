@@ -604,8 +604,43 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
                                     + "' accepts argument types "
                                     + describe(callFamilies)
                                     + " — candidates: "
-                                    + candidates(arityMatches)));
+                                    + candidates(arityMatches)
+                                    + jsonHint(callFamilies, arityMatches)));
         }
+    }
+
+    /**
+     * What to do when the argument that does not fit is JSON: it is a list only where the catalog
+     * declares the elements of the array, and a number or a text only after a cast or a declared
+     * member. Empty when no JSON argument is the cause.
+     */
+    private static String jsonHint(List<TypeFamily> call, List<FunctionDefinition> candidates) {
+        for (int i = 0; i < call.size(); i++) {
+            if (!ai.koryki.catalog.types.CoreTypeFamily.JSON.equals(call.get(i))) {
+                continue;
+            }
+            if (fits(call, i, ai.koryki.catalog.types.CoreTypeFamily.ARRAY, candidates)) {
+                return ". A JSON value is a list only where the catalog declares the elements of"
+                        + " the array and a selector reaches it (t.doc@a@b); a list of objects"
+                        + " stays JSON";
+            }
+            if (fits(call, i, ai.koryki.catalog.types.CoreTypeFamily.TEXT, candidates)
+                    || fits(call, i, ai.koryki.catalog.types.CoreTypeFamily.INTEGER, candidates)) {
+                return ". A JSON value is no text or number until it is cast (to_text, to_integer)"
+                        + " or the catalog declares the member it comes from";
+            }
+        }
+        return "";
+    }
+
+    private static boolean fits(
+            List<TypeFamily> call,
+            int position,
+            TypeFamily instead,
+            List<FunctionDefinition> candidates) {
+        List<TypeFamily> tried = new java.util.ArrayList<>(call);
+        tried.set(position, instead);
+        return candidates.stream().anyMatch(d -> d.getSignature().matches(tried));
     }
 
     private static String describe(List<TypeFamily> families) {

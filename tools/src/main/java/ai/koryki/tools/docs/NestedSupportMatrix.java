@@ -40,8 +40,8 @@ public final class NestedSupportMatrix {
     public static String table() {
         StringBuilder b = new StringBuilder();
         b.append(
-                "| | list | struct | map | JSON | JSON from the end | lambda over a JSON array |\n");
-        b.append("|---|---|---|---|---|---|---|\n");
+                "| | list | struct | map | JSON | JSON from the end | lambda over a JSON array | compare a list |\n");
+        b.append("|---|---|---|---|---|---|---|---|\n");
         for (DocDialects.Doc doc : DocDialects.all()) {
             SqlDialect.NestedSupport s = doc.dialect().nestedSupport();
             b.append("| ").append(doc.title());
@@ -60,6 +60,11 @@ public final class NestedSupportMatrix {
                     .append(
                             doc.dialect().getFunctionRenderer().jsonArraysAreLists()
                                     ? yes(s.lambdaOverJsonList())
+                                    : "no list")
+                    .append(" | ")
+                    .append(
+                            s.selectable().contains(CoreTypeFamily.ARRAY)
+                                    ? yes(s.comparable().contains(CoreTypeFamily.ARRAY))
                                     : "no list")
                     .append(" |\n");
         }

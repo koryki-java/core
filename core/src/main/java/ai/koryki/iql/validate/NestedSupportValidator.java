@@ -137,6 +137,10 @@ public class NestedSupportValidator implements Visitor, Collector<List<Violation
 
     @Override
     public boolean visit(Deque<Object> deque, Function function) {
+        if (("min".equals(function.getFunc()) || "max".equals(function.getFunc()))
+                && function.getArguments().size() == 1) {
+            operand(function.getArguments().get(0), function.getFunc() + " of");
+        }
         if (support.lambdaOverJsonList()
                 || function.getArguments().isEmpty()
                 || function.getArguments().stream().noneMatch(a -> a.getLambda() != null)) {
@@ -167,6 +171,61 @@ public class NestedSupportValidator implements Visitor, Collector<List<Violation
             // not typed: whoever reports that has the position
         }
         return true;
+    }
+
+    private static final java.util.Set<String> COMPARISONS =
+            java.util.Set.of("=", "<>", "!=", "<", ">", "<=", ">=");
+
+    @Override
+    public boolean visit(Deque<Object> deque, ai.koryki.iql.query.Group group) {
+        operand(group.getExpression(), "group by");
+        return true;
+    }
+
+    @Override
+    public boolean visit(Deque<Object> deque, ai.koryki.iql.query.Order order) {
+        operand(order.getExpression(), "order by");
+        return true;
+    }
+
+    @Override
+    public boolean visit(
+            Deque<Object> deque, ai.koryki.iql.query.UnaryLogicalExpression comparison) {
+        if (comparison.getOp() == null || !COMPARISONS.contains(comparison.getOp())) {
+            return true;
+        }
+        operand(comparison.getLeft(), "compare");
+        comparison.getRight().forEach(e -> operand(e, "compare"));
+        return true;
+    }
+
+    /** A value an engine may refuse to compare: a collection, on an engine that cannot. */
+    private void operand(Expression expression, String what) {
+        ExpressionTypeResolver types = types();
+        if (types == null || expression == null) {
+            return;
+        }
+        TypeDescriptor type;
+        try {
+            type = types.resolve(expression);
+        } catch (RuntimeException unresolved) {
+            return;
+        }
+        if (type != null
+                && type.getTypeFamily() instanceof CoreTypeFamily family
+                && type.isComplex()
+                && !support.comparable().contains(family)) {
+            report(
+                    expression,
+                    support.name()
+                            + " cannot "
+                            + what
+                            + " "
+                            + type.portable()
+                            + ": a "
+                            + family.name().toLowerCase(java.util.Locale.ROOT)
+                            + " is not a value it compares");
+        }
     }
 
     private void report(Expression expression, String message) {

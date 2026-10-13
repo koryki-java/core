@@ -1,6 +1,7 @@
 // A selector on jsonb is a path; positions count from 1 in KQL and from 0 in jsonb, and the
-// rendering translates. The maps are objects: a name is a key, an integer key is written as a name.
+// rendering translates. The maps are objects: a name is a key, and where the catalog says the keys are
+// integers (lookup) the key is written as on any other dialect, @1.
 FIND check_complex t
-FETCH t.nr, t.attrs@color color, t.counts@a count_a, t.lookup@'1' one, t.doc@n n,
+FETCH t.nr, t.attrs@color color, t.counts@a count_a, t.lookup@1 one, t.doc@n n,
       t.doc@a@b@1 inner_first, t.doc@1 array_first, t.doc@-1 array_last,
       t.deep@1@m@a@2 deep_number

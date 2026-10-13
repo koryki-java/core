@@ -1056,7 +1056,10 @@ public class SqlSelectRenderer {
             // is read as a scalar afterwards
             if (baseType != null && CoreTypeFamily.JSON.equals(baseType.getTypeFamily())) {
                 return dialect.selectionScalar(
-                        toSql(base, indent), baseType, expression.getSelection().getSelectors());
+                        toSql(base, indent),
+                        baseType,
+                        ai.koryki.iql.typing.Selectors.jsonKeys(
+                                baseType, expression.getSelection().getSelectors()));
             }
         }
         return dialect.jsonScalar(toSqlUnparenthesized(expression, indent));
@@ -1151,7 +1154,8 @@ public class SqlSelectRenderer {
                     dialect.selection(
                             toSql(base, indent),
                             baseType,
-                            expression.getSelection().getSelectors());
+                            ai.koryki.iql.typing.Selectors.jsonKeys(
+                                    baseType, expression.getSelection().getSelectors()));
             TypeDescriptor type = resolveType(expression);
             if (baseType != null
                     && CoreTypeFamily.JSON.equals(baseType.getTypeFamily())
