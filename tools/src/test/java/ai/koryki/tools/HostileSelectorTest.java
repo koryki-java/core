@@ -17,15 +17,18 @@
 package ai.koryki.tools;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import ai.koryki.antlr.KorykiaiException;
+import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.databases.complex.duckdb.ComplexService;
 import ai.koryki.iql.DuckdbBaseDialect;
 import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.SqlDialect;
 import ai.koryki.iql.SqlQueryRenderer;
+import ai.koryki.iql.validate.ValidateException;
 import ai.koryki.kql.KQLTranspiler;
 import ai.koryki.mariadb.iql.MariadbDialect;
 import ai.koryki.mssql.iql.MssqlDialect;
@@ -105,9 +108,15 @@ class HostileSelectorTest {
                 .getSql(new SqlQueryRenderer(dialect, UTC));
     }
 
-    /** The key as KQL writes it: a single-quoted name, {@code \'} for a quote. */
+    /**
+     * The key as KQL writes it: a single-quoted name, {@code \'} for a quote. That is the only
+     * escape KQL has: a backslash stands for itself, so it is not doubled. A backslash directly
+     * before a quote is written as the backslash and then the escaped quote ({@code x\\'}), which
+     * is exactly the case that lets a string leave its literal on an engine that reads a backslash
+     * as an escape.
+     */
     private static String kql(String key) {
-        return "'" + key.replace("\\", "\\\\").replace("'", "\\'") + "'";
+        return "'" + key.replace("'", "\\'") + "'";
     }
 
     /** What an attacker puts in a key, and the word of it that must never be seen as SQL. */
@@ -137,11 +146,59 @@ class HostileSelectorTest {
         eachKey((name, d, key, word) -> render(name, d, "t.attrs@" + kql(key), word));
     }
 
+    /**
+     * A struct field is named by the catalog and by nobody else: a name the type does not have is
+     * refused when the query is checked, and no SQL is built from it. So the text of a hostile key
+     * never reaches a statement through a struct; the way a field name does get there, from the
+     * catalog, is what the test below holds to quoting.
+     */
     @Test
-    void aHostileStructFieldStaysInsideItsQuotesOnEveryDialect() {
-        // the name need not be a field: an unknown one is rendered as written, so it is as hostile
-        // as a key, and every dialect that writes a field as an identifier must quote it
-        eachKey((name, d, key, word) -> render(name, d, "t.dims@" + kql(key), word));
+    void aHostileStructFieldIsRefusedAndNoSqlIsBuilt() {
+        eachKey(
+                (name, d, key, word) -> {
+                    ValidateException e =
+                            assertThrows(
+                                    ValidateException.class,
+                                    () -> sql(d.sql(), "t.dims@" + kql(key)),
+                                    name + ": no SQL for the field " + key);
+                    assertTrue(
+                            e.getViolations().stream()
+                                    .anyMatch(v -> v.getMessage().contains("no field")),
+                            name + ": " + e.getMessage());
+                });
+    }
+
+    /** The contrast: a field the type has is written, on every engine that has structs. */
+    @Test
+    void aRealStructFieldIsWrittenOnTheEnginesThatHaveStructs() {
+        for (Map.Entry<String, Dialect> e : DIALECTS.entrySet()) {
+            if (e.getValue().sql().nestedSupport().selectable().contains(CoreTypeFamily.STRUCT)) {
+                String sql = sql(e.getValue().sql(), "t.dims@w");
+                assertTrue(sql.toLowerCase().contains("w"), e.getKey() + ":\n" + sql);
+            }
+        }
+    }
+
+    /**
+     * What the catalog may name a field: {@code "Odd Name"} has a space and capitals, and each
+     * engine that has structs has to write it as an identifier, quoted, or as a literal. Written
+     * bare it would be two words of SQL.
+     */
+    @Test
+    void aStructFieldThatIsNoPlainNameIsQuotedOnEveryDialect() {
+        int rendered = 0;
+        for (Map.Entry<String, Dialect> e : DIALECTS.entrySet()) {
+            Dialect d = e.getValue();
+            if (!d.sql().nestedSupport().selectable().contains(CoreTypeFamily.STRUCT)) {
+                continue;
+            }
+            render(e.getKey(), d, "t.odd@'Odd Name'", "Odd Name");
+            assertTrue(
+                    sql(d.sql(), "t.odd@'Odd Name'").contains("Odd Name"),
+                    e.getKey() + " writes the field");
+            rendered++;
+        }
+        assertTrue(rendered >= 5, "every engine with structs was checked: " + rendered);
     }
 
     @Test
@@ -240,6 +297,52 @@ class HostileSelectorTest {
             String sql = sql(e.getValue().sql(), "t.doc@" + kql("x' OR 1=1 --") + " v");
             assertTrue(sql.contains("OR 1=1"), e.getKey() + ":\n" + sql);
         }
+    }
+
+    /**
+     * Not one key but every key: the tests above let a dialect refuse what it likes, so what a
+     * dialect refuses has to be a decision somebody can read here. None of the keys is refused as a
+     * JSON member, on any dialect: a member name is data, and any text is a name.
+     */
+    @Test
+    void everyHostileKeyIsRenderedAsAJsonMemberOnEveryDialect() {
+        for (Map.Entry<String, Dialect> e : DIALECTS.entrySet()) {
+            List<String> refused = refusedKeys(e.getValue(), "t.doc@");
+
+            assertTrue(refused.isEmpty(), e.getKey() + " refuses as a JSON member: " + refused);
+        }
+    }
+
+    /** The same for a map key, on the engines that have maps. */
+    @Test
+    void everyHostileKeyIsRenderedAsAMapKeyWhereTheEngineHasMaps() {
+        int checked = 0;
+        for (Map.Entry<String, Dialect> e : DIALECTS.entrySet()) {
+            if (!e.getValue().sql().nestedSupport().selectable().contains(CoreTypeFamily.MAP)) {
+                continue;
+            }
+            List<String> refused = refusedKeys(e.getValue(), "t.attrs@");
+
+            assertTrue(refused.isEmpty(), e.getKey() + " refuses as a map key: " + refused);
+            checked++;
+        }
+        assertTrue(checked >= 3, "DuckDB, Trino and Snowflake have maps: " + checked);
+    }
+
+    /** The keys that {@code prefix + key} is refused for on this dialect. */
+    private static List<String> refusedKeys(Dialect d, String prefix) {
+        return KEYS.keySet().stream()
+                .filter(
+                        key -> {
+                            try {
+                                sql(d.sql(), prefix + kql(key));
+                                return false;
+                            } catch (KorykiaiException | UnsupportedOperationException refused) {
+                                return true;
+                            }
+                        })
+                .map(key -> key.replace("\n", "\\n"))
+                .toList();
     }
 
     @Test
