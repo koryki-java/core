@@ -20,26 +20,30 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import ai.koryki.catalog.ConceptConverter;
 import ai.koryki.catalog.schema.Column;
+import ai.koryki.catalog.schema.Concept;
+import ai.koryki.catalog.schema.Schema;
 import ai.koryki.databases.complex.duckdb.ComplexService;
 import ai.koryki.iql.query.Selector;
-import ai.koryki.iql.typing.NestedNodes;
+import ai.koryki.iql.typing.ConceptNodes;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 /**
- * What the complex catalog knows about the parts of its nested columns, found by a selector chain.
+ * What the concepts of the complex catalog know about the parts of its nested columns, found by a
+ * selector chain.
  */
-class NestedNodesTest {
+class ConceptNodesBedTest {
+
+    private static final Schema SCHEMA =
+            ConceptConverter.convert(ComplexService.resolver().getSchema());
+
+    private static final ConceptNodes NODES = new ConceptNodes(SCHEMA);
 
     private static Column column(String name) {
-        return ComplexService.resolver()
-                .getSchema()
-                .getTable("check_complex")
-                .orElseThrow()
-                .getColumns()
-                .stream()
+        return SCHEMA.getTable("check_complex").orElseThrow().getColumns().stream()
                 .filter(c -> c.getName().equals(name))
                 .findFirst()
                 .orElseThrow();
@@ -57,13 +61,13 @@ class NestedNodesTest {
         return s;
     }
 
-    private static Optional<Column> node(String column, Selector... steps) {
-        return NestedNodes.node(column(column), List.of(steps));
+    private static Optional<Concept> node(String column, Selector... steps) {
+        return NODES.node(column(column), List.of(steps));
     }
 
     @Test
     void aFieldOfAStructCarriesItsLabelAndUnit() {
-        Column w = node("dims", id("w")).orElseThrow();
+        Concept w = node("dims", id("w")).orElseThrow();
 
         assertEquals("Width", w.getLabel());
         assertEquals("m", w.getUnit());
@@ -75,7 +79,7 @@ class NestedNodesTest {
         assertEquals("Latitude", node("address", id("geo"), id("lat")).orElseThrow().getLabel());
         assertEquals("Phone number", node("address", id("phones"), at(2)).orElseThrow().getLabel());
 
-        Column price = node("items", at(1), id("price")).orElseThrow();
+        Concept price = node("items", at(1), id("price")).orElseThrow();
         assertEquals("EUR", price.getUnit());
         assertEquals("money", price.getQuantity());
         assertEquals("DECIMALS:2", price.getPresentation());
@@ -107,8 +111,8 @@ class NestedNodesTest {
     }
 
     @Test
-    void noStepsIsTheColumnItself() {
-        assertEquals("dims", node("dims").orElseThrow().getName());
+    void noStepsIsTheConceptOfTheColumnItself() {
+        assertEquals("Dimensions", node("dims").orElseThrow().getLabel());
     }
 
     @Test
@@ -119,6 +123,6 @@ class NestedNodesTest {
 
         assertTrue(node("tags", range).isEmpty());
         assertTrue(node("nr", at(1)).isEmpty());
-        assertNull(column("nr").getFields());
+        assertNull(column("nr").getConcept());
     }
 }
