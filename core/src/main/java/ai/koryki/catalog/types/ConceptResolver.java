@@ -101,6 +101,87 @@ public final class ConceptResolver {
     }
 
     /**
+     * Whether the entries of every concept are the ones its family has: an ARRAY has the one entry
+     * {@code element}, a MAP the two entries {@code key} and {@code value}, a STRUCT at least one
+     * entry, and a scalar none. JSON may list the members it is known to hold, any number. An
+     * {@code arraySize} is a positive size and belongs to an ARRAY.
+     *
+     * @throws IllegalArgumentException for the first concept that does not fit, naming it and what
+     *     is wrong
+     */
+    public void checkShapes() {
+        Map<String, Concept> concepts = schema.getConcepts();
+        if (concepts == null) {
+            return;
+        }
+        for (Map.Entry<String, Concept> concept : concepts.entrySet()) {
+            String problem = shapeProblem(concept.getValue());
+            if (problem != null) {
+                throw new IllegalArgumentException(
+                        "concept '" + concept.getKey() + "': " + problem);
+            }
+        }
+    }
+
+    /** What is wrong with the entries of a concept, or null. */
+    private static String shapeProblem(Concept concept) {
+        Set<String> keys =
+                concept.getEntries() == null
+                        ? Set.of()
+                        : new java.util.LinkedHashSet<>(concept.getEntries().keySet());
+        if (concept.getTypeFamily() == null) {
+            return keys.isEmpty() && concept.getArraySize() == null
+                    ? null
+                    : "it has entries or a size but no typeFamily";
+        }
+        TypeFamily family;
+        try {
+            family = TypeFamilyRegistry.of(concept.getTypeFamily());
+        } catch (IllegalArgumentException unknown) {
+            return unknown.getMessage();
+        }
+        if (concept.getArraySize() != null
+                && (!CoreTypeFamily.ARRAY.equals(family) || concept.getArraySize() <= 0)) {
+            return CoreTypeFamily.ARRAY.equals(family)
+                    ? "an arraySize is a positive size, not " + concept.getArraySize()
+                    : "an arraySize belongs to an ARRAY, not to a " + family.name();
+        }
+        if (CoreTypeFamily.ARRAY.equals(family)) {
+            return fixed("an ARRAY", keys, "element");
+        } else if (CoreTypeFamily.MAP.equals(family)) {
+            return fixed("a MAP", keys, "key", "value");
+        } else if (CoreTypeFamily.STRUCT.equals(family)) {
+            return keys.isEmpty() ? "a STRUCT has at least one entry" : null;
+        } else if (CoreTypeFamily.JSON.equals(family)) {
+            return null;
+        }
+        return keys.isEmpty()
+                ? null
+                : "a " + family.name() + " has no entries, not " + quoted(keys);
+    }
+
+    private static String fixed(String what, Set<String> keys, String... expected) {
+        Set<String> missing = new java.util.LinkedHashSet<>(List.of(expected));
+        missing.removeAll(keys);
+        Set<String> stray = new java.util.LinkedHashSet<>(keys);
+        stray.removeAll(List.of(expected));
+        if (missing.isEmpty() && stray.isEmpty()) {
+            return null;
+        }
+        return what
+                + " has the entries "
+                + quoted(new java.util.LinkedHashSet<>(List.of(expected)))
+                + (missing.isEmpty() ? "" : "; missing: " + quoted(missing))
+                + (stray.isEmpty() ? "" : "; not an entry of it: " + quoted(stray));
+    }
+
+    private static String quoted(Set<String> names) {
+        return names.stream()
+                .map(n -> "'" + n + "'")
+                .collect(java.util.stream.Collectors.joining(", "));
+    }
+
+    /**
      * Whether no concept contains itself: following the entries that name concepts never leads back
      * to a concept already on the way. A type is a finite tree, so a concept inside itself has
      * none. A concept used twice, by two members or by two concepts, is shared and not a cycle.
