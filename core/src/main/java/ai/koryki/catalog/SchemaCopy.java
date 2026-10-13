@@ -17,9 +17,12 @@
 package ai.koryki.catalog;
 
 import ai.koryki.catalog.schema.Column;
+import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Relation;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.schema.Table;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -42,6 +45,11 @@ public final class SchemaCopy {
                 schema.getTables().stream().map(t -> deepCopy(t)).collect(Collectors.toList()));
         copy.setRelations(
                 schema.getRelations().stream().map(r -> deepCopy(r)).collect(Collectors.toList()));
+        if (schema.getConcepts() != null) {
+            Map<String, Concept> concepts = new LinkedHashMap<>();
+            schema.getConcepts().forEach((name, concept) -> concepts.put(name, deepCopy(concept)));
+            copy.setConcepts(concepts);
+        }
 
         return copy;
     }
@@ -73,6 +81,7 @@ public final class SchemaCopy {
         copy.setNullable(tabpe.getNullable());
         copy.setPkPos(tabpe.getPkPos());
         copy.setNamePos(tabpe.getNamePos());
+        copy.setConcept(tabpe.getConcept());
         copy.setLength(tabpe.getLength());
         if (tabpe.getFields() != null) {
             copy.setFields(
@@ -88,6 +97,27 @@ public final class SchemaCopy {
         copy.setUnit(tabpe.getUnit());
         copy.setQuantity(tabpe.getQuantity());
         copy.setPresentation(tabpe.getPresentation());
+
+        return copy;
+    }
+
+    public static Concept deepCopy(Concept concept) {
+        Concept copy = new Concept();
+
+        copy.setLabel(concept.getLabel());
+        copy.setComment(concept.getComment());
+        copy.setDescription(concept.getDescription());
+
+        copy.setTypeFamily(concept.getTypeFamily());
+        copy.setTypeEncoding(concept.getTypeEncoding());
+        copy.setDialectType(concept.getDialectType());
+        copy.setUnit(concept.getUnit());
+        copy.setQuantity(concept.getQuantity());
+        copy.setPresentation(concept.getPresentation());
+        copy.setArraySize(concept.getArraySize());
+        // an ordered copy: the order of the entries is the order of the members
+        copy.setEntries(
+                concept.getEntries() == null ? null : new LinkedHashMap<>(concept.getEntries()));
 
         return copy;
     }
