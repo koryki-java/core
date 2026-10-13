@@ -101,6 +101,22 @@ public final class ConceptResolver {
     }
 
     /**
+     * Runs the four checks, simplest first, so that a catalog with several mistakes is told about
+     * the plainest one: the names ({@link #checkNames}), the shapes of the entries ({@link
+     * #checkShapes}), what the entries refer to ({@link #checkEntries}) and the cycles ({@link
+     * #checkCycles}). A schema without concepts passes.
+     *
+     * @param parser reads a spelling; a dialect may know names others do not
+     * @throws IllegalArgumentException for the first mistake of the first check that finds one
+     */
+    public void check(TypeDescriptorParser parser) {
+        checkNames(parser);
+        checkShapes();
+        checkEntries(parser);
+        checkCycles();
+    }
+
+    /**
      * Whether no concept is named like a type. A name is looked up before a spelling, so a concept
      * called {@code varchar} would take the place of the type {@code VARCHAR} in every entry that
      * says it, and a catalog would change its meaning by the name of one concept. The names of the
