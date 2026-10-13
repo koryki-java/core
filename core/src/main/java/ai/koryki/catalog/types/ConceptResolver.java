@@ -80,16 +80,77 @@ public final class ConceptResolver {
      *     concept is not yet typed
      */
     public TypeDescriptor descriptor(Column column, TypeDescriptorParser parser) {
-        return descriptor(concept(column), "column '" + column.getName() + "'", parser);
+        String where = "column '" + column.getName() + "'";
+        TypeDescriptor type = descriptor(concept(column), where, parser);
+        agree(type, column.getDialectType(), where, parser);
+        return type;
+    }
+
+    /**
+     * A container that also says its dialect type as a spelling ({@code STRUCT(street VARCHAR)},
+     * {@code DOUBLE[3]}) has to say the same structure: the same containers, field names, sizes
+     * and, for a leaf, physical type. The family of a leaf may differ, because an encoding refines
+     * it. A flat name, or none, is not compared.
+     */
+    private static void agree(
+            TypeDescriptor typed, String spelling, String where, TypeDescriptorParser parser) {
+        if (spelling == null || !TypeSyntax.looksComplex(spelling)) {
+            return;
+        }
+        TypeDescriptor spelled;
+        try {
+            spelled = TypeSyntax.parse(spelling, parser::parseLeaf);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(where + ": " + e.getMessage(), e);
+        }
+        if (!agrees(typed, spelled)) {
+            throw new IllegalArgumentException(
+                    where
+                            + ": its concept describes "
+                            + typed.portable()
+                            + " but dialectType '"
+                            + spelling
+                            + "' spells "
+                            + spelled.portable());
+        }
+    }
+
+    private static boolean agrees(TypeDescriptor typed, TypeDescriptor spelled) {
+        if (typed.isComplex() || spelled.isComplex()) {
+            if (!typed.getTypeFamily().equals(spelled.getTypeFamily())
+                    || typed.length() != spelled.length()
+                    || typed.children().size() != spelled.children().size()) {
+                return false;
+            }
+            for (int i = 0; i < typed.children().size(); i++) {
+                if (!typed.fieldNames().isEmpty()
+                        && !typed.fieldNames()
+                                .get(i)
+                                .equalsIgnoreCase(spelled.fieldNames().get(i))) {
+                    return false;
+                }
+                if (!agrees(typed.children().get(i), spelled.children().get(i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return typed.getPhysicalTypeName()
+                .replaceAll("\\s+", "")
+                .equalsIgnoreCase(spelled.getPhysicalTypeName().replaceAll("\\s+", ""));
     }
 
     private TypeDescriptor descriptor(Concept concept, String where, TypeDescriptorParser parser) {
         if (CoreTypeFamily.ARRAY.name().equals(concept.getTypeFamily())) {
             TypeDescriptor element = entry(concept.getEntries().get("element"), where, parser);
             Integer size = concept.getArraySize();
-            return size == null
-                    ? TypeDescriptor.array(element)
-                    : TypeDescriptor.array(element, size);
+            return spelled(
+                    size == null
+                            ? TypeDescriptor.array(element)
+                            : TypeDescriptor.array(element, size),
+                    concept,
+                    where,
+                    parser);
         }
         if (CoreTypeFamily.STRUCT.name().equals(concept.getTypeFamily())) {
             List<String> names = new ArrayList<>();
@@ -98,12 +159,16 @@ public final class ConceptResolver {
                 names.add(field.getKey());
                 types.add(entry(field.getValue(), where, parser));
             }
-            return TypeDescriptor.struct(names, types);
+            return spelled(TypeDescriptor.struct(names, types), concept, where, parser);
         }
         if (CoreTypeFamily.MAP.name().equals(concept.getTypeFamily())) {
-            return TypeDescriptor.map(
-                    entry(concept.getEntries().get("key"), where, parser),
-                    entry(concept.getEntries().get("value"), where, parser));
+            return spelled(
+                    TypeDescriptor.map(
+                            entry(concept.getEntries().get("key"), where, parser),
+                            entry(concept.getEntries().get("value"), where, parser)),
+                    concept,
+                    where,
+                    parser);
         }
         if (CoreTypeFamily.JSON.name().equals(concept.getTypeFamily())
                 && concept.getEntries() != null
@@ -135,6 +200,13 @@ public final class ConceptResolver {
         scalar.setTypeEncoding(concept.getTypeEncoding());
         scalar.setDialectType(concept.getDialectType());
         return parser.parse(scalar);
+    }
+
+    /** The type of a container concept, once its own spelling, if it has one, agrees. */
+    private static TypeDescriptor spelled(
+            TypeDescriptor type, Concept concept, String where, TypeDescriptorParser parser) {
+        agree(type, concept.getDialectType(), where, parser);
+        return type;
     }
 
     /**
