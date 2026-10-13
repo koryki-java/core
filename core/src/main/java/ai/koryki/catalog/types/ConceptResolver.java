@@ -59,6 +59,52 @@ public final class ConceptResolver {
         return find(name, null);
     }
 
+    /**
+     * Whether every entry of every concept refers to something: the value of an entry is the name
+     * of a concept of the schema, or a type spelling ({@code VARCHAR}, {@code DOUBLE[3]}, {@code
+     * STRUCT(lat DOUBLE)}) the parser can read. A name wins over a spelling.
+     *
+     * @param parser reads a spelling; a dialect may know names others do not
+     * @throws IllegalArgumentException for the first entry that refers to neither, naming the
+     *     concept, the entry and the names the schema has
+     */
+    public void checkEntries(TypeDescriptorParser parser) {
+        Map<String, Concept> concepts = schema.getConcepts();
+        if (concepts == null) {
+            return;
+        }
+        for (Map.Entry<String, Concept> concept : concepts.entrySet()) {
+            Map<String, String> entries = concept.getValue().getEntries();
+            if (entries == null) {
+                continue;
+            }
+            for (Map.Entry<String, String> entry : entries.entrySet()) {
+                String value = entry.getValue();
+                if (value != null && (concepts.containsKey(value) || spelling(value, parser))) {
+                    continue;
+                }
+                throw new IllegalArgumentException(
+                        "concept '"
+                                + concept.getKey()
+                                + "': entry '"
+                                + entry.getKey()
+                                + "' refers to "
+                                + (value == null ? "nothing" : "'" + value + "'")
+                                + ", which is neither a concept nor a type spelling; the schema has "
+                                + String.join(", ", concepts.keySet()));
+            }
+        }
+    }
+
+    private static boolean spelling(String value, TypeDescriptorParser parser) {
+        try {
+            TypeSyntax.parse(value, parser::parseLeaf);
+            return true;
+        } catch (RuntimeException unreadable) {
+            return false;
+        }
+    }
+
     private Concept find(String name, String where) {
         Map<String, Concept> concepts = schema.getConcepts();
         Concept concept = concepts == null ? null : concepts.get(name);
