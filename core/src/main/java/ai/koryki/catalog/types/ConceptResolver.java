@@ -70,9 +70,10 @@ public final class ConceptResolver {
      * element}, a STRUCT concept the struct of its entries, in their order, a MAP concept the map
      * of its {@code key} and {@code value}; each of them is the name of a concept or a type
      * spelling. The entry names are the member names as the database has them; their translation
-     * follows later. A JSON concept with entries is JSON with the shape of an object with those
-     * members, as a column declares it with fields. The schema is assumed to have passed {@link
-     * #check}; a cycle would not end.
+     * follows later. A container whose dialect type is JSON ({@code JSON}, {@code JSONB}) is JSON
+     * of that content: the type is JSON and the container, reduced to what a JSON value says, is
+     * its shape; a JSON concept without a container is JSON of unknown content. The schema is
+     * assumed to have passed {@link #check}; a cycle would not end.
      *
      * @param parser reads the dialect type and the spellings; a dialect may know names others do
      *     not
@@ -144,7 +145,7 @@ public final class ConceptResolver {
         if (CoreTypeFamily.ARRAY.name().equals(concept.getTypeFamily())) {
             TypeDescriptor element = entry(concept.getEntries().get("element"), where, parser);
             Integer size = concept.getArraySize();
-            return spelled(
+            return stored(
                     size == null
                             ? TypeDescriptor.array(element)
                             : TypeDescriptor.array(element, size),
@@ -159,34 +160,16 @@ public final class ConceptResolver {
                 names.add(field.getKey());
                 types.add(entry(field.getValue(), where, parser));
             }
-            return spelled(TypeDescriptor.struct(names, types), concept, where, parser);
+            return stored(TypeDescriptor.struct(names, types), concept, where, parser);
         }
         if (CoreTypeFamily.MAP.name().equals(concept.getTypeFamily())) {
-            return spelled(
+            return stored(
                     TypeDescriptor.map(
                             entry(concept.getEntries().get("key"), where, parser),
                             entry(concept.getEntries().get("value"), where, parser)),
                     concept,
                     where,
                     parser);
-        }
-        if (CoreTypeFamily.JSON.name().equals(concept.getTypeFamily())
-                && concept.getEntries() != null
-                && !concept.getEntries().isEmpty()) {
-            List<String> names = new ArrayList<>();
-            List<TypeDescriptor> types = new ArrayList<>();
-            for (Map.Entry<String, String> member : concept.getEntries().entrySet()) {
-                names.add(member.getKey());
-                types.add(
-                        member(
-                                entry(member.getValue(), where, parser),
-                                where + "." + member.getKey()));
-            }
-            Concept plain = new Concept();
-            plain.setTypeFamily(concept.getTypeFamily());
-            plain.setTypeEncoding(concept.getTypeEncoding());
-            plain.setDialectType(concept.getDialectType());
-            return descriptor(plain, where, parser).withShape(TypeDescriptor.struct(names, types));
         }
         if (concept.getEntries() != null || concept.getArraySize() != null) {
             throw new IllegalArgumentException(
@@ -202,9 +185,20 @@ public final class ConceptResolver {
         return parser.parse(scalar);
     }
 
-    /** The type of a container concept, once its own spelling, if it has one, agrees. */
-    private static TypeDescriptor spelled(
+    /**
+     * The type of a container concept. When its dialect type is a JSON type ({@code JSON}, {@code
+     * JSONB}) the container is stored as JSON: the type is JSON, and the container, reduced to what
+     * a JSON value says, is its shape. Otherwise its own spelling, if it has one, has to agree.
+     */
+    private static TypeDescriptor stored(
             TypeDescriptor type, Concept concept, String where, TypeDescriptorParser parser) {
+        if (parser.storesJson(concept.getDialectType())) {
+            Column json = new Column(where);
+            json.setTypeFamily(CoreTypeFamily.JSON.name());
+            json.setTypeEncoding(concept.getTypeEncoding());
+            json.setDialectType(concept.getDialectType());
+            return parser.parse(json).withShape(member(type, where));
+        }
         agree(type, concept.getDialectType(), where, parser);
         return type;
     }
@@ -361,8 +355,8 @@ public final class ConceptResolver {
     /**
      * Whether the entries of every concept are the ones its family has: an ARRAY has the one entry
      * {@code element}, a MAP the two entries {@code key} and {@code value}, a STRUCT at least one
-     * entry, and a scalar none. JSON may list the members it is known to hold, any number. An
-     * {@code arraySize} is a positive size and belongs to an ARRAY.
+     * entry, and a scalar none, JSON included: the content of JSON is a container whose dialect
+     * type is JSON. An {@code arraySize} is a positive size and belongs to an ARRAY.
      *
      * @throws IllegalArgumentException for the first concept that does not fit, naming it and what
      *     is wrong
@@ -410,8 +404,10 @@ public final class ConceptResolver {
             return fixed("a MAP", keys, "key", "value");
         } else if (CoreTypeFamily.STRUCT.equals(family)) {
             return keys.isEmpty() ? "a STRUCT has at least one entry" : null;
-        } else if (CoreTypeFamily.JSON.equals(family)) {
-            return null;
+        } else if (CoreTypeFamily.JSON.equals(family) && !keys.isEmpty()) {
+            return "a JSON has no entries, not "
+                    + quoted(keys)
+                    + "; its content is a STRUCT, ARRAY or MAP whose dialectType is JSON";
         }
         return keys.isEmpty()
                 ? null

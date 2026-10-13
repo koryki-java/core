@@ -248,7 +248,7 @@ class ConceptDescriptorTest {
     }
 
     private static Concept json(String... namesAndValues) {
-        Concept json = concept("JSON", "JSON");
+        Concept json = concept("STRUCT", "JSON");
         Map<String, String> entries = new LinkedHashMap<>();
         for (int i = 0; i < namesAndValues.length; i += 2) {
             entries.put(namesAndValues[i], namesAndValues[i + 1]);
@@ -314,6 +314,60 @@ class ConceptDescriptorTest {
         inner.setFields(java.util.List.of(member("n", "INTEGER")));
 
         assertEquals(PARSER.parse(oldJson(inner)), viaConcept(schema));
+    }
+
+    @Test
+    void anArrayStoredAsJsonIsJsonOfAList() {
+        Concept list = array("INTEGER", 3);
+        list.setDialectType("JSONB");
+        Column old = new Column("c");
+        old.setTypeFamily("JSON");
+        old.setDialectType("JSONB");
+        Column element = new Column("element");
+        element.setTypeFamily("INTEGER");
+        old.setElement(element);
+
+        // a JSON list has no fixed size
+        assertEquals(PARSER.parse(old), viaConcept(schema(list)));
+    }
+
+    @Test
+    void aMapStoredAsJsonIsJsonOfAnObjectWithOneKindOfValue() {
+        Concept map = map("INTEGER", "VARCHAR");
+        map.setDialectType("JSONB");
+        Column old = new Column("c");
+        old.setTypeFamily("JSON");
+        old.setDialectType("JSONB");
+        Column key = new Column("key");
+        key.setTypeFamily("INTEGER");
+        Column value = new Column("value");
+        value.setTypeFamily("TEXT");
+        old.setKey(key);
+        old.setValue(value);
+
+        assertEquals(PARSER.parse(old), viaConcept(schema(map)));
+    }
+
+    @Test
+    void theSameContainerIsNativeWithoutAJsonDialectType() {
+        TypeDescriptor nativeMap = viaConcept(schema(map("VARCHAR", "INTEGER")));
+        Concept stored = map("VARCHAR", "INTEGER");
+        stored.setDialectType("JSON");
+
+        assertEquals(CoreTypeFamily.MAP, nativeMap.getTypeFamily());
+        assertEquals(CoreTypeFamily.JSON, viaConcept(schema(stored)).getTypeFamily());
+        assertEquals(nativeMap.portable(), viaConcept(schema(stored)).shape().portable());
+    }
+
+    @Test
+    void aJsonConceptWithEntriesIsRefused() {
+        Concept json = concept("JSON", "JSON");
+        json.setEntries(new LinkedHashMap<>(Map.of("n", "INTEGER")));
+
+        assertTrue(
+                assertThrows(IllegalArgumentException.class, () -> viaConcept(schema(json)))
+                        .getMessage()
+                        .contains("which its family does not take"));
     }
 
     @Test

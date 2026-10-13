@@ -21,13 +21,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import ai.koryki.catalog.CatalogLoader;
 import ai.koryki.catalog.ConceptConverter;
 import ai.koryki.catalog.schema.Column;
+import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.schema.Table;
 import ai.koryki.catalog.types.ConceptResolver;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeDescriptorParser;
-import java.util.List;
-import java.util.TreeSet;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -63,10 +62,11 @@ class ConceptConverterTest {
         new ConceptResolver(NEW).check(PARSER);
     }
 
-    /** JSON that is a list or a map as a whole waits until a JSON concept can say it. */
+    /**
+     * Maps and lists stored as jsonb convert too: their concept is the container, stored as JSON.
+     */
     @Test
-    void onlyJsonShapedAsAWholeIsLeftWithoutAConcept() {
-        TreeSet<String> left = new TreeSet<>();
+    void everyNestedColumnHasAConcept() {
         for (Table table : NEW.getTables()) {
             for (Column column : table.getColumns()) {
                 boolean nested =
@@ -74,19 +74,29 @@ class ConceptConverterTest {
                                 || column.getElement() != null
                                 || column.getKey() != null
                                 || column.getValue() != null;
-                if (nested && column.getConcept() == null) {
-                    left.add(table.getName() + "." + column.getName());
-                }
+                assertEquals(
+                        nested,
+                        column.getConcept() != null,
+                        table.getName() + "." + column.getName());
             }
         }
-        assertEquals(
-                new TreeSet<>(
-                        List.of(
-                                "check_complex.attrs",
-                                "check_complex.counts",
-                                "check_complex.deep",
-                                "check_complex.lookup")),
-                left);
+    }
+
+    @Test
+    void aMapStoredAsJsonbIsAMapConceptWithAJsonbDialectType() {
+        Concept attrs = NEW.getConcepts().get("check_complex_attrs");
+        assertEquals("MAP", attrs.getTypeFamily());
+        assertEquals("JSONB", attrs.getDialectType());
+        assertEquals("VARCHAR", attrs.getEntries().get("key"));
+        TypeDescriptor type =
+                new ConceptResolver(NEW)
+                        .descriptor(
+                                NEW.getTables().get(0).getColumns().stream()
+                                        .filter(c -> c.getName().equals("attrs"))
+                                        .findFirst()
+                                        .orElseThrow(),
+                                PARSER);
+        assertEquals("JSON(MAP(TEXT,TEXT))", type.portable());
     }
 
     @Test

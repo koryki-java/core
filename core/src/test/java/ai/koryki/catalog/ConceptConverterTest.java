@@ -168,6 +168,42 @@ class ConceptConverterTest {
     }
 
     @Test
+    void jsonKeptInAnotherTypeKeepsItsFieldsUntilTheParserKnowsIt() {
+        String db =
+                """
+                { "name": "d", "relations": [], "tables": [ { "name": "t", "columns": [
+                  { "name": "doc", "typeFamily": "JSON", "dialectType": "%s",
+                    "fields": [ { "name": "n", "typeFamily": "INTEGER" } ] } ] } ] }
+                """;
+        Schema varchar = CatalogLoader.readSchemaJson(db.formatted("VARCHAR"));
+        Schema json = CatalogLoader.readSchemaJson(db.formatted("JSON"));
+
+        assertNull(
+                ConceptConverter.convert(varchar)
+                        .getTables()
+                        .get(0)
+                        .getColumns()
+                        .get(0)
+                        .getConcept());
+        assertEquals(
+                "t_doc",
+                ConceptConverter.convert(json).getTables().get(0).getColumns().get(0).getConcept());
+        TypeDescriptorParser varcharIsJson =
+                new TypeDescriptorParser() {
+                    @Override
+                    public boolean storesJson(String dialectType) {
+                        return "VARCHAR".equals(dialectType);
+                    }
+                };
+        Schema converted = ConceptConverter.convert(varchar, varcharIsJson);
+        assertEquals(
+                "JSON(STRUCT(n:INTEGER))",
+                new ConceptResolver(converted)
+                        .descriptor(converted.getTables().get(0).getColumns().get(0), varcharIsJson)
+                        .portable());
+    }
+
+    @Test
     void theOriginalSchemaIsNotChanged() {
         assertNull(column(OLD, "check_complex", "dims").getConcept());
         assertTrue(OLD.getConcepts() == null || OLD.getConcepts().isEmpty());

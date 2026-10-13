@@ -108,10 +108,15 @@ class ConceptShapesCheckTest {
     }
 
     @Test
-    void jsonListsTheMembersItIsKnownToHoldAndMayListNone() {
+    void jsonHasNoEntriesItsContentIsAContainerStoredAsJson() {
         fine("JSON", null, null);
         fine("JSON", null, "");
-        fine("JSON", null, "n=INTEGER a=position");
+        wrong(
+                "JSON",
+                null,
+                "n=INTEGER",
+                "a JSON has no entries, not 'n'; its content is a STRUCT, ARRAY or MAP whose"
+                        + " dialectType is JSON");
     }
 
     @Test
