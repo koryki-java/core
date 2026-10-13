@@ -323,4 +323,84 @@ class FlattenViewsTest {
                         .orElseThrow()
                         .getLabel());
     }
+
+    private static Column valueOf(View v) {
+        return v.table().getColumns().stream()
+                .filter(c -> c.getName().equals("value"))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    @Test
+    void theValueColumnOfAListOfScalarsSaysWhatTheElementSays() {
+        Schema schema = db();
+        Column tags = schema.getTable("things").orElseThrow().getColumns().get(2);
+        Column element = column(null, "TEXT", "VARCHAR", 0);
+        element.setLabel("Tag");
+        element.setDescription("A keyword");
+        element.setUnit("1");
+        element.setQuantity("count");
+        tags.setElement(element);
+
+        Column value = valueOf(FlattenViews.of(schema, "things", Dialect.DUCKDB, "tags").get(0));
+
+        assertEquals("Tag", value.getLabel());
+        assertEquals("A keyword", value.getDescription());
+        assertEquals("1", value.getUnit());
+        assertEquals("count", value.getQuantity());
+    }
+
+    @Test
+    void theColumnsOfAJsonArrayViewSayWhatTheElementSays() {
+        Schema schema = jsonDb();
+        Column doc = schema.getTable("docs").orElseThrow().getColumns().get(1);
+        Column b = doc.getFields().get(0).getFields().get(0);
+        b.getElement().setLabel("Reading");
+        b.getElement().setUnit("m");
+        b.getElement().setQuantity("length");
+
+        Column value = valueOf(FlattenViews.ofJson(schema, "docs", Dialect.SQLITE, "doc", ".a.b"));
+
+        assertEquals("Reading", value.getLabel());
+        assertEquals("m", value.getUnit());
+        assertEquals("length", value.getQuantity());
+    }
+
+    @Test
+    void theGivenSchemaIsNotChanged() {
+        Schema schema = jsonDb();
+        FlattenViews.ofJson(schema, "docs", Dialect.SQLITE, "doc", ".a.b");
+
+        assertTrue(
+                schema.getTable("docs").orElseThrow().getColumns().stream()
+                        .allMatch(c -> c.getConcept() == null));
+    }
+
+    @Test
+    void aFieldKeptAsJsonIsAPlainColumnOfTheView() {
+        Schema schema = db();
+        Column items = schema.getTable("things").orElseThrow().getColumns().get(1);
+        items.setDialectType("STRUCT(sku VARCHAR, qty INTEGER, price DECIMAL(10,2), meta JSON)[]");
+        Column meta = column("meta", "JSON", "JSON", 0);
+        meta.setFields(List.of(column("n", "INTEGER", null, 0)));
+        Column element = new Column();
+        element.setTypeFamily("STRUCT");
+        element.setFields(
+                List.of(
+                        column("sku", "TEXT", "VARCHAR", 0),
+                        column("qty", "INTEGER", "INTEGER", 0),
+                        column("price", "DECIMAL", "DECIMAL(10,2)", 0),
+                        meta));
+        items.setElement(element);
+
+        View v = FlattenViews.of(schema, "things", Dialect.DUCKDB, "items").get(0);
+
+        Column viewMeta =
+                v.table().getColumns().stream()
+                        .filter(c -> c.getName().equals("meta"))
+                        .findFirst()
+                        .orElseThrow();
+        assertEquals("JSON", viewMeta.getTypeFamily());
+        assertEquals(null, viewMeta.getTypeEncoding());
+    }
 }

@@ -16,17 +16,20 @@
  */
 package ai.koryki.tools.flatten;
 
+import ai.koryki.catalog.ConceptConverter;
 import ai.koryki.catalog.domain.Attribute;
 import ai.koryki.catalog.domain.Entity;
 import ai.koryki.catalog.domain.Link;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Column;
+import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Relation;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.schema.Table;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeDescriptorParser;
+import ai.koryki.iql.typing.ConceptNodes;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -88,7 +91,10 @@ public final class FlattenViews {
      *
      * @param columns the columns to flatten, or none for every list column
      */
-    public static List<View> of(Schema db, String tableName, Dialect dialect, String... columns) {
+    public static List<View> of(
+            Schema schema, String tableName, Dialect dialect, String... columns) {
+        Schema db = ConceptConverter.convert(schema);
+        ConceptNodes nodes = new ConceptNodes(db);
         Table table =
                 db.getTable(tableName)
                         .orElseThrow(() -> new IllegalArgumentException("no table " + tableName));
@@ -124,7 +130,8 @@ public final class FlattenViews {
                             keys,
                             column.getName(),
                             type.element(),
-                            column.getElement(),
+                            nodes,
+                            nodes.node(column, List.of()).flatMap(nodes::element).orElse(null),
                             sql(
                                     dialect,
                                     table.getName() + "_" + column.getName(),
@@ -145,7 +152,9 @@ public final class FlattenViews {
      * ordinal} and {@code value} or the fields of the elements, which are scalars.
      */
     public static View ofJson(
-            Schema db, String tableName, Dialect dialect, String columnName, String path) {
+            Schema schema, String tableName, Dialect dialect, String columnName, String path) {
+        Schema db = ConceptConverter.convert(schema);
+        ConceptNodes nodes = new ConceptNodes(db);
         Table table =
                 db.getTable(tableName)
                         .orElseThrow(() -> new IllegalArgumentException("no table " + tableName));
@@ -195,15 +204,13 @@ public final class FlattenViews {
             selector.setId(step);
             steps.add(selector);
         }
-        Column elementNode =
-                ai.koryki.iql.typing.NestedNodes.node(column, steps)
-                        .map(Column::getElement)
-                        .orElse(null);
+        Concept elementNode = nodes.node(column, steps).flatMap(nodes::element).orElse(null);
         return view(
                 table,
                 keys,
                 source,
                 element,
+                nodes,
                 elementNode,
                 jsonSql(
                         dialect,
@@ -215,21 +222,21 @@ public final class FlattenViews {
                         element));
     }
 
-    /** The node of the element, or of one of its fields, that carries the annotations. */
-    private static Column annotated(Column elementNode, boolean struct, int field) {
+    /** The concept of the element, or of one of its fields, that carries the annotations. */
+    private static Concept annotated(
+            ConceptNodes nodes, Concept elementNode, boolean struct, int field) {
         if (elementNode == null) {
             return null;
         }
         if (!struct) {
             return elementNode;
         }
-        return elementNode.getFields() != null && field < elementNode.getFields().size()
-                ? elementNode.getFields().get(field)
-                : null;
+        List<Concept> fields = nodes.fields(elementNode);
+        return field < fields.size() ? fields.get(field) : null;
     }
 
     /** What the catalog said about the part, said again about the column of the view. */
-    private static void inherit(Column column, Column node) {
+    private static void inherit(Column column, Concept node) {
         if (node == null) {
             return;
         }
@@ -245,7 +252,9 @@ public final class FlattenViews {
         column.setUnit(node.getUnit());
         column.setQuantity(node.getQuantity());
         column.setPresentation(node.getPresentation());
-        column.setTypeEncoding(node.getTypeEncoding());
+        // the encoding JSON says how a container is stored; a column of the view is a plain one
+        column.setTypeEncoding(
+                "JSON".equals(node.getTypeEncoding()) ? null : node.getTypeEncoding());
     }
 
     private static List<String> fieldsOf(TypeDescriptor element) {
@@ -271,7 +280,8 @@ public final class FlattenViews {
             List<Column> keys,
             String source,
             TypeDescriptor element,
-            Column elementNode,
+            ConceptNodes nodes,
+            Concept elementNode,
             String sql) {
         String name = table.getName() + "_" + source;
         List<String> fields = fieldsOf(element);
@@ -316,7 +326,7 @@ public final class FlattenViews {
             field.setTypeFamily(fieldType.getTypeFamily().name());
             field.setDialectType(fieldType.getPhysicalTypeName());
             field.setNullable(true);
-            inherit(field, annotated(elementNode, struct(element), i));
+            inherit(field, annotated(nodes, elementNode, struct(element), i));
             columns.add(field);
         }
         viewTable.setColumns(columns);
