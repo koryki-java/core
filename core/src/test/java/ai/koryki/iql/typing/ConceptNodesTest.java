@@ -119,4 +119,16 @@ class ConceptNodesTest {
         assertEquals("Latitude", lat.getLabel());
         assertEquals(Optional.of(address), NODES.node(address, List.of()));
     }
+
+    @Test
+    void aColumnWithAConceptOfItsOwnIsWalkedLikeAReferencedOne() {
+        Column dims = column("dims");
+        Column own = new Column("own");
+        own.setConcept(NEW.getConcepts().get(dims.getConceptRef()));
+
+        Concept w = NODES.node(own, List.of(id("w"))).orElseThrow();
+
+        assertEquals("Width", w.getLabel());
+        assertEquals("m", w.getUnit());
+    }
 }

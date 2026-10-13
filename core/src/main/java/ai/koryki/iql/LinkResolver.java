@@ -89,10 +89,12 @@ public class LinkResolver {
                             t.getColumns()
                                     .forEach(
                                             c -> {
-                                                // a column that refers to a concept is typed from
-                                                // it, any other from what it declares itself
+                                                // a column with a concept, its own or a
+                                                // referenced one, is typed from it, any other
+                                                // from what it declares itself
                                                 TypeDescriptor d =
-                                                        c.getConceptRef() != null
+                                                        c.getConcept() != null
+                                                                        || c.getConceptRef() != null
                                                                 ? concepts.descriptor(c, parser)
                                                                 : parser.parse(c);
                                                 columnToTypedescriptor.put(c, d);

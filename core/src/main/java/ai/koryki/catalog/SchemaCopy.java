@@ -82,6 +82,9 @@ public final class SchemaCopy {
         copy.setPkPos(tabpe.getPkPos());
         copy.setNamePos(tabpe.getNamePos());
         copy.setConceptRef(tabpe.getConceptRef());
+        if (tabpe.getConcept() != null) {
+            copy.setConcept(deepCopy(tabpe.getConcept()));
+        }
         copy.setLength(tabpe.getLength());
         if (tabpe.getFields() != null) {
             copy.setFields(

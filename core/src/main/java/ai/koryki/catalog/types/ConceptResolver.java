@@ -19,6 +19,7 @@ package ai.koryki.catalog.types;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Schema;
+import ai.koryki.catalog.schema.Table;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -41,17 +42,68 @@ public final class ConceptResolver {
     }
 
     /**
-     * The concept a column refers to.
+     * The concept of a column: the one it has of its own, or the one it refers to.
      *
-     * @throws IllegalArgumentException when the column refers to none, or to a name the schema does
-     *     not have
+     * @throws IllegalArgumentException when the column has both, or neither, or refers to a name
+     *     the schema does not have
      */
     public Concept concept(Column column) {
-        if (column.getConceptRef() == null) {
-            throw new IllegalArgumentException(
-                    "column '" + column.getName() + "': it refers to no concept");
+        String where = "column '" + column.getName() + "'";
+        if (column.getConcept() != null) {
+            if (column.getConceptRef() != null) {
+                throw new IllegalArgumentException(both(where, column.getConceptRef()));
+            }
+            return column.getConcept();
         }
-        return find(column.getConceptRef(), "column '" + column.getName() + "'");
+        if (column.getConceptRef() == null) {
+            throw new IllegalArgumentException(where + ": it refers to no concept");
+        }
+        return find(column.getConceptRef(), where);
+    }
+
+    private static String both(String where, String ref) {
+        return where
+                + ": it has a concept of its own and refers to '"
+                + ref
+                + "'; a column has one or the other";
+    }
+
+    /**
+     * Whether no column has a concept of its own and refers to another one too.
+     *
+     * @throws IllegalArgumentException for the first column that does, naming it
+     */
+    public void checkColumns() {
+        if (schema.getTables() == null) {
+            return;
+        }
+        for (Table table : schema.getTables()) {
+            for (Column column : table.getColumns()) {
+                if (column.getConcept() != null && column.getConceptRef() != null) {
+                    throw new IllegalArgumentException(
+                            both(
+                                    "column '" + table.getName() + "." + column.getName() + "'",
+                                    column.getConceptRef()));
+                }
+            }
+        }
+    }
+
+    /** The concepts the columns have of their own, by the column they belong to, in order. */
+    private Map<String, Concept> inline() {
+        Map<String, Concept> found = new java.util.LinkedHashMap<>();
+        if (schema.getTables() != null) {
+            for (Table table : schema.getTables()) {
+                for (Column column : table.getColumns()) {
+                    if (column.getConcept() != null) {
+                        found.put(
+                                "column '" + table.getName() + "." + column.getName() + "'",
+                                column.getConcept());
+                    }
+                }
+            }
+        }
+        return found;
     }
 
     /**
@@ -272,11 +324,12 @@ public final class ConceptResolver {
      *     concept, the entry and the names the schema has
      */
     public void checkEntries(TypeDescriptorParser parser) {
-        Map<String, Concept> concepts = schema.getConcepts();
-        if (concepts == null) {
-            return;
-        }
-        for (Map.Entry<String, Concept> concept : concepts.entrySet()) {
+        Map<String, Concept> concepts =
+                schema.getConcepts() == null ? Map.of() : schema.getConcepts();
+        Map<String, Concept> all = new java.util.LinkedHashMap<>();
+        concepts.forEach((name, concept) -> all.put("concept '" + name + "'", concept));
+        all.putAll(inline());
+        for (Map.Entry<String, Concept> concept : all.entrySet()) {
             Map<String, String> entries = concept.getValue().getEntries();
             if (entries == null) {
                 continue;
@@ -287,14 +340,15 @@ public final class ConceptResolver {
                     continue;
                 }
                 throw new IllegalArgumentException(
-                        "concept '"
-                                + concept.getKey()
-                                + "': entry '"
+                        concept.getKey()
+                                + ": entry '"
                                 + entry.getKey()
                                 + "' refers to "
                                 + (value == null ? "nothing" : "'" + value + "'")
                                 + ", which is neither a concept nor a type spelling; the schema has "
-                                + String.join(", ", concepts.keySet()));
+                                + (concepts.isEmpty()
+                                        ? "none"
+                                        : String.join(", ", concepts.keySet())));
             }
         }
     }
@@ -310,6 +364,7 @@ public final class ConceptResolver {
      */
     public void check(TypeDescriptorParser parser) {
         checkNames(parser);
+        checkColumns();
         checkShapes();
         checkEntries(parser);
         checkCycles();
@@ -363,15 +418,16 @@ public final class ConceptResolver {
      *     is wrong
      */
     public void checkShapes() {
-        Map<String, Concept> concepts = schema.getConcepts();
-        if (concepts == null) {
-            return;
+        Map<String, Concept> all = new java.util.LinkedHashMap<>();
+        if (schema.getConcepts() != null) {
+            schema.getConcepts()
+                    .forEach((name, concept) -> all.put("concept '" + name + "'", concept));
         }
-        for (Map.Entry<String, Concept> concept : concepts.entrySet()) {
+        all.putAll(inline());
+        for (Map.Entry<String, Concept> concept : all.entrySet()) {
             String problem = shapeProblem(concept.getValue());
             if (problem != null) {
-                throw new IllegalArgumentException(
-                        "concept '" + concept.getKey() + "': " + problem);
+                throw new IllegalArgumentException(concept.getKey() + ": " + problem);
             }
         }
     }

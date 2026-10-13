@@ -54,6 +54,13 @@ public class Column {
      */
     private String conceptRef;
 
+    /**
+     * The concept of this column alone, not shared with any other: what the column is, said where
+     * the concept says it. A column has this or a {@link #conceptRef}, not both. Beside the fields
+     * above, which a column still carries itself and which are read when it has neither.
+     */
+    private Concept concept;
+
     private Boolean nullable;
     private int pkPos;
 
@@ -259,5 +266,13 @@ public class Column {
 
     public void setConceptRef(String conceptRef) {
         this.conceptRef = conceptRef;
+    }
+
+    public Concept getConcept() {
+        return concept;
+    }
+
+    public void setConcept(Concept concept) {
+        this.concept = concept;
     }
 }

@@ -89,4 +89,41 @@ class LinkResolverConceptTest {
         assertEquals(null, nr.getConceptRef());
         assertEquals("INTEGER", resolver.getTypeDescriptor(nr).portable());
     }
+
+    /** The bed with the concept of every nested column moved into the column, nothing else left. */
+    private static Schema inline() {
+        Schema schema = bare();
+        for (Table table : schema.getTables()) {
+            for (Column column : table.getColumns()) {
+                if (column.getConceptRef() != null) {
+                    column.setConcept(schema.getConcepts().get(column.getConceptRef()));
+                    column.setConceptRef(null);
+                }
+            }
+        }
+        return schema;
+    }
+
+    @Test
+    void aColumnWithAConceptOfItsOwnIsTypedFromIt() {
+        Schema inline = inline();
+        LinkResolver before = new LinkResolver(Locale.ENGLISH, OLD, MODEL, true);
+        LinkResolver after = new LinkResolver(Locale.ENGLISH, inline, MODEL, true);
+
+        int own = 0;
+        for (int t = 0; t < OLD.getTables().size(); t++) {
+            for (int c = 0; c < OLD.getTables().get(t).getColumns().size(); c++) {
+                Column old = OLD.getTables().get(t).getColumns().get(c);
+                Column column = inline.getTables().get(t).getColumns().get(c);
+                if (column.getConcept() != null) {
+                    own++;
+                }
+                assertEquals(
+                        before.getTypeDescriptor(old),
+                        after.getTypeDescriptor(column),
+                        OLD.getTables().get(t).getName() + "." + old.getName());
+            }
+        }
+        assertTrue(own >= 15, "columns with a concept of their own: " + own);
+    }
 }

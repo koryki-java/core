@@ -56,7 +56,10 @@ public final class ConceptNodes {
 
     /** The concept at the end of the chain; the concept of the column itself for no steps. */
     public Optional<Concept> node(Column column, List<Selector> steps) {
-        if (column.getConceptRef() == null) {
+        if (column.getConcept() != null) {
+            return node(column.getConcept(), steps);
+        }
+        if (column.getConceptRef() == null || schema.getConcepts() == null) {
             return Optional.empty();
         }
         return node(schema.getConcepts().get(column.getConceptRef()), steps);
