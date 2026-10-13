@@ -96,7 +96,16 @@ public interface TypeDescriptorParser {
         if (paramGroup != null && !paramGroup.trim().isEmpty()) {
             String[] parts = paramGroup.split(",");
             for (String part : parts) {
-                params.add(Integer.parseInt(part.trim()));
+                if (parts.length > 1 && part.trim().equalsIgnoreCase("MAX")) {
+                    throw new IllegalArgumentException(
+                            "MAX is the only size of a type, not one of several, in dialectType '"
+                                    + dialectType
+                                    + "'");
+                }
+                Integer size = size(part, dialectType);
+                if (size != null) {
+                    params.add(size);
+                }
             }
         }
 
@@ -119,6 +128,28 @@ public interface TypeDescriptorParser {
             };
         }
         return parseExtended(column, family, dialectType, typeName, typeEncoding, params);
+    }
+
+    /**
+     * One size parameter of a flat type name: a number, optionally with the unit Oracle puts behind
+     * it ({@code VARCHAR2(10 CHAR)}), or {@code MAX} ({@code NVARCHAR(MAX)}), which is no size: the
+     * type is unbounded. Null for {@code MAX}.
+     */
+    private static Integer size(String part, String dialectType) {
+        String text = part.trim();
+        if (text.equalsIgnoreCase("MAX")) {
+            return null;
+        }
+        java.util.regex.Matcher sized =
+                java.util.regex.Pattern.compile(
+                                "(\\d+)(?:\\s+(?:CHAR|BYTE))?",
+                                java.util.regex.Pattern.CASE_INSENSITIVE)
+                        .matcher(text);
+        if (!sized.matches()) {
+            throw new IllegalArgumentException(
+                    "'" + text + "' is not a size in dialectType '" + dialectType + "'");
+        }
+        return Integer.parseInt(sized.group(1));
     }
 
     private static boolean isContainer(TypeFamily family) {

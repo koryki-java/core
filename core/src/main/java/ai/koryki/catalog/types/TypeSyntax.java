@@ -144,9 +144,19 @@ public final class TypeSyntax {
                     List<Integer> params = new ArrayList<>();
                     if (open) {
                         pos++;
+                        int count = 0;
                         do {
                             skipSpaces();
-                            params.add(integer());
+                            int at = pos;
+                            Integer size = size();
+                            count++;
+                            if (size == null && (count > 1 || !closes())) {
+                                pos = at;
+                                throw error("MAX is the only size of a type, not one of several");
+                            }
+                            if (size != null) {
+                                params.add(size);
+                            }
                         } while (comma());
                         expect(')');
                     }
@@ -242,6 +252,39 @@ public final class TypeSyntax {
                 }
             }
             return name.toString().toUpperCase();
+        }
+
+        /**
+         * One size parameter of a scalar: a number, optionally with the unit Oracle puts behind it
+         * ({@code 10 CHAR}, {@code 10 BYTE}), or {@code MAX}, which is no size: the type is
+         * unbounded. Null for {@code MAX}.
+         */
+        private boolean closes() {
+            skipSpaces();
+            return !atEnd() && peek() == ')';
+        }
+
+        private Integer size() {
+            if (!atEnd() && Character.isLetter(peek())) {
+                int start = pos;
+                String word = words();
+                if (word.equals("MAX")) {
+                    return null;
+                }
+                pos = start;
+                throw error("expected a size, found '" + word + "'");
+            }
+            int size = integer();
+            skipSpaces();
+            if (!atEnd() && Character.isLetter(peek())) {
+                int start = pos;
+                String unit = words();
+                if (!unit.equals("CHAR") && !unit.equals("BYTE")) {
+                    pos = start;
+                    throw error("expected CHAR or BYTE after a size, found '" + unit + "'");
+                }
+            }
+            return size;
         }
 
         private int integer() {
