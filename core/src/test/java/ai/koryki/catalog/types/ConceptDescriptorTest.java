@@ -89,15 +89,15 @@ class ConceptDescriptorTest {
     }
 
     @Test
-    void aMapConceptIsNotTypedYet() {
-        Concept map = concept("MAP", null);
-        map.setEntries(new LinkedHashMap<>(Map.of("key", "VARCHAR", "value", "INTEGER")));
+    void aJsonConceptWithEntriesIsNotTypedYet() {
+        Concept json = concept("JSON", "JSON");
+        json.setEntries(new LinkedHashMap<>(Map.of("n", "INTEGER")));
 
         String message =
                 assertThrows(
                                 IllegalArgumentException.class,
                                 () ->
-                                        new ConceptResolver(schema(map))
+                                        new ConceptResolver(schema(json))
                                                 .descriptor(viaConcept(), PARSER))
                         .getMessage();
 
@@ -202,6 +202,35 @@ class ConceptDescriptorTest {
         assertEquals(
                 spelled("STRUCT(geo STRUCT(lat DOUBLE, lon DOUBLE), phones VARCHAR[3])", "STRUCT"),
                 viaConcept(schema));
+    }
+
+    private static Concept map(String key, String value) {
+        Concept map = concept("MAP", null);
+        map.setEntries(new LinkedHashMap<>(Map.of("key", key, "value", value)));
+        return map;
+    }
+
+    @ParameterizedTest(name = "{2}")
+    @CsvSource({
+        "VARCHAR, INTEGER, 'MAP(VARCHAR, INTEGER)'",
+        "VARCHAR, VARCHAR[], 'MAP(VARCHAR, VARCHAR[])'",
+        "INTEGER, 'STRUCT(a INTEGER)', 'MAP(INTEGER, STRUCT(a INTEGER))'"
+    })
+    void aMapConceptTypesLikeItsSpelling(String key, String value, String spelling) {
+        assertEquals(spelled(spelling, "MAP"), viaConcept(schema(map(key, value))));
+    }
+
+    @Test
+    void theKeyAndTheValueMayBeConcepts() {
+        Schema schema =
+                schema(
+                        Map.of(
+                                "k", map("label", "position"),
+                                "label", concept("TEXT", "VARCHAR"),
+                                "position", struct("lat", "DOUBLE", "lon", "DOUBLE")));
+
+        assertEquals(
+                spelled("MAP(VARCHAR, STRUCT(lat DOUBLE, lon DOUBLE))", "MAP"), viaConcept(schema));
     }
 
     @Test

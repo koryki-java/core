@@ -67,10 +67,11 @@ public final class ConceptResolver {
      * The type of a column from its concept. A scalar concept gives the descriptor the parser makes
      * of a column that declares the family, the encoding and the dialect type itself; an ARRAY
      * concept gives the list (or the fixed-size array, with {@code arraySize}) of its {@code
-     * element}, a STRUCT concept the struct of its entries, in their order; each of them is the
-     * name of a concept or a type spelling. The entry names are the member names as the database
-     * has them; their translation follows later. MAP and JSON with entries follow in later steps.
-     * The schema is assumed to have passed {@link #check}; a cycle would not end.
+     * element}, a STRUCT concept the struct of its entries, in their order, a MAP concept the map
+     * of its {@code key} and {@code value}; each of them is the name of a concept or a type
+     * spelling. The entry names are the member names as the database has them; their translation
+     * follows later. JSON with entries follows in a later step. The schema is assumed to have
+     * passed {@link #check}; a cycle would not end.
      *
      * @param parser reads the dialect type and the spellings; a dialect may know names others do
      *     not
@@ -98,13 +99,18 @@ public final class ConceptResolver {
             }
             return TypeDescriptor.struct(names, types);
         }
+        if (CoreTypeFamily.MAP.name().equals(concept.getTypeFamily())) {
+            return TypeDescriptor.map(
+                    entry(concept.getEntries().get("key"), where, parser),
+                    entry(concept.getEntries().get("value"), where, parser));
+        }
         if (concept.getEntries() != null || concept.getArraySize() != null) {
             throw new IllegalArgumentException(
                     where
                             + ": a "
                             + concept.getTypeFamily()
-                            + " concept with entries is not typed yet; only a scalar, an ARRAY and"
-                            + " a STRUCT are");
+                            + " concept with entries is not typed yet; only a scalar, an ARRAY, a"
+                            + " STRUCT and a MAP are");
         }
         Column scalar = new Column(where);
         scalar.setTypeFamily(concept.getTypeFamily());
