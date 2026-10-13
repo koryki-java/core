@@ -105,9 +105,15 @@ class HostileSelectorTest {
                 .getSql(new SqlQueryRenderer(dialect, UTC));
     }
 
-    /** The key as KQL writes it: a single-quoted name, {@code \'} for a quote. */
+    /**
+     * The key as KQL writes it: a single-quoted name, {@code \'} for a quote. That is the only
+     * escape KQL has: a backslash stands for itself, so it is not doubled. A backslash directly
+     * before a quote is written as the backslash and then the escaped quote ({@code x\\'}), which
+     * is exactly the case that lets a string leave its literal on an engine that reads a backslash
+     * as an escape.
+     */
     private static String kql(String key) {
-        return "'" + key.replace("\\", "\\\\").replace("'", "\\'") + "'";
+        return "'" + key.replace("'", "\\'") + "'";
     }
 
     /** What an attacker puts in a key, and the word of it that must never be seen as SQL. */
