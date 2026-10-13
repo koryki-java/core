@@ -299,6 +299,52 @@ class HostileSelectorTest {
         }
     }
 
+    /**
+     * Not one key but every key: the tests above let a dialect refuse what it likes, so what a
+     * dialect refuses has to be a decision somebody can read here. None of the keys is refused as a
+     * JSON member, on any dialect: a member name is data, and any text is a name.
+     */
+    @Test
+    void everyHostileKeyIsRenderedAsAJsonMemberOnEveryDialect() {
+        for (Map.Entry<String, Dialect> e : DIALECTS.entrySet()) {
+            List<String> refused = refusedKeys(e.getValue(), "t.doc@");
+
+            assertTrue(refused.isEmpty(), e.getKey() + " refuses as a JSON member: " + refused);
+        }
+    }
+
+    /** The same for a map key, on the engines that have maps. */
+    @Test
+    void everyHostileKeyIsRenderedAsAMapKeyWhereTheEngineHasMaps() {
+        int checked = 0;
+        for (Map.Entry<String, Dialect> e : DIALECTS.entrySet()) {
+            if (!e.getValue().sql().nestedSupport().selectable().contains(CoreTypeFamily.MAP)) {
+                continue;
+            }
+            List<String> refused = refusedKeys(e.getValue(), "t.attrs@");
+
+            assertTrue(refused.isEmpty(), e.getKey() + " refuses as a map key: " + refused);
+            checked++;
+        }
+        assertTrue(checked >= 3, "DuckDB, Trino and Snowflake have maps: " + checked);
+    }
+
+    /** The keys that {@code prefix + key} is refused for on this dialect. */
+    private static List<String> refusedKeys(Dialect d, String prefix) {
+        return KEYS.keySet().stream()
+                .filter(
+                        key -> {
+                            try {
+                                sql(d.sql(), prefix + kql(key));
+                                return false;
+                            } catch (KorykiaiException | UnsupportedOperationException refused) {
+                                return true;
+                            }
+                        })
+                .map(key -> key.replace("\n", "\\n"))
+                .toList();
+    }
+
     @Test
     void everyDialectIsCovered() {
         assertEquals(8, DIALECTS.size());
