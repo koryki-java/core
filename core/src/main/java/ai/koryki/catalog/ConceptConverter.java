@@ -97,7 +97,7 @@ public final class ConceptConverter {
      * fields describe. For a reader that holds a column and does not care which form it is in.
      *
      * @return null for a column that refers to a shared concept (that one is in the schema), and
-     *     for one that says no type, or is a container that is only a spelling
+     *     for one that says nothing at all, or is a container that is only a spelling
      */
     public static Concept of(Column column) {
         if (column.getConcept() != null) {
@@ -110,12 +110,13 @@ public final class ConceptConverter {
     }
 
     /**
-     * Whether the column says enough to have a concept: a scalar with its family, or a container
-     * with its nodes. A container that is only a spelling stays as it is.
+     * Whether the column says enough to have a concept: a scalar with its family, a container with
+     * its nodes, or wording alone (a label, a unit) for a column that says no type. A container
+     * that is only a spelling stays as it is.
      */
     private static boolean convertible(Column column) {
         if (column.getTypeFamily() == null) {
-            return false;
+            return says(column);
         }
         boolean container =
                 "ARRAY".equals(column.getTypeFamily())
@@ -136,7 +137,7 @@ public final class ConceptConverter {
         if (!TypeTree.hasTree(node)) {
             concept.setTypeEncoding(node.getTypeEncoding());
             concept.setDialectType(
-                    node.getDialectType() != null
+                    node.getDialectType() != null || node.getTypeFamily() == null
                             ? node.getDialectType()
                             : spelling(node.getTypeFamily()));
             return concept;

@@ -418,6 +418,28 @@ class ConceptConverterTest {
     }
 
     @Test
+    void aColumnThatSaysOnlyItsWordingHasAConceptWithoutAType() {
+        Schema old =
+                CatalogLoader.readSchemaJson(
+                        """
+                        { "name": "d", "relations": [], "tables": [ { "name": "t", "columns": [
+                          { "name": "name", "label": "Name", "description": "What it is called" },
+                          { "name": "nothing" } ] } ] }
+                        """);
+
+        Schema migrated = ConceptConverter.migrate(old);
+        Column name = migrated.getTables().get(0).getColumns().get(0);
+        Column nothing = migrated.getTables().get(0).getColumns().get(1);
+
+        assertEquals("Name", name.getConcept().getLabel());
+        assertEquals("What it is called", name.getConcept().getDescription());
+        assertNull(name.getConcept().getTypeFamily());
+        assertNull(name.getConcept().getDialectType());
+        assertNull(name.getLabel());
+        assertNull(nothing.getConcept());
+    }
+
+    @Test
     void theOriginalSchemaIsNotChanged() {
         assertNull(column(OLD, "check_complex", "dims").getConcept());
         assertTrue(OLD.getConcepts() == null || OLD.getConcepts().isEmpty());

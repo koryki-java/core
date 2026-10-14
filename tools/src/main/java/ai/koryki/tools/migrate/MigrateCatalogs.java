@@ -139,6 +139,9 @@ public final class MigrateCatalogs {
                     // the type as the database spells it is kept
                     same(where, "dialectType", was.getDialectType(), concept.getDialectType());
                 }
+                if (said.getTypeFamily() == null) {
+                    continue; // wording alone: there is no type to compare
+                }
                 TypeDescriptor typed =
                         was.getConcept() != null
                                 ? wasResolver.descriptor(was, PARSER)
