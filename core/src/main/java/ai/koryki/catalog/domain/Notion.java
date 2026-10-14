@@ -28,7 +28,9 @@ import java.util.Map;
  * its parts. That is the split already made for tables and columns, where {@link Entity} and {@link
  * Attribute} stand to them as this stands to a concept.
  *
- * <p>The name of the concept itself is an identifier of the catalog and is not translated.
+ * <p>The name of the concept itself is an identifier of the catalog and is not translated. A
+ * concept of a column's own has no name; what a model says about its parts is in {@link
+ * Attribute#getMembers()}, and wins over the notion of a concept the column refers to.
  */
 public class Notion {
 

@@ -79,6 +79,15 @@ All notable changes to this project are documented here.
 - Shaping and making lists: `list_sort`, `list_distinct`, `list_concat`, `list_any`, `list_all`,
   `list(a, b, ...)` and the aggregate `list_agg`, on DuckDB, PostgreSQL, Trino, Snowflake and Oracle.
 
+- The parts of a nested column have names in the language of a model: `Attribute.members` and
+  `Member.members` say, by the physical key of the entry, what the language calls a field of a struct
+  and how it is worded (`Member` has a `name`, a label, a comment, a description and members of its
+  own), and `Model.notions` says the same once for a concept the columns refer to by name.
+  `MemberNames` walks the concept and the names together and answers both ways, and the resolver of
+  a model checks them against the schema: a member is an entry of its concept, no two fields have the
+  same name, a notion is a notion of a concept the schema has. The selectors of a query do not
+  use the names yet.
+
 ### Changed
 
 - **Breaking: a column has a concept, and nothing else that says its type or its wording.** The

@@ -96,6 +96,7 @@ Top-level container for a domain model.
 | `description` | `String` | Long description |
 | `entities` | `List<Entity>` | All entities in the model |
 | `links` | `List<Link>` | Associations between entities |
+| `notions` | `Map<String, Notion>` | What the model says about the concepts the schema has by name, under the name of the concept |
 
 ### `Entity`
 A named domain concept backed by a physical table.
@@ -119,6 +120,21 @@ A field of an entity, mapped to a physical column.
 | `comment` | `String` | Short comment |
 | `description` | `String` | Long description |
 | `column` | `String` | Physical column this attribute maps to |
+| `members` | `Map<String, Member>` | The parts of the nested value of the column in the language of the model, by the physical key of the entry: the fields of a struct a query writes after `@`, and under `element`, `key` and `value` the parts inside a list or a map |
+
+### `Member`
+How one part of a nested value is named and described in the language of a model.
+
+| Field | Type | Description |
+|---|---|---|
+| `name` | `String` | What a query of this language writes for the part (the physical key when absent) |
+| `label`, `comment`, `description` | `String` | The wording |
+| `members` | `Map<String, Member>` | The parts of this part, when it is a nested value itself |
+
+### `Notion`
+What the model says about a concept the schema has by name, so that it is said once for every column that refers to it: `label`, `comment`, `description` and `members`, as a `Member` has them. It is held in `Model.notions` under the name of the concept. A concept of a column's own is not named, and its parts are in `Attribute.members`; what an attribute says wins over the notion of the concept it refers to.
+
+`ai.koryki.catalog.MemberNames` is the one place that reads them: it walks the concept and the names together and says, for a name written in a query, which entry it is, and what the language calls an entry. `LinkResolver` checks them against the schema: a member is an entry of its concept, no two fields have the same name in the language, a notion is the notion of a concept the schema has.
 
 ### `Link`
 An association between entities, backed by a physical relation.

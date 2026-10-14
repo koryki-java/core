@@ -19,6 +19,7 @@ package ai.koryki.iql;
 import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.antlr.Range;
 import ai.koryki.antlr.RangeException;
+import ai.koryki.catalog.MemberNames;
 import ai.koryki.catalog.SchemaCopy;
 import ai.koryki.catalog.domain.Attribute;
 import ai.koryki.catalog.domain.Entity;
@@ -82,6 +83,8 @@ public class LinkResolver {
 
         TypeDescriptorParser parser = new TypeDescriptorParser() {};
         ConceptResolver concepts = new ConceptResolver(db);
+        // what the model says about the parts of the nested columns has to fit the schema
+        new MemberNames(db, model).check();
 
         db.getTables()
                 .forEach(

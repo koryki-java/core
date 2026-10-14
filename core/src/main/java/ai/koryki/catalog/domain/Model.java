@@ -142,11 +142,7 @@ public class Model {
         copy.setLabel(notion.getLabel());
         copy.setComment(notion.getComment());
         copy.setDescription(notion.getDescription());
-        if (notion.getMembers() != null) {
-            Map<String, Member> members = new LinkedHashMap<>();
-            notion.getMembers().forEach((key, member) -> members.put(key, deepCopy(member)));
-            copy.setMembers(members);
-        }
+        copy.setMembers(deepCopy(notion.getMembers()));
         return copy;
     }
 
@@ -156,6 +152,17 @@ public class Model {
         copy.setLabel(member.getLabel());
         copy.setComment(member.getComment());
         copy.setDescription(member.getDescription());
+        copy.setMembers(deepCopy(member.getMembers()));
+        return copy;
+    }
+
+    /** An ordered copy of the members of a notion, an attribute or a member; null stays null. */
+    private static Map<String, Member> deepCopy(Map<String, Member> members) {
+        if (members == null) {
+            return null;
+        }
+        Map<String, Member> copy = new LinkedHashMap<>();
+        members.forEach((key, member) -> copy.put(key, deepCopy(member)));
         return copy;
     }
 
@@ -178,6 +185,8 @@ public class Model {
         copy.setLabel(tabpe.getLabel());
         copy.setComment(tabpe.getComment());
         copy.setDescription(tabpe.getDescription());
+        copy.setColumn(tabpe.getColumn());
+        copy.setMembers(deepCopy(tabpe.getMembers()));
         return copy;
     }
 

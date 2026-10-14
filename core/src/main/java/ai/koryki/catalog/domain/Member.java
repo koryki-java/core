@@ -16,6 +16,8 @@
  */
 package ai.koryki.catalog.domain;
 
+import java.util.Map;
+
 /**
  * How one member of a nested concept is named and described in the language of a model: the part of
  * a struct (or of a declared JSON object) that a query writes after {@code @}, such as {@code
@@ -31,6 +33,13 @@ public class Member {
     private String label;
     private String comment;
     private String description;
+
+    /**
+     * The parts of this member, by their physical name, when the member is itself a nested value: a
+     * struct inside a struct, or inside the element of a list. Same meaning as {@link
+     * Attribute#getMembers()}, one level down. Null for a member that has no parts to name.
+     */
+    private Map<String, Member> members;
 
     public Member() {}
 
@@ -75,5 +84,13 @@ public class Member {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public Map<String, Member> getMembers() {
+        return members;
+    }
+
+    public void setMembers(Map<String, Member> members) {
+        this.members = members;
     }
 }
