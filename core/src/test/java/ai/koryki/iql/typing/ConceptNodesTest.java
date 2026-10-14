@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import ai.koryki.catalog.CatalogLoader;
 import ai.koryki.catalog.ConceptConverter;
+import ai.koryki.catalog.Entries;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Schema;
@@ -112,7 +113,7 @@ class ConceptNodesTest {
     private static Concept inline(String family, java.util.Map<String, String> entries) {
         Concept concept = new Concept();
         concept.setTypeFamily(family);
-        concept.setEntries(new java.util.LinkedHashMap<>(entries));
+        concept.setEntries(Entries.of(entries));
         return concept;
     }
 
@@ -129,6 +130,7 @@ class ConceptNodesTest {
     @Test
     void aColumnThatRefersToAConceptIsWalkedLikeOneWithItsOwn() {
         Schema referenced = ConceptConverter.convert(CatalogLoader.db(ComplexService.DB));
+        referenced.setConcepts(new java.util.LinkedHashMap<>());
         referenced.getConcepts().put("dims", column("dims").getConcept());
         Column refers = new Column("refers");
         refers.setConceptRef("dims");

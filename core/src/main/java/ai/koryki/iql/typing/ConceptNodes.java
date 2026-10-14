@@ -18,6 +18,7 @@ package ai.koryki.iql.typing;
 
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Concept;
+import ai.koryki.catalog.schema.Entry;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.TypeDescriptor;
@@ -89,7 +90,7 @@ public final class ConceptNodes {
     public List<Concept> fields(Concept struct) {
         List<Concept> found = new ArrayList<>();
         if ("STRUCT".equals(struct.getTypeFamily()) && struct.getEntries() != null) {
-            struct.getEntries().values().forEach(value -> found.add(resolve(value)));
+            struct.getEntries().values().forEach(entry -> found.add(resolve(entry)));
         }
         return found;
     }
@@ -112,7 +113,7 @@ public final class ConceptNodes {
     }
 
     private boolean integerKeys(Concept map) {
-        String key = map.getEntries() == null ? null : map.getEntries().get("key");
+        Entry key = map.getEntries() == null ? null : map.getEntries().get("key");
         if (key == null) {
             return false;
         }
@@ -122,14 +123,15 @@ public final class ConceptNodes {
         }
         try {
             return CoreTypeFamily.INTEGER.equals(
-                    new TypeDescriptorParser() {}.inferFamily(key.toUpperCase()));
+                    new TypeDescriptorParser() {}.inferFamily(
+                            concept.getDialectType().toUpperCase()));
         } catch (IllegalArgumentException unknown) {
             return false;
         }
     }
 
     private Concept field(Concept struct, Selector step, boolean named, String name) {
-        Map<String, String> entries = struct.getEntries();
+        Map<String, Entry> entries = struct.getEntries();
         if (entries == null || entries.isEmpty()) {
             return null;
         }
@@ -163,8 +165,13 @@ public final class ConceptNodes {
         return Optional.of(resolve(concept.getEntries().get(key)));
     }
 
+    /** An entry: the concept of its own, or what it refers to. */
+    private Concept resolve(Entry entry) {
+        return entry.isInline() ? entry.getConcept() : resolve(entry.getReference());
+    }
+
     /**
-     * What an entry refers to: the concept of that name, or for a spelling a concept that says
+     * What a reference refers to: the concept of that name, or for a spelling a concept that says
      * nothing but its dialect type and, for a scalar, its family.
      */
     private Concept resolve(String value) {

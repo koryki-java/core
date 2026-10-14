@@ -18,6 +18,7 @@ package ai.koryki.catalog;
 
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Concept;
+import ai.koryki.catalog.schema.Entry;
 import ai.koryki.catalog.schema.Relation;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.schema.Table;
@@ -119,8 +120,18 @@ public final class SchemaCopy {
         copy.setPresentation(concept.getPresentation());
         copy.setArraySize(concept.getArraySize());
         // an ordered copy: the order of the entries is the order of the members
-        copy.setEntries(
-                concept.getEntries() == null ? null : new LinkedHashMap<>(concept.getEntries()));
+        if (concept.getEntries() != null) {
+            Map<String, Entry> entries = new LinkedHashMap<>();
+            concept.getEntries()
+                    .forEach(
+                            (key, entry) ->
+                                    entries.put(
+                                            key,
+                                            entry == null || !entry.isInline()
+                                                    ? entry
+                                                    : Entry.of(deepCopy(entry.getConcept()))));
+            copy.setEntries(entries);
+        }
 
         return copy;
     }

@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import ai.koryki.catalog.Entries;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Schema;
@@ -47,7 +48,7 @@ class ConceptSpellingAgreementTest {
         for (int i = 0; i < kv.length; i += 2) {
             entries.put(kv[i], kv[i + 1]);
         }
-        concept.setEntries(entries);
+        concept.setEntries(Entries.of(entries));
         return concept;
     }
 

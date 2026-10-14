@@ -95,6 +95,7 @@ class LinkResolverConceptTest {
     /** The bed with the concept of every column moved into the schema, the column naming it. */
     private static Schema referenced() {
         Schema schema = bare();
+        schema.setConcepts(new java.util.LinkedHashMap<>());
         for (Table table : schema.getTables()) {
             for (Column column : table.getColumns()) {
                 if (column.getConcept() != null) {

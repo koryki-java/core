@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Concept;
+import ai.koryki.catalog.schema.Entry;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.schema.Table;
 import java.util.ArrayList;
@@ -49,7 +50,7 @@ class SchemaCopyTest {
         entries.put("street", "VARCHAR");
         entries.put("geo", "position");
         entries.put("alpha", "VARCHAR");
-        address.setEntries(entries);
+        address.setEntries(Entries.of(entries));
 
         Map<String, Concept> concepts = new LinkedHashMap<>();
         concepts.put("address", address);
@@ -88,7 +89,7 @@ class SchemaCopyTest {
         assertEquals("length", copy.getQuantity());
         assertEquals("DECIMALS:2", copy.getPresentation());
         assertEquals(3, copy.getArraySize());
-        assertEquals("position", copy.getEntries().get("geo"));
+        assertEquals(Entry.of("position"), copy.getEntries().get("geo"));
     }
 
     @Test
@@ -108,7 +109,7 @@ class SchemaCopyTest {
 
         assertNotSame(original.getConcepts(), copy.getConcepts());
         assertNotSame(original.getConcepts().get("address"), copy.getConcepts().get("address"));
-        copy.getConcepts().get("address").getEntries().put("extra", "VARCHAR");
+        copy.getConcepts().get("address").getEntries().put("extra", Entry.of("VARCHAR"));
         copy.getConcepts().get("address").setLabel("changed");
 
         assertEquals("Address", original.getConcepts().get("address").getLabel());

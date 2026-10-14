@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import ai.koryki.catalog.Entries;
 import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Schema;
 import java.util.LinkedHashMap;
@@ -42,7 +43,7 @@ class ConceptShapesCheckTest {
                     map.put(kv[0], kv[1]);
                 }
             }
-            concept.setEntries(map);
+            concept.setEntries(Entries.of(map));
         }
         Map<String, Concept> concepts = new LinkedHashMap<>();
         concepts.put("c", concept);
@@ -126,7 +127,7 @@ class ConceptShapesCheckTest {
             concept.setTypeFamily(family);
             concept.setTypeEncoding("JSON");
             concept.setEntries(
-                    new java.util.LinkedHashMap<>(
+                    Entries.of(
                             family.equals("ARRAY")
                                     ? java.util.Map.of("element", "VARCHAR")
                                     : family.equals("MAP")

@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import ai.koryki.catalog.Entries;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Schema;
@@ -91,7 +92,7 @@ class ConceptDescriptorTest {
     @Test
     void aScalarConceptWithEntriesIsRefused() {
         Concept text = concept("TEXT", "VARCHAR");
-        text.setEntries(new LinkedHashMap<>(Map.of("n", "INTEGER")));
+        text.setEntries(Entries.of(Map.of("n", "INTEGER")));
 
         String message =
                 assertThrows(
@@ -112,7 +113,7 @@ class ConceptDescriptorTest {
 
     private static Concept array(String element, Integer size) {
         Concept array = concept("ARRAY", null);
-        array.setEntries(new LinkedHashMap<>(Map.of("element", element)));
+        array.setEntries(Entries.of(Map.of("element", element)));
         array.setArraySize(size);
         return array;
     }
@@ -170,7 +171,7 @@ class ConceptDescriptorTest {
         for (int i = 0; i < namesAndValues.length; i += 2) {
             entries.put(namesAndValues[i], namesAndValues[i + 1]);
         }
-        struct.setEntries(entries);
+        struct.setEntries(Entries.of(entries));
         return struct;
     }
 
@@ -206,7 +207,7 @@ class ConceptDescriptorTest {
 
     private static Concept map(String key, String value) {
         Concept map = concept("MAP", null);
-        map.setEntries(new LinkedHashMap<>(Map.of("key", key, "value", value)));
+        map.setEntries(Entries.of(Map.of("key", key, "value", value)));
         return map;
     }
 
@@ -254,7 +255,7 @@ class ConceptDescriptorTest {
         for (int i = 0; i < namesAndValues.length; i += 2) {
             entries.put(namesAndValues[i], namesAndValues[i + 1]);
         }
-        json.setEntries(entries);
+        json.setEntries(Entries.of(entries));
         return json;
     }
 
@@ -388,7 +389,7 @@ class ConceptDescriptorTest {
     @Test
     void aJsonConceptWithEntriesIsRefused() {
         Concept json = concept("JSON", "JSON");
-        json.setEntries(new LinkedHashMap<>(Map.of("n", "INTEGER")));
+        json.setEntries(Entries.of(Map.of("n", "INTEGER")));
 
         assertTrue(
                 assertThrows(IllegalArgumentException.class, () -> viaConcept(schema(json)))

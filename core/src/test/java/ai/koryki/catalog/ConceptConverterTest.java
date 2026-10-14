@@ -94,17 +94,23 @@ class ConceptConverterTest {
     }
 
     @Test
-    void theNodesBecomeConceptsNamedByTheirPath() {
-        assertEquals("Width", NEW.getConcepts().get("check_complex_dims_w").getLabel());
-        assertEquals("m", NEW.getConcepts().get("check_complex_dims_w").getUnit());
+    void theNodesAreConceptsOfTheirOwnInTheEntriesAndNothingIsNamed() {
+        Concept width =
+                column("check_complex", "dims").getConcept().getEntries().get("w").getConcept();
+        assertEquals("Width", width.getLabel());
+        assertEquals("m", width.getUnit());
+        Concept address = column("check_complex", "address").getConcept();
+        assertTrue(address.getEntries().get("geo").isInline());
+        assertEquals("Position", address.getEntries().get("geo").getConcept().getLabel());
+        assertTrue(address.getEntries().get("street").isInline());
         assertEquals(
-                "check_complex_address_geo",
-                column("check_complex", "address").getConcept().getEntries().get("geo"));
-        assertEquals(
-                "check_complex_address_street",
-                column("check_complex", "address").getConcept().getEntries().get("street"));
-        assertEquals(
-                "VARCHAR", column("check_complex", "attrs").getConcept().getEntries().get("key"));
+                "VARCHAR",
+                column("check_complex", "attrs")
+                        .getConcept()
+                        .getEntries()
+                        .get("key")
+                        .getReference());
+        assertTrue(NEW.getConcepts() == null || NEW.getConcepts().isEmpty());
         assertEquals(
                 Integer.valueOf(2), column("check_complex", "matrix").getConcept().getArraySize());
     }
@@ -120,7 +126,7 @@ class ConceptConverterTest {
             }
         }
         java.util.Set<String> kept = new java.util.TreeSet<>();
-        java.util.List<Concept> all = new java.util.ArrayList<>(NEW.getConcepts().values());
+        java.util.List<Concept> all = new java.util.ArrayList<>();
         NEW.getTables()
                 .forEach(
                         t ->
@@ -128,7 +134,7 @@ class ConceptConverterTest {
                                         .forEach(
                                                 c -> {
                                                     if (c.getConcept() != null) {
-                                                        all.add(c.getConcept());
+                                                        everyConcept(c.getConcept(), all);
                                                     }
                                                 }));
         all.forEach(
@@ -140,6 +146,21 @@ class ConceptConverterTest {
                 });
         said.removeAll(kept);
         assertEquals(java.util.Set.of(), said);
+    }
+
+    /** The concept and every concept of its own inside it. */
+    private static void everyConcept(Concept concept, java.util.List<Concept> all) {
+        all.add(concept);
+        if (concept.getEntries() != null) {
+            concept.getEntries()
+                    .values()
+                    .forEach(
+                            entry -> {
+                                if (entry.isInline()) {
+                                    everyConcept(entry.getConcept(), all);
+                                }
+                            });
+        }
     }
 
     private static void collect(Column node, java.util.Set<String> said) {
@@ -179,11 +200,19 @@ class ConceptConverterTest {
                 new ConceptResolver(converted)
                         .descriptor(converted.getTables().get(0).getColumns().get(0), PARSER);
         assertEquals(expected, actual);
+        Concept element =
+                converted
+                        .getTables()
+                        .get(0)
+                        .getColumns()
+                        .get(0)
+                        .getConcept()
+                        .getEntries()
+                        .get("element")
+                        .getConcept();
         assertEquals(
-                "EPOCH:SECONDS",
-                converted.getConcepts().get("t_events_element_ts").getTypeEncoding());
-        assertEquals(
-                "DATE", converted.getConcepts().get("t_events_element").getEntries().get("day"));
+                "EPOCH:SECONDS", element.getEntries().get("ts").getConcept().getTypeEncoding());
+        assertEquals("DATE", element.getEntries().get("day").getReference());
     }
 
     @ParameterizedTest

@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import ai.koryki.catalog.Entries;
 import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Schema;
 import java.util.LinkedHashMap;
@@ -37,7 +38,7 @@ class ConceptEntriesCheckTest {
         for (int i = 0; i < pairs.length; i += 2) {
             entries.put(pairs[i], pairs[i + 1]);
         }
-        concept.setEntries(entries);
+        concept.setEntries(Entries.of(entries));
         return concept;
     }
 

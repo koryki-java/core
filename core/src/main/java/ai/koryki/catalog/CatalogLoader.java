@@ -29,6 +29,7 @@ import java.util.Locale;
 import java.util.Map;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Loads catalog objects from JSON resources on the classpath: the physical {@link Schema} ({@code
@@ -110,9 +111,13 @@ public class CatalogLoader {
         return mapper.readValue(json, new TypeReference<List<Link>>() {});
     }
 
+    /** The mapper that reads a schema: the entries of a concept are a string or an object. */
+    private static ObjectMapper schemaMapper() {
+        return JsonMapper.builder().addModule(new SchemaModule()).build();
+    }
+
     public static Schema readSchemaJson(String json) {
-        ObjectMapper mapper = new ObjectMapper();
-        return checked(mapper.readValue(json, Schema.class));
+        return checked(schemaMapper().readValue(json, Schema.class));
     }
 
     /**
@@ -140,7 +145,7 @@ public class CatalogLoader {
     public static Schema readSchemaJson(InputStream in) {
 
         try {
-            ObjectMapper mapper = new ObjectMapper();
+            ObjectMapper mapper = schemaMapper();
             try (Reader r = new InputStreamReader(in, StandardCharsets.UTF_8)) {
                 return checked(mapper.readValue(r, Schema.class));
             }

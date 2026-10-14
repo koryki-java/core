@@ -88,7 +88,7 @@ class ConceptConverterTest {
         assertEquals("MAP", attrs.getTypeFamily());
         assertEquals("JSON", attrs.getDialectType());
         assertEquals("JSON", attrs.getTypeEncoding());
-        assertEquals("VARCHAR", attrs.getEntries().get("key"));
+        assertEquals("VARCHAR", attrs.getEntries().get("key").getReference());
         TypeDescriptor type =
                 new ConceptResolver(NEW)
                         .descriptor(

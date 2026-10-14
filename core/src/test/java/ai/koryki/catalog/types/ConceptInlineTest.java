@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.koryki.catalog.CatalogLoader;
+import ai.koryki.catalog.Entries;
 import ai.koryki.catalog.SchemaCopy;
 import ai.koryki.catalog.Util;
 import ai.koryki.catalog.schema.Column;
@@ -57,7 +58,7 @@ class ConceptInlineTest {
         for (int i = 0; i < kv.length; i += 2) {
             entries.put(kv[i], kv[i + 1]);
         }
-        concept.setEntries(entries);
+        concept.setEntries(Entries.of(entries));
         return concept;
     }
 

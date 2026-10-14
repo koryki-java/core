@@ -79,7 +79,7 @@ class ConceptsJsonTest {
         assertEquals("STRUCT", address.getTypeFamily());
         assertEquals(
                 List.of("street", "geo", "phones"), List.copyOf(address.getEntries().keySet()));
-        assertEquals("position", address.getEntries().get("geo"));
+        assertEquals("position", address.getEntries().get("geo").getReference());
         assertEquals("deg", schema.getConcepts().get("latitude").getUnit());
         assertEquals(3, schema.getConcepts().get("phone_list").getArraySize());
     }

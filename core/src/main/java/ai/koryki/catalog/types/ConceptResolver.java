@@ -18,6 +18,7 @@ package ai.koryki.catalog.types;
 
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Concept;
+import ai.koryki.catalog.schema.Entry;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.schema.Table;
 import java.util.ArrayList;
@@ -86,6 +87,38 @@ public final class ConceptResolver {
                                     column.getConceptRef()));
                 }
             }
+        }
+    }
+
+    /**
+     * Every concept there is, by where it is: the named ones of the schema, those the columns have
+     * of their own, and those the entries of any of them have of their own, each after the one it
+     * is in. The name tells where, so that a mistake can be pointed at: {@code concept 'address'},
+     * {@code column 't.c'}, {@code column 't.c', entry 'geo'}.
+     */
+    private Map<String, Concept> everyConcept() {
+        Map<String, Concept> all = new java.util.LinkedHashMap<>();
+        if (schema.getConcepts() != null) {
+            schema.getConcepts()
+                    .forEach((name, concept) -> collect("concept '" + name + "'", concept, all));
+        }
+        inline().forEach((where, concept) -> collect(where, concept, all));
+        return all;
+    }
+
+    private static void collect(String where, Concept concept, Map<String, Concept> all) {
+        all.put(where, concept);
+        if (concept.getEntries() != null) {
+            concept.getEntries()
+                    .forEach(
+                            (key, entry) -> {
+                                if (entry != null && entry.isInline()) {
+                                    collect(
+                                            where + ", entry '" + key + "'",
+                                            entry.getConcept(),
+                                            all);
+                                }
+                            });
         }
     }
 
@@ -195,7 +228,7 @@ public final class ConceptResolver {
 
     private TypeDescriptor descriptor(Concept concept, String where, TypeDescriptorParser parser) {
         if (CoreTypeFamily.ARRAY.name().equals(concept.getTypeFamily())) {
-            TypeDescriptor element = entry(concept.getEntries().get("element"), where, parser);
+            TypeDescriptor element = entry(concept, "element", where, parser);
             Integer size = concept.getArraySize();
             return stored(
                     size == null
@@ -208,17 +241,17 @@ public final class ConceptResolver {
         if (CoreTypeFamily.STRUCT.name().equals(concept.getTypeFamily())) {
             List<String> names = new ArrayList<>();
             List<TypeDescriptor> types = new ArrayList<>();
-            for (Map.Entry<String, String> field : concept.getEntries().entrySet()) {
-                names.add(field.getKey());
-                types.add(entry(field.getValue(), where, parser));
+            for (String field : concept.getEntries().keySet()) {
+                names.add(field);
+                types.add(entry(concept, field, where, parser));
             }
             return stored(TypeDescriptor.struct(names, types), concept, where, parser);
         }
         if (CoreTypeFamily.MAP.name().equals(concept.getTypeFamily())) {
             return stored(
                     TypeDescriptor.map(
-                            entry(concept.getEntries().get("key"), where, parser),
-                            entry(concept.getEntries().get("value"), where, parser)),
+                            entry(concept, "key", where, parser),
+                            entry(concept, "value", where, parser)),
                     concept,
                     where,
                     parser);
@@ -305,8 +338,17 @@ public final class ConceptResolver {
                         + family.name());
     }
 
-    /** The type an entry refers to: a concept of the schema, else a type spelling. */
-    private TypeDescriptor entry(String value, String where, TypeDescriptorParser parser) {
+    /**
+     * The type of an entry: its own concept, or what it refers to, a concept of the schema or else
+     * a type spelling.
+     */
+    private TypeDescriptor entry(
+            Concept container, String key, String where, TypeDescriptorParser parser) {
+        Entry entry = container.getEntries().get(key);
+        if (entry.isInline()) {
+            return descriptor(entry.getConcept(), where + ", entry '" + key + "'", parser);
+        }
+        String value = entry.getReference();
         Map<String, Concept> concepts = schema.getConcepts();
         if (concepts != null && concepts.containsKey(value)) {
             return descriptor(concepts.get(value), where + ", concept '" + value + "'", parser);
@@ -326,23 +368,23 @@ public final class ConceptResolver {
     public void checkEntries(TypeDescriptorParser parser) {
         Map<String, Concept> concepts =
                 schema.getConcepts() == null ? Map.of() : schema.getConcepts();
-        Map<String, Concept> all = new java.util.LinkedHashMap<>();
-        concepts.forEach((name, concept) -> all.put("concept '" + name + "'", concept));
-        all.putAll(inline());
-        for (Map.Entry<String, Concept> concept : all.entrySet()) {
-            Map<String, String> entries = concept.getValue().getEntries();
+        for (Map.Entry<String, Concept> concept : everyConcept().entrySet()) {
+            Map<String, Entry> entries = concept.getValue().getEntries();
             if (entries == null) {
                 continue;
             }
-            for (Map.Entry<String, String> entry : entries.entrySet()) {
-                String value = entry.getValue();
+            for (Map.Entry<String, Entry> each : entries.entrySet()) {
+                if (each.getValue() != null && each.getValue().isInline()) {
+                    continue; // a concept of its own is checked in its turn
+                }
+                String value = each.getValue() == null ? null : each.getValue().getReference();
                 if (value != null && (concepts.containsKey(value) || spelling(value, parser))) {
                     continue;
                 }
                 throw new IllegalArgumentException(
                         concept.getKey()
                                 + ": entry '"
-                                + entry.getKey()
+                                + each.getKey()
                                 + "' refers to "
                                 + (value == null ? "nothing" : "'" + value + "'")
                                 + ", which is neither a concept nor a type spelling; the schema has "
@@ -418,13 +460,7 @@ public final class ConceptResolver {
      *     is wrong
      */
     public void checkShapes() {
-        Map<String, Concept> all = new java.util.LinkedHashMap<>();
-        if (schema.getConcepts() != null) {
-            schema.getConcepts()
-                    .forEach((name, concept) -> all.put("concept '" + name + "'", concept));
-        }
-        all.putAll(inline());
-        for (Map.Entry<String, Concept> concept : all.entrySet()) {
+        for (Map.Entry<String, Concept> concept : everyConcept().entrySet()) {
             String problem = shapeProblem(concept.getValue());
             if (problem != null) {
                 throw new IllegalArgumentException(concept.getKey() + ": " + problem);
@@ -533,15 +569,30 @@ public final class ConceptResolver {
             return;
         }
         way.add(name);
-        Map<String, String> entries = concepts.get(name).getEntries();
-        if (entries != null) {
-            for (String value : entries.values()) {
-                if (value != null && concepts.containsKey(value)) {
-                    follow(value, concepts, way, done);
-                }
+        for (String value : references(concepts.get(name))) {
+            if (concepts.containsKey(value)) {
+                follow(value, concepts, way, done);
             }
         }
         way.remove(way.size() - 1);
+    }
+
+    /** What the entries of a concept refer to, and those of the concepts of its own, in order. */
+    private static List<String> references(Concept concept) {
+        List<String> found = new ArrayList<>();
+        if (concept.getEntries() != null) {
+            for (Entry entry : concept.getEntries().values()) {
+                if (entry == null) {
+                    continue;
+                }
+                if (entry.isInline()) {
+                    found.addAll(references(entry.getConcept()));
+                } else {
+                    found.add(entry.getReference());
+                }
+            }
+        }
+        return found;
     }
 
     private static boolean spelling(String value, TypeDescriptorParser parser) {

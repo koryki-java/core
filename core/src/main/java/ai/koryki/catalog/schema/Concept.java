@@ -18,7 +18,7 @@ public class Concept {
 
     private Integer arraySize;
 
-    private Map<String, String> entries;
+    private Map<String, Entry> entries;
 
     public String getLabel() {
         return label;
@@ -100,11 +100,11 @@ public class Concept {
         this.arraySize = arraySize;
     }
 
-    public Map<String, String> getEntries() {
+    public Map<String, Entry> getEntries() {
         return entries;
     }
 
-    public void setEntries(Map<String, String> entries) {
+    public void setEntries(Map<String, Entry> entries) {
         this.entries = entries;
     }
 }
