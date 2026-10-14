@@ -90,32 +90,16 @@ public class SelectorNamesRule {
             if (level == null) {
                 return;
             }
-            String key = null;
-            if (step.getId() != null || step.getName() != null) {
-                String written = step.getId() != null ? step.getId() : step.getName();
-                key = level.physical(written).orElse(null);
-                // only a name the model gave is translated; a field it says nothing about keeps
-                // the spelling of the query, as the struct finds it without regard to case
-                if (key != null && level.member(key).map(m -> m.getName() != null).orElse(false)) {
-                    if (step.getId() != null) {
-                        step.setId(key);
-                    } else {
-                        step.setName(key);
-                    }
+            String written = step.getId() != null ? step.getId() : step.getName();
+            String key = level.key(written, step.getIndex()).orElse(null);
+            // only a name the model gave is translated; a field it says nothing about keeps the
+            // spelling of the query, as the struct finds it without regard to case
+            if (key != null && written != null && level.named(key)) {
+                if (step.getId() != null) {
+                    step.setId(key);
+                } else {
+                    step.setName(key);
                 }
-            } else if ("STRUCT".equals(level.concept().getTypeFamily())) {
-                if (step.getIndex() != null) {
-                    List<String> keys = level.keys();
-                    int i =
-                            step.getIndex() > 0
-                                    ? step.getIndex() - 1
-                                    : keys.size() + step.getIndex();
-                    key = i >= 0 && i < keys.size() ? keys.get(i) : null;
-                }
-            } else if ("ARRAY".equals(level.concept().getTypeFamily())) {
-                key = "element";
-            } else if ("MAP".equals(level.concept().getTypeFamily())) {
-                key = "value";
             }
             level = key == null ? null : level.into(key).orElse(null);
         }

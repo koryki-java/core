@@ -115,6 +115,35 @@ public final class MemberNames {
             return Optional.empty();
         }
 
+        /**
+         * The entry a step of a selector chain goes to: a name is the field it is called, a
+         * position on a struct the field at that position, any position or range on a list the
+         * element, on a map the value. Empty where the step leads to no entry of this concept.
+         */
+        public Optional<String> key(String name, Integer index) {
+            String family = concept.getTypeFamily();
+            if (name != null) {
+                return physical(name);
+            } else if ("STRUCT".equals(family)) {
+                List<String> keys = keys();
+                if (index == null) {
+                    return Optional.empty();
+                }
+                int i = index > 0 ? index - 1 : keys.size() + index;
+                return i >= 0 && i < keys.size() ? Optional.of(keys.get(i)) : Optional.empty();
+            } else if ("ARRAY".equals(family)) {
+                return Optional.of("element");
+            } else if ("MAP".equals(family)) {
+                return Optional.of("value");
+            }
+            return Optional.empty();
+        }
+
+        /** Whether the model gives the entry a name of its own. */
+        public boolean named(String key) {
+            return member(key).map(m -> m.getName() != null).orElse(false);
+        }
+
         /** The member of this language for the entry, if the model says something about it. */
         public Optional<Member> member(String key) {
             return Optional.ofNullable(members.get(key));

@@ -34,4 +34,13 @@ public interface Translator {
     default String crit(String crit) {
         return crit;
     }
+
+    /**
+     * The steps of a selector chain on {@code source.field}, in the vocabulary the translation goes
+     * to. The names of struct fields are the only thing that can change.
+     */
+    default java.util.List<ai.koryki.iql.query.Selector> selectors(
+            String source, String field, java.util.List<ai.koryki.iql.query.Selector> steps) {
+        return steps;
+    }
 }

@@ -108,6 +108,14 @@ public class KQLFormatter {
             public String crit(String crit) {
                 return translator.crit(crit);
             }
+
+            @Override
+            public java.util.List<ai.koryki.iql.query.Selector> selectors(
+                    String source,
+                    String field,
+                    java.util.List<ai.koryki.iql.query.Selector> steps) {
+                return translator.selectors(source, field, steps);
+            }
         };
     }
 
@@ -525,9 +533,7 @@ public class KQLFormatter {
         private String toExpression(KQLParser.ExpressionContext expression, int indent) {
 
             if (expression.selector() != null) {
-                // the step is kept as written: a field or key of a nested value is not an entity of
-                // the model, so there is nothing to translate
-                return toExpression(expression.base, indent) + expression.selector().getText();
+                return toSelection(expression, indent);
             } else if (expression.param() != null) {
                 return expression.param().getText();
             } else if (expression.select() != null) {
@@ -565,6 +571,55 @@ public class KQLFormatter {
             } else {
                 throw new KorykiaiException();
             }
+        }
+
+        /**
+         * A chain of selectors on a field: the field is translated as any other, the names of
+         * struct fields by what the model says of the column; a chain on anything else is kept as
+         * written, since a key of a nested value is not an entity of the model.
+         */
+        private String toSelection(KQLParser.ExpressionContext expression, int indent) {
+            java.util.Deque<KQLParser.SelectorContext> steps = new java.util.ArrayDeque<>();
+            KQLParser.ExpressionContext base = expression;
+            while (base.selector() != null) {
+                steps.addFirst(base.selector());
+                base = base.base;
+            }
+            String head = toExpression(base, indent);
+            if (base.field() == null) {
+                return head + steps.stream().map(s -> s.getText()).collect(Collectors.joining());
+            }
+            KQLParser.FieldContext field = base.field();
+            KQLParser.SourceContext source = visibilityContext.getSource(field.alias.getText());
+            if (source == null) {
+                return head + steps.stream().map(s -> s.getText()).collect(Collectors.joining());
+            }
+            Source block = visibilityContext.getLeadingSource(source.name.getText());
+            String sourcename = block != null ? block.getName() : source.name.getText();
+            java.util.List<KQLParser.SelectorContext> written = java.util.List.copyOf(steps);
+            java.util.List<ai.koryki.iql.query.Selector> translated =
+                    translator.selectors(
+                            sourcename,
+                            field.name.getText(),
+                            written.stream()
+                                    .map(s -> ai.koryki.iql.IQLQueryMapper.toSelector(s.getText()))
+                                    .toList());
+            StringBuilder b = new StringBuilder(head);
+            for (int i = 0; i < translated.size(); i++) {
+                // a step the translation left alone is written as it was typed
+                ai.koryki.iql.query.Selector original =
+                        ai.koryki.iql.IQLQueryMapper.toSelector(written.get(i).getText());
+                b.append(
+                        same(original, translated.get(i))
+                                ? written.get(i).getText()
+                                : ai.koryki.iql.IQLSerializer.selector(translated.get(i)));
+            }
+            return b.toString();
+        }
+
+        private boolean same(ai.koryki.iql.query.Selector a, ai.koryki.iql.query.Selector b) {
+            return java.util.Objects.equals(a.getId(), b.getId())
+                    && java.util.Objects.equals(a.getName(), b.getName());
         }
 
         private String mathFunction(

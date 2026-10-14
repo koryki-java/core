@@ -507,6 +507,16 @@ public class LinkResolver {
                 .map(Attribute::getName);
     }
 
+    /**
+     * As {@link #dictionary(Model, Model)}, and the translator also writes the names of struct
+     * fields in selectors in the language of {@code to}; the concepts are those of {@code schema}.
+     */
+    public static DictionaryTranslator dictionary(Model from, Model to, Schema schema) {
+        DictionaryTranslator plain = dictionary(from, to);
+        return new DictionaryTranslator(
+                plain.getLinkDictionary(), plain.getSchemaDictionary(), schema, from, to);
+    }
+
     public static DictionaryTranslator dictionary(Model from, Model to) {
 
         Map<String, TableDictionary> toSchema =
