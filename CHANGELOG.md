@@ -19,12 +19,14 @@ All notable changes to this project are documented here.
   the lambda that declares it, and otherwise an alias as before. A parameter may not be named like an
   alias in sight, nor like the parameter of the lambda around it.
 
-- A nested column describes its own structure in `db.json`: `Column` is recursive, with `fields`
-  (STRUCT), `element` and `length` (ARRAY) and `key` and `value` (MAP), and every node can carry a
-  label, a unit, a quantity, a presentation and an encoding of its own. The tree is the type and a
-  `dialectType` spelling is checked against it. This replaces `Column.nested`, which could only
-  refine a leaf. `TypeTree` writes the tree of a `TypeDescriptor`, `./gradlew :tools:typeTrees` that of
-  a whole catalog.
+- A column says its type in a concept, and a concept says what a container is made of: a STRUCT
+  has `entries` (its fields, in order), an ARRAY the entry `element` (and an `arraySize`), a MAP the
+  entries `key` and `value`. An entry is the spelling of a type (`"VARCHAR"`), the name of a concept
+  of the schema, or a concept of its own, written as an object, that belongs to this entry alone;
+  every part can carry a label, a unit, a quantity, a presentation and an encoding. A container
+  stored as JSON (JSON, JSONB, VARIANT, VARCHAR, TEXT) has the encoding `JSON`. `dialectType` of a
+  container, if it is a spelling, is checked against its entries. A size parameter may be `MAX`
+  (`NVARCHAR(MAX)`) or carry Oracle's unit (`VARCHAR2(10 CHAR)`).
 
 - The nodes of a nested column carry labels, descriptions, units, quantities and presentations, and
   `ConceptNodes.node` finds the concept a selector chain ends at, so what a consumer explains a nested
@@ -42,10 +44,11 @@ All notable changes to this project are documented here.
   an ordering or `min`/`max` (Oracle takes no collection), and a query that does it is a positioned
   violation instead of an ORA error.
 
-- Typed JSON: a catalog declares the members of a JSON column (`fields`, `element` and `value` on the
-  column, `n` INTEGER and `a.b` an array of INTEGER), and a selection that reaches one is that scalar, so `FILTER t.doc@n > 0`,
-  arithmetic, `sum` and `GROUP BY` work without a cast. `TypeDescriptor.shape()` carries the declared
-  content of a JSON type; the complex catalogs declare `doc`.
+- Typed JSON: a catalog declares the content of a JSON column as a container concept with the
+  encoding `JSON` (`n` INTEGER and `a.b` an array of INTEGER), and a selection that reaches one is
+  that scalar, so `FILTER t.doc@n > 0`, arithmetic, `sum` and `GROUP BY` work without a cast.
+  `TypeDescriptor.shape()` carries the declared content of a JSON type; the complex catalogs
+  declare `doc`.
 
 - A JSON array declared as a list of scalars is a list: the list functions and lambdas apply to
   `t.doc@a@b` on DuckDB, PostgreSQL, Trino, Snowflake and (without lambdas) Oracle. New
@@ -77,6 +80,17 @@ All notable changes to this project are documented here.
   `list(a, b, ...)` and the aggregate `list_agg`, on DuckDB, PostgreSQL, Trino, Snowflake and Oracle.
 
 ### Changed
+
+- **Breaking: a column has a concept, and nothing else that says its type or its wording.** The
+  fields `label`, `comment`, `description`, `typeFamily`, `typeEncoding`, `dialectType`, `fields`,
+  `element`, `key`, `value`, `length`, `unit`, `quantity` and `presentation` are gone from
+  `ai.koryki.catalog.schema.Column`, which keeps `name`, `nullable`, `pkPos`, `namePos` and either
+  `concept` (its own) or `conceptRef` (the name of a concept in `Schema.concepts`). A `db.json` with
+  the old fields no longer loads; rewrite it with `MigrateCatalogs`, which is in the history of
+  this repository at the commit before the fields were removed (`./gradlew :tools:migrateCatalogs`
+  then). `TypeDescriptorParser.parse(Column)` is `parse(where, family, encoding, dialectType)` for a
+  scalar; the containers are typed by `ConceptResolver`. `koryki-core`, `koryki-derivation` and the
+  catalogs of the northwind repository have to be released together.
 
 - The scripts that create the Northwind database for PostgreSQL, MariaDB, Oracle, SQL Server,
   Snowflake and SQLite, their `BuildNorthwind` loaders, `Script`, `ExportJson` and the committed

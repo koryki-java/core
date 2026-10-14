@@ -82,22 +82,6 @@ tasks.register('nestedMatrix', JavaExec) {
     args rootProject.file('docs/NESTED.md').path
 }
 
-// The tree of every nested column of a catalog, from the spelling in dialectType (see TypeTrees):
-//   ./gradlew :tools:typeTrees -Ptrees.args="db.json out.json"
-tasks.register('typeTrees', JavaExec) {
-    group = 'documentation'
-    description = 'Writes the node tree of every nested column of a db.json.'
-    classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'ai.koryki.tools.flatten.TypeTrees'
-    doFirst {
-        def given = project.findProperty('trees.args')
-        if (given == null) {
-            throw new GradleException('give the arguments: -Ptrees.args="db.json out.json"')
-        }
-        args = given.toString().split(' ').toList()
-    }
-}
-
 // Views that flatten the list columns of a table into one row per element (see FlattenViews):
 //   ./gradlew :tools:flattenViews -Pflatten.args="duckdb db.json model.json check_complex out items events"
 tasks.register('flattenViews', JavaExec) {
@@ -109,22 +93,6 @@ tasks.register('flattenViews', JavaExec) {
         def given = project.findProperty('flatten.args')
         if (given == null) {
             throw new GradleException('give the arguments: -Pflatten.args="dialect db.json model.json table out-directory [column ...]"')
-        }
-        args = given.toString().split(' ').toList()
-    }
-}
-
-// Rewrites db.json files so that every column says its type and wording in a concept of its own:
-//   ./gradlew :tools:migrateCatalogs -Pmigrate.args="a/db.json b/db.json"
-tasks.register('migrateCatalogs', JavaExec) {
-    group = 'documentation'
-    description = 'Rewrites db.json files with a concept for every column.'
-    classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'ai.koryki.tools.migrate.MigrateCatalogs'
-    doFirst {
-        def given = project.findProperty('migrate.args')
-        if (given == null) {
-            throw new GradleException('give the files: -Pmigrate.args="a/db.json b/db.json"')
         }
         args = given.toString().split(' ').toList()
     }

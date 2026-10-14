@@ -48,7 +48,7 @@ public final class SchemaToModel {
         model.setDescription(schema.getDescription());
         model.setEntities(
                 schema.getTables().stream()
-                        .map(SchemaToModel::convert)
+                        .map(table -> convert(table, schema))
                         .collect(Collectors.toList()));
         model.setLinks(
                 schema.getRelations().stream()
@@ -57,7 +57,7 @@ public final class SchemaToModel {
         return model;
     }
 
-    private static Entity convert(Table table) {
+    private static Entity convert(Table table, Schema schema) {
         Entity entity = new Entity();
         entity.setName(table.getName());
         entity.setLabel(table.getLabel());
@@ -65,15 +65,20 @@ public final class SchemaToModel {
         entity.setDescription(table.getDescription());
         entity.setAttributes(
                 table.getColumns().stream()
-                        .map(SchemaToModel::convert)
+                        .map(column -> convert(column, schema))
                         .collect(Collectors.toList()));
         return entity;
     }
 
-    private static Attribute convert(Column column) {
+    private static Attribute convert(Column column, Schema schema) {
         Attribute attribute = new Attribute();
         attribute.setName(column.getName());
-        Concept concept = ConceptConverter.of(column);
+        Concept concept =
+                column.getConcept() != null
+                        ? column.getConcept()
+                        : column.getConceptRef() == null || schema.getConcepts() == null
+                                ? null
+                                : schema.getConcepts().get(column.getConceptRef());
         if (concept != null) {
             attribute.setLabel(concept.getLabel());
             attribute.setComment(concept.getComment());

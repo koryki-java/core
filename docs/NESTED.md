@@ -179,47 +179,54 @@ Oracle.
 
 ### Describing a nested column in the catalog
 
-A nested column describes its own structure in `db.json`, with the same node a column is, to any
-depth. A STRUCT has `fields`, an ARRAY an `element` (and a `length` when its size is fixed), a MAP a
-`key` and a `value`:
+A column says its type, and what the type is made of, in its concept: `"concept"` on the column, or
+`"conceptRef"` with the name of a concept of the schema. A STRUCT concept has `entries`, one for
+each field, in order; an ARRAY has the entry `element` (and an `arraySize` when its size is fixed),
+a MAP the entries `key` and `value`. An entry is a string, the spelling of a type (`"VARCHAR"`) or
+the name of a concept of the schema, or an object: a concept of its own that belongs to this entry
+alone and is shared with nobody.
 
 ```json
-{ "name": "address", "label": "Address", "typeFamily": "STRUCT",
-  "dialectType": "STRUCT(street VARCHAR, geo STRUCT(lat DOUBLE, lon DOUBLE), phones VARCHAR[])",
-  "fields": [
-    { "name": "street", "typeFamily": "TEXT", "dialectType": "VARCHAR" },
-    { "name": "geo", "typeFamily": "STRUCT", "fields": [
-        { "name": "lat", "label": "Latitude", "typeFamily": "FLOAT", "unit": "deg" },
-        { "name": "lon", "typeFamily": "FLOAT" } ] },
-    { "name": "phones", "typeFamily": "ARRAY", "element": { "typeFamily": "TEXT" } } ] }
+{ "name": "address",
+  "concept": { "label": "Address", "typeFamily": "STRUCT",
+    "dialectType": "STRUCT(street VARCHAR, geo STRUCT(lat DOUBLE, lon DOUBLE), phones VARCHAR[])",
+    "entries": {
+      "street": "VARCHAR",
+      "geo": { "typeFamily": "STRUCT", "entries": {
+          "lat": { "label": "Latitude", "typeFamily": "FLOAT", "dialectType": "DOUBLE", "unit": "deg" },
+          "lon": "DOUBLE" } },
+      "phones": { "typeFamily": "ARRAY", "entries": { "element": "VARCHAR" } } } } }
 ```
 
-A node has what a column has: a label, a description, a unit, a quantity, a presentation, an encoding
-(`"typeEncoding": "EPOCH:SECONDS"` on a BIGINT that is a timestamp) and a `dialectType`, which a leaf
-may leave out (it is then the plain name of its family). The tree is the type. The `dialectType` of
-the column, if it is a spelling of the same type, is checked against it and refused when it is not.
-The part a selector chain ends at is found with `ConceptNodes.node(column, steps)`, over the concepts a catalog is converted to: `t.address@geo@lat` is
-the `lat` node of the `geo` node of `address`, and what the catalog says there (its label, its unit,
-its quantity) is what a result column made of it is explained by. The flatten views take the same
-annotations from the element's nodes, so the columns of "revenue by sku" are labelled and measured as
-the list's fields are. Each node can carry any of these; the complex catalogs have them on all of
-theirs. A node may say nothing, and a column without a tree says nothing about its parts.
-
-A column without a tree is read from its spelling, as before; `TypeTrees` (`./gradlew
-:tools:typeTrees`) writes the tree of a spelling, for a catalog to start from.
+A concept has a label, a description, a comment, a unit, a quantity, a presentation, an encoding
+(`"typeEncoding": "EPOCH:SECONDS"` on a BIGINT that is a timestamp) and a `dialectType`, which a
+leaf may leave out only where it is a spelling in an entry. The entries are the type. The
+`dialectType` of a container, if it is a spelling of the same type, is checked against them and
+refused when it is not. The part a selector chain ends at is found with
+`ConceptNodes.node(column, steps)`: `t.address@geo@lat` is the `lat` entry of the `geo` entry of
+`address`, and what the catalog says there (its label, its unit, its quantity) is what a result
+column made of it is explained by. The flatten views take the same annotations from the element's
+entries, so the columns of "revenue by sku" are labelled and measured as the list's fields are.
+Each part can carry any of these; the complex catalogs have them on all of theirs. A part that is a
+spelling says nothing but its type. A container needs its entries: a spelling alone does not type
+a column.
 
 ### Declaring what is in a JSON column
 
-JSON has no structure the database can describe, so a JSON column may list the members it is known to
-hold, with the same nodes: `fields` for an object, `element` for an array, `value` for an object of
-one kind of value (the keys are text). The members are scalars of the families BOOLEAN, INTEGER,
-FLOAT, DECIMAL or TEXT, or objects and arrays of them:
+JSON has no structure the database can describe, so a JSON column may list the members it is known
+to hold: its concept is the container the content is, a STRUCT for an object, an ARRAY for a list,
+a MAP for an object of one kind of value (the keys are text, or INTEGER when they are integers
+written as text), with the encoding `JSON`, which says the value is stored as JSON in whatever type
+its `dialectType` names (`JSON`, `JSONB`, `VARIANT`, `VARCHAR`, `TEXT`). The members are scalars of
+the families BOOLEAN, INTEGER, FLOAT, DECIMAL or TEXT, or objects and arrays of them:
 
 ```json
-{ "name": "doc", "typeFamily": "JSON", "dialectType": "JSON", "fields": [
-    { "name": "n", "typeFamily": "INTEGER" },
-    { "name": "a", "typeFamily": "STRUCT", "fields": [
-        { "name": "b", "typeFamily": "ARRAY", "element": { "typeFamily": "INTEGER" } } ] } ] }
+{ "name": "doc",
+  "concept": { "typeFamily": "STRUCT", "typeEncoding": "JSON", "dialectType": "JSON",
+    "entries": {
+      "n": "INTEGER",
+      "a": { "typeFamily": "STRUCT", "entries": {
+          "b": { "typeFamily": "ARRAY", "entries": { "element": "INTEGER" } } } } } } }
 ```
 
 Nothing is said about the members not listed.

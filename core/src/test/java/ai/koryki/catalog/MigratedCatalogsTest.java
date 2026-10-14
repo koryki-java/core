@@ -16,7 +16,6 @@
  */
 package ai.koryki.catalog;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -71,7 +70,7 @@ class MigratedCatalogsTest {
     }
 
     @Test
-    void everyColumnHasItsConceptAndNoneOfTheOldFields() {
+    void everyColumnHasItsConcept() {
         int columns = 0;
         for (String catalog : catalogs()) {
             Schema schema = CatalogLoader.db(catalog);
@@ -80,20 +79,6 @@ class MigratedCatalogsTest {
                     String where = catalog + " " + table.getName() + "." + column.getName();
                     assertNotNull(column.getConcept(), where);
                     assertNull(column.getConceptRef(), where);
-                    assertNull(column.getLabel(), where);
-                    assertNull(column.getComment(), where);
-                    assertNull(column.getDescription(), where);
-                    assertNull(column.getTypeFamily(), where);
-                    assertNull(column.getTypeEncoding(), where);
-                    assertNull(column.getDialectType(), where);
-                    assertNull(column.getFields(), where);
-                    assertNull(column.getElement(), where);
-                    assertNull(column.getKey(), where);
-                    assertNull(column.getValue(), where);
-                    assertNull(column.getLength(), where);
-                    assertNull(column.getUnit(), where);
-                    assertNull(column.getQuantity(), where);
-                    assertNull(column.getPresentation(), where);
                     columns++;
                 }
             }
@@ -112,28 +97,6 @@ class MigratedCatalogsTest {
                     assertNotNull(
                             resolver.descriptor(column, PARSER),
                             catalog + " " + table.getName() + "." + column.getName());
-                }
-            }
-        }
-    }
-
-    @Test
-    void convertingAMigratedCatalogChangesNothing() {
-        for (String catalog : catalogs()) {
-            Schema schema = CatalogLoader.db(catalog);
-            Schema converted = ConceptConverter.convert(schema);
-            for (int t = 0; t < schema.getTables().size(); t++) {
-                for (int c = 0; c < schema.getTables().get(t).getColumns().size(); c++) {
-                    Column was = schema.getTables().get(t).getColumns().get(c);
-                    Column is = converted.getTables().get(t).getColumns().get(c);
-                    assertEquals(
-                            was.getConcept().getTypeFamily(),
-                            is.getConcept().getTypeFamily(),
-                            catalog + " " + was.getName());
-                    assertEquals(
-                            was.getConcept().getLabel(),
-                            is.getConcept().getLabel(),
-                            catalog + " " + was.getName());
                 }
             }
         }

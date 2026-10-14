@@ -14,13 +14,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package ai.koryki.postgresql.complex;
+package ai.koryki.oracle.complex;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import ai.koryki.catalog.CatalogLoader;
-import ai.koryki.catalog.ConceptConverter;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Schema;
@@ -31,15 +30,15 @@ import ai.koryki.catalog.types.TypeDescriptorParser;
 import org.junit.jupiter.api.Test;
 
 /**
- * The converter on the PostgreSQL complex bed: composite types as structs, arrays, and jsonb. No
+ * The concepts of the Oracle complex bed: composite types as structs, arrays, and JSON. No
  * connection is needed.
  */
-class ConceptConverterTest {
+class ComplexConceptsTest {
 
     private static final TypeDescriptorParser PARSER = new TypeDescriptorParser() {};
 
     private static final Schema OLD = CatalogLoader.db(ComplexCatalogTest.DB);
-    private static final Schema NEW = ConceptConverter.convert(OLD);
+    private static final Schema NEW = OLD;
 
     private static Column column(String name) {
         return NEW.getTables().get(0).getColumns().stream()
@@ -54,7 +53,7 @@ class ConceptConverterTest {
     }
 
     /**
-     * Maps and lists stored as jsonb convert too: their concept is the container, stored as JSON.
+     * Maps and lists stored as JSON convert too: their concept is the container, stored as JSON.
      */
     @Test
     void everyColumnHasAConcept() {
@@ -66,10 +65,10 @@ class ConceptConverterTest {
     }
 
     @Test
-    void aMapStoredAsJsonbIsAMapConceptWithTheEncodingJson() {
+    void aMapStoredAsJsonIsAMapConceptWithTheEncodingJson() {
         Concept attrs = column("attrs").getConcept();
         assertEquals("MAP", attrs.getTypeFamily());
-        assertEquals("JSONB", attrs.getDialectType());
+        assertEquals("JSON", attrs.getDialectType());
         assertEquals("JSON", attrs.getTypeEncoding());
         assertEquals("VARCHAR", attrs.getEntries().get("key").getReference());
         TypeDescriptor type =
@@ -91,7 +90,6 @@ class ConceptConverterTest {
                         .findFirst()
                         .orElseThrow();
         assertNotNull(dims.getConcept());
-        assertEquals(
-                "ROW(w DOUBLE PRECISION, h DOUBLE PRECISION)", dims.getConcept().getDialectType());
+        assertEquals("ROW(w BINARY_DOUBLE, h BINARY_DOUBLE)", dims.getConcept().getDialectType());
     }
 }

@@ -23,6 +23,7 @@ import ai.koryki.catalog.domain.Attribute;
 import ai.koryki.catalog.domain.Entity;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Column;
+import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.schema.Table;
 import ai.koryki.iql.LinkResolver;
@@ -175,8 +176,10 @@ class HostileNameSnowflakeTest {
 
     private static Column column(String name, String family, String dialectType) {
         Column c = new Column(name);
-        c.setTypeFamily(family);
-        c.setDialectType(dialectType);
+        Concept concept = new Concept();
+        concept.setTypeFamily(family);
+        concept.setDialectType(dialectType);
+        c.setConcept(concept);
         return c;
     }
 

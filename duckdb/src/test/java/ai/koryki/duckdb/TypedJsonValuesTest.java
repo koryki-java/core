@@ -23,6 +23,8 @@ import ai.koryki.catalog.domain.Attribute;
 import ai.koryki.catalog.domain.Entity;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Column;
+import ai.koryki.catalog.schema.Concept;
+import ai.koryki.catalog.schema.Entry;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.schema.Table;
 import ai.koryki.iql.DuckdbBaseDialect;
@@ -36,8 +38,10 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -56,30 +60,48 @@ class TypedJsonValuesTest {
     private static Connection connection;
     private static LinkResolver resolver;
 
-    private static Column node(String name, String family) {
-        Column c = new Column(name);
-        c.setTypeFamily(family);
-        return c;
+    private static Concept scalar(String family, String dialectType) {
+        Concept concept = new Concept();
+        concept.setTypeFamily(family);
+        concept.setDialectType(dialectType);
+        return concept;
+    }
+
+    private static Concept container(String family, Object... keyAndEntry) {
+        Concept concept = new Concept();
+        concept.setTypeFamily(family);
+        Map<String, Entry> entries = new LinkedHashMap<>();
+        for (int i = 0; i < keyAndEntry.length; i += 2) {
+            Object value = keyAndEntry[i + 1];
+            entries.put(
+                    (String) keyAndEntry[i],
+                    value instanceof Concept c ? Entry.of(c) : Entry.of((String) value));
+        }
+        concept.setEntries(entries);
+        return concept;
     }
 
     @BeforeAll
     static void catalogAndData() throws SQLException {
+        Concept docConcept =
+                container(
+                        "STRUCT",
+                        "n",
+                        "INTEGER",
+                        "s",
+                        "VARCHAR",
+                        "flag",
+                        "BOOLEAN",
+                        "d",
+                        "DECIMAL",
+                        "a",
+                        container("STRUCT", "b", container("ARRAY", "element", "INTEGER")));
+        docConcept.setTypeEncoding("JSON");
+        docConcept.setDialectType("JSON");
         Column doc = new Column("doc");
-        doc.setTypeFamily("JSON");
-        doc.setDialectType("JSON");
-        Column b = node("b", "ARRAY");
-        b.setElement(node(null, "INTEGER"));
-        Column a = node("a", "STRUCT");
-        a.setFields(List.of(b));
-        doc.setFields(
-                List.of(
-                        node("n", "INTEGER"),
-                        node("s", "TEXT"),
-                        node("flag", "BOOLEAN"),
-                        node("d", "DECIMAL"),
-                        a));
-        Column id = node("id", "INTEGER");
-        id.setDialectType("INTEGER");
+        doc.setConcept(docConcept);
+        Column id = new Column("id");
+        id.setConcept(scalar("INTEGER", "INTEGER"));
         id.setPkPos(1);
         Table table = new Table("docs");
         table.setColumns(new ArrayList<>(List.of(id, doc)));

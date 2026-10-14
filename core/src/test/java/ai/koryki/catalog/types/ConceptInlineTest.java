@@ -110,10 +110,7 @@ class ConceptInlineTest {
     }
 
     @Test
-    void anOwnConceptIsTypedLikeTheColumnThatDeclaresItself() {
-        Column old = new Column("c");
-        old.setTypeFamily("STRUCT");
-        old.setDialectType("STRUCT(street VARCHAR, no SMALLINT, tags VARCHAR[])");
+    void anOwnConceptIsTypedLikeTheSpellingOfItsType() {
         Column column =
                 inline(
                         container(
@@ -121,19 +118,19 @@ class ConceptInlineTest {
         Schema schema = schema(column, Map.of("count", concept("INTEGER", "SMALLINT")));
 
         assertEquals(
-                PARSER.parse(old).portable(),
+                TypeSyntax.parse(
+                                "STRUCT(street VARCHAR, no SMALLINT, tags VARCHAR[])",
+                                PARSER::parseLeaf)
+                        .portable(),
                 new ConceptResolver(schema).descriptor(column, PARSER).portable());
     }
 
     @Test
-    void anOwnScalarConceptIsTypedLikeTheColumnThatDeclaresItself() {
-        Column old = new Column("c");
-        old.setTypeFamily("DECIMAL");
-        old.setDialectType("DECIMAL(10,2)");
+    void anOwnScalarConceptIsTypedLikeItsDialectType() {
         Column column = inline(concept("DECIMAL", "DECIMAL(10,2)"));
 
         assertEquals(
-                PARSER.parse(old),
+                PARSER.parse("column 'c'", "DECIMAL", null, "DECIMAL(10,2)"),
                 new ConceptResolver(schema(column, Map.of())).descriptor(column, PARSER));
     }
 

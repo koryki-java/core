@@ -94,8 +94,7 @@ class ComplexServiceTest {
         LinkResolver resolver = ComplexService.resolver();
 
         for (Column column : resolver.getSchema().getTables().get(0).getColumns()) {
-            ai.koryki.catalog.schema.Concept concept =
-                    ai.koryki.catalog.ConceptConverter.of(column);
+            ai.koryki.catalog.schema.Concept concept = column.getConcept();
             assertEquals(
                     "JSON".equals(concept.getTypeEncoding())
                             ? CoreTypeFamily.JSON

@@ -65,13 +65,17 @@ class SchemaToModelTest {
     }
 
     @Test
-    void theWordingOfTheOldFieldsIsTheSame() {
-        Column price = new Column("price", "net", "What it costs");
-        price.setLabel("Price");
-        price.setTypeFamily("DECIMAL");
-        price.setDialectType("DECIMAL(10,2)");
+    void theWordingOfAConceptTheColumnRefersToIsTheSame() {
+        Concept concept = new Concept();
+        concept.setLabel("Price");
+        concept.setComment("net");
+        concept.setDescription("What it costs");
+        Column price = new Column("price");
+        price.setConceptRef("money");
+        Schema schema = schema(price);
+        schema.setConcepts(new java.util.LinkedHashMap<>(java.util.Map.of("money", concept)));
 
-        Attribute attribute = attribute(schema(price), "price");
+        Attribute attribute = attribute(schema, "price");
 
         assertEquals("Price", attribute.getLabel());
         assertEquals("net", attribute.getComment());

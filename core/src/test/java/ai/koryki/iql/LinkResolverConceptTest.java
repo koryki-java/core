@@ -17,10 +17,12 @@
 package ai.koryki.iql;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.koryki.catalog.CatalogLoader;
-import ai.koryki.catalog.ConceptConverter;
-import ai.koryki.catalog.LegacyCatalog;
+import ai.koryki.catalog.SchemaCopy;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Schema;
@@ -30,107 +32,81 @@ import java.util.Locale;
 import org.junit.jupiter.api.Test;
 
 /**
- * The resolver types a column that refers to a concept from the concept. The columns of the
- * converted bed have lost everything they declared themselves, so only the concepts can type them.
+ * The resolver types a column from its concept, its own or the one it refers to. A column has
+ * nothing else to type it by.
  */
 class LinkResolverConceptTest {
 
     private static final Model MODEL = CatalogLoader.model(ComplexService.ROOT, Locale.ENGLISH);
 
-    private static final Schema OLD = LegacyCatalog.duckdbComplex();
+    private static final Schema OWN = CatalogLoader.db(ComplexService.DB);
 
-    /** The bed converted, its columns left with nothing but their concept. */
-    private static Schema bare() {
-        Schema schema = ConceptConverter.convert(OLD);
-        for (Table table : schema.getTables()) {
+    @Test
+    void everyColumnOfTheBedIsTypedFromItsOwnConcept() {
+        LinkResolver resolver = new LinkResolver(Locale.ENGLISH, OWN, MODEL, true);
+
+        int columns = 0;
+        for (Table table : OWN.getTables()) {
             for (Column column : table.getColumns()) {
-                if (column.getConcept() != null) {
-                    column.setTypeFamily(null);
-                    column.setTypeEncoding(null);
-                    column.setDialectType(null);
-                    column.setFields(null);
-                    column.setElement(null);
-                    column.setKey(null);
-                    column.setValue(null);
-                    column.setLength(null);
-                }
+                assertNotNull(column.getConcept(), table.getName() + "." + column.getName());
+                assertNotNull(
+                        resolver.getTypeDescriptor(column),
+                        table.getName() + "." + column.getName());
+                columns++;
             }
         }
-        return schema;
-    }
-
-    @Test
-    void aColumnWithOnlyAConceptHasTheTypeItHadBefore() {
-        Schema bare = bare();
-        LinkResolver before = new LinkResolver(Locale.ENGLISH, OLD, MODEL, true);
-        LinkResolver after = new LinkResolver(Locale.ENGLISH, bare, MODEL, true);
-
-        int own = 0;
-        for (int t = 0; t < OLD.getTables().size(); t++) {
-            for (int c = 0; c < OLD.getTables().get(t).getColumns().size(); c++) {
-                Column old = OLD.getTables().get(t).getColumns().get(c);
-                Column column = bare.getTables().get(t).getColumns().get(c);
-                if (column.getConcept() != null) {
-                    own++;
-                }
-                assertEquals(
-                        before.getTypeDescriptor(old),
-                        after.getTypeDescriptor(column),
-                        OLD.getTables().get(t).getName() + "." + old.getName());
-            }
-        }
-        int columns = OLD.getTables().stream().mapToInt(t -> t.getColumns().size()).sum();
-        assertEquals(columns, own, "every column has its concept and nothing else");
-    }
-
-    @Test
-    void aColumnWithoutAConceptIsTypedFromWhatItDeclares() {
-        LinkResolver resolver = new LinkResolver(Locale.ENGLISH, OLD, MODEL, true);
-        Column nr = OLD.getTables().get(0).getColumns().get(0);
-
-        assertEquals(null, nr.getConcept());
-        assertEquals(null, nr.getConceptRef());
+        assertTrue(columns > 20, "columns: " + columns);
+        Column nr = OWN.getTables().get(0).getColumns().get(0);
         assertEquals("INTEGER", resolver.getTypeDescriptor(nr).portable());
     }
 
     /** The bed with the concept of every column moved into the schema, the column naming it. */
     private static Schema referenced() {
-        Schema schema = bare();
+        Schema schema = SchemaCopy.deepCopy(OWN);
         schema.setConcepts(new java.util.LinkedHashMap<>());
         for (Table table : schema.getTables()) {
             for (Column column : table.getColumns()) {
-                if (column.getConcept() != null) {
-                    String name = table.getName() + "_" + column.getName() + "_concept";
-                    schema.getConcepts().put(name, column.getConcept());
-                    column.setConcept(null);
-                    column.setConceptRef(name);
-                }
+                String name = table.getName() + "_" + column.getName() + "_concept";
+                schema.getConcepts().put(name, column.getConcept());
+                column.setConcept(null);
+                column.setConceptRef(name);
             }
         }
         return schema;
     }
 
     @Test
-    void aColumnThatRefersToAConceptIsTypedFromIt() {
+    void aColumnThatRefersToAConceptIsTypedFromItAsOneWithItsOwn() {
         Schema referenced = referenced();
-        LinkResolver before = new LinkResolver(Locale.ENGLISH, OLD, MODEL, true);
-        LinkResolver after = new LinkResolver(Locale.ENGLISH, referenced, MODEL, true);
+        LinkResolver own = new LinkResolver(Locale.ENGLISH, OWN, MODEL, true);
+        LinkResolver refers = new LinkResolver(Locale.ENGLISH, referenced, MODEL, true);
 
-        int own = 0;
-        for (int t = 0; t < OLD.getTables().size(); t++) {
-            for (int c = 0; c < OLD.getTables().get(t).getColumns().size(); c++) {
-                Column old = OLD.getTables().get(t).getColumns().get(c);
-                Column column = referenced.getTables().get(t).getColumns().get(c);
-                if (column.getConceptRef() != null) {
-                    own++;
-                }
+        int columns = 0;
+        for (int t = 0; t < OWN.getTables().size(); t++) {
+            for (int c = 0; c < OWN.getTables().get(t).getColumns().size(); c++) {
+                Column was = OWN.getTables().get(t).getColumns().get(c);
+                Column is = referenced.getTables().get(t).getColumns().get(c);
+                assertNotNull(is.getConceptRef());
                 assertEquals(
-                        before.getTypeDescriptor(old),
-                        after.getTypeDescriptor(column),
-                        OLD.getTables().get(t).getName() + "." + old.getName());
+                        own.getTypeDescriptor(was),
+                        refers.getTypeDescriptor(is),
+                        OWN.getTables().get(t).getName() + "." + was.getName());
+                columns++;
             }
         }
-        int columns = OLD.getTables().stream().mapToInt(t -> t.getColumns().size()).sum();
-        assertEquals(columns, own, "every column refers to its concept");
+        assertTrue(columns > 20, "columns: " + columns);
+    }
+
+    @Test
+    void aColumnWithoutAConceptIsRefusedWhereTheResolverIsBuilt() {
+        Schema schema = SchemaCopy.deepCopy(OWN);
+        schema.getTables().get(0).getColumns().get(0).setConcept(null);
+
+        IllegalArgumentException refused =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> new LinkResolver(Locale.ENGLISH, schema, MODEL, true));
+
+        assertEquals("column 'nr': it refers to no concept", refused.getMessage());
     }
 }

@@ -19,7 +19,6 @@ package ai.koryki.iql.typing;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import ai.koryki.catalog.CatalogLoader;
-import ai.koryki.catalog.ConceptConverter;
 import ai.koryki.catalog.Entries;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Concept;
@@ -33,7 +32,7 @@ import org.junit.jupiter.api.Test;
 /** What {@link ConceptNodes} finds in the concepts of the complex bed. */
 class ConceptNodesTest {
 
-    private static final Schema NEW = ConceptConverter.convert(CatalogLoader.db(ComplexService.DB));
+    private static final Schema NEW = CatalogLoader.db(ComplexService.DB);
     private static final ConceptNodes NODES = new ConceptNodes(NEW);
 
     private static Selector id(String name) {
@@ -129,7 +128,7 @@ class ConceptNodesTest {
 
     @Test
     void aColumnThatRefersToAConceptIsWalkedLikeOneWithItsOwn() {
-        Schema referenced = ConceptConverter.convert(CatalogLoader.db(ComplexService.DB));
+        Schema referenced = CatalogLoader.db(ComplexService.DB);
         referenced.setConcepts(new java.util.LinkedHashMap<>());
         referenced.getConcepts().put("dims", column("dims").getConcept());
         Column refers = new Column("refers");

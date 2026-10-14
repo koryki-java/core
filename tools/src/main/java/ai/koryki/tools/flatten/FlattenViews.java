@@ -16,7 +16,6 @@
  */
 package ai.koryki.tools.flatten;
 
-import ai.koryki.catalog.ConceptConverter;
 import ai.koryki.catalog.domain.Attribute;
 import ai.koryki.catalog.domain.Entity;
 import ai.koryki.catalog.domain.Link;
@@ -27,6 +26,7 @@ import ai.koryki.catalog.schema.Entry;
 import ai.koryki.catalog.schema.Relation;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.schema.Table;
+import ai.koryki.catalog.types.ConceptResolver;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeDescriptorParser;
@@ -96,8 +96,9 @@ public final class FlattenViews {
      */
     public static List<View> of(
             Schema schema, String tableName, Dialect dialect, String... columns) {
-        Schema db = ConceptConverter.convert(schema);
+        Schema db = schema;
         ConceptNodes nodes = new ConceptNodes(db);
+        ConceptResolver concepts = new ConceptResolver(db);
         Table table =
                 db.getTable(tableName)
                         .orElseThrow(() -> new IllegalArgumentException("no table " + tableName));
@@ -116,7 +117,7 @@ public final class FlattenViews {
             if (!wanted.isEmpty() && !wanted.contains(column.getName())) {
                 continue;
             }
-            TypeDescriptor type = PARSER.parse(column);
+            TypeDescriptor type = concepts.descriptor(column, PARSER);
             if (!CoreTypeFamily.ARRAY.equals(type.getTypeFamily()) || !flat(type.element())) {
                 if (!wanted.isEmpty()) {
                     throw new IllegalArgumentException(
@@ -133,6 +134,7 @@ public final class FlattenViews {
                             keys,
                             column.getName(),
                             type.element(),
+                            concepts,
                             nodes,
                             nodes.node(column, List.of()).flatMap(nodes::element).orElse(null),
                             sql(
@@ -156,8 +158,9 @@ public final class FlattenViews {
      */
     public static View ofJson(
             Schema schema, String tableName, Dialect dialect, String columnName, String path) {
-        Schema db = ConceptConverter.convert(schema);
+        Schema db = schema;
         ConceptNodes nodes = new ConceptNodes(db);
+        ConceptResolver concepts = new ConceptResolver(db);
         Table table =
                 db.getTable(tableName)
                         .orElseThrow(() -> new IllegalArgumentException("no table " + tableName));
@@ -178,7 +181,7 @@ public final class FlattenViews {
                                 () ->
                                         new IllegalArgumentException(
                                                 "no column " + tableName + "." + columnName));
-        TypeDescriptor type = PARSER.parse(column);
+        TypeDescriptor type = concepts.descriptor(column, PARSER);
         if (type.shape() == null) {
             throw new IllegalArgumentException(
                     "the column " + columnName + " declares no members of its JSON");
@@ -213,6 +216,7 @@ public final class FlattenViews {
                 keys,
                 source,
                 element,
+                concepts,
                 nodes,
                 elementNode,
                 jsonSql(
@@ -312,6 +316,7 @@ public final class FlattenViews {
             List<Column> keys,
             String source,
             TypeDescriptor element,
+            ConceptResolver concepts,
             ConceptNodes nodes,
             Concept elementNode,
             String sql) {
@@ -330,7 +335,7 @@ public final class FlattenViews {
         List<Column> columns = new ArrayList<>();
         for (Column key : keys) {
             Column copy = new Column(key.getName());
-            Concept keyConcept = ConceptConverter.of(key);
+            Concept keyConcept = concepts.concept(key);
             Concept own = new Concept();
             own.setLabel(keyConcept == null ? null : keyConcept.getLabel());
             own.setDescription("Key of the row the element belongs to");

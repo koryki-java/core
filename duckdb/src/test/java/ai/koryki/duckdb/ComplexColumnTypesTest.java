@@ -19,9 +19,9 @@ package ai.koryki.duckdb;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
-import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeDescriptorParser;
+import ai.koryki.catalog.types.TypeSyntax;
 import ai.koryki.databases.northwind.duckdb.NorthwindDuckdb;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -110,10 +110,9 @@ class ComplexColumnTypesTest {
     }
 
     private static TypeDescriptor parse(String name, String dataType) {
-        Column column = new Column(name);
-        column.setDialectType(dataType);
-        column.setTypeFamily(familyOf(dataType));
-        return PARSER.parse(column);
+        return TypeSyntax.looksComplex(dataType)
+                ? TypeSyntax.parse(dataType, PARSER::parseLeaf)
+                : PARSER.parse("column '" + name + "'", familyOf(dataType), null, dataType);
     }
 
     /** The family a catalog would declare: the root of the spelling. */

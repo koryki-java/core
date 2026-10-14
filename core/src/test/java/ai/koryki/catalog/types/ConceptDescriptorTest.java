@@ -76,11 +76,7 @@ class ConceptDescriptorTest {
         "BLOB, BLOB"
     })
     void aScalarConceptTypesLikeTheColumnItself(String family, String dialectType) {
-        Column old = new Column("c");
-        old.setTypeFamily(family);
-        old.setDialectType(dialectType);
-
-        TypeDescriptor expected = PARSER.parse(old);
+        TypeDescriptor expected = PARSER.parse("c", family, null, dialectType);
         TypeDescriptor actual =
                 new ConceptResolver(schema(concept(family, dialectType)))
                         .descriptor(viaConcept(), PARSER);
@@ -119,10 +115,9 @@ class ConceptDescriptorTest {
     }
 
     private static TypeDescriptor spelled(String dialectType, String family) {
-        Column old = new Column("c");
-        old.setTypeFamily(family);
-        old.setDialectType(dialectType);
-        return PARSER.parse(old);
+        return TypeSyntax.looksComplex(dialectType)
+                ? TypeSyntax.parse(dialectType, PARSER::parseLeaf)
+                : PARSER.parse("c", family, null, dialectType);
     }
 
     private static TypeDescriptor viaConcept(Schema schema) {
@@ -234,20 +229,6 @@ class ConceptDescriptorTest {
                 spelled("MAP(VARCHAR, STRUCT(lat DOUBLE, lon DOUBLE))", "MAP"), viaConcept(schema));
     }
 
-    private static Column member(String name, String family) {
-        Column member = new Column(name);
-        member.setTypeFamily(family);
-        return member;
-    }
-
-    private static Column oldJson(Column... fields) {
-        Column json = new Column("c");
-        json.setTypeFamily("JSON");
-        json.setDialectType("JSON");
-        json.setFields(java.util.List.of(fields));
-        return json;
-    }
-
     private static Concept json(String... namesAndValues) {
         Concept json = concept("STRUCT", "JSON");
         json.setTypeEncoding("JSON");
@@ -272,13 +253,8 @@ class ConceptDescriptorTest {
                                 "k", json("n", "count", "color", "VARCHAR", "price", "money"),
                                 "count", concept("INTEGER", "BIGINT"),
                                 "money", concept("DECIMAL", "DECIMAL(10,2)")));
-        Column old =
-                oldJson(
-                        member("n", "INTEGER"),
-                        member("color", "TEXT"),
-                        member("price", "DECIMAL"));
-
-        assertEquals(PARSER.parse(old), viaConcept(schema));
+        assertEquals(
+                "JSON(STRUCT(n:INTEGER,color:TEXT,price:DECIMAL))", viaConcept(schema).portable());
     }
 
     @Test
@@ -291,17 +267,9 @@ class ConceptDescriptorTest {
                                 "size", struct("w", "DOUBLE", "h", "DOUBLE"),
                                 "flag_map", map("VARCHAR", "BOOLEAN")));
 
-        Column tags = new Column("tags");
-        tags.setTypeFamily("ARRAY");
-        tags.setElement(member("element", "TEXT"));
-        Column dims = new Column("dims");
-        dims.setTypeFamily("STRUCT");
-        dims.setFields(java.util.List.of(member("w", "FLOAT"), member("h", "FLOAT")));
-        Column flags = new Column("flags");
-        flags.setTypeFamily("MAP");
-        flags.setValue(member("value", "BOOLEAN"));
-
-        assertEquals(PARSER.parse(oldJson(tags, dims, flags)), viaConcept(schema));
+        assertEquals(
+                "JSON(STRUCT(tags:ARRAY(TEXT),dims:STRUCT(w:FLOAT,h:FLOAT),flags:MAP(TEXT,BOOLEAN)))",
+                viaConcept(schema).portable());
     }
 
     @Test
@@ -311,11 +279,7 @@ class ConceptDescriptorTest {
                         Map.of(
                                 "k", json("inner", "other"),
                                 "other", json("n", "INTEGER")));
-        Column inner = new Column("inner");
-        inner.setTypeFamily("JSON");
-        inner.setFields(java.util.List.of(member("n", "INTEGER")));
-
-        assertEquals(PARSER.parse(oldJson(inner)), viaConcept(schema));
+        assertEquals("JSON(STRUCT(inner:STRUCT(n:INTEGER)))", viaConcept(schema).portable());
     }
 
     @Test
@@ -323,15 +287,10 @@ class ConceptDescriptorTest {
         Concept list = array("INTEGER", 3);
         list.setDialectType("JSONB");
         list.setTypeEncoding("JSON");
-        Column old = new Column("c");
-        old.setTypeFamily("JSON");
-        old.setDialectType("JSONB");
-        Column element = new Column("element");
-        element.setTypeFamily("INTEGER");
-        old.setElement(element);
-
         // a JSON list has no fixed size
-        assertEquals(PARSER.parse(old), viaConcept(schema(list)));
+        TypeDescriptor type = viaConcept(schema(list));
+        assertEquals("JSON(ARRAY(INTEGER))", type.portable());
+        assertEquals("JSONB", type.getPhysicalTypeName());
     }
 
     @Test
@@ -339,17 +298,7 @@ class ConceptDescriptorTest {
         Concept map = map("INTEGER", "VARCHAR");
         map.setDialectType("JSONB");
         map.setTypeEncoding("JSON");
-        Column old = new Column("c");
-        old.setTypeFamily("JSON");
-        old.setDialectType("JSONB");
-        Column key = new Column("key");
-        key.setTypeFamily("INTEGER");
-        Column value = new Column("value");
-        value.setTypeFamily("TEXT");
-        old.setKey(key);
-        old.setValue(value);
-
-        assertEquals(PARSER.parse(old), viaConcept(schema(map)));
+        assertEquals("JSON(MAP(INTEGER,TEXT))", viaConcept(schema(map)).portable());
     }
 
     @Test

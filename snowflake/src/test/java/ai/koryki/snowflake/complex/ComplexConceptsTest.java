@@ -14,32 +14,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package ai.koryki.oracle.complex;
+package ai.koryki.snowflake.complex;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import ai.koryki.catalog.CatalogLoader;
-import ai.koryki.catalog.ConceptConverter;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.schema.Table;
 import ai.koryki.catalog.types.ConceptResolver;
-import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeDescriptorParser;
 import org.junit.jupiter.api.Test;
 
 /**
- * The converter on the Oracle complex bed: composite types as structs, arrays, and JSON. No
- * connection is needed.
+ * The concepts of the Snowflake complex bed: object types, arrays, native maps, and a JSON
+ * document. No connection is needed.
  */
-class ConceptConverterTest {
+class ComplexConceptsTest {
+
+    private static final String DB = "/ai/koryki/snowflake/databases/complex";
 
     private static final TypeDescriptorParser PARSER = new TypeDescriptorParser() {};
 
-    private static final Schema OLD = CatalogLoader.db(ComplexCatalogTest.DB);
-    private static final Schema NEW = ConceptConverter.convert(OLD);
+    private static final Schema OLD = CatalogLoader.db(DB);
+    private static final Schema NEW = OLD;
 
     private static Column column(String name) {
         return NEW.getTables().get(0).getColumns().stream()
@@ -53,9 +54,6 @@ class ConceptConverterTest {
         new ConceptResolver(NEW).check(PARSER);
     }
 
-    /**
-     * Maps and lists stored as JSON convert too: their concept is the container, stored as JSON.
-     */
     @Test
     void everyColumnHasAConcept() {
         for (Table table : NEW.getTables()) {
@@ -65,32 +63,28 @@ class ConceptConverterTest {
         }
     }
 
+    /** Snowflake has maps: a MAP concept is native, only the document is stored as JSON. */
     @Test
-    void aMapStoredAsJsonIsAMapConceptWithTheEncodingJson() {
+    void aNativeMapHasNoEncodingAndTheDocumentIsJson() {
         Concept attrs = column("attrs").getConcept();
         assertEquals("MAP", attrs.getTypeFamily());
-        assertEquals("JSON", attrs.getDialectType());
-        assertEquals("JSON", attrs.getTypeEncoding());
-        assertEquals("VARCHAR", attrs.getEntries().get("key").getReference());
-        TypeDescriptor type =
-                new ConceptResolver(NEW)
-                        .descriptor(
-                                NEW.getTables().get(0).getColumns().stream()
-                                        .filter(c -> c.getName().equals("attrs"))
-                                        .findFirst()
-                                        .orElseThrow(),
-                                PARSER);
-        assertEquals("JSON(MAP(TEXT,TEXT))", type.portable());
+        assertNull(attrs.getTypeEncoding());
+        assertEquals(
+                "MAP(TEXT,TEXT)",
+                new ConceptResolver(NEW).descriptor(column("attrs"), PARSER).portable());
+
+        Concept doc = column("doc").getConcept();
+        assertEquals("STRUCT", doc.getTypeFamily());
+        assertEquals("JSON", doc.getTypeEncoding());
+        assertEquals("VARIANT", doc.getDialectType());
+        assertEquals(
+                "JSON(STRUCT(n:INTEGER,a:STRUCT(b:ARRAY(INTEGER)),s:TEXT,b:BOOLEAN,d:DECIMAL))",
+                new ConceptResolver(NEW).descriptor(column("doc"), PARSER).portable());
     }
 
     @Test
-    void theRowSpellingsStayWhereTheyAre() {
-        Column dims =
-                NEW.getTables().get(0).getColumns().stream()
-                        .filter(c -> c.getName().equals("dims"))
-                        .findFirst()
-                        .orElseThrow();
-        assertNotNull(dims.getConcept());
-        assertEquals("ROW(w BINARY_DOUBLE, h BINARY_DOUBLE)", dims.getConcept().getDialectType());
+    void theObjectSpellingsStayWhereTheyAre() {
+        assertNotNull(column("dims").getConcept());
+        assertEquals("OBJECT(w DOUBLE, h DOUBLE)", column("dims").getConcept().getDialectType());
     }
 }

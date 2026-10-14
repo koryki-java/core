@@ -1,63 +1,24 @@
-/*
- * Copyright 2025-2026 Johannes Zemlin
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
 package ai.koryki.catalog.schema;
 
-import java.util.List;
-
+/**
+ * A column of a table: its name, what belongs to it as part of the table (whether it may be empty,
+ * its place in the key and in the name of the row), and its concept, which says everything else:
+ * the type, the label, the unit. The concept is the column's own, or the one it refers to by name.
+ */
 public class Column {
 
     private String name;
-    private String label;
-    private String comment;
-    private String description;
-
-    private String typeFamily;
-    private String typeEncoding;
-    private String dialectType;
-
-    /**
-     * The structure of a nested column, as the same thing a column is: a node with a family, a
-     * dialect type, an encoding, a label and a unit of its own. A STRUCT has {@link #fields}, an
-     * ARRAY an {@link #element} (and a {@link #length} when its size is fixed), a MAP a {@link
-     * #key} and a {@link #value}; a node inside them is described in the same way, to any depth. A
-     * JSON column with children says which members it is known to hold, and nothing about the rest.
-     *
-     * <p>Optional: a nested column without them is read from the spelling in {@link #dialectType}.
-     * Where both are given they must describe the same type, which the loader checks. The tree is
-     * what carries the labels, units and encodings of the parts, which a spelling cannot.
-     */
-    private List<Column> fields;
-
-    private Column element;
-    private Column key;
-    private Column value;
-    private Integer length;
 
     /**
      * The name of a concept in {@code Schema.getConcepts()}: what this column is, where the concept
-     * says it (structure, unit, presentation, label). Beside the fields above, which a column still
-     * carries itself and which are read when it has no reference.
+     * says it (structure, unit, presentation, label). A column has this or a {@link #concept}, not
+     * both.
      */
     private String conceptRef;
 
     /**
      * The concept of this column alone, not shared with any other: what the column is, said where
-     * the concept says it. A column has this or a {@link #conceptRef}, not both. Beside the fields
-     * above, which a column still carries itself and which are read when it has neither.
+     * the concept says it. A column has this or a {@link #conceptRef}, not both.
      */
     private Concept concept;
 
@@ -83,22 +44,10 @@ public class Column {
      */
     private int namePos;
 
-    // optional physical-quantity semantics carried from db.json (used by the
-    // result-analysis layer); null unless the schema declares them.
-    private String unit;
-    private String quantity;
-    private String presentation;
-
     public Column() {}
 
     public Column(String name) {
         this.name = name;
-    }
-
-    public Column(String name, String comment, String description) {
-        this.name = name;
-        this.comment = comment;
-        this.description = description;
     }
 
     public String getName() {
@@ -109,52 +58,12 @@ public class Column {
         this.name = name;
     }
 
-    public String getUnit() {
-        return unit;
-    }
-
-    public void setUnit(String unit) {
-        this.unit = unit;
-    }
-
-    public String getQuantity() {
-        return quantity;
-    }
-
-    public void setQuantity(String quantity) {
-        this.quantity = quantity;
-    }
-
-    public String getComment() {
-        return comment;
-    }
-
-    public void setComment(String comment) {
-        this.comment = comment;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
     public Boolean getNullable() {
         return nullable;
     }
 
     public void setNullable(Boolean nullable) {
         this.nullable = nullable;
-    }
-
-    public String getLabel() {
-        return label;
-    }
-
-    public void setLabel(String label) {
-        this.label = label;
     }
 
     public int getPkPos() {
@@ -171,93 +80,6 @@ public class Column {
 
     public void setNamePos(int namePos) {
         this.namePos = namePos;
-    }
-
-    public String getDialectType() {
-        return dialectType;
-    }
-
-    public void setDialectType(String dialectType) {
-        this.dialectType = dialectType;
-    }
-
-    public String getTypeFamily() {
-        return typeFamily;
-    }
-
-    public void setTypeFamily(String typeFamily) {
-        this.typeFamily = typeFamily;
-    }
-
-    public String getTypeEncoding() {
-        return typeEncoding;
-    }
-
-    public List<Column> getFields() {
-        return fields;
-    }
-
-    public void setFields(List<Column> fields) {
-        this.fields = fields;
-    }
-
-    public Column getElement() {
-        return element;
-    }
-
-    public void setElement(Column element) {
-        this.element = element;
-    }
-
-    public Column getKey() {
-        return key;
-    }
-
-    public void setKey(Column key) {
-        this.key = key;
-    }
-
-    public Column getValue() {
-        return value;
-    }
-
-    public void setValue(Column value) {
-        this.value = value;
-    }
-
-    /** The fixed size of an ARRAY node, or null for a list. */
-    public Integer getLength() {
-        return length;
-    }
-
-    public void setLength(Integer length) {
-        this.length = length;
-    }
-
-    public void setTypeEncoding(String typeEncoding) {
-        this.typeEncoding = typeEncoding;
-    }
-
-    /**
-     * How this column's values should read, as a {@link ai.koryki.presentation.Presentation
-     * Presentation} name — {@code "DECIMALS:2"}, later {@code "IP"}. Travels as one string exactly
-     * like {@link #getTypeEncoding()}, and is resolved through {@link
-     * ai.koryki.presentation.PresentationRegistry PresentationRegistry}.
-     *
-     * <p>A name, not the type: the catalog describes data, and how a value is <em>shown</em> is not
-     * a description of it. That is why the family lives in {@code ai.koryki.presentation} and only
-     * its serialised form reaches this far.
-     *
-     * <p>The door for what no quantity calculus can conclude: that a number is an address, or that
-     * this one column wants different precision from its kind. A declaration here beats the derived
-     * default.
-     */
-    public String getPresentation() {
-        return presentation;
-    }
-
-    public void setPresentation(String presentation) {
-        this.presentation = presentation;
     }
 
     public String getConceptRef() {

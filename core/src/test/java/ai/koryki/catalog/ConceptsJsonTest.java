@@ -90,7 +90,7 @@ class ConceptsJsonTest {
 
         Column billing = schema.getTables().get(0).getColumns().get(1);
         assertEquals("address", billing.getConceptRef());
-        assertEquals("STRUCT", billing.getTypeFamily());
+        assertNull(billing.getConcept());
         assertNull(schema.getTables().get(0).getColumns().get(0).getConceptRef());
     }
 

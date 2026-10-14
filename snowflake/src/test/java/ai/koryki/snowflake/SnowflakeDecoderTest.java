@@ -19,9 +19,9 @@ package ai.koryki.snowflake;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeDescriptorParser;
+import ai.koryki.catalog.types.TypeSyntax;
 import ai.koryki.jdbc.ColumnInfo;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -37,10 +37,9 @@ class SnowflakeDecoderTest {
     private static final TypeDescriptorParser PARSER = new TypeDescriptorParser() {};
 
     private static TypeDescriptor type(String family, String dialectType) {
-        Column c = new Column("c");
-        c.setTypeFamily(family);
-        c.setDialectType(dialectType);
-        return PARSER.parse(c);
+        return TypeSyntax.looksComplex(dialectType)
+                ? TypeSyntax.parse(dialectType, PARSER::parseLeaf)
+                : PARSER.parse("column 'c'", family, null, dialectType);
     }
 
     private final SnowflakeDecoder decoder = new SnowflakeDecoder(ZoneId.of("UTC"));

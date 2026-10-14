@@ -68,39 +68,17 @@ public final class SchemaCopy {
         return copy;
     }
 
-    public static Column deepCopy(Column tabpe) {
+    public static Column deepCopy(Column column) {
         Column copy = new Column();
 
-        copy.setName(tabpe.getName());
-        copy.setLabel(tabpe.getLabel());
-        copy.setComment(tabpe.getComment());
-        copy.setDescription(tabpe.getDescription());
-
-        copy.setTypeFamily(tabpe.getTypeFamily());
-        copy.setTypeEncoding(tabpe.getTypeEncoding());
-        copy.setDialectType(tabpe.getDialectType());
-        copy.setNullable(tabpe.getNullable());
-        copy.setPkPos(tabpe.getPkPos());
-        copy.setNamePos(tabpe.getNamePos());
-        copy.setConceptRef(tabpe.getConceptRef());
-        if (tabpe.getConcept() != null) {
-            copy.setConcept(deepCopy(tabpe.getConcept()));
+        copy.setName(column.getName());
+        copy.setNullable(column.getNullable());
+        copy.setPkPos(column.getPkPos());
+        copy.setNamePos(column.getNamePos());
+        copy.setConceptRef(column.getConceptRef());
+        if (column.getConcept() != null) {
+            copy.setConcept(deepCopy(column.getConcept()));
         }
-        copy.setLength(tabpe.getLength());
-        if (tabpe.getFields() != null) {
-            copy.setFields(
-                    tabpe.getFields().stream().map(c -> deepCopy(c)).collect(Collectors.toList()));
-        }
-        copy.setElement(tabpe.getElement() == null ? null : deepCopy(tabpe.getElement()));
-        copy.setKey(tabpe.getKey() == null ? null : deepCopy(tabpe.getKey()));
-        copy.setValue(tabpe.getValue() == null ? null : deepCopy(tabpe.getValue()));
-
-        // Carried too, and not before: a copy that quietly drops the encoding, the unit or the
-        // presentation is not a copy, and the omission only shows up far away as a column that
-        // formats differently or compares against the wrong encoding.
-        copy.setUnit(tabpe.getUnit());
-        copy.setQuantity(tabpe.getQuantity());
-        copy.setPresentation(tabpe.getPresentation());
 
         return copy;
     }

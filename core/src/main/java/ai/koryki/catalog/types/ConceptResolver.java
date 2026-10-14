@@ -166,10 +166,7 @@ public final class ConceptResolver {
      *     concept is not yet typed
      */
     public TypeDescriptor descriptor(Column column, TypeDescriptorParser parser) {
-        String where = "column '" + column.getName() + "'";
-        TypeDescriptor type = descriptor(concept(column), where, parser);
-        agree(type, column.getDialectType(), where, parser);
-        return type;
+        return descriptor(concept(column), "column '" + column.getName() + "'", parser);
     }
 
     /**
@@ -263,11 +260,11 @@ public final class ConceptResolver {
                             + concept.getTypeFamily()
                             + " concept has entries or a size, which its family does not take");
         }
-        Column scalar = new Column(where);
-        scalar.setTypeFamily(concept.getTypeFamily());
-        scalar.setTypeEncoding(concept.getTypeEncoding());
-        scalar.setDialectType(concept.getDialectType());
-        return parser.parse(scalar);
+        return parser.parse(
+                where,
+                concept.getTypeFamily(),
+                concept.getTypeEncoding(),
+                concept.getDialectType());
     }
 
     /**
@@ -279,11 +276,12 @@ public final class ConceptResolver {
     private static TypeDescriptor stored(
             TypeDescriptor type, Concept concept, String where, TypeDescriptorParser parser) {
         if (CoreTypeEncoding.JSON.name().equals(concept.getTypeEncoding())) {
-            Column json = new Column(where);
-            json.setTypeFamily(CoreTypeFamily.JSON.name());
-            json.setDialectType(
-                    concept.getDialectType() != null ? concept.getDialectType() : "JSON");
-            return parser.parse(json).withShape(member(type, where));
+            return parser.parse(
+                            where,
+                            CoreTypeFamily.JSON.name(),
+                            null,
+                            concept.getDialectType() != null ? concept.getDialectType() : "JSON")
+                    .withShape(member(type, where));
         }
         agree(type, concept.getDialectType(), where, parser);
         return type;

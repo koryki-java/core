@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ai.koryki.catalog.schema.Column;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -31,10 +30,7 @@ class SizeParameterTest {
     private static final TypeDescriptorParser PARSER = new TypeDescriptorParser() {};
 
     private static TypeDescriptor flat(String family, String dialectType) {
-        Column column = new Column("c");
-        column.setTypeFamily(family);
-        column.setDialectType(dialectType);
-        return PARSER.parse(column);
+        return PARSER.parse("column 'c'", family, null, dialectType);
     }
 
     private static String refused(String family, String dialectType) {

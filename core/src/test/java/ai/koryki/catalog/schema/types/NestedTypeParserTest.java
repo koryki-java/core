@@ -22,10 +22,10 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeDescriptorParser;
+import ai.koryki.catalog.types.TypeSyntax;
 import java.util.List;
 import java.util.Random;
 import org.junit.jupiter.api.Test;
@@ -42,10 +42,15 @@ class NestedTypeParserTest {
     private static final TypeDescriptorParser PARSER = new TypeDescriptorParser() {};
 
     private static TypeDescriptor parse(String family, String dialectType) {
-        Column column = new Column("c");
-        column.setTypeFamily(family);
-        column.setDialectType(dialectType);
-        return PARSER.parse(column);
+        if (TypeSyntax.looksComplex(dialectType)
+                || List.of("ARRAY", "STRUCT", "MAP").contains(family)) {
+            try {
+                return TypeSyntax.parse(dialectType, PARSER::parseLeaf);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("column 'c': " + e.getMessage(), e);
+            }
+        }
+        return PARSER.parse("column 'c'", family, null, dialectType);
     }
 
     private static String portable(String family, String dialectType) {
@@ -298,180 +303,6 @@ class NestedTypeParserTest {
 
         assertTrue(e.getMessage().contains("FROBNICATE"), e.getMessage());
         assertTrue(e.getMessage().contains("column 'c'"), e.getMessage());
-    }
-
-    @Test
-    void theDeclaredFamilyMustBeTheFamilyOfTheRoot() {
-        IllegalArgumentException e =
-                assertThrows(IllegalArgumentException.class, () -> parse("MAP", "INTEGER[]"));
-
-        assertTrue(e.getMessage().contains("declared MAP"), e.getMessage());
-        assertTrue(e.getMessage().contains("ARRAY"), e.getMessage());
-    }
-
-    @Test
-    void aFlatNameUnderAContainerFamilyIsAMismatchNotAFormatError() {
-        IllegalArgumentException e =
-                assertThrows(IllegalArgumentException.class, () -> parse("ARRAY", "VARCHAR"));
-
-        assertTrue(e.getMessage().contains("declared ARRAY"), e.getMessage());
-    }
-
-    @Test
-    void aNestedSpellingUnderAScalarFamilyIsAMismatchToo() {
-        IllegalArgumentException e =
-                assertThrows(IllegalArgumentException.class, () -> parse("TEXT", "VARCHAR[]"));
-
-        assertTrue(e.getMessage().contains("declared TEXT"), e.getMessage());
-    }
-
-    @Test
-    void aContainerCannotCarryAnEncoding() {
-        Column column = new Column("c");
-        column.setTypeFamily("ARRAY");
-        column.setTypeEncoding("EPOCH:SECONDS");
-        column.setDialectType("BIGINT[]");
-
-        // an encoding binds to a scalar family, so it is refused before the type is read; the
-        // leaf is where it belongs, declared under 'nested'
-        IllegalArgumentException e =
-                assertThrows(IllegalArgumentException.class, () -> PARSER.parse(column));
-        assertTrue(e.getMessage().contains("column 'c'"), e.getMessage());
-    }
-
-    // ---- the nodes of a column ----------------------------------------------------------------
-
-    private static Column leaf(String name, String family, String encoding, String dialectType) {
-        Column c = new Column(name);
-        c.setTypeFamily(family);
-        c.setTypeEncoding(encoding);
-        c.setDialectType(dialectType);
-        return c;
-    }
-
-    private static Column struct(String name, Column... fields) {
-        Column c = new Column(name);
-        c.setTypeFamily("STRUCT");
-        c.setFields(List.of(fields));
-        return c;
-    }
-
-    private static Column array(String name, Column element) {
-        Column c = new Column(name);
-        c.setTypeFamily("ARRAY");
-        c.setElement(element);
-        return c;
-    }
-
-    @Test
-    void aLeafNodeRefinesTheSpelledType() {
-        Column column =
-                array(
-                        "events",
-                        struct(
-                                null,
-                                leaf("ts", "TIMESTAMP", "EPOCH:SECONDS", "BIGINT"),
-                                leaf("day", "DATE", null, "DATE")));
-        column.setDialectType("STRUCT(ts BIGINT, day DATE)[]");
-
-        TypeDescriptor d = PARSER.parse(column);
-
-        TypeDescriptor ts = d.element().field("ts").orElseThrow();
-        assertEquals(CoreTypeFamily.TIMESTAMP, ts.getTypeFamily());
-        assertEquals("EPOCH:SECONDS", ts.getTypeEncoding().name());
-        assertEquals("BIGINT", ts.getPhysicalTypeName());
-        assertEquals(CoreTypeFamily.DATE, d.element().field("day").orElseThrow().getTypeFamily());
-        assertEquals("STRUCT(ts:TIMESTAMP,day:DATE)", d.element().portable());
-    }
-
-    @Test
-    void aTreeReachesIntoMapsAndQuotedFields() {
-        Column map = new Column("c");
-        map.setTypeFamily("MAP");
-        map.setKey(leaf(null, "TEXT", null, "VARCHAR"));
-        map.setValue(struct(null, leaf("Odd Name", "TIMESTAMP", "EPOCH:MILLIS", "BIGINT")));
-
-        TypeDescriptor leaf = PARSER.parse(map).value().field("Odd Name").orElseThrow();
-
-        assertEquals("EPOCH:MILLIS", leaf.getTypeEncoding().name());
-    }
-
-    @Test
-    void aFixedSizeArrayKeepsItsLength() {
-        Column vec = array("vec", leaf(null, "FLOAT", null, "DOUBLE"));
-        vec.setLength(3);
-
-        assertEquals("ARRAY(FLOAT,3)", PARSER.parse(vec).portable());
-    }
-
-    @Test
-    void aNodeThatCannotBeReadIsRefusedWithTheColumnsName() {
-        Column noElement = new Column("c");
-        noElement.setTypeFamily("ARRAY");
-        noElement.setElement(leaf(null, "INTEGER", null, null));
-        noElement.setElement(null);
-        noElement.setFields(List.of(leaf("x", "INTEGER", null, null)));
-
-        Column noFields = new Column("c");
-        noFields.setTypeFamily("STRUCT");
-        noFields.setElement(leaf(null, "INTEGER", null, null));
-
-        Column noValue = new Column("c");
-        noValue.setTypeFamily("MAP");
-        noValue.setKey(leaf(null, "TEXT", null, null));
-
-        Column unnamedField = struct("c", leaf(null, "INTEGER", null, null));
-
-        Column noFamily = array("c", leaf(null, null, null, null));
-
-        for (Column bad : List.of(noElement, noFields, noValue, unnamedField, noFamily)) {
-            IllegalArgumentException e =
-                    assertThrows(IllegalArgumentException.class, () -> PARSER.parse(bad));
-            assertTrue(e.getMessage().contains("column 'c"), e.getMessage());
-        }
-    }
-
-    @Test
-    void aNodeWithChildrenOfAnotherFamilyIsRefused() {
-        Column arrayWithFields = array("c", leaf(null, "INTEGER", null, null));
-        arrayWithFields.setFields(List.of(leaf("x", "INTEGER", null, null)));
-
-        Column structWithElement = struct("c", leaf("x", "INTEGER", null, null));
-        structWithElement.setElement(leaf(null, "INTEGER", null, null));
-
-        Column scalarWithKids = leaf("c", "INTEGER", null, "INTEGER");
-        scalarWithKids.setElement(leaf(null, "INTEGER", null, null));
-
-        Column mapWithElement = new Column("c");
-        mapWithElement.setTypeFamily("MAP");
-        mapWithElement.setKey(leaf(null, "TEXT", null, null));
-        mapWithElement.setValue(leaf(null, "TEXT", null, null));
-        mapWithElement.setElement(leaf(null, "TEXT", null, null));
-
-        for (Column bad :
-                List.of(arrayWithFields, structWithElement, scalarWithKids, mapWithElement)) {
-            IllegalArgumentException e =
-                    assertThrows(IllegalArgumentException.class, () -> PARSER.parse(bad));
-            assertTrue(e.getMessage().contains("column 'c'"), e.getMessage());
-            assertTrue(e.getMessage().contains(" has "), e.getMessage());
-        }
-    }
-
-    @Test
-    void anEncodingOfAnotherFamilyOnALeafIsRefused() {
-        Column column = array("c", leaf(null, "INTEGER", "EPOCH:SECONDS", "BIGINT"));
-
-        assertThrows(IllegalArgumentException.class, () -> PARSER.parse(column));
-    }
-
-    @Test
-    void aLeafWithoutADialectTypeIsThePlainNameOfItsFamily() {
-        Column column = array("c", leaf(null, "TEXT", null, null));
-
-        TypeDescriptor d = PARSER.parse(column);
-
-        assertEquals("ARRAY(TEXT)", d.portable());
-        assertEquals("VARCHAR", d.element().getPhysicalTypeName());
     }
 
     // ---- the descriptor itself ----------------------------------------------------------------

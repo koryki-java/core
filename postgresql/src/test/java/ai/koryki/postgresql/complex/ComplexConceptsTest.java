@@ -14,34 +14,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package ai.koryki.trino.complex;
+package ai.koryki.postgresql.complex;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 import ai.koryki.catalog.CatalogLoader;
-import ai.koryki.catalog.ConceptConverter;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.schema.Table;
 import ai.koryki.catalog.types.ConceptResolver;
+import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeDescriptorParser;
 import org.junit.jupiter.api.Test;
 
 /**
- * The converter on the Trino complex bed: row types, arrays, native maps, and a JSON document. No
+ * The concepts of the PostgreSQL complex bed: composite types as structs, arrays, and jsonb. No
  * connection is needed.
  */
-class ConceptConverterTest {
-
-    private static final String DB = "/ai/koryki/trino/databases/complex";
+class ComplexConceptsTest {
 
     private static final TypeDescriptorParser PARSER = new TypeDescriptorParser() {};
 
-    private static final Schema OLD = CatalogLoader.db(DB);
-    private static final Schema NEW = ConceptConverter.convert(OLD);
+    private static final Schema OLD = CatalogLoader.db(ComplexCatalogTest.DB);
+    private static final Schema NEW = OLD;
 
     private static Column column(String name) {
         return NEW.getTables().get(0).getColumns().stream()
@@ -55,6 +52,9 @@ class ConceptConverterTest {
         new ConceptResolver(NEW).check(PARSER);
     }
 
+    /**
+     * Maps and lists stored as jsonb convert too: their concept is the container, stored as JSON.
+     */
     @Test
     void everyColumnHasAConcept() {
         for (Table table : NEW.getTables()) {
@@ -64,24 +64,33 @@ class ConceptConverterTest {
         }
     }
 
-    /** Trino has maps: a MAP concept is native, only the document is stored as JSON. */
     @Test
-    void aNativeMapHasNoEncodingAndTheDocumentIsJson() {
+    void aMapStoredAsJsonbIsAMapConceptWithTheEncodingJson() {
         Concept attrs = column("attrs").getConcept();
         assertEquals("MAP", attrs.getTypeFamily());
-        assertNull(attrs.getTypeEncoding());
-        assertEquals(
-                "MAP(TEXT,TEXT)",
-                new ConceptResolver(NEW).descriptor(column("attrs"), PARSER).portable());
-
-        Concept doc = column("doc").getConcept();
-        assertEquals("STRUCT", doc.getTypeFamily());
-        assertEquals("JSON", doc.getTypeEncoding());
+        assertEquals("JSONB", attrs.getDialectType());
+        assertEquals("JSON", attrs.getTypeEncoding());
+        assertEquals("VARCHAR", attrs.getEntries().get("key").getReference());
+        TypeDescriptor type =
+                new ConceptResolver(NEW)
+                        .descriptor(
+                                NEW.getTables().get(0).getColumns().stream()
+                                        .filter(c -> c.getName().equals("attrs"))
+                                        .findFirst()
+                                        .orElseThrow(),
+                                PARSER);
+        assertEquals("JSON(MAP(TEXT,TEXT))", type.portable());
     }
 
     @Test
     void theRowSpellingsStayWhereTheyAre() {
-        assertNotNull(column("dims").getConcept());
-        assertEquals("ROW(w DOUBLE, h DOUBLE)", column("dims").getConcept().getDialectType());
+        Column dims =
+                NEW.getTables().get(0).getColumns().stream()
+                        .filter(c -> c.getName().equals("dims"))
+                        .findFirst()
+                        .orElseThrow();
+        assertNotNull(dims.getConcept());
+        assertEquals(
+                "ROW(w DOUBLE PRECISION, h DOUBLE PRECISION)", dims.getConcept().getDialectType());
     }
 }

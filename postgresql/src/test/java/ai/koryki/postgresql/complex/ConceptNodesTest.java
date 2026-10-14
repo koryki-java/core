@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.koryki.catalog.CatalogLoader;
-import ai.koryki.catalog.ConceptConverter;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Schema;
@@ -36,8 +35,7 @@ import org.junit.jupiter.api.Test;
  */
 class ConceptNodesTest {
 
-    private static final Schema SCHEMA =
-            ConceptConverter.convert(CatalogLoader.db(ComplexCatalogTest.DB));
+    private static final Schema SCHEMA = CatalogLoader.db(ComplexCatalogTest.DB);
 
     private static final ConceptNodes NODES = new ConceptNodes(SCHEMA);
 

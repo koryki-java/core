@@ -57,7 +57,9 @@ class ConceptSpellingAgreementTest {
         schema.setConcepts(new LinkedHashMap<>(Map.of("k", concept)));
         Column column = new Column("c");
         column.setConceptRef("k");
-        column.setDialectType(columnSpelling);
+        if (columnSpelling != null) {
+            concept.setDialectType(columnSpelling);
+        }
         return new ConceptResolver(schema).descriptor(column, PARSER);
     }
 

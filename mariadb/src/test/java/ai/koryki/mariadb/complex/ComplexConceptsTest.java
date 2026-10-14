@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import ai.koryki.catalog.CatalogLoader;
-import ai.koryki.catalog.ConceptConverter;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Schema;
@@ -28,13 +27,13 @@ import ai.koryki.catalog.types.ConceptResolver;
 import ai.koryki.catalog.types.TypeDescriptorParser;
 import org.junit.jupiter.api.Test;
 
-/** The converter on the MariaDB complex bed: one JSON document. No connection is needed. */
-class ConceptConverterTest {
+/** The concepts of the MariaDB complex bed: one JSON document. No connection is needed. */
+class ComplexConceptsTest {
 
     private static final TypeDescriptorParser PARSER = new TypeDescriptorParser() {};
 
     private static final Schema OLD = CatalogLoader.db(ComplexCatalogTest.DB);
-    private static final Schema NEW = ConceptConverter.convert(OLD);
+    private static final Schema NEW = OLD;
 
     private static Column column(Schema schema, String name) {
         return schema.getTables().get(0).getColumns().stream()

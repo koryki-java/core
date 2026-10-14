@@ -34,19 +34,34 @@ A single database table.
 | `columns` | `List<Column>` | Columns of this table |
 
 ### `Column`
-A single column within a table.
+A single column within a table. What the type of the column is, and how it is worded, is said by
+its concept.
 
 | Field | Type | Description |
 |---|---|---|
 | `name` | `String` | Column name |
-| `label` | `String` | Human-readable label |
-| `comment` | `String` | Short comment |
-| `description` | `String` | Long description |
-| `typeFamily` | `String` | Logical type family (e.g. `INTEGER`, `DATE`) |
-| `typeEncoding` | `String` | Storage encoding declaration (e.g. `EPOCH:SECONDS`, `SCALED:2`) |
-| `dialectType` | `String` | Raw SQL type as declared in the dialect |
+| `concept` | `Concept` | The concept of this column alone |
+| `conceptRef` | `String` | The name of a concept in `Schema.concepts`, instead of `concept` |
 | `nullable` | `Boolean` | Whether the column allows NULL |
 | `pkPos` | `int` | Primary key position (0 = not part of PK) |
+| `namePos` | `int` | Position in the business name of the row (0 = not part of it) |
+
+### `Concept`
+What a column, or a part of a container, is: its wording and its type.
+
+| Field | Type | Description |
+|---|---|---|
+| `label`, `comment`, `description` | `String` | The wording |
+| `typeFamily` | `String` | Logical type family (e.g. `INTEGER`, `DATE`, `STRUCT`) |
+| `typeEncoding` | `String` | Storage encoding declaration (e.g. `EPOCH:SECONDS`, `SCALED:2`, `JSON`) |
+| `dialectType` | `String` | Raw SQL type as declared in the dialect; for a container, a spelling that is checked against its entries |
+| `unit`, `quantity`, `presentation` | `String` | What the values measure and how they read |
+| `arraySize` | `Integer` | The fixed size of an ARRAY |
+| `entries` | `Map<String, Entry>` | The parts of a container: the fields of a STRUCT, `element` of an ARRAY, `key` and `value` of a MAP |
+
+### `Entry`
+One part of a container: the name of a concept of the schema or a type spelling (`"VARCHAR"`), or a
+`Concept` of its own that belongs to this entry alone. In `db.json` it is a string or an object.
 
 ### `Relation`
 A foreign-key relationship between two tables.
