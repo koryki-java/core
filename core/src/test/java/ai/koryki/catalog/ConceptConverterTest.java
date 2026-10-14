@@ -407,6 +407,18 @@ class ConceptConverterTest {
     }
 
     @Test
+    void aContainerKeepsTheSpellingOfItsTypeInTheDatabase() {
+        for (String name : new String[] {"dims", "address", "items", "deep", "matrix"}) {
+            Column old = column(OLD, "check_complex", name);
+            Column converted = column(NEW, "check_complex", name);
+
+            assertEquals(old.getDialectType(), converted.getConcept().getDialectType(), name);
+        }
+        // and the concept checks it against its entries
+        new ConceptResolver(NEW).check(PARSER);
+    }
+
+    @Test
     void theOriginalSchemaIsNotChanged() {
         assertNull(column(OLD, "check_complex", "dims").getConcept());
         assertTrue(OLD.getConcepts() == null || OLD.getConcepts().isEmpty());

@@ -165,6 +165,9 @@ public final class ConceptConverter {
         if ("JSON".equals(node.getTypeFamily())) {
             concept.setTypeEncoding("JSON");
             concept.setDialectType(node.getDialectType() != null ? node.getDialectType() : "JSON");
+        } else {
+            // the spelling of the type in the database stays with the concept, which checks it
+            concept.setDialectType(node.getDialectType());
         }
         return concept;
     }

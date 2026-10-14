@@ -135,6 +135,10 @@ public final class MigrateCatalogs {
                 same(where, "quantity", said.getQuantity(), concept.getQuantity());
                 same(where, "presentation", said.getPresentation(), concept.getPresentation());
                 same(where, "encoding", said.getTypeEncoding(), concept.getTypeEncoding());
+                if (was.getTypeFamily() != null) {
+                    // the type as the database spells it is kept
+                    same(where, "dialectType", was.getDialectType(), concept.getDialectType());
+                }
                 TypeDescriptor typed =
                         was.getConcept() != null
                                 ? wasResolver.descriptor(was, PARSER)
