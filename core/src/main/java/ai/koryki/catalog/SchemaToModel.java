@@ -21,6 +21,7 @@ import ai.koryki.catalog.domain.Entity;
 import ai.koryki.catalog.domain.Link;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Column;
+import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Relation;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.schema.Table;
@@ -72,9 +73,12 @@ public final class SchemaToModel {
     private static Attribute convert(Column column) {
         Attribute attribute = new Attribute();
         attribute.setName(column.getName());
-        attribute.setLabel(column.getLabel());
-        attribute.setComment(column.getComment());
-        attribute.setDescription(column.getDescription());
+        Concept concept = ConceptConverter.of(column);
+        if (concept != null) {
+            attribute.setLabel(concept.getLabel());
+            attribute.setComment(concept.getComment());
+            attribute.setDescription(concept.getDescription());
+        }
         return attribute;
     }
 

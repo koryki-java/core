@@ -23,6 +23,7 @@ import ai.koryki.catalog.domain.Link;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Concept;
+import ai.koryki.catalog.schema.Entry;
 import ai.koryki.catalog.schema.Relation;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.schema.Table;
@@ -32,8 +33,10 @@ import ai.koryki.catalog.types.TypeDescriptorParser;
 import ai.koryki.iql.typing.ConceptNodes;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -236,25 +239,54 @@ public final class FlattenViews {
     }
 
     /** What the catalog said about the part, said again about the column of the view. */
-    private static void inherit(Column column, Concept node) {
+    private static void inherit(Concept concept, Concept node) {
         if (node == null) {
             return;
         }
         if (node.getLabel() != null) {
-            column.setLabel(node.getLabel());
+            concept.setLabel(node.getLabel());
         }
         if (node.getDescription() != null) {
-            column.setDescription(node.getDescription());
+            concept.setDescription(node.getDescription());
         }
         if (node.getComment() != null) {
-            column.setComment(node.getComment());
+            concept.setComment(node.getComment());
         }
-        column.setUnit(node.getUnit());
-        column.setQuantity(node.getQuantity());
-        column.setPresentation(node.getPresentation());
+        concept.setUnit(node.getUnit());
+        concept.setQuantity(node.getQuantity());
+        concept.setPresentation(node.getPresentation());
         // the encoding JSON says how a container is stored; a column of the view is a plain one
-        column.setTypeEncoding(
+        concept.setTypeEncoding(
                 "JSON".equals(node.getTypeEncoding()) ? null : node.getTypeEncoding());
+    }
+
+    /**
+     * The concept that types a column of the view: the family and the physical type of a scalar,
+     * the parts of a container as the spellings of their types.
+     */
+    private static Concept typeConcept(TypeDescriptor type) {
+        Concept concept = new Concept();
+        concept.setTypeFamily(type.getTypeFamily().name());
+        if (!type.isComplex()) {
+            concept.setDialectType(type.getPhysicalTypeName());
+            return concept;
+        }
+        Map<String, Entry> entries = new LinkedHashMap<>();
+        if (CoreTypeFamily.ARRAY.equals(type.getTypeFamily())) {
+            entries.put("element", Entry.of(type.element().getPhysicalTypeName()));
+            concept.setArraySize(type.length() > 0 ? type.length() : null);
+        } else if (CoreTypeFamily.MAP.equals(type.getTypeFamily())) {
+            entries.put("key", Entry.of(type.key().getPhysicalTypeName()));
+            entries.put("value", Entry.of(type.value().getPhysicalTypeName()));
+        } else {
+            for (int i = 0; i < type.fieldNames().size(); i++) {
+                entries.put(
+                        type.fieldNames().get(i),
+                        Entry.of(type.children().get(i).getPhysicalTypeName()));
+            }
+        }
+        concept.setEntries(entries);
+        return concept;
     }
 
     private static List<String> fieldsOf(TypeDescriptor element) {
@@ -298,35 +330,40 @@ public final class FlattenViews {
         List<Column> columns = new ArrayList<>();
         for (Column key : keys) {
             Column copy = new Column(key.getName());
-            copy.setLabel(key.getLabel());
-            copy.setDescription("Key of the row the element belongs to");
-            copy.setTypeFamily(key.getTypeFamily());
-            copy.setTypeEncoding(key.getTypeEncoding());
-            copy.setDialectType(key.getDialectType());
+            Concept keyConcept = ConceptConverter.of(key);
+            Concept own = new Concept();
+            own.setLabel(keyConcept == null ? null : keyConcept.getLabel());
+            own.setDescription("Key of the row the element belongs to");
+            own.setTypeFamily(keyConcept == null ? null : keyConcept.getTypeFamily());
+            own.setTypeEncoding(keyConcept == null ? null : keyConcept.getTypeEncoding());
+            own.setDialectType(keyConcept == null ? null : keyConcept.getDialectType());
+            copy.setConcept(own);
             copy.setNullable(false);
             copy.setPkPos(key.getPkPos());
             columns.add(copy);
         }
         Column ordinal = new Column("ordinal");
-        ordinal.setLabel("Ordinal");
-        ordinal.setDescription("Position of the element in the list, from 1");
-        ordinal.setTypeFamily("INTEGER");
-        ordinal.setDialectType("INTEGER");
+        Concept ordinalConcept = new Concept();
+        ordinalConcept.setLabel("Ordinal");
+        ordinalConcept.setDescription("Position of the element in the list, from 1");
+        ordinalConcept.setTypeFamily("INTEGER");
+        ordinalConcept.setDialectType("INTEGER");
+        ordinal.setConcept(ordinalConcept);
         ordinal.setNullable(false);
         ordinal.setPkPos(keys.size() + 1);
         columns.add(ordinal);
         for (int i = 0; i < fields.size(); i++) {
             TypeDescriptor fieldType = struct(element) ? element.children().get(i) : element;
             Column field = new Column(fields.get(i));
-            field.setLabel(label(fields.get(i)));
-            field.setDescription(
+            Concept concept = typeConcept(fieldType);
+            concept.setLabel(label(fields.get(i)));
+            concept.setDescription(
                     struct(element)
                             ? "The field " + fields.get(i) + " of the element"
                             : "The element");
-            field.setTypeFamily(fieldType.getTypeFamily().name());
-            field.setDialectType(fieldType.getPhysicalTypeName());
             field.setNullable(true);
-            inherit(field, annotated(nodes, elementNode, struct(element), i));
+            inherit(concept, annotated(nodes, elementNode, struct(element), i));
+            field.setConcept(concept);
             columns.add(field);
         }
         viewTable.setColumns(columns);
@@ -346,8 +383,8 @@ public final class FlattenViews {
         List<Attribute> attributes = new ArrayList<>();
         for (Column c : columns) {
             Attribute attribute = new Attribute(c.getName());
-            attribute.setLabel(c.getLabel());
-            attribute.setDescription(c.getDescription());
+            attribute.setLabel(c.getConcept().getLabel());
+            attribute.setDescription(c.getConcept().getDescription());
             attributes.add(attribute);
         }
         entity.setAttributes(attributes);

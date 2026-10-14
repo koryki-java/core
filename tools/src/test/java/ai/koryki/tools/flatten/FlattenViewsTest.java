@@ -20,8 +20,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import ai.koryki.catalog.ConceptConverter;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Column;
+import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.schema.Table;
 import ai.koryki.tools.flatten.FlattenViews.Dialect;
@@ -135,8 +137,9 @@ class FlattenViewsTest {
                 table.getColumns().stream().map(Column::getName).toList());
         assertEquals(1, table.getColumns().get(0).getPkPos());
         assertEquals(2, table.getColumns().get(1).getPkPos());
-        assertEquals("DECIMAL(10,2)", table.getColumns().get(4).getDialectType());
-        assertEquals("DECIMAL", table.getColumns().get(4).getTypeFamily());
+        assertEquals(
+                "DECIMAL(10,2)", ConceptConverter.of(table.getColumns().get(4)).getDialectType());
+        assertEquals("DECIMAL", ConceptConverter.of(table.getColumns().get(4)).getTypeFamily());
     }
 
     @Test
@@ -146,7 +149,7 @@ class FlattenViewsTest {
         assertEquals(
                 List.of("id", "ordinal", "value"),
                 table.getColumns().stream().map(Column::getName).toList());
-        assertEquals("TEXT", table.getColumns().get(2).getTypeFamily());
+        assertEquals("TEXT", ConceptConverter.of(table.getColumns().get(2)).getTypeFamily());
     }
 
     @Test
@@ -303,10 +306,10 @@ class FlattenViewsTest {
                         .filter(c -> c.getName().equals("price"))
                         .findFirst()
                         .orElseThrow();
-        assertEquals("Unit price", viewPrice.getLabel());
-        assertEquals("EUR", viewPrice.getUnit());
-        assertEquals("money", viewPrice.getQuantity());
-        assertEquals("DECIMALS:2", viewPrice.getPresentation());
+        assertEquals("Unit price", ConceptConverter.of(viewPrice).getLabel());
+        assertEquals("EUR", ConceptConverter.of(viewPrice).getUnit());
+        assertEquals("money", ConceptConverter.of(viewPrice).getQuantity());
+        assertEquals("DECIMALS:2", ConceptConverter.of(viewPrice).getPresentation());
         assertEquals(
                 "SKU",
                 v.entity().getAttributes().stream()
@@ -317,10 +320,11 @@ class FlattenViewsTest {
         // a field the catalog says nothing about keeps the generated label
         assertEquals(
                 "Qty",
-                v.table().getColumns().stream()
-                        .filter(c -> c.getName().equals("qty"))
-                        .findFirst()
-                        .orElseThrow()
+                ConceptConverter.of(
+                                v.table().getColumns().stream()
+                                        .filter(c -> c.getName().equals("qty"))
+                                        .findFirst()
+                                        .orElseThrow())
                         .getLabel());
     }
 
@@ -344,10 +348,10 @@ class FlattenViewsTest {
 
         Column value = valueOf(FlattenViews.of(schema, "things", Dialect.DUCKDB, "tags").get(0));
 
-        assertEquals("Tag", value.getLabel());
-        assertEquals("A keyword", value.getDescription());
-        assertEquals("1", value.getUnit());
-        assertEquals("count", value.getQuantity());
+        assertEquals("Tag", ConceptConverter.of(value).getLabel());
+        assertEquals("A keyword", ConceptConverter.of(value).getDescription());
+        assertEquals("1", ConceptConverter.of(value).getUnit());
+        assertEquals("count", ConceptConverter.of(value).getQuantity());
     }
 
     @Test
@@ -361,9 +365,9 @@ class FlattenViewsTest {
 
         Column value = valueOf(FlattenViews.ofJson(schema, "docs", Dialect.SQLITE, "doc", ".a.b"));
 
-        assertEquals("Reading", value.getLabel());
-        assertEquals("m", value.getUnit());
-        assertEquals("length", value.getQuantity());
+        assertEquals("Reading", ConceptConverter.of(value).getLabel());
+        assertEquals("m", ConceptConverter.of(value).getUnit());
+        assertEquals("length", ConceptConverter.of(value).getQuantity());
     }
 
     @Test
@@ -400,7 +404,56 @@ class FlattenViewsTest {
                         .filter(c -> c.getName().equals("meta"))
                         .findFirst()
                         .orElseThrow();
-        assertEquals("JSON", viewMeta.getTypeFamily());
-        assertEquals(null, viewMeta.getTypeEncoding());
+        assertEquals("JSON", ConceptConverter.of(viewMeta).getTypeFamily());
+        assertEquals(null, ConceptConverter.of(viewMeta).getTypeEncoding());
+    }
+
+    @Test
+    void aFieldThatIsAContainerHasItsPartsInTheConceptOfTheViewColumn() {
+        Table things = new Table("things");
+        things.setColumns(
+                new ArrayList<>(
+                        List.of(
+                                column("id", "INTEGER", "INTEGER", 1),
+                                column(
+                                        "rows",
+                                        "ARRAY",
+                                        "STRUCT(opts VARCHAR[], dims STRUCT(w DOUBLE),"
+                                                + " m MAP(VARCHAR, INTEGER), v DOUBLE[3])[]",
+                                        0))));
+        Schema schema = new Schema("things");
+        schema.addTable(things);
+        schema.getTable("things").orElseThrow().getColumns().get(1).setElement(null);
+
+        View v = FlattenViews.of(schema, "things", Dialect.DUCKDB, "rows").get(0);
+
+        java.util.Map<String, String> types = new java.util.LinkedHashMap<>();
+        ai.koryki.catalog.types.ConceptResolver resolver =
+                new ai.koryki.catalog.types.ConceptResolver(new Schema("v"));
+        for (Column c : v.table().getColumns()) {
+            types.put(
+                    c.getName(),
+                    resolver.descriptor(c, new ai.koryki.catalog.types.TypeDescriptorParser() {})
+                            .portable());
+        }
+        assertEquals("ARRAY(TEXT)", types.get("opts"));
+        assertEquals("STRUCT(w:FLOAT)", types.get("dims"));
+        assertEquals("MAP(TEXT,INTEGER)", types.get("m"));
+        assertEquals("ARRAY(FLOAT,3)", types.get("v"));
+    }
+
+    @Test
+    void theKeyOfTheViewHasTheLabelTheTypeAndTheEncodingOfTheKeyOfTheTable() {
+        Schema schema = db();
+        Column id = schema.getTable("things").orElseThrow().getColumns().get(0);
+        id.setLabel("Thing number");
+
+        View v = FlattenViews.of(schema, "things", Dialect.DUCKDB, "tags").get(0);
+
+        Concept key = ConceptConverter.of(v.table().getColumns().get(0));
+        assertEquals("Thing number", key.getLabel());
+        assertEquals("Key of the row the element belongs to", key.getDescription());
+        assertEquals("INTEGER", key.getTypeFamily());
+        assertEquals("INTEGER", key.getDialectType());
     }
 }
