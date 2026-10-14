@@ -61,6 +61,23 @@ public final class ConceptConverter {
     }
 
     /**
+     * The concept of one column, without the schema: the one it has of its own, or the one its old
+     * fields describe. For a reader that holds a column and does not care which form it is in.
+     *
+     * @return null for a column that refers to a shared concept (that one is in the schema), and
+     *     for one that says no type, or is a container that is only a spelling
+     */
+    public static Concept of(Column column) {
+        if (column.getConcept() != null) {
+            return column.getConcept();
+        }
+        if (column.getConceptRef() != null || !convertible(column)) {
+            return null;
+        }
+        return concept(column);
+    }
+
+    /**
      * Whether the column says enough to have a concept: a scalar with its family, or a container
      * with its nodes. A container that is only a spelling stays as it is.
      */

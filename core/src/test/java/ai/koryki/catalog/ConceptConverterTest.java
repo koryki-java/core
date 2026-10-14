@@ -19,6 +19,7 @@ package ai.koryki.catalog;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.koryki.catalog.schema.Column;
@@ -304,6 +305,41 @@ class ConceptConverterTest {
                                 """));
 
         assertNull(converted.getTables().get(0).getColumns().get(0).getConcept());
+    }
+
+    @Test
+    void theConceptOfAColumnIsTheOneItHasOrTheOneItsOldFieldsDescribe() {
+        for (int t = 0; t < OLD.getTables().size(); t++) {
+            for (int c = 0; c < OLD.getTables().get(t).getColumns().size(); c++) {
+                Column old = OLD.getTables().get(t).getColumns().get(c);
+                Column converted = NEW.getTables().get(t).getColumns().get(c);
+                String where = OLD.getTables().get(t).getName() + "." + old.getName();
+
+                Concept described = ConceptConverter.of(old);
+                assertEquals(converted.getConcept().getLabel(), described.getLabel(), where);
+                assertEquals(
+                        converted.getConcept().getTypeFamily(), described.getTypeFamily(), where);
+                assertEquals(
+                        converted.getConcept().getDialectType(), described.getDialectType(), where);
+                assertSame(converted.getConcept(), ConceptConverter.of(converted), where);
+            }
+        }
+    }
+
+    @Test
+    void aColumnThatReferstoAConceptOrSaysNoTypeHasNoConceptOfItsOwn() {
+        Column refers = new Column("a");
+        refers.setConceptRef("count");
+        refers.setTypeFamily("INTEGER");
+        refers.setDialectType("INTEGER");
+        Column silent = new Column("b");
+        Column spelled = new Column("c");
+        spelled.setTypeFamily("ARRAY");
+        spelled.setDialectType("VARCHAR[]");
+
+        assertNull(ConceptConverter.of(refers));
+        assertNull(ConceptConverter.of(silent));
+        assertNull(ConceptConverter.of(spelled));
     }
 
     @Test
