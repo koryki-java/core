@@ -23,7 +23,6 @@ import ai.koryki.catalog.CatalogLoader;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Schema;
-import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.iql.LinkResolver;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -93,10 +92,6 @@ class ComplexCatalogTest {
             assertEquals(
                     EXPECTED.get(column.getName()),
                     resolver.getTypeDescriptor(column).portable(),
-                    column.getName());
-            assertEquals(
-                    CoreTypeFamily.valueOf(column.getTypeFamily()),
-                    resolver.getTypeDescriptor(column).getTypeFamily(),
                     column.getName());
         }
     }

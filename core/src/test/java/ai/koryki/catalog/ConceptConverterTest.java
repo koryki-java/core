@@ -30,7 +30,6 @@ import ai.koryki.catalog.types.ConceptResolver;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeDescriptorParser;
 import ai.koryki.catalog.types.TypeTree;
-import ai.koryki.databases.complex.duckdb.ComplexService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -40,7 +39,7 @@ class ConceptConverterTest {
 
     private static final TypeDescriptorParser PARSER = new TypeDescriptorParser() {};
 
-    private static final Schema OLD = CatalogLoader.db(ComplexService.DB);
+    private static final Schema OLD = LegacyCatalog.duckdbComplex();
     private static final Schema NEW = ConceptConverter.convert(OLD);
 
     @Test

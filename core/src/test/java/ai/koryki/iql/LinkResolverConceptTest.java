@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import ai.koryki.catalog.CatalogLoader;
 import ai.koryki.catalog.ConceptConverter;
+import ai.koryki.catalog.LegacyCatalog;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Schema;
@@ -36,7 +37,7 @@ class LinkResolverConceptTest {
 
     private static final Model MODEL = CatalogLoader.model(ComplexService.ROOT, Locale.ENGLISH);
 
-    private static final Schema OLD = CatalogLoader.db(ComplexService.DB);
+    private static final Schema OLD = LegacyCatalog.duckdbComplex();
 
     /** The bed converted, its columns left with nothing but their concept. */
     private static Schema bare() {

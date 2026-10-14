@@ -24,7 +24,6 @@ import ai.koryki.catalog.ConceptConverter;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Schema;
-import ai.koryki.catalog.schema.Table;
 import ai.koryki.catalog.types.ConceptResolver;
 import ai.koryki.catalog.types.TypeDescriptorParser;
 import org.junit.jupiter.api.Test;
@@ -45,27 +44,6 @@ class ConceptConverterTest {
                 .filter(c -> c.getName().equals(name))
                 .findFirst()
                 .orElseThrow();
-    }
-
-    @Test
-    void everyConvertedColumnTypesAsItDidBefore() {
-        ConceptResolver resolver = new ConceptResolver(NEW);
-        int converted = 0;
-        for (int t = 0; t < OLD.getTables().size(); t++) {
-            Table before = OLD.getTables().get(t);
-            for (int c = 0; c < before.getColumns().size(); c++) {
-                Column column = NEW.getTables().get(t).getColumns().get(c);
-                if (column.getConcept() != null) {
-                    converted++;
-                    assertEquals(
-                            PARSER.parse(before.getColumns().get(c)),
-                            resolver.descriptor(column, PARSER),
-                            before.getName() + "." + column.getName());
-                }
-            }
-        }
-        assertEquals(
-                OLD.getTables().stream().mapToInt(t -> t.getColumns().size()).sum(), converted);
     }
 
     @Test

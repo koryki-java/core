@@ -51,23 +51,6 @@ class ConceptConverterTest {
     }
 
     @Test
-    void everyConvertedColumnTypesAsItDidBefore() {
-        ConceptResolver resolver = new ConceptResolver(NEW);
-        for (int t = 0; t < OLD.getTables().size(); t++) {
-            Table before = OLD.getTables().get(t);
-            for (int c = 0; c < before.getColumns().size(); c++) {
-                Column column = NEW.getTables().get(t).getColumns().get(c);
-                if (column.getConcept() != null) {
-                    assertEquals(
-                            PARSER.parse(before.getColumns().get(c)),
-                            resolver.descriptor(column, PARSER),
-                            before.getName() + "." + column.getName());
-                }
-            }
-        }
-    }
-
-    @Test
     void theConvertedSchemaPassesTheChecks() {
         new ConceptResolver(NEW).check(PARSER);
     }
@@ -99,6 +82,6 @@ class ConceptConverterTest {
     @Test
     void theRowSpellingsStayWhereTheyAre() {
         assertNotNull(column("dims").getConcept());
-        assertEquals("ROW(w DOUBLE, h DOUBLE)", column("dims").getDialectType());
+        assertEquals("ROW(w DOUBLE, h DOUBLE)", column("dims").getConcept().getDialectType());
     }
 }

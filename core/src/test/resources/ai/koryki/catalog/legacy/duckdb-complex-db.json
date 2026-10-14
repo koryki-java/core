@@ -1,0 +1,665 @@
+{
+  "name" : "complex",
+  "label" : null,
+  "comment" : null,
+  "description" : "Demo database for complex types (ARRAY, STRUCT, MAP, JSON, nested to any depth) in DuckDB. The dialectType carries the full nested spelling; the typeFamily is the family of the root.",
+  "tables" : [
+    {
+      "name" : "check_complex",
+      "label" : "Check Complex",
+      "comment" : null,
+      "description" : null,
+      "columns" : [
+        {
+          "name" : "nr",
+          "label" : "Nr",
+          "comment" : null,
+          "description" : "Row identifier (primary key)",
+          "typeFamily" : "INTEGER",
+          "typeEncoding" : null,
+          "dialectType" : "SMALLINT",
+          "nullable" : false,
+          "pkPos" : 1
+        },
+        {
+          "name" : "tags",
+          "label" : "Tags",
+          "comment" : null,
+          "description" : "List of text values; elements are addressed 1-based",
+          "typeFamily" : "ARRAY",
+          "typeEncoding" : null,
+          "dialectType" : "VARCHAR[]",
+          "element" : {
+            "label" : "Tag",
+            "typeFamily" : "TEXT",
+            "dialectType" : "VARCHAR"
+          },
+          "nullable" : true,
+          "pkPos" : 0
+        },
+        {
+          "name" : "scores",
+          "label" : "Scores",
+          "comment" : null,
+          "description" : "List of integers; numeric elements for lambda arithmetic",
+          "typeFamily" : "ARRAY",
+          "typeEncoding" : null,
+          "dialectType" : "INTEGER[]",
+          "element" : {
+            "label" : "Score",
+            "typeFamily" : "INTEGER",
+            "dialectType" : "INTEGER",
+            "unit" : "1",
+            "quantity" : "count"
+          },
+          "nullable" : true,
+          "pkPos" : 0
+        },
+        {
+          "name" : "vec",
+          "label" : "Vector",
+          "comment" : null,
+          "description" : "Fixed-size array of three doubles",
+          "typeFamily" : "ARRAY",
+          "typeEncoding" : null,
+          "dialectType" : "DOUBLE[3]",
+          "element" : {
+            "label" : "Component",
+            "typeFamily" : "FLOAT",
+            "dialectType" : "DOUBLE"
+          },
+          "length" : 3,
+          "nullable" : true,
+          "pkPos" : 0
+        },
+        {
+          "name" : "matrix",
+          "label" : "Matrix",
+          "comment" : null,
+          "description" : "Two rows of three doubles each: the first index selects the row",
+          "typeFamily" : "ARRAY",
+          "typeEncoding" : null,
+          "dialectType" : "DOUBLE[3][2]",
+          "element" : {
+            "typeFamily" : "ARRAY",
+            "element" : {
+              "typeFamily" : "FLOAT",
+              "dialectType" : "DOUBLE"
+            },
+            "length" : 3
+          },
+          "length" : 2,
+          "nullable" : true,
+          "pkPos" : 0
+        },
+        {
+          "name" : "dims",
+          "label" : "Dimensions",
+          "comment" : null,
+          "description" : "Struct of width and height",
+          "typeFamily" : "STRUCT",
+          "typeEncoding" : null,
+          "dialectType" : "STRUCT(w DOUBLE, h DOUBLE)",
+          "fields" : [
+            {
+              "name" : "w",
+              "label" : "Width",
+              "description" : "Width in metres",
+              "typeFamily" : "FLOAT",
+              "dialectType" : "DOUBLE",
+              "unit" : "m",
+              "quantity" : "length"
+            },
+            {
+              "name" : "h",
+              "label" : "Height",
+              "description" : "Height in metres",
+              "typeFamily" : "FLOAT",
+              "dialectType" : "DOUBLE",
+              "unit" : "m",
+              "quantity" : "length"
+            }
+          ],
+          "nullable" : true,
+          "pkPos" : 0
+        },
+        {
+          "name" : "address",
+          "label" : "Address",
+          "comment" : null,
+          "description" : "Struct holding a nested struct (geo) and a list (phones)",
+          "typeFamily" : "STRUCT",
+          "typeEncoding" : null,
+          "dialectType" : "STRUCT(street VARCHAR, geo STRUCT(lat DOUBLE, lon DOUBLE), phones VARCHAR[])",
+          "fields" : [
+            {
+              "name" : "street",
+              "label" : "Street",
+              "typeFamily" : "TEXT",
+              "dialectType" : "VARCHAR"
+            },
+            {
+              "name" : "geo",
+              "label" : "Position",
+              "typeFamily" : "STRUCT",
+              "fields" : [
+                {
+                  "name" : "lat",
+                  "label" : "Latitude",
+                  "description" : "Degrees north",
+                  "typeFamily" : "FLOAT",
+                  "dialectType" : "DOUBLE"
+                },
+                {
+                  "name" : "lon",
+                  "label" : "Longitude",
+                  "description" : "Degrees east",
+                  "typeFamily" : "FLOAT",
+                  "dialectType" : "DOUBLE"
+                }
+              ]
+            },
+            {
+              "name" : "phones",
+              "label" : "Phones",
+              "typeFamily" : "ARRAY",
+              "element" : {
+                "label" : "Phone number",
+                "typeFamily" : "TEXT",
+                "dialectType" : "VARCHAR"
+              }
+            }
+          ],
+          "nullable" : true,
+          "pkPos" : 0
+        },
+        {
+          "name" : "attrs",
+          "label" : "Attributes",
+          "comment" : null,
+          "description" : "Map from text keys to text values",
+          "typeFamily" : "MAP",
+          "typeEncoding" : null,
+          "dialectType" : "MAP(VARCHAR, VARCHAR)",
+          "key" : {
+            "typeFamily" : "TEXT",
+            "dialectType" : "VARCHAR"
+          },
+          "value" : {
+            "label" : "Attribute value",
+            "typeFamily" : "TEXT",
+            "dialectType" : "VARCHAR"
+          },
+          "nullable" : true,
+          "pkPos" : 0
+        },
+        {
+          "name" : "counts",
+          "label" : "Counts",
+          "comment" : null,
+          "description" : "Map from text keys to integer values",
+          "typeFamily" : "MAP",
+          "typeEncoding" : null,
+          "dialectType" : "MAP(VARCHAR, INTEGER)",
+          "key" : {
+            "typeFamily" : "TEXT",
+            "dialectType" : "VARCHAR"
+          },
+          "value" : {
+            "label" : "Count",
+            "typeFamily" : "INTEGER",
+            "dialectType" : "INTEGER",
+            "unit" : "1",
+            "quantity" : "count"
+          },
+          "nullable" : true,
+          "pkPos" : 0
+        },
+        {
+          "name" : "lookup",
+          "label" : "Lookup",
+          "comment" : null,
+          "description" : "Map with integer keys: a numeric selector is a key here, a position in a list",
+          "typeFamily" : "MAP",
+          "typeEncoding" : null,
+          "dialectType" : "MAP(INTEGER, VARCHAR)",
+          "key" : {
+            "typeFamily" : "INTEGER",
+            "dialectType" : "INTEGER"
+          },
+          "value" : {
+            "label" : "Name",
+            "typeFamily" : "TEXT",
+            "dialectType" : "VARCHAR"
+          },
+          "nullable" : true,
+          "pkPos" : 0
+        },
+        {
+          "name" : "items",
+          "label" : "Items",
+          "comment" : null,
+          "description" : "List of order-line-like structs: sku, quantity, price and a list of options",
+          "typeFamily" : "ARRAY",
+          "typeEncoding" : null,
+          "dialectType" : "STRUCT(sku VARCHAR, qty INTEGER, price DECIMAL(10,2), opts VARCHAR[])[]",
+          "element" : {
+            "typeFamily" : "STRUCT",
+            "fields" : [
+              {
+                "name" : "sku",
+                "label" : "SKU",
+                "description" : "Article number",
+                "typeFamily" : "TEXT",
+                "dialectType" : "VARCHAR"
+              },
+              {
+                "name" : "qty",
+                "label" : "Quantity",
+                "typeFamily" : "INTEGER",
+                "dialectType" : "INTEGER",
+                "unit" : "1",
+                "quantity" : "count"
+              },
+              {
+                "name" : "price",
+                "label" : "Unit price",
+                "typeFamily" : "DECIMAL",
+                "dialectType" : "DECIMAL(10,2)",
+                "unit" : "EUR",
+                "quantity" : "money",
+                "presentation" : "DECIMALS:2"
+              },
+              {
+                "name" : "opts",
+                "label" : "Options",
+                "typeFamily" : "ARRAY",
+                "element" : {
+                  "label" : "Option",
+                  "typeFamily" : "TEXT",
+                  "dialectType" : "VARCHAR"
+                }
+              }
+            ]
+          },
+          "nullable" : true,
+          "pkPos" : 0
+        },
+        {
+          "name" : "events",
+          "label" : "Events",
+          "comment" : null,
+          "description" : "List of structs with temporal fields",
+          "typeFamily" : "ARRAY",
+          "typeEncoding" : null,
+          "dialectType" : "STRUCT(ts TIMESTAMP, day DATE)[]",
+          "element" : {
+            "typeFamily" : "STRUCT",
+            "fields" : [
+              {
+                "name" : "ts",
+                "label" : "Timestamp",
+                "typeFamily" : "TIMESTAMP",
+                "dialectType" : "TIMESTAMP"
+              },
+              {
+                "name" : "day",
+                "label" : "Day",
+                "typeFamily" : "DATE",
+                "dialectType" : "DATE"
+              }
+            ]
+          },
+          "nullable" : true,
+          "pkPos" : 0
+        },
+        {
+          "name" : "deep",
+          "label" : "Deep",
+          "comment" : null,
+          "description" : "Four levels: a list of maps whose values are structs holding a list and a map of lists",
+          "typeFamily" : "ARRAY",
+          "typeEncoding" : null,
+          "dialectType" : "MAP(VARCHAR, STRUCT(a INTEGER[], b MAP(INTEGER, VARCHAR[])))[]",
+          "element" : {
+            "typeFamily" : "MAP",
+            "key" : {
+              "typeFamily" : "TEXT",
+              "dialectType" : "VARCHAR"
+            },
+            "value" : {
+              "typeFamily" : "STRUCT",
+              "fields" : [
+                {
+                  "name" : "a",
+                  "typeFamily" : "ARRAY",
+                  "element" : {
+                    "typeFamily" : "INTEGER",
+                    "dialectType" : "INTEGER"
+                  }
+                },
+                {
+                  "name" : "b",
+                  "typeFamily" : "MAP",
+                  "key" : {
+                    "typeFamily" : "INTEGER",
+                    "dialectType" : "INTEGER"
+                  },
+                  "value" : {
+                    "typeFamily" : "ARRAY",
+                    "element" : {
+                      "typeFamily" : "TEXT",
+                      "dialectType" : "VARCHAR"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "nullable" : true,
+          "pkPos" : 0
+        },
+        {
+          "name" : "doc",
+          "label" : "Document",
+          "comment" : null,
+          "description" : "JSON document; JSON paths count from 0, selectors count from 1",
+          "typeFamily" : "JSON",
+          "typeEncoding" : null,
+          "dialectType" : "JSON",
+          "fields" : [
+            {
+              "name" : "n",
+              "label" : "Number",
+              "typeFamily" : "INTEGER"
+            },
+            {
+              "name" : "a",
+              "typeFamily" : "STRUCT",
+              "fields" : [
+                {
+                  "name" : "b",
+                  "typeFamily" : "ARRAY",
+                  "element" : {
+                    "typeFamily" : "INTEGER"
+                  }
+                }
+              ]
+            },
+            {
+              "name" : "s",
+              "label" : "Text",
+              "typeFamily" : "TEXT"
+            },
+            {
+              "name" : "b",
+              "label" : "Flag",
+              "typeFamily" : "BOOLEAN"
+            },
+            {
+              "name" : "d",
+              "label" : "Amount",
+              "typeFamily" : "DECIMAL"
+            }
+          ],
+          "nullable" : true,
+          "pkPos" : 0
+        },
+        {
+          "name" : "odd",
+          "label" : "Odd",
+          "comment" : null,
+          "description" : "Struct with a mixed-case field name that needs quoting",
+          "typeFamily" : "STRUCT",
+          "typeEncoding" : null,
+          "dialectType" : "STRUCT(\"Odd Name\" INTEGER, x INTEGER)",
+          "fields" : [
+            {
+              "name" : "Odd Name",
+              "label" : "Odd name",
+              "typeFamily" : "INTEGER",
+              "dialectType" : "INTEGER"
+            },
+            {
+              "name" : "x",
+              "label" : "X",
+              "typeFamily" : "INTEGER",
+              "dialectType" : "INTEGER"
+            }
+          ],
+          "nullable" : true,
+          "pkPos" : 0
+        }
+      ]
+    },
+    {
+      "name" : "check_complex_tags",
+      "label" : "Check Complex Tags",
+      "comment" : null,
+      "description" : "One row per element of the list check_complex.tags, with its position in it.",
+      "columns" : [
+        {
+          "name" : "nr",
+          "label" : "Nr",
+          "comment" : null,
+          "description" : "Key of the row the element belongs to",
+          "typeFamily" : "INTEGER",
+          "typeEncoding" : null,
+          "dialectType" : "SMALLINT",
+          "nullable" : false,
+          "pkPos" : 1
+        },
+        {
+          "name" : "ordinal",
+          "label" : "Ordinal",
+          "comment" : null,
+          "description" : "Position of the element in the list, from 1",
+          "typeFamily" : "INTEGER",
+          "typeEncoding" : null,
+          "dialectType" : "INTEGER",
+          "nullable" : false,
+          "pkPos" : 2
+        },
+        {
+          "name" : "value",
+          "label" : "Value",
+          "comment" : null,
+          "description" : "The element",
+          "typeFamily" : "TEXT",
+          "typeEncoding" : null,
+          "dialectType" : "VARCHAR",
+          "nullable" : true,
+          "pkPos" : 0
+        }
+      ]
+    },
+    {
+      "name" : "check_complex_items",
+      "label" : "Check Complex Items",
+      "comment" : null,
+      "description" : "One row per element of the list check_complex.items, with its position in it.",
+      "columns" : [
+        {
+          "name" : "nr",
+          "label" : "Nr",
+          "comment" : null,
+          "description" : "Key of the row the element belongs to",
+          "typeFamily" : "INTEGER",
+          "typeEncoding" : null,
+          "dialectType" : "SMALLINT",
+          "nullable" : false,
+          "pkPos" : 1
+        },
+        {
+          "name" : "ordinal",
+          "label" : "Ordinal",
+          "comment" : null,
+          "description" : "Position of the element in the list, from 1",
+          "typeFamily" : "INTEGER",
+          "typeEncoding" : null,
+          "dialectType" : "INTEGER",
+          "nullable" : false,
+          "pkPos" : 2
+        },
+        {
+          "name" : "sku",
+          "label" : "Sku",
+          "comment" : null,
+          "description" : "The field sku of the element",
+          "typeFamily" : "TEXT",
+          "typeEncoding" : null,
+          "dialectType" : "VARCHAR",
+          "nullable" : true,
+          "pkPos" : 0
+        },
+        {
+          "name" : "qty",
+          "label" : "Qty",
+          "comment" : null,
+          "description" : "The field qty of the element",
+          "typeFamily" : "INTEGER",
+          "typeEncoding" : null,
+          "dialectType" : "INTEGER",
+          "nullable" : true,
+          "pkPos" : 0
+        },
+        {
+          "name" : "price",
+          "label" : "Price",
+          "comment" : null,
+          "description" : "The field price of the element",
+          "typeFamily" : "DECIMAL",
+          "typeEncoding" : null,
+          "dialectType" : "DECIMAL(10,2)",
+          "nullable" : true,
+          "pkPos" : 0
+        },
+        {
+          "name" : "opts",
+          "label" : "Opts",
+          "comment" : null,
+          "description" : "The field opts of the element",
+          "typeFamily" : "ARRAY",
+          "typeEncoding" : null,
+          "dialectType" : "VARCHAR[]",
+          "element" : {
+            "typeFamily" : "TEXT",
+            "dialectType" : "VARCHAR"
+          },
+          "nullable" : true,
+          "pkPos" : 0
+        }
+      ]
+    },
+    {
+      "name" : "check_complex_events",
+      "label" : "Check Complex Events",
+      "comment" : null,
+      "description" : "One row per element of the list check_complex.events, with its position in it.",
+      "columns" : [
+        {
+          "name" : "nr",
+          "label" : "Nr",
+          "comment" : null,
+          "description" : "Key of the row the element belongs to",
+          "typeFamily" : "INTEGER",
+          "typeEncoding" : null,
+          "dialectType" : "SMALLINT",
+          "nullable" : false,
+          "pkPos" : 1
+        },
+        {
+          "name" : "ordinal",
+          "label" : "Ordinal",
+          "comment" : null,
+          "description" : "Position of the element in the list, from 1",
+          "typeFamily" : "INTEGER",
+          "typeEncoding" : null,
+          "dialectType" : "INTEGER",
+          "nullable" : false,
+          "pkPos" : 2
+        },
+        {
+          "name" : "ts",
+          "label" : "Ts",
+          "comment" : null,
+          "description" : "The field ts of the element",
+          "typeFamily" : "TIMESTAMP",
+          "typeEncoding" : null,
+          "dialectType" : "TIMESTAMP",
+          "nullable" : true,
+          "pkPos" : 0
+        },
+        {
+          "name" : "day",
+          "label" : "Day",
+          "comment" : null,
+          "description" : "The field day of the element",
+          "typeFamily" : "DATE",
+          "typeEncoding" : null,
+          "dialectType" : "DATE",
+          "nullable" : true,
+          "pkPos" : 0
+        }
+      ]
+    }
+  ],
+  "relations" : [
+    {
+      "name" : "pk_check",
+      "comment" : null,
+      "description" : null,
+      "startTable" : "check_complex",
+      "endTable" : "check_complex",
+      "symmetric" : true,
+      "startColumns" : [
+        "nr"
+      ],
+      "endColumns" : [
+        "nr"
+      ]
+    },
+    {
+      "name" : "tags_of_check_complex",
+      "comment" : "the elements of the list tags",
+      "description" : null,
+      "startTable" : "check_complex_tags",
+      "endTable" : "check_complex",
+      "symmetric" : false,
+      "startColumns" : [
+        "nr"
+      ],
+      "endColumns" : [
+        "nr"
+      ]
+    },
+    {
+      "name" : "items_of_check_complex",
+      "comment" : "the elements of the list items",
+      "description" : null,
+      "startTable" : "check_complex_items",
+      "endTable" : "check_complex",
+      "symmetric" : false,
+      "startColumns" : [
+        "nr"
+      ],
+      "endColumns" : [
+        "nr"
+      ]
+    },
+    {
+      "name" : "events_of_check_complex",
+      "comment" : "the elements of the list events",
+      "description" : null,
+      "startTable" : "check_complex_events",
+      "endTable" : "check_complex",
+      "symmetric" : false,
+      "startColumns" : [
+        "nr"
+      ],
+      "endColumns" : [
+        "nr"
+      ]
+    }
+  ]
+}
