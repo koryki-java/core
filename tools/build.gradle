@@ -114,6 +114,22 @@ tasks.register('flattenViews', JavaExec) {
     }
 }
 
+// Rewrites db.json files so that every column says its type and wording in a concept of its own:
+//   ./gradlew :tools:migrateCatalogs -Pmigrate.args="a/db.json b/db.json"
+tasks.register('migrateCatalogs', JavaExec) {
+    group = 'documentation'
+    description = 'Rewrites db.json files with a concept for every column.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'ai.koryki.tools.migrate.MigrateCatalogs'
+    doFirst {
+        def given = project.findProperty('migrate.args')
+        if (given == null) {
+            throw new GradleException('give the files: -Pmigrate.args="a/db.json b/db.json"')
+        }
+        args = given.toString().split(' ').toList()
+    }
+}
+
 publishing {
     publications {
         // Define the publication for this subproject

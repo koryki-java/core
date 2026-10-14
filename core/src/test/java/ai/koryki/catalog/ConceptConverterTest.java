@@ -343,6 +343,70 @@ class ConceptConverterTest {
     }
 
     @Test
+    void aMigratedColumnHasNothingButItsConceptAndWhatBelongsToTheTable() {
+        Schema migrated = ConceptConverter.migrate(OLD);
+
+        for (Table table : migrated.getTables()) {
+            for (Column column : table.getColumns()) {
+                String where = table.getName() + "." + column.getName();
+                assertNotNull(column.getConcept(), where);
+                assertNull(column.getLabel(), where);
+                assertNull(column.getComment(), where);
+                assertNull(column.getDescription(), where);
+                assertNull(column.getTypeFamily(), where);
+                assertNull(column.getTypeEncoding(), where);
+                assertNull(column.getDialectType(), where);
+                assertNull(column.getFields(), where);
+                assertNull(column.getElement(), where);
+                assertNull(column.getKey(), where);
+                assertNull(column.getValue(), where);
+                assertNull(column.getLength(), where);
+                assertNull(column.getUnit(), where);
+                assertNull(column.getQuantity(), where);
+                assertNull(column.getPresentation(), where);
+            }
+        }
+        Column nr = migrated.getTables().get(0).getColumns().get(0);
+        assertEquals(1, nr.getPkPos());
+        assertEquals(Boolean.FALSE, nr.getNullable());
+    }
+
+    @Test
+    void aMigratedSchemaTypesAsTheOldOneDid() {
+        Schema migrated = ConceptConverter.migrate(OLD);
+        ConceptResolver resolver = new ConceptResolver(migrated);
+
+        for (int t = 0; t < OLD.getTables().size(); t++) {
+            for (int c = 0; c < OLD.getTables().get(t).getColumns().size(); c++) {
+                assertEquals(
+                        PARSER.parse(OLD.getTables().get(t).getColumns().get(c)),
+                        resolver.descriptor(
+                                migrated.getTables().get(t).getColumns().get(c), PARSER),
+                        OLD.getTables().get(t).getName());
+            }
+        }
+    }
+
+    @Test
+    void aContainerThatIsOnlyASpellingKeepsItsOldFieldsWhenMigrated() {
+        Schema migrated =
+                ConceptConverter.migrate(
+                        CatalogLoader.readSchemaJson(
+                                """
+                                { "name": "d", "relations": [], "tables": [ { "name": "t", "columns": [
+                                  { "name": "tags", "typeFamily": "ARRAY", "dialectType": "VARCHAR[]" },
+                                  { "name": "n", "typeFamily": "INTEGER", "dialectType": "INTEGER" } ] } ] }
+                                """));
+
+        Column tags = migrated.getTables().get(0).getColumns().get(0);
+        Column n = migrated.getTables().get(0).getColumns().get(1);
+        assertNull(tags.getConcept());
+        assertEquals("VARCHAR[]", tags.getDialectType());
+        assertNull(n.getDialectType());
+        assertEquals("INTEGER", n.getConcept().getDialectType());
+    }
+
+    @Test
     void theOriginalSchemaIsNotChanged() {
         assertNull(column(OLD, "check_complex", "dims").getConcept());
         assertTrue(OLD.getConcepts() == null || OLD.getConcepts().isEmpty());

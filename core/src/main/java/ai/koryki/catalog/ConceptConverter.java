@@ -61,6 +61,38 @@ public final class ConceptConverter {
     }
 
     /**
+     * A copy of the schema in which every column that has a concept of its own has nothing else
+     * that says its type or its wording: what {@link #convert} writes, and then the old fields
+     * dropped. The schema a {@code db.json} is rewritten from; a column that could not be given a
+     * concept (a container that is only a spelling) keeps its old fields, since they are all it
+     * says.
+     */
+    public static Schema migrate(Schema schema) {
+        Schema converted = convert(schema);
+        for (Table table : converted.getTables()) {
+            for (Column column : table.getColumns()) {
+                if (column.getConcept() != null) {
+                    column.setLabel(null);
+                    column.setComment(null);
+                    column.setDescription(null);
+                    column.setTypeFamily(null);
+                    column.setTypeEncoding(null);
+                    column.setDialectType(null);
+                    column.setFields(null);
+                    column.setElement(null);
+                    column.setKey(null);
+                    column.setValue(null);
+                    column.setLength(null);
+                    column.setUnit(null);
+                    column.setQuantity(null);
+                    column.setPresentation(null);
+                }
+            }
+        }
+        return converted;
+    }
+
+    /**
      * The concept of one column, without the schema: the one it has of its own, or the one its old
      * fields describe. For a reader that holds a column and does not care which form it is in.
      *
