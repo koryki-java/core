@@ -28,6 +28,14 @@ All notable changes to this project are documented here.
   container, if it is a spelling, is checked against its entries. A size parameter may be `MAX`
   (`NVARCHAR(MAX)`) or carry Oracle's unit (`VARCHAR2(10 CHAR)`).
 
+- A model says in its own words what a concept says in the language of the schema: the members of
+  an attribute and the notions of the model carry the label, comment and description of the parts
+  of a nested column and of a shared concept, and `SchemaToModel` drafts them from the schema.
+  Selectors write the names a model gives to the fields of a struct (`t.address@position@lat`),
+  through blocks and inside EXISTS, and `KQLFormatter` translates them between models.
+  `WordingAudit.audit(schema, model)` lists what a model has not said in its own words, as missing
+  or still the words of the schema.
+
 - The nodes of a nested column carry labels, descriptions, units, quantities and presentations, and
   `ConceptNodes.node` finds the concept a selector chain ends at, so what a consumer explains a nested
   result column by is in the catalog (the complex catalogs have it on every part). The flatten views
