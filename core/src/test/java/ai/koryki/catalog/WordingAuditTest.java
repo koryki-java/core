@@ -120,4 +120,24 @@ class WordingAuditTest {
         assertTrue(has(gaps, "concept:point", "label", Kind.MISSING), gaps.toString());
         assertTrue(has(gaps, "concept:point/lat", "label", Kind.MISSING), gaps.toString());
     }
+
+    @Test
+    void anEntityIsFoundByItsTableWhateverTheLanguageCallsIt() {
+        Model model = SchemaToModel.convert(SCHEMA);
+        model.getEntity("check_complex").orElseThrow().setTable("check_complex");
+        model.getEntity("check_complex").orElseThrow().setName("pruefung");
+        model.getEntities().get(0).getAttributes().stream()
+                .filter(a -> a.getName().equals("address"))
+                .forEach(
+                        a -> {
+                            a.setColumn("address");
+                            a.setName("anschrift");
+                        });
+
+        List<Gap> gaps = WordingAudit.audit(SCHEMA, model);
+
+        assertTrue(
+                has(gaps, "check_complex.address/geo/lat", "label", Kind.UNCHANGED),
+                gaps.toString());
+    }
 }

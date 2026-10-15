@@ -61,13 +61,34 @@ public final class WordingAudit {
     public static List<Gap> audit(Schema schema, Model model) {
         List<Gap> gaps = new ArrayList<>();
         for (Table table : schema.getTables()) {
-            Entity entity = model.getEntity(table.getName()).orElse(null);
+            // the entity of a table is the one that says so, whatever the language calls it
+            Entity entity =
+                    model.getEntities().stream()
+                            .filter(
+                                    e ->
+                                            table.getName()
+                                                    .equals(
+                                                            e.getTable() != null
+                                                                    ? e.getTable()
+                                                                    : e.getName()))
+                            .findFirst()
+                            .orElse(null);
             for (Column column : table.getColumns()) {
                 Concept concept = column.getConcept();
                 if (concept == null || entity == null) {
                     continue;
                 }
-                Attribute attribute = entity.getAttribute(column.getName()).orElse(null);
+                Attribute attribute =
+                        entity.getAttributes().stream()
+                                .filter(
+                                        a ->
+                                                column.getName()
+                                                        .equals(
+                                                                a.getColumn() != null
+                                                                        ? a.getColumn()
+                                                                        : a.getName()))
+                                .findFirst()
+                                .orElse(null);
                 if (attribute == null) {
                     continue;
                 }
