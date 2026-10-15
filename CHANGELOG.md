@@ -39,6 +39,10 @@ All notable changes to this project are documented here.
   schema)` are the API of that translation. A column that refers to a shared concept is audited like
   any other, and its parts are the notion's to say unless the attribute has members of its own.
 
+- `docs/VERIFICATION.md` says which dialects the continuous integration runs live (DuckDB, SQLite) and
+  which are verified by hand before a release, and records the result of each release;
+  `scripts/test-matrix.sh` prints tests, skipped and failed of every module from the last run.
+
 - The bed with a concept that columns share, `check_shared`, on every dialect, in the catalogs of the
   northwind repository: `home` and `work`, and the elements of `route`, are one concept `point`.
   `SharedConceptContract` in the `testkit` is the one set of checks every dialect runs against it
