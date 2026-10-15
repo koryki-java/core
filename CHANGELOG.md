@@ -146,11 +146,13 @@ All notable changes to this project are documented here.
 
 - An aggregate over a selection, `sum(t.scores@2)`, was not taken for an aggregate: the other
   items of the query were not grouped. It is now, like an aggregate over a column.
-- An element of an Oracle collection was the element of the row before it when the collection was
-  empty: `t.route@2@lat`, a scalar subquery over `TABLE(list)`, took the cached answer of an earlier
-  row for an empty list (measured on Oracle 26ai). A position now carries a test of the collection
-  for NULL, `... WHERE E1.RN = 2 AND t.route IS NOT NULL`, which ends it. The SQL of every position
-  on an Oracle collection changes with it; a golden of your own has to be written again.
+- On Oracle an element of a VARRAY could be the element of the first row: `t.route@2@lat`, a scalar
+  subquery over `TABLE(list)` in an inline view numbered by `ROWNUM`, is run once for the whole
+  statement (measured on Oracle Database Free 23.26.2, reproduced without koryki in `docs/NESTED.md`),
+  so every row got the answer of the first, an empty or NULL list included. A position now carries a
+  test of the list for NULL, `... WHERE E1.RN = 2 AND t.route IS NOT NULL`, which makes it a
+  correlated subquery again. The SQL of every position on an Oracle collection changes with it; a
+  golden of your own has to be written again.
 
 ## [0.2.1] - 2026-09-30
 

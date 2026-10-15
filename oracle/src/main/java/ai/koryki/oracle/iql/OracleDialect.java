@@ -400,12 +400,15 @@ public class OracleDialect implements SqlDialect {
                     frames.add(
                             new String[] {
                                 "(" + elements(sql, type.element()) + ") " + alias,
-                                // The guard is not redundant: without it, an empty collection
-                                // answers with the element of the row before it. Measured on Oracle
-                                // 26ai: a scalar subquery over TABLE(list) whose only correlation
-                                // is
-                                // the collection takes the cached answer of an earlier row for an
-                                // empty one, and a test of the same collection for NULL ends it.
+                                // The guard is not redundant. A scalar subquery whose only
+                                // reference to the outer row is the argument of TABLE(list), in
+                                // an inline view numbered by ROWNUM, is run once for the whole
+                                // statement on Oracle Database Free 23.26.2: every row gets the
+                                // answer of the first, an empty or NULL list included. Any other
+                                // reference to the row makes it a correlated subquery again (the
+                                // plan then shows a bind variable), and a test of the list
+                                // for NULL is that reference, with no change of meaning.
+                                // Reproduced without koryki and measured: docs/NESTED.md.
                                 alias
                                         + ".RN = "
                                         + position(sql, step.getIndex())

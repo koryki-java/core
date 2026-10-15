@@ -65,9 +65,8 @@ postfix one: `it@price`.
   t.scores, x -> x > 5))`.
 * Available where lists are: DuckDB, PostgreSQL, Trino, Snowflake and Oracle. The aggregates of
   Oracle ignore the order a nested table has none of; its `list_avg` is a floating point number.
-  A position on an Oracle collection carries a test of the collection for NULL (`... AND t.tags IS NOT NULL`):
-  measured on Oracle 26ai, a scalar subquery over `TABLE(list)` answers for an *empty* collection with the
-  element of the row before it, and the test ends that.
+  A position on an Oracle collection carries a test of the collection for NULL; see
+  [Oracle: an element of a VARRAY](#oracle-an-element-of-a-varray).
 
 ## Shaping and making lists
 
@@ -275,3 +274,55 @@ evaluates a derived table that refers to the outer query once for the whole quer
 per row, so every row would get the first row's list (measured), and MariaDB refuses the reference
 ("Unknown table"). They write the expression wherever it is needed, and the SQL of a lambda whose
 list is itself a lambda grows with every nesting there; keep such chains short.
+
+## Oracle: an element of a VARRAY
+
+Oracle has no subscript for a collection in SQL, so a position is a scalar subquery over `TABLE(list)`
+numbered by `ROWNUM`. On Oracle Database Free 23.26.2 that subquery, written the obvious way, is run
+**once for the whole statement**: every row gets the answer of the first row, and a row whose list is
+empty or NULL gets it too. This is a behaviour of the database, reproduced here without koryki:
+
+```sql
+CREATE TYPE num_list AS VARRAY(10) OF NUMBER;
+CREATE TABLE t (nr INTEGER PRIMARY KEY, v num_list);
+INSERT INTO t VALUES (1, num_list(10, 20));
+INSERT INTO t VALUES (2, num_list());
+INSERT INTO t VALUES (3, NULL);
+INSERT INTO t VALUES (4, num_list(30));
+
+-- the first element: 10, NULL, NULL, 30 is right; Oracle answers 10, 10, 10, 10
+SELECT t.nr,
+       (SELECT e.x FROM (SELECT COLUMN_VALUE x, ROWNUM rn FROM TABLE(t.v) z) e WHERE e.rn = 1)
+FROM t ORDER BY t.nr;
+
+-- with a test of the list in the subquery the answer is right: 10, NULL, NULL, 30
+SELECT t.nr,
+       (SELECT e.x FROM (SELECT COLUMN_VALUE x, ROWNUM rn FROM TABLE(t.v) z) e
+         WHERE e.rn = 1 AND t.v IS NOT NULL)
+FROM t ORDER BY t.nr;
+```
+
+What was measured:
+
+* **The plan says why.** `EXPLAIN PLAN` of the first query shows the subquery's `VIEW` over
+  `COLLECTION ITERATOR PICKLER FETCH` as a branch of its own, with no bind variable: the reference to
+  `t.v` inside `TABLE()` is not counted as a correlation. With the test, the plan has a `FILTER` on
+  `:B1 IS NOT NULL` above it, the correlation is there, and the subquery runs for each row. With a
+  single row (`WHERE t.nr = 2`) the first query is right, since the first row is that row.
+* **What the guard does not change.** An empty list is not NULL, so `t.v IS NOT NULL` is true for it
+  and the subquery finds no element, as it should; for a NULL list the subquery answers NULL as before.
+* **Where it happens.** A list in a column of a table, a VARRAY, inline or stored as a LOB (`VARRAY(2000)`
+  behaves as `VARRAY(10)`). It does not happen for a NESTED TABLE column counted with `COUNT(*)`, for a
+  subquery without the `ROWNUM` view (Oracle merges the view then), and, which we cannot explain, for a
+  table that also has a JSON column: `check_complex` has one and never showed the fault, `check_shared`
+  has none and did. A query that is right today on a table is therefore no proof that it is right on
+  another, which is why the test is always written.
+* **What was checked on the same data and is right without it.** `list_size`, `list_any`,
+  `list_transform` (they build a collection with `CAST(MULTISET(...))`, which is a correlation of its
+  own), and a position from the end (`@-1`, which names the list in the subquery's `WHERE`).
+* **The cost.** The test repeats the list expression, which for a list made by a lambda is a long
+  one. It does not change the meaning.
+
+The bed `check_shared` (`SharedConceptOracleTest`) is the regression test: it has a list that is
+empty after one that is not. We have not reported this to Oracle and know of no bug number; the
+reproduction above is what to send.
