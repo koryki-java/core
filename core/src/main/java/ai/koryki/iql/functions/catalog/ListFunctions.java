@@ -158,7 +158,7 @@ public final class ListFunctions {
                                         Families.LAMBDA,
                                         "the test an element can pass: x -> ..."))
                         .lambda(new LambdaSpec(1, 1, 1, types -> oneElement(types), true))
-                        .category(FunctionCategory.OTHER)
+                        .category(FunctionCategory.LAMBDA)
                         .doc("Whether at least one element of the list passes the test."),
                 new FunctionDefinition("list_all", ReturnTypes.BOOLEAN) {
                     @Override
@@ -173,7 +173,7 @@ public final class ListFunctions {
                                         Families.LAMBDA,
                                         "the test every element has to pass: x -> ..."))
                         .lambda(new LambdaSpec(1, 1, 1, types -> oneElement(types), true))
-                        .category(FunctionCategory.OTHER)
+                        .category(FunctionCategory.LAMBDA)
                         .doc(
                                 "Whether every element of the list passes the test; true for an empty list."),
                 new FunctionDefinition("list_sort", ReturnTypes.LIST_OF_ELEMENT) {
@@ -192,12 +192,12 @@ public final class ListFunctions {
                                         "order",
                                         CoreTypeFamily.TEXT,
                                         "'asc' (the default) or 'desc'"))
-                        .category(FunctionCategory.OTHER)
+                        .category(FunctionCategory.LIST)
                         .doc("The list in order, NULL elements last."),
                 new FunctionDefinition("list_distinct", ReturnTypes.LIST_OF_ELEMENT)
                         .args(arg("list", CoreTypeFamily.ARRAY, "the list"))
                         .template("list_sort(list_distinct({0}), 'ASC', 'NULLS LAST')")
-                        .category(FunctionCategory.OTHER)
+                        .category(FunctionCategory.LIST)
                         .doc(
                                 "The elements of the list without duplicates and without NULLs, in ascending order."),
                 new FunctionDefinition("list_concat", ReturnTypes.LIST_OF_ELEMENT)
@@ -206,7 +206,7 @@ public final class ListFunctions {
                                 arg("other", CoreTypeFamily.ARRAY, "the list that follows"))
                         .template(
                                 "CASE WHEN {0} IS NULL AND {1} IS NULL THEN NULL ELSE list_concat({0}, {1}) END")
-                        .category(FunctionCategory.OTHER)
+                        .category(FunctionCategory.LIST)
                         .doc(
                                 "The first list followed by the second. A NULL list counts as an empty one; the answer is NULL only when both are."));
     }
@@ -221,7 +221,7 @@ public final class ListFunctions {
                 new FunctionDefinition("list", ReturnTypes.LIST_OF_COMMON)
                         .variadic(arg("value", Families.ANY, "the elements, one or more"))
                         .template("list_value({*})")
-                        .category(FunctionCategory.OTHER)
+                        .category(FunctionCategory.LIST)
                         .doc("A list of the values, in the order they are written."),
                 new FunctionDefinition(
                                 "list_agg",
@@ -253,34 +253,34 @@ public final class ListFunctions {
                 new FunctionDefinition("list_size", ReturnTypes.INTEGER)
                         .args(arg("list", CoreTypeFamily.ARRAY, "the list"))
                         .template("len({0})")
-                        .category(FunctionCategory.OTHER)
+                        .category(FunctionCategory.LIST)
                         .doc("The number of elements of the list, NULL elements included."),
                 new FunctionDefinition("list_contains", ReturnTypes.BOOLEAN)
                         .args(
                                 arg("list", CoreTypeFamily.ARRAY, "the list"),
                                 arg("value", Families.ANY, "the value to look for"))
                         .template("list_contains({0}, {1})")
-                        .category(FunctionCategory.OTHER)
+                        .category(FunctionCategory.LIST)
                         .doc("Whether the list has an element equal to the value."),
                 new FunctionDefinition("list_sum", ReturnTypes.ELEMENT_OF_LIST)
                         .args(arg("list", CoreTypeFamily.ARRAY, "the list of numbers"))
                         .template("list_sum({0})")
-                        .category(FunctionCategory.OTHER)
+                        .category(FunctionCategory.LIST)
                         .doc("The sum of the elements, NULL elements ignored."),
                 new FunctionDefinition("list_min", ReturnTypes.ELEMENT_OF_LIST)
                         .args(arg("list", CoreTypeFamily.ARRAY, "the list"))
                         .template("list_min({0})")
-                        .category(FunctionCategory.OTHER)
+                        .category(FunctionCategory.LIST)
                         .doc("The smallest element, NULL elements ignored."),
                 new FunctionDefinition("list_max", ReturnTypes.ELEMENT_OF_LIST)
                         .args(arg("list", CoreTypeFamily.ARRAY, "the list"))
                         .template("list_max({0})")
-                        .category(FunctionCategory.OTHER)
+                        .category(FunctionCategory.LIST)
                         .doc("The largest element, NULL elements ignored."),
                 new FunctionDefinition("list_avg", ReturnTypes.DOUBLE)
                         .args(arg("list", CoreTypeFamily.ARRAY, "the list of numbers"))
                         .template("list_avg({0})")
-                        .category(FunctionCategory.OTHER)
+                        .category(FunctionCategory.LIST)
                         .doc(
                                 "The mean of the elements as a floating point number, NULL elements ignored."));
     }
@@ -306,7 +306,7 @@ public final class ListFunctions {
                                                     : Arrays.asList(e, TypeDescriptor.INTEGER);
                                         },
                                         false))
-                        .category(FunctionCategory.OTHER)
+                        .category(FunctionCategory.LAMBDA)
                         .doc("A list of what the function returns for each element of the list."),
                 new FunctionDefinition("list_filter", ReturnTypes.LIST_OF_ELEMENT)
                         .args(
@@ -327,7 +327,7 @@ public final class ListFunctions {
                                                     : Arrays.asList(e, TypeDescriptor.INTEGER);
                                         },
                                         true))
-                        .category(FunctionCategory.OTHER)
+                        .category(FunctionCategory.LAMBDA)
                         .doc("The elements of the list for which the function is true, in order."),
                 new FunctionDefinition("list_reduce", ReturnTypes.LAMBDA)
                         .args(
@@ -346,7 +346,7 @@ public final class ListFunctions {
                                             return e == null ? null : Arrays.asList(e, e);
                                         },
                                         false))
-                        .category(FunctionCategory.OTHER)
+                        .category(FunctionCategory.LAMBDA)
                         .doc(
                                 "The elements of the list combined into one value, from the first element on."));
     }

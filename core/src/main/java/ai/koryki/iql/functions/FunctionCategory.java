@@ -40,7 +40,9 @@ public enum FunctionCategory {
     AGGREGATE("Aggregate Functions", 10),
     CONVERSION("Type Conversion", 11),
     WINDOW("Window Functions", 12),
-    OTHER("Other Functions", 13);
+    LIST("List Functions", 13),
+    LAMBDA("Lambda Functions", 14),
+    OTHER("Other Functions", 15);
 
     private final String title;
     private final int order;
