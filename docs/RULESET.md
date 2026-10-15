@@ -256,10 +256,12 @@ When query blocks (CTEs) are linked to other tables, required join columns must 
 The `sales` query block is linked to `customers`.
 Therefore, the join column `o.customer_id` must be added automatically to the block.
 
-The column has to be one the model gives the entity as an attribute: the rule adds it as a field of the
-block's leading entity, and a model that leaves the foreign key out (the English northwind model has no
-`employee_id` on `orders`) refuses the query with `schema.unknown-column`, at the entity the block starts
-from. Return such a column in the block yourself, or give the entity the attribute.
+The inferred column is held to the same rule as any other: it has to be an attribute of the entity in the
+model. A model that leaves a foreign key out (the English northwind model has no `employee_id` on
+`orders`) does not expose that join, and a block that would need it is refused with
+`schema.unknown-column`, at the entity the block starts from. That is intended: the model decides which
+columns a query may name, also the ones that a rule adds on its behalf. To join through such a column,
+return it in the block, or give the entity the attribute.
 
 ### Expected SQL
 
