@@ -1,60 +1,32 @@
 ---
-menuTitle: "Other Functions"
+menuTitle: "List Functions"
 parent: "FUNCTIONS"
 order: 13
 ---
 
 <!-- Generated from the function catalog — do not edit. Delete this file and re-run the tests to regenerate. -->
 
-# Other Functions
+# List Functions
 
-## list_transform
+Functions on a list: a column that holds one (an ARRAY, or a JSON array where the catalog declares it),
+or what another list function or a lambda made. They ask the list about itself (`list_size`,
+`list_contains`, `list_sum`, `list_min`, `list_max`, `list_avg`), shape it (`list_sort`,
+`list_distinct`, `list_concat`) or make one (`list(a, b, ...)`; `list_agg` is an aggregate and is on
+the [Aggregate](aggregate.md) page). The ones that take a function per element, `list_transform`
+and the like, are on the [Lambda](lambda.md) page.
 
-`list_transform(list: ARRAY, function: LAMBDA)` → argument-dependent
+    list_size(t.tags)                     →  3
+    list_contains(t.tags, 'red')          →  true      -- or: 'red' IN t.tags
+    list_sum(t.scores)                    →  17
+    list_sort(t.tags, 'desc')
 
-A list of what the function returns for each element of the list.
+A list that is NULL gives NULL. A list with nothing left to count (empty, or only NULLs) gives NULL
+for the sum, the mean, the smallest and the largest. A list is not a text: `length(t.tags)` is
+refused and names `list_size`.
 
-| Argument | Type | Description |
-|---|---|---|
-| list | ARRAY | the list |
-| function | LAMBDA | what is done to each element: x -> ..., or (x, i) -> ... with the position |
-
-### Generated SQL
-
-Unsupported: **mariadb**, **mssql**, **sqlite**
-
-
-## list_filter
-
-`list_filter(list: ARRAY, function: LAMBDA)` → argument-dependent
-
-The elements of the list for which the function is true, in order.
-
-| Argument | Type | Description |
-|---|---|---|
-| list | ARRAY | the list |
-| function | LAMBDA | the test an element has to pass: x -> ..., or (x, i) -> ... |
-
-### Generated SQL
-
-Unsupported: **mariadb**, **mssql**, **sqlite**
-
-
-## list_reduce
-
-`list_reduce(list: ARRAY, function: LAMBDA)` → argument-dependent
-
-The elements of the list combined into one value, from the first element on.
-
-| Argument | Type | Description |
-|---|---|---|
-| list | ARRAY | the list |
-| function | LAMBDA | combines the result so far with the next element: (a, x) -> ... |
-
-### Generated SQL
-
-Unsupported: **mariadb**, **mssql**, **oracle**, **postgresql**, **sqlite**
-
+Lists exist on DuckDB, PostgreSQL, Trino, Snowflake and Oracle; a use that another dialect cannot
+express is refused with its position. [Nested values](NESTED.md) has the table, and what each
+dialect does differently.
 
 ## list_size
 
@@ -141,38 +113,6 @@ The mean of the elements as a floating point number, NULL elements ignored.
 | Argument | Type | Description |
 |---|---|---|
 | list | ARRAY | the list of numbers |
-
-### Generated SQL
-
-Unsupported: **mariadb**, **mssql**, **sqlite**
-
-
-## list_any
-
-`list_any(list: ARRAY, function: LAMBDA)` → BOOLEAN
-
-Whether at least one element of the list passes the test.
-
-| Argument | Type | Description |
-|---|---|---|
-| list | ARRAY | the list |
-| function | LAMBDA | the test an element can pass: x -> ... |
-
-### Generated SQL
-
-Unsupported: **mariadb**, **mssql**, **sqlite**
-
-
-## list_all
-
-`list_all(list: ARRAY, function: LAMBDA)` → BOOLEAN
-
-Whether every element of the list passes the test; true for an empty list.
-
-| Argument | Type | Description |
-|---|---|---|
-| list | ARRAY | the list |
-| function | LAMBDA | the test every element has to pass: x -> ... |
 
 ### Generated SQL
 

@@ -66,22 +66,22 @@ What is specific to oracle: the rendering column is filled in only where this di
 | lead | window | window | standard |  |  |
 | least | math | scalar | standard |  |  |
 | left | string | scalar | overridden | `SUBSTR(string, 1, n)` |  |
-| list | other | scalar | overridden | `list_value(value)` |  |
+| list | list | scalar | overridden | `list_value(value)` |  |
 | list_agg | aggregate | aggregate | overridden | `list(value) FILTER (WHERE value IS NOT NULL)` |  |
-| list_all | other | scalar | overridden | `list_all(…) — dialect-specific rendering` |  |
-| list_any | other | scalar | overridden | `list_any(…) — dialect-specific rendering` |  |
-| list_avg | other | scalar | overridden | `(SELECT CAST(AVG(COLUMN_VALUE) AS BINARY_DOUBLE) FROM TABLE(list))` |  |
-| list_concat | other | scalar | overridden | `CASE WHEN list IS NULL AND other IS NULL THEN NULL ELSE list_concat(list, other) END` |  |
-| list_contains | other | scalar | overridden | `CASE WHEN list IS NULL THEN NULL ELSE ((SELECT COUNT(*) FROM TABLE(list) WHERE COLUMN_VALUE = value) > 0) END` |  |
-| list_distinct | other | scalar | overridden | `list_sort(list_distinct(list), 'ASC', 'NULLS LAST')` |  |
-| list_filter | other | scalar | overridden | `list_filter(…) — dialect-specific rendering` |  |
-| list_max | other | scalar | overridden | `(SELECT MAX(COLUMN_VALUE) FROM TABLE(list))` |  |
-| list_min | other | scalar | overridden | `(SELECT MIN(COLUMN_VALUE) FROM TABLE(list))` |  |
-| list_reduce | other | scalar | unsupported | `—` |  |
-| list_size | other | scalar | overridden | `CASE WHEN list IS NULL THEN NULL ELSE (SELECT COUNT(*) FROM TABLE(list)) END` |  |
-| list_sort | other | scalar | overridden | `list_sort(…) — dialect-specific rendering` |  |
-| list_sum | other | scalar | overridden | `(SELECT SUM(COLUMN_VALUE) FROM TABLE(list))` |  |
-| list_transform | other | scalar | overridden | `list_transform(…) — dialect-specific rendering` |  |
+| list_all | lambda | scalar | overridden | `list_all(…) — dialect-specific rendering` |  |
+| list_any | lambda | scalar | overridden | `list_any(…) — dialect-specific rendering` |  |
+| list_avg | list | scalar | overridden | `(SELECT CAST(AVG(COLUMN_VALUE) AS BINARY_DOUBLE) FROM TABLE(list))` |  |
+| list_concat | list | scalar | overridden | `CASE WHEN list IS NULL AND other IS NULL THEN NULL ELSE list_concat(list, other) END` |  |
+| list_contains | list | scalar | overridden | `CASE WHEN list IS NULL THEN NULL ELSE ((SELECT COUNT(*) FROM TABLE(list) WHERE COLUMN_VALUE = value) > 0) END` |  |
+| list_distinct | list | scalar | overridden | `list_sort(list_distinct(list), 'ASC', 'NULLS LAST')` |  |
+| list_filter | lambda | scalar | overridden | `list_filter(…) — dialect-specific rendering` |  |
+| list_max | list | scalar | overridden | `(SELECT MAX(COLUMN_VALUE) FROM TABLE(list))` |  |
+| list_min | list | scalar | overridden | `(SELECT MIN(COLUMN_VALUE) FROM TABLE(list))` |  |
+| list_reduce | lambda | scalar | unsupported | `—` |  |
+| list_size | list | scalar | overridden | `CASE WHEN list IS NULL THEN NULL ELSE (SELECT COUNT(*) FROM TABLE(list)) END` |  |
+| list_sort | list | scalar | overridden | `list_sort(…) — dialect-specific rendering` |  |
+| list_sum | list | scalar | overridden | `(SELECT SUM(COLUMN_VALUE) FROM TABLE(list))` |  |
+| list_transform | lambda | scalar | overridden | `list_transform(…) — dialect-specific rendering` |  |
 | ln | math | scalar | standard |  |  |
 | log | math | scalar | standard |  |  |
 | log10 | math | scalar | overridden | `LOG(10, value)` |  |

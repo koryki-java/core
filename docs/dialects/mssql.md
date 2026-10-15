@@ -66,22 +66,22 @@ What is specific to mssql: the rendering column is filled in only where this dia
 | lead | window | window | standard |  |  |
 | least | math | scalar | standard |  |  |
 | left | string | scalar | standard |  |  |
-| list | other | scalar | unsupported | `—` |  |
+| list | list | scalar | unsupported | `—` |  |
 | list_agg | aggregate | aggregate | unsupported | `—` |  |
-| list_all | other | scalar | unsupported | `—` |  |
-| list_any | other | scalar | unsupported | `—` |  |
-| list_avg | other | scalar | unsupported | `—` |  |
-| list_concat | other | scalar | unsupported | `—` |  |
-| list_contains | other | scalar | unsupported | `—` |  |
-| list_distinct | other | scalar | unsupported | `—` |  |
-| list_filter | other | scalar | unsupported | `—` |  |
-| list_max | other | scalar | unsupported | `—` |  |
-| list_min | other | scalar | unsupported | `—` |  |
-| list_reduce | other | scalar | unsupported | `—` |  |
-| list_size | other | scalar | unsupported | `—` |  |
-| list_sort | other | scalar | unsupported | `—` |  |
-| list_sum | other | scalar | unsupported | `—` |  |
-| list_transform | other | scalar | unsupported | `—` |  |
+| list_all | lambda | scalar | unsupported | `—` |  |
+| list_any | lambda | scalar | unsupported | `—` |  |
+| list_avg | list | scalar | unsupported | `—` |  |
+| list_concat | list | scalar | unsupported | `—` |  |
+| list_contains | list | scalar | unsupported | `—` |  |
+| list_distinct | list | scalar | unsupported | `—` |  |
+| list_filter | lambda | scalar | unsupported | `—` |  |
+| list_max | list | scalar | unsupported | `—` |  |
+| list_min | list | scalar | unsupported | `—` |  |
+| list_reduce | lambda | scalar | unsupported | `—` |  |
+| list_size | list | scalar | unsupported | `—` |  |
+| list_sort | list | scalar | unsupported | `—` |  |
+| list_sum | list | scalar | unsupported | `—` |  |
+| list_transform | lambda | scalar | unsupported | `—` |  |
 | ln | math | scalar | overridden | `LOG(value)` |  |
 | log | math | scalar | overridden | `LOG(value, base)` |  |
 | log10 | math | scalar | standard |  |  |
