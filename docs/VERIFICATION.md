@@ -41,12 +41,12 @@ about the release, and the changelog may say so.
 
 ### 0.3.0
 
-Run on 2026-10-15 against the catalogs of `koryki-northwind` 0.2.3, built from the release branch of
-the northwind repository.
+Run on 2026-10-15 on the commit before the tag, against the catalogs of `koryki-northwind` 0.3.0, built
+from the release branch of the northwind repository (`release/0.3.0`).
 
 | module | tests | skipped | failed | database |
 |---|---:|---:|---:|---|
-| core | 1679 | 0 | 0 | none |
+| core | 1683 | 0 | 0 | none |
 | duckdb | 447 | 0 | 0 | DuckDB 1.5.5.0, in the test process |
 | sqlite | 364 | 0 | 0 | SQLite 3.53.4.0 (JDBC driver), a file |
 | postgresql | 450 | 0 | 0 | PostgreSQL 17.10, container `postgres:17` |
@@ -54,7 +54,7 @@ the northwind repository.
 | trino | 428 | 0 | 0 | Trino 481, container `trinodb/trino:latest`, memory catalog for the nested beds |
 | oracle | 428 | 0 | 0 | Oracle Database Free 23.26.2, container `gvenzl/oracle-free:latest` |
 | mssql | 354 | 0 | 0 | SQL Server, on a separate host; version not recorded |
-| snowflake | not run | | | the account was offline in the last run (77 tests, 13 skipped). The last complete run was 443 tests, 0 skipped, on 2026-10-15 against the catalogs of `koryki-northwind` 0.2.2-SNAPSHOT. Run it again before the tag. |
+| snowflake | not run | | | the account was offline in this run (77 tests, 13 skipped). The last complete run was 443 tests, 0 skipped, on 2026-10-15 against the catalogs of `koryki-northwind` 0.2.2-SNAPSHOT. Run it again before the tag. |
 | northwind | 97 | 0 | 0 | the catalogs, no database |
 | tools | 96 | 0 | 0 | none |
 
