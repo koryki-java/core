@@ -180,6 +180,67 @@ class SelectorNamesTest {
         assertEquals("lat", selector.get(1).key());
     }
 
+    /**
+     * The message of the failure of a query, for the cases where it is the message that is asked.
+     */
+    private static String failure(String kql) {
+        return assertThrows(RuntimeException.class, () -> query(kql)).getMessage();
+    }
+
+    @Test
+    void aFieldTheStructDoesNotHaveIsRefusedInTheNamesOfTheModel() {
+        String message = failure("FIND check_complex t FETCH t.address@hoehe");
+
+        // the fields the reader may write, and the type they are in, by the names of the model
+        assertTrue(message.contains("its fields are strasse, position, phones"), message);
+        assertTrue(
+                message.contains(
+                        "STRUCT(strasse:TEXT,position:STRUCT(breitengrad:FLOAT,laengengrad:FLOAT)"),
+                message);
+        assertTrue(!message.contains("street") && !message.contains("geo"), message);
+    }
+
+    @Test
+    void theFieldsOfAStructInsideAreNamedByTheModelToo() {
+        String message = failure("FIND check_complex t FETCH t.address@position@hoehe");
+
+        assertTrue(message.contains("its fields are breitengrad, laengengrad"), message);
+    }
+
+    @Test
+    void aFieldOfABlockIsRefusedInTheNamesOfTheModelToo() {
+        String message =
+                failure(
+                        """
+                        WITH b AS (FIND check_complex t FETCH t.nr n, t.address a)
+                        FIND b x FETCH x.a@hoehe
+                        """);
+
+        assertTrue(message.contains("its fields are strasse, position, phones"), message);
+    }
+
+    @Test
+    void aModelThatNamesNothingIsRefusedInTheKeysOfTheSchema() {
+        String message =
+                assertThrows(
+                                RuntimeException.class,
+                                () ->
+                                        KQLTranspiler.builder(
+                                                        "FIND check_complex t FETCH t.address@hoehe",
+                                                        ComplexService.resolver())
+                                                .functions(
+                                                        DuckdbBaseDialect.INSTANCE
+                                                                .getFunctionRenderer())
+                                                .build()
+                                                .getSql(
+                                                        new SqlQueryRenderer(
+                                                                DuckdbBaseDialect.INSTANCE,
+                                                                ZoneId.of("UTC"))))
+                        .getMessage();
+
+        assertTrue(message.contains("its fields are street, geo, phones"), message);
+    }
+
     @Test
     void aNameOfNoLanguageIsStillRefused() {
         assertThrows(RuntimeException.class, () -> sql("t.address@hoehe"));

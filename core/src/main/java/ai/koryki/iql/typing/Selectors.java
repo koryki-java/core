@@ -17,6 +17,7 @@
 package ai.koryki.iql.typing;
 
 import ai.koryki.catalog.types.CoreTypeFamily;
+import ai.koryki.catalog.types.PartNames;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.iql.IQLSerializer;
 import ai.koryki.iql.query.Selector;
@@ -48,11 +49,55 @@ public final class Selectors {
      * The type after every step, or a {@link SelectorException} naming the first one that fails.
      */
     public static TypeDescriptor apply(TypeDescriptor base, List<Selector> steps) {
+        return apply(base, steps, PartNames.PLAIN);
+    }
+
+    /**
+     * As {@link #apply(TypeDescriptor, List)}, and a step that fails says so in the names of a
+     * model: the fields of a struct, and the type that is shown, are called what {@code names}
+     * calls them.
+     */
+    public static TypeDescriptor apply(TypeDescriptor base, List<Selector> steps, PartNames names) {
         TypeDescriptor type = base;
+        PartNames at = names;
         for (Selector step : steps) {
-            type = step(type, step);
+            TypeDescriptor before = type;
+            type = step(type, step, at);
+            at = next(before, step, at);
         }
         return type;
+    }
+
+    /** The names inside the part a step goes to. */
+    private static PartNames next(TypeDescriptor type, Selector step, PartNames names) {
+        if (names == PartNames.PLAIN || type == null) {
+            return names;
+        }
+        TypeDescriptor in =
+                CoreTypeFamily.JSON.equals(type.getTypeFamily()) && type.shape() != null
+                        ? type.shape()
+                        : type;
+        if (step.getId() != null || step.getName() != null) {
+            if (CoreTypeFamily.STRUCT.equals(in.getTypeFamily())
+                    && in.fieldNames().contains(step.key())) {
+                return names.part(step.key());
+            } else if (CoreTypeFamily.MAP.equals(in.getTypeFamily())) {
+                return names.part("value");
+            }
+        } else if (step.getIndex() != null) {
+            if (CoreTypeFamily.ARRAY.equals(in.getTypeFamily())) {
+                return names.part("element");
+            } else if (CoreTypeFamily.MAP.equals(in.getTypeFamily())) {
+                return names.part("value");
+            } else if (CoreTypeFamily.STRUCT.equals(in.getTypeFamily())) {
+                int n = in.fieldNames().size();
+                int index = step.getIndex() > 0 ? step.getIndex() : n + step.getIndex() + 1;
+                if (index >= 1 && index <= n) {
+                    return names.part(in.fieldNames().get(index - 1));
+                }
+            }
+        }
+        return names;
     }
 
     /**
@@ -75,19 +120,25 @@ public final class Selectors {
 
     /** The type after one step; a renderer follows the chain with it. */
     public static TypeDescriptor step(TypeDescriptor type, Selector step) {
+        return step(type, step, PartNames.PLAIN);
+    }
+
+    /** The type after one step, with a failure said in the names of a model. */
+    public static TypeDescriptor step(TypeDescriptor type, Selector step, PartNames names) {
         String text = IQLSerializer.selector(step);
         if (type == null || type.getTypeFamily() == null) {
             throw new SelectorException("cannot apply " + text + " to a value without a type");
         }
         if (step.getId() != null || step.getName() != null) {
-            return byName(type, step.key(), text);
+            return byName(type, step.key(), text, names);
         } else if (step.getIndex() != null) {
-            return byPosition(type, step.getIndex(), text);
+            return byPosition(type, step.getIndex(), text, names);
         }
-        return byRange(type, step, text);
+        return byRange(type, step, text, names);
     }
 
-    private static TypeDescriptor byName(TypeDescriptor type, String name, String text) {
+    private static TypeDescriptor byName(
+            TypeDescriptor type, String name, String text, PartNames names) {
         if (CoreTypeFamily.STRUCT.equals(type.getTypeFamily())) {
             return type.field(name)
                     .orElseThrow(
@@ -96,26 +147,31 @@ public final class Selectors {
                                             "no field '"
                                                     + name
                                                     + "' in "
-                                                    + type.portable()
+                                                    + type.portable(names)
                                                     + "; its fields are "
-                                                    + String.join(", ", type.fieldNames())));
+                                                    + type.fieldNames().stream()
+                                                            .map(names::of)
+                                                            .collect(
+                                                                    java.util.stream.Collectors
+                                                                            .joining(", "))));
         } else if (CoreTypeFamily.MAP.equals(type.getTypeFamily())) {
             if (!CoreTypeFamily.TEXT.equals(type.key().getTypeFamily())) {
                 throw new SelectorException(
                         text
                                 + " selects a text key, but the keys of "
-                                + type.portable()
+                                + type.portable(names)
                                 + " are "
-                                + type.key().portable());
+                                + type.key().portable(names.part("key")));
             }
             return type.value();
         } else if (CoreTypeFamily.JSON.equals(type.getTypeFamily())) {
             return inJson(type, shape -> member(shape, name, text));
         }
-        throw refused(type, text, "by name; that needs a struct, a map or JSON");
+        throw refused(type, text, names, "by name; that needs a struct, a map or JSON");
     }
 
-    private static TypeDescriptor byPosition(TypeDescriptor type, int position, String text) {
+    private static TypeDescriptor byPosition(
+            TypeDescriptor type, int position, String text, PartNames names) {
         if (position == 0) {
             throw new SelectorException(text + ": positions count from 1, there is no position 0");
         }
@@ -126,7 +182,12 @@ public final class Selectors {
             int index = position > 0 ? position : n + position + 1;
             if (index < 1 || index > n) {
                 throw new SelectorException(
-                        text + " is outside " + type.portable() + ", which has " + n + " fields");
+                        text
+                                + " is outside "
+                                + type.portable(names)
+                                + ", which has "
+                                + n
+                                + " fields");
             }
             return type.children().get(index - 1);
         } else if (CoreTypeFamily.MAP.equals(type.getTypeFamily())) {
@@ -134,18 +195,19 @@ public final class Selectors {
                 throw new SelectorException(
                         text
                                 + " selects an integer key, but the keys of "
-                                + type.portable()
+                                + type.portable(names)
                                 + " are "
-                                + type.key().portable());
+                                + type.key().portable(names.part("key")));
             }
             return type.value();
         } else if (CoreTypeFamily.JSON.equals(type.getTypeFamily())) {
             return inJson(type, shape -> positional(shape, text));
         }
-        throw refused(type, text, "by position; that needs a list, a struct, a map or JSON");
+        throw refused(type, text, names, "by position; that needs a list, a struct, a map or JSON");
     }
 
-    private static TypeDescriptor byRange(TypeDescriptor type, Selector step, String text) {
+    private static TypeDescriptor byRange(
+            TypeDescriptor type, Selector step, String text, PartNames names) {
         if (Integer.valueOf(0).equals(step.getFrom()) || Integer.valueOf(0).equals(step.getTo())) {
             throw new SelectorException(text + ": positions count from 1, there is no position 0");
         }
@@ -153,7 +215,7 @@ public final class Selectors {
             // a slice of a fixed-size array is a list: its length depends on the bounds
             return TypeDescriptor.array(type.element());
         }
-        throw refused(type, text, "as a range; that needs a list");
+        throw refused(type, text, names, "as a range; that needs a list");
     }
 
     /**
@@ -249,8 +311,9 @@ public final class Selectors {
         return out;
     }
 
-    private static SelectorException refused(TypeDescriptor type, String text, String why) {
+    private static SelectorException refused(
+            TypeDescriptor type, String text, PartNames names, String why) {
         return new SelectorException(
-                "cannot select " + text + " from " + type.portable() + ": " + why);
+                "cannot select " + text + " from " + type.portable(names) + ": " + why);
     }
 }

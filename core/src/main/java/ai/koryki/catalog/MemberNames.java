@@ -26,6 +26,7 @@ import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Entry;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.types.CoreTypeFamily;
+import ai.koryki.catalog.types.PartNames;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -144,6 +145,22 @@ public final class MemberNames {
         /** Whether the model gives the entry a name of its own. */
         public boolean named(String key) {
             return member(key).map(m -> m.getName() != null).orElse(false);
+        }
+
+        /** These names as the parts of a type are shown to a person: see {@link PartNames}. */
+        public PartNames partNames() {
+            Level level = this;
+            return new PartNames() {
+                @Override
+                public String of(String key) {
+                    return level.written(key);
+                }
+
+                @Override
+                public PartNames part(String key) {
+                    return level.into(key).map(Level::partNames).orElse(PartNames.PLAIN);
+                }
+            };
         }
 
         /** The member of this language for the entry, if the model says something about it. */

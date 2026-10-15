@@ -355,20 +355,40 @@ public class TypeDescriptor {
      * STRUCT(w:FLOAT,h:FLOAT)}. Encodings are not shown; the family is what queries reason about.
      */
     public String portable() {
+        return portable(PartNames.PLAIN);
+    }
+
+    /**
+     * The type as {@link #portable()} writes it, with the fields of a struct called what a model
+     * calls them, for a message to the person who writes those names.
+     */
+    public String portable(PartNames names) {
         if (typeFamily == null) {
             return TypeNames.TYPE_NULL;
         }
         if (typeFamily == CoreTypeFamily.ARRAY) {
-            return "ARRAY(" + children.get(0).portable() + (length < 0 ? "" : "," + length) + ")";
+            return "ARRAY("
+                    + children.get(0).portable(names.part("element"))
+                    + (length < 0 ? "" : "," + length)
+                    + ")";
         } else if (typeFamily == CoreTypeFamily.MAP) {
-            return "MAP(" + children.get(0).portable() + "," + children.get(1).portable() + ")";
+            return "MAP("
+                    + children.get(0).portable(names.part("key"))
+                    + ","
+                    + children.get(1).portable(names.part("value"))
+                    + ")";
         } else if (typeFamily == CoreTypeFamily.STRUCT) {
             return IntStream.range(0, children.size())
-                    .mapToObj(i -> fieldNames.get(i) + ":" + children.get(i).portable())
+                    .mapToObj(
+                            i ->
+                                    names.of(fieldNames.get(i))
+                                            + ":"
+                                            + children.get(i)
+                                                    .portable(names.part(fieldNames.get(i))))
                     .collect(Collectors.joining(",", "STRUCT(", ")"));
         }
         if (shape != null) {
-            return "JSON(" + shape.portable() + ")";
+            return "JSON(" + shape.portable(names) + ")";
         }
         return typeFamily.name();
     }

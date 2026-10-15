@@ -43,6 +43,14 @@ All notable changes to this project are documented here.
   which are verified by hand before a release, and records the result of each release;
   `scripts/test-matrix.sh` prints tests, skipped and failed of every module from the last run.
 
+- A selector that does not fit says so in the names of the model: `t.address@hoehe` under the German
+  model is "no field 'hoehe' in STRUCT(strasse:TEXT,position:STRUCT(breitengrad:FLOAT,...),...); its
+  fields are strasse, position, phones", for a column of a table and for one that a block projects.
+  `TypeDescriptor.portable(PartNames)` and `Selectors.apply(type, steps, PartNames)` take the names,
+  `MemberNames.Level.partNames()` gives them; the plain keys are still what a caller without a model
+  gets. A selection from the parameter of a lambda, or from a computed value, has no column to take
+  names from and keeps the keys.
+
 - The bed with a concept that columns share, `check_shared`, on every dialect, in the catalogs of the
   northwind repository: `home` and `work`, and the elements of `route`, are one concept `point`.
   `SharedConceptContract` in the `testkit` is the one set of checks every dialect runs against it

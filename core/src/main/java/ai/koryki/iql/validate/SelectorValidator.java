@@ -17,6 +17,8 @@
 package ai.koryki.iql.validate;
 
 import ai.koryki.antlr.Range;
+import ai.koryki.catalog.MemberNames;
+import ai.koryki.catalog.types.PartNames;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.iql.Collector;
 import ai.koryki.iql.IQLVisibilityContext;
@@ -24,9 +26,12 @@ import ai.koryki.iql.LinkResolver;
 import ai.koryki.iql.Visitor;
 import ai.koryki.iql.functions.FunctionCatalog;
 import ai.koryki.iql.query.Expression;
+import ai.koryki.iql.query.Field;
 import ai.koryki.iql.query.Select;
+import ai.koryki.iql.query.Source;
 import ai.koryki.iql.typing.ExpressionTypeResolver;
 import ai.koryki.iql.typing.SelectorException;
+import ai.koryki.iql.typing.SelectorLevels;
 import ai.koryki.iql.typing.Selectors;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -98,7 +103,7 @@ public class SelectorValidator implements Visitor, Collector<List<Violation>> {
             return true;
         }
         try {
-            Selectors.apply(base, expression.getSelection().getSelectors());
+            Selectors.apply(base, expression.getSelection().getSelectors(), namesOf(expression));
         } catch (SelectorException e) {
             violations.add(
                     new Violation(
@@ -108,6 +113,31 @@ public class SelectorValidator implements Visitor, Collector<List<Violation>> {
                             e.getMessage()));
         }
         return true;
+    }
+
+    /**
+     * What the model calls the fields of the column the selection starts from, so that a failure is
+     * explained in the names the query was written in. Plain keys where the base is no column of a
+     * table, or the model says nothing.
+     */
+    private PartNames namesOf(Expression expression) {
+        Field field = expression.getSelection().getBase().getField();
+        IQLVisibilityContext visibility = scopes.peek();
+        if (field == null || field.getAlias() == null || visibility == null) {
+            return PartNames.PLAIN;
+        }
+        try {
+            Source source = visibility.getSource(field.getAlias());
+            if (source == null) {
+                return PartNames.PLAIN;
+            }
+            return new SelectorLevels(resolver, visibility::getBlock)
+                    .of(source, field.getName())
+                    .map(MemberNames.Level::partNames)
+                    .orElse(PartNames.PLAIN);
+        } catch (RuntimeException unresolved) {
+            return PartNames.PLAIN;
+        }
     }
 
     @Override

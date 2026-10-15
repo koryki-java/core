@@ -17,28 +17,23 @@
 package ai.koryki.iql.rules;
 
 import ai.koryki.catalog.MemberNames;
-import ai.koryki.catalog.domain.Entity;
 import ai.koryki.iql.LinkResolver;
-import ai.koryki.iql.SqlQueryRenderer;
 import ai.koryki.iql.Visitor;
 import ai.koryki.iql.Walker;
 import ai.koryki.iql.query.Block;
 import ai.koryki.iql.query.Exists;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Field;
-import ai.koryki.iql.query.Out;
 import ai.koryki.iql.query.Query;
 import ai.koryki.iql.query.Select;
 import ai.koryki.iql.query.Selector;
 import ai.koryki.iql.query.Source;
+import ai.koryki.iql.typing.SelectorLevels;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 
 /**
  * Translates the names of struct fields in selectors from the language of the model to the physical
@@ -55,9 +50,11 @@ public class SelectorNamesRule {
 
     private final LinkResolver resolver;
     private final Map<String, Block> blocks = new HashMap<>();
+    private final SelectorLevels levels;
 
     public SelectorNamesRule(LinkResolver resolver) {
         this.resolver = resolver;
+        this.levels = new SelectorLevels(resolver, blocks::get);
     }
 
     public void apply(Query query) {
@@ -101,7 +98,7 @@ public class SelectorNamesRule {
                     field.getAlias() == null ? null : sourceOf(deque, outer, field.getAlias());
             if (source != null) {
                 translate(
-                        levelOf(source, field.getName(), new HashSet<>()).orElse(null),
+                        levels.of(source, field.getName()).orElse(null),
                         expression.getSelection().getSelectors());
             }
             return true;
@@ -127,44 +124,6 @@ public class SelectorNamesRule {
             }
         }
         return null;
-    }
-
-    /**
-     * What the model says of the parts of the column a field stands for. A field of a block is the
-     * output of the block, so it is followed into the block to the column it projects; an output
-     * that is computed (a function, a selection) has no parts the model could have named.
-     */
-    private Optional<MemberNames.Level> levelOf(Source source, String name, Set<String> seen) {
-        Block block = blocks.get(source.getName());
-        if (block != null) {
-            if (!seen.add(block.getId())) {
-                return Optional.empty();
-            }
-            Select select = SqlQueryRenderer.select(block.getSet());
-            for (Out out : SqlQueryRenderer.collectOut(select)) {
-                Expression e = out.getExpression();
-                String called =
-                        out.getHeader() != null
-                                ? out.getHeader()
-                                : e != null && e.getField() != null ? e.getField().getName() : null;
-                if (name.equals(called)) {
-                    if (e.getField() == null || e.getField().getAlias() == null) {
-                        return Optional.empty();
-                    }
-                    Source inner = Visitor.findSourceInSelect(select, e.getField().getAlias());
-                    return inner == null
-                            ? Optional.empty()
-                            : levelOf(inner, e.getField().getName(), seen);
-                }
-            }
-            return Optional.empty();
-        }
-        Optional<Entity> entity = resolver.getModel().getEntity(source.getName());
-        return entity.flatMap(e -> e.getAttribute(name))
-                .flatMap(
-                        a ->
-                                new MemberNames(resolver.getSchema(), resolver.getModel())
-                                        .of(entity.get(), a));
     }
 
     private static void translate(MemberNames.Level level, List<Selector> steps) {
