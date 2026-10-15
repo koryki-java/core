@@ -74,9 +74,13 @@ class CatalogWordingTest {
                                 "trino")
                         .flatMap(
                                 d ->
-                                        Stream.of("complex", "temporal", "typecheck")
+                                        Stream.of("complex", "temporal", "typecheck", "shared")
                                                 .map(n -> "/ai/koryki/" + d + "/databases/" + n))
-                        .map(root -> new Catalog(root, root + "/model", "en"));
+                        // a bed has the models it has: the shared one is in German too
+                        .flatMap(
+                                root ->
+                                        Stream.of("en", "de")
+                                                .map(l -> new Catalog(root, root + "/model", l)));
         return Stream.of(northwind, oraview, beds)
                 .flatMap(s -> s)
                 .filter(
