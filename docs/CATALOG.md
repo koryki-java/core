@@ -19,7 +19,12 @@ falling back to the schema layer.
 | Sub-package | Responsibility |
 |---|---|
 | `schema/` | Raw structural database model — tables, columns, types, PKs, FK relations |
-| `domain/` | Semantic domain model — entities, attributes, links and their business metadata |
+| `domain/` | Semantic domain model — entities, attributes, links and their business metadata, and the words a model gives to the parts of a nested value (`Member`, `Notion`) |
+| `types/` | The type model: `TypeDescriptor` (a column's type, with its fields, elements and shape for nested values), the type families and encodings, and `PartNames`, which names the parts of a type in a model's words |
+
+At the catalog root: `SchemaToModel` (below), `MemberNames`, which reads the members and notions of a
+model against a column's concept, and `WordingAudit`, which lists what a model has not said in its own
+words (see [Members and notions](MEMBERS_AND_NOTIONS.md)).
 
 
 
