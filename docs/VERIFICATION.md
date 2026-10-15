@@ -47,7 +47,7 @@ files (`-PallowDirty=true` overrides it for a trial run), and from results older
    there, and `:<dialect>:createShared` for a bed added later.
 2. Run `./gradlew verify` on the commit that is to be tagged, from a Gradle daemon that can reach them.
 3. Read the last line of the record: "Every module is verified", or the dialects that are not.
-4. Commit `docs/verification/<version>.md`. Only `docs/` and the changelog may change after that;
+4. Commit `docs/verification/<version>.md`. Only `docs/`, the changelog, `.github/` and `scripts/` may change after that;
    `release.yml` refuses a tag whose record names another commit than the code it builds.
 
 A dialect that could not be run stays "not verified" in the record, with its skipped tests as the

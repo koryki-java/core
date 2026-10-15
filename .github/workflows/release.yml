@@ -29,6 +29,8 @@ jobs:
         with:
           # The tests read the fixture corpus from the northwind-fixtures submodule.
           submodules: true
+          # The verification gate compares the tag with the commit its record names.
+          fetch-depth: 0
 
       # A release runs from its tag only, however it is started. A manual run on a branch would
       # publish the version in gradle.properties without a tag, and pushing the tag afterwards would
@@ -52,6 +54,34 @@ jobs:
             echo "::error::gradle/libs.versions.toml still pins a SNAPSHOT; release northwind first and pin its release"
             grep -n 'SNAPSHOT' gradle/libs.versions.toml
             exit 1
+          fi
+
+      # The release must have a record of what it was tested on (./gradlew verify), made from the
+      # code that is tagged: after the recorded commit only the documentation, the changelog, the
+      # workflows and the scripts may have changed (none of them is code that the tests ran). A dialect the record calls not verified is no reason to stop -- some releases
+      # go out that way, and the record says so -- but it is shown here, where it is read.
+      - name: Check verification record
+        if: github.event_name == 'push' || inputs.target == 'release'
+        run: |
+          version=$(sed -n 's/^version=//p' gradle.properties)
+          record="docs/verification/$version.md"
+          if [ ! -f "$record" ]; then
+            echo "::error::$record is missing; run ./gradlew verify and commit the record"
+            exit 1
+          fi
+          commit=$(sed -n 's/.*verification: version=[^ ]* commit=\([0-9a-f]*\).*/\1/p' "$record")
+          if [ -z "$commit" ] || ! git cat-file -e "$commit^{commit}" 2>/dev/null; then
+            echo "::error::$record names no commit that this repository has"
+            exit 1
+          fi
+          changed=$(git diff --name-only "$commit" HEAD -- . ':!docs' ':!CHANGELOG.md' ':!.github' ':!scripts')
+          if [ -n "$changed" ]; then
+            echo "::error::the code changed after the verified commit $commit; run ./gradlew verify again"
+            echo "$changed"
+            exit 1
+          fi
+          if grep -q '^Not verified:' "$record"; then
+            echo "::warning::$(grep '^Not verified:' "$record")"
           fi
 
       # gradle-wrapper.jar is the first thing the build runs: check it against Gradle's published
