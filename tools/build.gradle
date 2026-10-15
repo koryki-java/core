@@ -110,3 +110,20 @@ publishing {
         }
     }
 }
+
+// Run through ./gradlew verify (root build.gradle), which makes the test run it reads and finishes
+// with this task, also when tests failed. Alone it only reads what the last run left behind.
+//
+// Writes docs/verification/<version>.md: the counts of every module, the database each suite ran
+// against as the database says it, the commit and the pins. See docs/VERIFICATION.md.
+tasks.register('verificationRecord', JavaExec) {
+    group = 'verification'
+    description = 'Writes docs/verification/<version>.md from the last test run; use verify.'
+
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'ai.koryki.tools.verification.VerificationRecord'
+    args rootProject.projectDir.path
+    if (project.hasProperty('allowDirty')) {
+        args 'allow-dirty'
+    }
+}

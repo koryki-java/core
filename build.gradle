@@ -261,3 +261,36 @@ rootProject.allprojects {
         }
     }
 }
+
+// ./gradlew verify
+//
+// The test run and the record of it as one task: every module's tests run anew (cleanTest, so no
+// up-to-date result stands in for a run), the build does not stop at the first failing module, and
+// docs/verification/<version>.md is written from the results afterwards -- also when tests failed,
+// because a record that shows the failure is the honest one. See docs/VERIFICATION.md.
+//   -PallowDirty=true   write the record from a tree with changes in tracked files
+tasks.register('verify') {
+    group = 'verification'
+    description = 'Runs all tests and writes docs/verification/<version>.md from the results.'
+
+    dependsOn {
+        subprojects.collectMany { p ->
+            p.tasks.matching { it.name == 'test' }.collect { [it, p.tasks.named('cleanTest')] }.flatten()
+        }
+    }
+    finalizedBy ':tools:verificationRecord'
+}
+
+// cleanTest has to come first: a module's results are deleted, then written
+subprojects { p ->
+    p.tasks.withType(Test).configureEach { t ->
+        t.mustRunAfter { p.tasks.named('cleanTest') }
+    }
+}
+
+gradle.taskGraph.whenReady { graph ->
+    if (graph.hasTask(':verify')) {
+        gradle.startParameter.continueOnFailure = true
+    }
+}
+
