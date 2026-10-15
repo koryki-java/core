@@ -243,10 +243,11 @@ public final class VerificationRecord {
         List<Module> modules = read(root);
         // a result file written before the commit is a result of another state
         try (Stream<Path> files =
-                Files.walk(root, 6)
+                Files.walk(root, 5)
                         .filter(
                                 p ->
-                                        p.toString().contains("build/test-results/test/")
+                                        !root.relativize(p).startsWith("northwind-fixtures")
+                                                && p.toString().contains("build/test-results/test/")
                                                 && p.toString().endsWith(".xml"))) {
             long oldest =
                     files.mapToLong(p -> p.toFile().lastModified() / 1000)
