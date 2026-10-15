@@ -35,6 +35,15 @@ All notable changes to this project are documented here.
   through blocks and inside EXISTS, and `KQLFormatter` translates them between models.
   `WordingAudit.audit(schema, model)` lists what a model has not said in its own words, as missing
   or still the words of the schema.
+  `Translator.selectors`, `DictionaryTranslator` with a schema and `LinkResolver.dictionary(from, to,
+  schema)` are the API of that translation. A column that refers to a shared concept is audited like
+  any other, and its parts are the notion's to say unless the attribute has members of its own.
+
+- The bed with a concept that columns share, `check_shared`, on every dialect, in the catalogs of the
+  northwind repository: `home` and `work`, and the elements of `route`, are one concept `point`.
+  `SharedConceptContract` in the `testkit` is the one set of checks every dialect runs against it
+  (the same answers through the English model and through the German names of the notion), and a
+  dialect test extends it.
 
 - The nodes of a nested column carry labels, descriptions, units, quantities and presentations, and
   `ConceptNodes.node` finds the concept a selector chain ends at, so what a consumer explains a nested
@@ -93,8 +102,7 @@ All notable changes to this project are documented here.
   own), and `Model.notions` says the same once for a concept the columns refer to by name.
   `MemberNames` walks the concept and the names together and answers both ways, and the resolver of
   a model checks them against the schema: a member is an entry of its concept, no two fields have the
-  same name, a notion is a notion of a concept the schema has. The selectors of a query do not
-  use the names yet.
+  same name, a notion is a notion of a concept the schema has.
 
 ### Changed
 
@@ -104,10 +112,16 @@ All notable changes to this project are documented here.
   `ai.koryki.catalog.schema.Column`, which keeps `name`, `nullable`, `pkPos`, `namePos` and either
   `concept` (its own) or `conceptRef` (the name of a concept in `Schema.concepts`). A `db.json` with
   the old fields no longer loads; rewrite it with `MigrateCatalogs`, which is in the history of
-  this repository at the commit before the fields were removed (`./gradlew :tools:migrateCatalogs`
-  then). `TypeDescriptorParser.parse(Column)` is `parse(where, family, encoding, dialectType)` for a
-  scalar; the containers are typed by `ConceptResolver`. `koryki-core`, `koryki-derivation` and the
-  catalogs of the northwind repository have to be released together.
+  this repository before the fields were removed (find it with `git log -S MigrateCatalogs`; it ran
+  as `./gradlew :tools:migrateCatalogs`). `TypeDescriptorParser.parse(Column)` is `parse(where, family, encoding, dialectType)` for a
+  scalar; the containers are typed by `ConceptResolver`. This release needs the catalogs of
+  `koryki-northwind` 0.2.3 and a `koryki-derivation` that reads concepts; with the released
+  derivation or the catalogs of `koryki-northwind` 0.2.1 or older it does not work.
+
+- For dialect authors: a step of a selector keeps the name as it was written, `Selector.written()`,
+  and says the entry of the schema it goes to, `Selector.key()`, which differs where a model gives a
+  struct field another name. A dialect that reads the name of a step must read `key()`; the helpers
+  of `NestedSql` do. `Selector` has no `key` property in JSON.
 
 - The scripts that create the Northwind database for PostgreSQL, MariaDB, Oracle, SQL Server,
   Snowflake and SQLite, their `BuildNorthwind` loaders, `Script`, `ExportJson` and the committed
@@ -120,6 +134,24 @@ All notable changes to this project are documented here.
 
 - An aggregate over a selection, `sum(t.scores@2)`, was not taken for an aggregate: the other
   items of the query were not grouped. It is now, like an aggregate over a column.
+- An element of an Oracle collection was the element of the row before it when the collection was
+  empty: `t.route@2@lat`, a scalar subquery over `TABLE(list)`, took the cached answer of an earlier
+  row for an empty list (measured on Oracle 26ai). A position now carries a test of the collection
+  for NULL, `... WHERE E1.RN = 2 AND t.route IS NOT NULL`, which ends it. The SQL of every position
+  on an Oracle collection changes with it; a golden of your own has to be written again.
+
+## [0.2.1] - 2026-09-30
+
+### Added
+
+- A signature for the SQL: `Engine.withSignature(String)` (and `EngineBuilder`, `Generator`) writes a
+  comment right behind the first `SELECT`, so a statement handed to a database or to an external
+  system, such as a hosted MCP server, can be traced back to whoever produced it. `SqlRenderer`
+  gets `setSignature` as a default that does nothing, so a renderer a caller makes itself keeps
+  working; `SqlQueryRenderer` writes it.
+
+### Fixed
+
 - A block could not correctly reference an earlier sibling block — only self-reference (a
   recursive CTE) rendered correctly. `BlockRecursionDetector` treated any reference to a name that
   is not a catalog entity as recursion, so a plain chain onto an earlier block wrongly emitted
@@ -137,6 +169,12 @@ All notable changes to this project are documented here.
   select's, dropping the parentheses the grammar requires and any outer alias to correlate
   against. It now goes through the same per-select scope (`subSelect`) `EXISTS` already used
   correctly. SQL rendering itself was never affected, only the formatter's KQL round-trip.
+- `docs/functions/aggregate.md` described the aggregate functions as they were before `median`,
+  `quantile_cont` and `quantile_disc`.
+
+### Changed
+
+- `koryki-northwind` 0.2.1, which carries the block-chain fixtures; `jackson-databind` 3.2.3.
 
 ## [0.2.0] - 2026-09-27
 
@@ -283,6 +321,7 @@ and signed in CI with an in-memory PGP key and published to Maven Central throug
 Portal; [`docs/RELEASES.md`](./docs/RELEASES.md) shows how to verify a download against the
 signing key.
 
-[Unreleased]: https://github.com/koryki-java/core/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/koryki-java/core/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/koryki-java/core/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/koryki-java/core/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/koryki-java/core/releases/tag/v0.1.0
