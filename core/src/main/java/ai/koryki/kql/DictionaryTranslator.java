@@ -86,7 +86,12 @@ public class DictionaryTranslator implements Translator {
             String key = null;
             if (fromLevel != null) {
                 key = fromLevel.key(written, step.getIndex()).orElse(null);
-                if (key != null && written != null && fromLevel.named(key)) {
+                // a name is translated where either model gives the field one: the model the query
+                // comes from may leave the field to its physical key, and the one it goes to name
+                // it
+                boolean namedBySource = key != null && fromLevel.named(key);
+                boolean namedByTarget = key != null && toLevel != null && toLevel.named(key);
+                if (key != null && written != null && (namedBySource || namedByTarget)) {
                     next = named(step, toLevel == null ? key : toLevel.written(key));
                 }
             }

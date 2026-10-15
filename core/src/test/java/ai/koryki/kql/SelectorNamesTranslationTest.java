@@ -163,4 +163,15 @@ class SelectorNamesTranslationTest {
         assertTrue(kql.contains("c.address@position@breitengrad"), kql);
         assertNotNull(KQLTranspiler.builder(kql, DE).build());
     }
+
+    /** The usual case: the model the query comes from leaves the fields to their keys. */
+    @Test
+    void aFieldTheSourceDoesNotNameIsNamedByTheTarget() throws IOException {
+        LinkResolver plain = ComplexService.resolver();
+
+        String kql = translateQuery(plain, DE, "FIND check_complex t FETCH t.address@geo@lat");
+
+        assertTrue(kql.contains("t.address@position@breitengrad"), kql);
+        assertNotNull(KQLTranspiler.builder(kql, DE).build());
+    }
 }
