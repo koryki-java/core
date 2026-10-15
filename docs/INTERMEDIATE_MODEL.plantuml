@@ -3,10 +3,14 @@
 class Block {
 }
 
-class Column {
+class Field {
+String alias
+String name
 }
 
 class Exists {
+LogicalExpression filter
+LogicalExpression having
 }
 
 class Expression {
@@ -55,12 +59,18 @@ Set left
 Set right
 }
 
-class Table {
+class Source {
 LogicalExpression filter
 LogicalExpression having
 }
 
 class UnaryLogicalExpression {
+}
+
+class Duration {
+}
+
+class JoinColumns {
 }
 
 class Window {
@@ -78,7 +88,7 @@ Query --* "0..n" Block
 
 Query --* "1" Set
 
-Select -d-* "1" Table
+Select -d-* "1" Source
 
 Select -r-* "0..n" Join
 Select --* "0..n" Out
@@ -89,35 +99,40 @@ Select::filter -d-* "0..1" LogicalExpression
 Select::having -d-* "0..1" LogicalExpression
 
 Join -u-* "0..n" Join
-Join -d-* "1" Table
+Join -d-* "1" Source
+Join -r-* "0..1" JoinColumns
 
 Exists -u-* "0..n" Join
-Exists -d-* "1" Table
+Exists -d-* "1" Source
+Exists -r-* "0..1" JoinColumns
 
 
-Table -l-* "0..n" Out
-Table --* "0..n" Order
-Table --* "0..n" Group
+Source -l-* "0..n" Out
+Source --* "0..n" Order
+Source --* "0..n" Group
 
-Table::filter -l-* "0..1" LogicalExpression
-Table::having -l-* "0..1" LogicalExpression
+Source::filter -l-* "0..1" LogicalExpression
+Source::having -l-* "0..1" LogicalExpression
 
 LogicalExpression --* "0..n" LogicalExpression
 LogicalExpression -d-* UnaryLogicalExpression
 
 UnaryLogicalExpression --* "0..n" Expression
+UnaryLogicalExpression -u-* "0..1" Exists
 
-Expression -l-* "0..1" Column
+Expression -l-* "0..1" Field
 Expression -u-* "0..1" Select
 Expression -u-* "0..1" Exists
 Expression -r-* "0..1" Function
 Expression -d-* "0..1" Selection
 Expression -d-* "0..1" Lambda
+Expression -d-* "0..1" Duration
+Expression -u-* "0..1" LogicalExpression
 
 Selection -r-* "1..n" Selector
 Selection -u-* "1" Expression
 Lambda -u-* "1" Expression
-Function -d-* "0..n" Lambda
+Function -d-* "0..n" Expression
 
 Function -r-* "0..1" Window
 
