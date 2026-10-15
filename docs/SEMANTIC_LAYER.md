@@ -134,6 +134,8 @@ How one part of a nested value is named and described in the language of a model
 ### `Notion`
 What the model says about a concept the schema has by name, so that it is said once for every column that refers to it: `label`, `comment`, `description` and `members`, as a `Member` has them. It is held in `Model.notions` under the name of the concept. A concept of a column's own is not named, and its parts are in `Attribute.members`; what an attribute says wins over the notion of the concept it refers to.
 
+[`MEMBERS_AND_NOTIONS.md`](./MEMBERS_AND_NOTIONS.md) is the guide: where to say a name, what it does, what is checked.
+
 `ai.koryki.catalog.MemberNames` is the one place that reads them: it walks the concept and the names together and says, for a name written in a query, which entry it is, and what the language calls an entry. `LinkResolver` checks them against the schema: a member is an entry of its concept, no two fields have the same name in the language, a notion is the notion of a concept the schema has.
 
 ### `Link`

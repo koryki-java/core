@@ -68,8 +68,9 @@ Two things to know before relying on it:
 - **The names are the model's.** A column's type and the wording of its parts are in the catalog, and a
   model can call the fields of a struct what its language calls them: `FIND check_shared s FETCH
   s.home@lat` is, under the German model of that bed, `FIND geteilt g FETCH g.heim@breitengrad`, and a
-  selector that does not fit is refused in those names. [`docs/SEMANTIC_LAYER.md`](./docs/SEMANTIC_LAYER.md
-  "the semantic layer") describes the catalog.
+  selector that does not fit is refused in those names. How a model does that is in
+  [`docs/MEMBERS_AND_NOTIONS.md`](./docs/MEMBERS_AND_NOTIONS.md "members and notions"), and the catalog
+  in [`docs/SEMANTIC_LAYER.md`](./docs/SEMANTIC_LAYER.md "the semantic layer").
 
 ## Installation
 

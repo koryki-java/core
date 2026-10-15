@@ -51,6 +51,9 @@ All notable changes to this project are documented here.
   gets. A selection from the parameter of a lambda, or from a computed value, has no column to take
   names from and keeps the keys.
 
+- `docs/MEMBERS_AND_NOTIONS.md`: where a model names the parts of a nested column, what a name does,
+  what is checked and how to find what a translation has left out.
+
 - The bed with a concept that columns share, `check_shared`, on every dialect, in the catalogs of the
   northwind repository: `home` and `work`, and the elements of `route`, are one concept `point`.
   `SharedConceptContract` in the `testkit` is the one set of checks every dialect runs against it
