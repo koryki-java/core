@@ -594,13 +594,14 @@ public class KQLFormatter {
             if (source == null) {
                 return head + steps.stream().map(s -> s.getText()).collect(Collectors.joining());
             }
-            Source block = visibilityContext.getLeadingSource(source.name.getText());
-            String sourcename = block != null ? block.getName() : source.name.getText();
+            // a field of a block is the output of the block: the names belong to the column it
+            // projects, found in the entity that column is a column of
+            String[] origin = originOf(source.name.getText(), field.name.getText());
             java.util.List<KQLParser.SelectorContext> written = java.util.List.copyOf(steps);
             java.util.List<ai.koryki.iql.query.Selector> translated =
                     translator.selectors(
-                            sourcename,
-                            field.name.getText(),
+                            origin[0],
+                            origin[1],
                             written.stream()
                                     .map(s -> ai.koryki.iql.IQLQueryMapper.toSelector(s.getText()))
                                     .toList());
@@ -615,6 +616,59 @@ public class KQLFormatter {
                                 : ai.koryki.iql.IQLSerializer.selector(translated.get(i)));
             }
             return b.toString();
+        }
+
+        /**
+         * The entity and the attribute a field stands for: the field itself for a table, and for
+         * the output of a block the column it projects, through any number of blocks. Where that
+         * cannot be followed (no model to map the query with, a computed output) the leading source
+         * of the block and the field as written, which is what a lookup there has always been
+         * given.
+         */
+        private String[] originOf(String sourceName, String fieldName) {
+            String[] followed = follow(sourceName, fieldName, new java.util.HashSet<>());
+            if (followed != null) {
+                return followed;
+            }
+            Source block = visibilityContext.getLeadingSource(sourceName);
+            return new String[] {block != null ? block.getName() : sourceName, fieldName};
+        }
+
+        private String[] follow(String sourceName, String fieldName, java.util.Set<String> seen) {
+            if (query == null) {
+                return null;
+            }
+            Block block =
+                    query.getBlock().stream()
+                            .filter(b -> b.getId().equals(sourceName))
+                            .findFirst()
+                            .orElse(null);
+            if (block == null) {
+                return new String[] {sourceName, fieldName};
+            }
+            if (!seen.add(block.getId())) {
+                return null;
+            }
+            Select select = ai.koryki.iql.SqlQueryRenderer.select(block.getSet());
+            for (Out out : ai.koryki.iql.SqlQueryRenderer.collectOut(select)) {
+                Expression e = out.getExpression();
+                String called =
+                        out.getHeader() != null
+                                ? out.getHeader()
+                                : e != null && e.getField() != null ? e.getField().getName() : null;
+                if (fieldName.equals(called)) {
+                    if (e.getField() == null || e.getField().getAlias() == null) {
+                        return null;
+                    }
+                    Source inner =
+                            ai.koryki.iql.Visitor.findSourceInSelect(
+                                    select, e.getField().getAlias());
+                    return inner == null
+                            ? null
+                            : follow(inner.getName(), e.getField().getName(), seen);
+                }
+            }
+            return null;
         }
 
         private boolean same(ai.koryki.iql.query.Selector a, ai.koryki.iql.query.Selector b) {

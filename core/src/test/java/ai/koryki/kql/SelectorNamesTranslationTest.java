@@ -18,9 +18,9 @@ package ai.koryki.kql;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.koryki.catalog.CatalogLoader;
-import ai.koryki.catalog.SchemaToModel;
 import ai.koryki.catalog.domain.Member;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Schema;
@@ -52,7 +52,9 @@ class SelectorNamesTranslationTest {
 
     private static LinkResolver resolver(
             Locale locale, String street, String geo, String lat, String lon) {
-        Model model = SchemaToModel.convert(SCHEMA);
+        LinkResolver bed = ComplexService.resolver();
+        Schema schema = bed.getSchema();
+        Model model = bed.getModel();
         Member geoMember = new Member(geo);
         geoMember.setMembers(members("lat", new Member(lat), "lon", new Member(lon)));
         model.getEntity("check_complex")
@@ -60,7 +62,7 @@ class SelectorNamesTranslationTest {
                 .getAttribute("address")
                 .orElseThrow()
                 .setMembers(members("street", new Member(street), "geo", geoMember));
-        return new LinkResolver(locale, SCHEMA, model);
+        return new LinkResolver(locale, schema, model);
     }
 
     private static final LinkResolver EN =
@@ -70,8 +72,12 @@ class SelectorNamesTranslationTest {
 
     private static String translate(LinkResolver from, LinkResolver to, String fetch)
             throws IOException {
-        KQLTranspiler transpiler =
-                KQLTranspiler.builder("FIND check_complex t FETCH " + fetch, from).build();
+        return translateQuery(from, to, "FIND check_complex t FETCH " + fetch);
+    }
+
+    private static String translateQuery(LinkResolver from, LinkResolver to, String kql)
+            throws IOException {
+        KQLTranspiler transpiler = KQLTranspiler.builder(kql, from).build();
         return new KQLFormatter(
                         transpiler.getCtx(),
                         transpiler.getDescription(),
@@ -110,5 +116,51 @@ class SelectorNamesTranslationTest {
 
         assertEquals(true, kql.contains("t.address@location@latitude"), kql);
         assertNotNull(KQLTranspiler.builder(kql, EN).build());
+    }
+
+    @Test
+    void aSelectorOnAnOutputOfABlockIsTranslated() throws IOException {
+        String kql =
+                translateQuery(
+                        EN,
+                        DE,
+                        """
+                        WITH b AS (FIND check_complex t FETCH t.nr n, t.address a)
+                        FIND b x FETCH x.a@location@latitude
+                        """);
+
+        assertTrue(kql.contains("x.a@position@breitengrad"), kql);
+        assertNotNull(KQLTranspiler.builder(kql, DE).build());
+    }
+
+    @Test
+    void aSelectorOnAnOutputOfABlockOverABlockIsTranslated() throws IOException {
+        String kql =
+                translateQuery(
+                        EN,
+                        DE,
+                        """
+                        WITH b AS (FIND check_complex t FETCH t.nr n, t.address a),
+                             c AS (FIND b y FETCH y.n m, y.a z)
+                        FIND c x FETCH x.z@location@latitude
+                        """);
+
+        assertTrue(kql.contains("x.z@position@breitengrad"), kql);
+    }
+
+    @Test
+    void aSelectorInsideAnExistsIsTranslated() throws IOException {
+        String kql =
+                translateQuery(
+                        EN,
+                        DE,
+                        """
+                        FIND check_complex_items i
+                        FILTER EXISTS (i VIA items_of_check_complex check_complex c FILTER c.address@location@latitude > 1)
+                        FETCH i.sku
+                        """);
+
+        assertTrue(kql.contains("c.address@position@breitengrad"), kql);
+        assertNotNull(KQLTranspiler.builder(kql, DE).build());
     }
 }
