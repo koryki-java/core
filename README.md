@@ -128,7 +128,7 @@ Releases are signed — [`docs/RELEASES.md`](./docs/RELEASES.md) shows how to ve
 - Package [`ai.koryki.iql`](./docs/IQL.md "package ai.koryki.iql") – Intermediate representation, **IQL** language, query rewriting rules and validation.
 - Package [`ai.koryki.kql`](./docs/KQL.md "package ai.koryki.kql") – **KQL** language, transpiler and engine to retrieve results from databases
 - Package [`ai.koryki.jdbc`](./docs/JDBC.md "package ai.koryki.jdbc") – JDBC database access
-- Package [`ai.koryki.catalog`](./docs/SCAFFOLD.md "package ai.koryki.catalog") – Database schema description and semantic layer — see also [`Semantic Layer`](./docs/SEMANTIC_LAYER.md "Semantic Layer")
+- Package [`ai.koryki.catalog`](docs/CATALOG.md "package ai.koryki.catalog") – Database schema description and semantic layer — see also [`Semantic Layer`](./docs/SEMANTIC_LAYER.md "Semantic Layer")
 
 - [`KQL-Grammar definition`](./kqlcore/src/main/antlr/ai/koryki/kql/KQLParser.g4 "KQL grammar")
 - [`SQL Injection`](./docs/INJECTION.md "injection paths, barriers and hardening strategy") – how author-controlled text reaches the rendered SQL, and what stops it
