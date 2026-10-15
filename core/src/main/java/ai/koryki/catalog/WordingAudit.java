@@ -38,6 +38,10 @@ import java.util.Objects;
  * a shared concept. Whatever it leaves out is read from the schema, so nothing breaks, but a German
  * heading that reads "Street" is a sign that nobody said it. This lists those places.
  *
+ * <p>A column that refers to a shared concept is audited like any other for the wording of its
+ * attribute. Its parts are the notion's to say, unless the attribute has members of its own, which
+ * replace those of the notion entirely and are then held to all of them.
+ *
  * <p>Two kinds of gap. {@link Kind#MISSING}: the schema has wording and the model has none. {@link
  * Kind#UNCHANGED}: the model has the very words of the schema, which is how a draft model starts
  * ({@link SchemaToModel}) and what a translation must replace; for a model in the language of the
@@ -74,7 +78,13 @@ public final class WordingAudit {
                             .findFirst()
                             .orElse(null);
             for (Column column : table.getColumns()) {
-                Concept concept = column.getConcept();
+                // the column's own concept, or the shared one it refers to
+                Concept concept =
+                        column.getConcept() != null
+                                ? column.getConcept()
+                                : column.getConceptRef() == null || schema.getConcepts() == null
+                                        ? null
+                                        : schema.getConcepts().get(column.getConceptRef());
                 if (concept == null || entity == null) {
                     continue;
                 }
@@ -100,7 +110,12 @@ public final class WordingAudit {
                         attribute.getLabel(),
                         attribute.getComment(),
                         attribute.getDescription());
-                walk(gaps, where, concept, attribute.getMembers());
+                // The parts of a shared concept are worded by its notion, unless the attribute
+                // has members of its own: those replace the notion's as a whole, so they have to
+                // say every part themselves.
+                if (column.getConcept() != null || attribute.getMembers() != null) {
+                    walk(gaps, where, concept, attribute.getMembers());
+                }
             }
         }
         if (schema.getConcepts() != null) {

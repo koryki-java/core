@@ -140,4 +140,71 @@ class WordingAuditTest {
                 has(gaps, "check_complex.address/geo/lat", "label", Kind.UNCHANGED),
                 gaps.toString());
     }
+
+    private static final String SHARED =
+            """
+            {"name": "s", "relations": [],
+             "concepts": {"point": {"typeFamily": "STRUCT", "label": "Position",
+               "entries": {"lat": {"typeFamily": "FLOAT", "label": "Latitude"},
+                           "lon": {"typeFamily": "FLOAT", "label": "Longitude"}}}},
+             "tables": [{"name": "ort", "columns": [
+               {"name": "pos", "conceptRef": "point"}]}]}
+            """;
+
+    private static Model sharedModel(String attribute) {
+        Schema schema = CatalogLoader.readSchemaJson(SHARED);
+        Model model = new Model("s");
+        model.setNotions(new java.util.LinkedHashMap<>());
+        var notion = new ai.koryki.catalog.domain.Notion();
+        notion.setLabel("Position");
+        notion.getMembers().put("lat", new Member(null));
+        notion.getMembers().get("lat").setLabel("Latitude");
+        notion.getMembers().put("lon", new Member(null));
+        notion.getMembers().get("lon").setLabel("Longitude");
+        model.getNotions().put("point", notion);
+        var entity = new ai.koryki.catalog.domain.Entity("ort");
+        entity.setTable("ort");
+        var pos = new ai.koryki.catalog.domain.Attribute("pos");
+        pos.setColumn("pos");
+        if (attribute != null) {
+            pos.setLabel(attribute);
+        }
+        entity.setAttributes(new java.util.ArrayList<>(List.of(pos)));
+        model.setEntities(new java.util.ArrayList<>(List.of(entity)));
+        return model;
+    }
+
+    @Test
+    void aColumnThatRefersToASharedConceptNeedsTheWordsOfItsAttribute() {
+        Schema schema = CatalogLoader.readSchemaJson(SHARED);
+
+        List<Gap> without = WordingAudit.audit(schema, sharedModel(null));
+        List<Gap> with = WordingAudit.audit(schema, sharedModel("Position"));
+
+        assertTrue(has(without, "ort.pos", "label", Kind.MISSING), without.toString());
+        assertTrue(
+                with.stream()
+                        .noneMatch(g -> g.where().equals("ort.pos") && g.kind() == Kind.MISSING),
+                with.toString());
+        // the parts are the notion's, which says them
+        assertTrue(with.stream().noneMatch(g -> g.where().startsWith("ort.pos/")), with.toString());
+    }
+
+    @Test
+    void anAttributeWithMembersOfItsOwnReplacesTheNotionAndHasToSayEveryPart() {
+        Schema schema = CatalogLoader.readSchemaJson(SHARED);
+        Model model = sharedModel("Position");
+        var lat = new Member(null);
+        lat.setLabel("Breite");
+        model.getEntity("ort")
+                .orElseThrow()
+                .getAttribute("pos")
+                .orElseThrow()
+                .setMembers(new java.util.LinkedHashMap<>(java.util.Map.of("lat", lat)));
+
+        List<Gap> gaps = WordingAudit.audit(schema, model);
+
+        assertTrue(has(gaps, "ort.pos/lon", "label", Kind.MISSING), gaps.toString());
+        assertTrue(gaps.stream().noneMatch(g -> g.where().equals("ort.pos/lat")), gaps.toString());
+    }
 }
