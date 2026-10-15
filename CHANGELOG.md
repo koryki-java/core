@@ -39,9 +39,11 @@ All notable changes to this project are documented here.
   schema)` are the API of that translation. A column that refers to a shared concept is audited like
   any other, and its parts are the notion's to say unless the attribute has members of its own.
 
-- `docs/VERIFICATION.md` says which dialects the continuous integration runs live (DuckDB, SQLite) and
-  which are verified by hand before a release, and records the result of each release;
-  `scripts/test-matrix.sh` prints tests, skipped and failed of every module from the last run.
+- `./gradlew verify` runs the tests of every module and writes `docs/verification/<version>.md`: the
+  tests, skipped and failed of each module, the version each database says it is, the commit and the
+  northwind pin. A dialect whose server was not reached is "not verified" there, however green the
+  build is. `docs/VERIFICATION.md` explains it; `release.yml` refuses a tag without the record of its
+  version, or with code changed since the commit the record names.
 
 - A selector that does not fit says so in the names of the model: `t.address@hoehe` under the German
   model is "no field 'hoehe' in STRUCT(strasse:TEXT,position:STRUCT(breitengrad:FLOAT,...),...); its
