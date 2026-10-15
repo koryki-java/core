@@ -170,7 +170,7 @@ The remaining dialects differ only in this expression:
 
 ## to_boolean
 
-`to_boolean(value: numeric | text)` → BOOLEAN
+`to_boolean(value: numeric | text | JSON)` → BOOLEAN
 
 Converts a numeric value to BOOLEAN: `0` is false, anything else is true.
 
@@ -178,7 +178,7 @@ Converts a numeric value to BOOLEAN: `0` is false, anything else is true.
 
 | Argument | Type | Description |
 |---|---|---|
-| value | numeric \| text | the value to convert |
+| value | numeric \| text \| JSON | the value to convert |
 
 Sample query:
 
@@ -294,6 +294,8 @@ Converts a TEXT *value* to TEXT.
 
 Converts a JSON *value* to TEXT.
 
+A JSON string gives its text without the quotes, a number its digits; a JSON object or list gives what the dialect makes of it (its JSON text, or NULL where the database has no scalar form of it).
+
 | Argument | Type | Description |
 |---|---|---|
 | value | JSON | the value to convert to text |
@@ -305,6 +307,30 @@ Converts a UUID *value* to TEXT.
 | Argument | Type | Description |
 |---|---|---|
 | value | UUID | the value to convert to text |
+
+`to_text(value: ARRAY)` → TEXT
+
+Converts a ARRAY *value* to TEXT.
+
+| Argument | Type | Description |
+|---|---|---|
+| value | ARRAY | the value to convert to text |
+
+`to_text(value: STRUCT)` → TEXT
+
+Converts a STRUCT *value* to TEXT.
+
+| Argument | Type | Description |
+|---|---|---|
+| value | STRUCT | the value to convert to text |
+
+`to_text(value: MAP)` → TEXT
+
+Converts a MAP *value* to TEXT.
+
+| Argument | Type | Description |
+|---|---|---|
+| value | MAP | the value to convert to text |
 
 Sample query:
 
@@ -338,13 +364,13 @@ The remaining dialects differ only in this expression:
 
 ## to_float
 
-`to_float(value: numeric | text)` → FLOAT
+`to_float(value: numeric | text | JSON)` → FLOAT
 
 Converts a numeric or text value to single-precision float. Fractional precision may be lost relative to the source.
 
 | Argument | Type | Description |
 |---|---|---|
-| value | numeric \| text | the value to convert |
+| value | numeric \| text \| JSON | the value to convert |
 
 Sample query:
 
@@ -375,13 +401,13 @@ The remaining dialects differ only in this expression:
 
 ## to_double
 
-`to_double(value: numeric | text)` → DOUBLE
+`to_double(value: numeric | text | JSON)` → DOUBLE
 
 Converts a numeric or text value to double-precision float.
 
 | Argument | Type | Description |
 |---|---|---|
-| value | numeric \| text | the value to convert |
+| value | numeric \| text \| JSON | the value to convert |
 
 Sample query:
 
@@ -414,13 +440,13 @@ The remaining dialects differ only in this expression:
 
 ## to_integer
 
-`to_integer(value: numeric | text)` → INTEGER
+`to_integer(value: numeric | text | JSON)` → INTEGER
 
 Converts a numeric or text value to a 32-bit integer. A fractional part is **rounded**, not truncated, and a half-way value rounds away from zero — `1.7` becomes `2`, `-1.7` becomes `-2`, `2.5` becomes `3`. Use `trunc` first if the value must never be inflated. Overflow behaviour is dialect-defined.
 
 | Argument | Type | Description |
 |---|---|---|
-| value | numeric \| text | the value to convert |
+| value | numeric \| text \| JSON | the value to convert |
 
 Sample query:
 
@@ -452,13 +478,13 @@ The remaining dialects differ only in this expression:
 
 ## to_bigint
 
-`to_bigint(value: numeric | text)` → BIGINT
+`to_bigint(value: numeric | text | JSON)` → BIGINT
 
 Converts a numeric or text value to a 64-bit integer. Rounds like `to_integer`; use it instead when values may exceed ±2 147 483 647.
 
 | Argument | Type | Description |
 |---|---|---|
-| value | numeric \| text | the value to convert |
+| value | numeric \| text \| JSON | the value to convert |
 
 Sample query:
 
@@ -492,13 +518,13 @@ The remaining dialects differ only in this expression:
 
 ## to_smallint
 
-`to_smallint(value: numeric | text)` → SMALLINT
+`to_smallint(value: numeric | text | JSON)` → SMALLINT
 
 Converts a numeric or text value to a 16-bit integer (range −32 768 to 32 767). Rounds like `to_integer`. Overflow behaviour is dialect-defined.
 
 | Argument | Type | Description |
 |---|---|---|
-| value | numeric \| text | the value to convert |
+| value | numeric \| text \| JSON | the value to convert |
 
 Sample query:
 
@@ -531,13 +557,13 @@ The remaining dialects differ only in this expression:
 
 ## to_decimal
 
-`to_decimal(value: numeric | text, precision: INTEGER, scale: INTEGER)` → argument-dependent
+`to_decimal(value: numeric | text | JSON, precision: INTEGER, scale: INTEGER)` → argument-dependent
 
 Converts *value* to a fixed-point decimal. *precision* is the total number of significant digits, *scale* the digits after the point — `to_decimal(value, 10, 2)` holds up to 99 999 999.99.
 
 | Argument | Type | Description |
 |---|---|---|
-| value | numeric \| text | the value to convert to a decimal |
+| value | numeric \| text \| JSON | the value to convert to a decimal |
 | precision | INTEGER | total number of significant digits |
 | scale | INTEGER | number of digits after the decimal point |
 

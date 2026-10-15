@@ -70,6 +70,22 @@ What is specific to postgresql: the rendering column is filled in only where thi
 | lead | window | window | standard |  |  |
 | least | math | scalar | standard |  |  |
 | left | string | scalar | standard |  |  |
+| list | list | scalar | overridden | `ARRAY[value]` |  |
+| list_agg | aggregate | aggregate | overridden | `array_agg(value) FILTER (WHERE value IS NOT NULL)` |  |
+| list_all | lambda | scalar | overridden | `list_all(…) — dialect-specific rendering` |  |
+| list_any | lambda | scalar | overridden | `list_any(…) — dialect-specific rendering` |  |
+| list_avg | list | scalar | overridden | `(SELECT avg(_e::double precision) FROM unnest(list) AS _u(_e))` |  |
+| list_concat | list | scalar | overridden | `array_cat(list, other)` |  |
+| list_contains | list | scalar | overridden | `(list @> ARRAY[value])` |  |
+| list_distinct | list | scalar | overridden | `list_sort(list_distinct(list), 'ASC', 'NULLS LAST')` |  |
+| list_filter | lambda | scalar | overridden | `list_filter(…) — dialect-specific rendering` |  |
+| list_max | list | scalar | overridden | `(SELECT max(_e) FROM unnest(list) AS _u(_e))` |  |
+| list_min | list | scalar | overridden | `(SELECT min(_e) FROM unnest(list) AS _u(_e))` |  |
+| list_reduce | lambda | scalar | unsupported | `—` |  |
+| list_size | list | scalar | overridden | `cardinality(list)` |  |
+| list_sort | list | scalar | overridden | `list_sort(…) — dialect-specific rendering` |  |
+| list_sum | list | scalar | overridden | `(SELECT sum(_e) FROM unnest(list) AS _u(_e))` |  |
+| list_transform | lambda | scalar | overridden | `list_transform(…) — dialect-specific rendering` |  |
 | ln | math | scalar | standard |  |  |
 | log | math | scalar | standard |  |  |
 | log10 | math | scalar | standard |  |  |

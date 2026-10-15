@@ -66,6 +66,22 @@ What is specific to trino: the rendering column is filled in only where this dia
 | lead | window | window | standard |  |  |
 | least | math | scalar | standard |  |  |
 | left | string | scalar | overridden | `substr(string, 1, n)` |  |
+| list | list | scalar | overridden | `ARRAY[value]` |  |
+| list_agg | aggregate | aggregate | overridden | `array_agg(value) FILTER (WHERE value IS NOT NULL)` |  |
+| list_all | lambda | scalar | overridden | `list_all(…) — dialect-specific rendering` |  |
+| list_any | lambda | scalar | overridden | `list_any(…) — dialect-specific rendering` |  |
+| list_avg | list | scalar | overridden | `(SELECT avg(CAST(_e AS DOUBLE)) FROM UNNEST(list) AS _u(_e))` |  |
+| list_concat | list | scalar | overridden | `coalesce(concat(list, other), list, other)` |  |
+| list_contains | list | scalar | overridden | `(array_position(list, value) > 0)` |  |
+| list_distinct | list | scalar | overridden | `array_sort(array_distinct(filter(list, x -> x IS NOT NULL)))` |  |
+| list_filter | lambda | scalar | overridden | `list_filter(…) — dialect-specific rendering` |  |
+| list_max | list | scalar | overridden | `(SELECT max(_e) FROM UNNEST(list) AS _u(_e))` |  |
+| list_min | list | scalar | overridden | `(SELECT min(_e) FROM UNNEST(list) AS _u(_e))` |  |
+| list_reduce | lambda | scalar | overridden | `list_reduce(…) — dialect-specific rendering` |  |
+| list_size | list | scalar | overridden | `cardinality(list)` |  |
+| list_sort | list | scalar | overridden | `list_sort(…) — dialect-specific rendering` |  |
+| list_sum | list | scalar | overridden | `(SELECT sum(_e) FROM UNNEST(list) AS _u(_e))` |  |
+| list_transform | lambda | scalar | overridden | `list_transform(…) — dialect-specific rendering` |  |
 | ln | math | scalar | standard |  |  |
 | log | math | scalar | standard |  |  |
 | log10 | math | scalar | standard |  |  |
@@ -142,7 +158,7 @@ What is specific to trino: the rendering column is filled in only where this dia
 | to_integer | conversion | scalar | standard |  |  |
 | to_number | formatting | scalar | unsupported | `—` |  |
 | to_smallint | conversion | scalar | standard |  |  |
-| to_text | conversion | scalar | overridden | `CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)` |  |
+| to_text | conversion | scalar | overridden | `CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)`<br>`CAST(value AS VARCHAR)` |  |
 | to_time | conversion | scalar | standard |  |  |
 | to_timestamp | conversion | scalar | standard |  |  |
 | to_utc | datetime | scalar | standard |  |  |

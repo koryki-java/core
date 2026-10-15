@@ -66,6 +66,22 @@ What is specific to sqlite: the rendering column is filled in only where this di
 | lead | window | window | standard |  |  |
 | least | math | scalar | overridden | `min(value, more)` |  |
 | left | string | scalar | overridden | `substr(string, 1, n)` |  |
+| list | list | scalar | unsupported | `—` |  |
+| list_agg | aggregate | aggregate | unsupported | `—` |  |
+| list_all | lambda | scalar | unsupported | `—` |  |
+| list_any | lambda | scalar | unsupported | `—` |  |
+| list_avg | list | scalar | unsupported | `—` |  |
+| list_concat | list | scalar | unsupported | `—` |  |
+| list_contains | list | scalar | unsupported | `—` |  |
+| list_distinct | list | scalar | unsupported | `—` |  |
+| list_filter | lambda | scalar | unsupported | `—` |  |
+| list_max | list | scalar | unsupported | `—` |  |
+| list_min | list | scalar | unsupported | `—` |  |
+| list_reduce | lambda | scalar | unsupported | `—` |  |
+| list_size | list | scalar | unsupported | `—` |  |
+| list_sort | list | scalar | unsupported | `—` |  |
+| list_sum | list | scalar | unsupported | `—` |  |
+| list_transform | lambda | scalar | unsupported | `—` |  |
 | ln | math | scalar | standard |  |  |
 | log | math | scalar | standard |  |  |
 | log10 | math | scalar | standard |  |  |

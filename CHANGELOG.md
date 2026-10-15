@@ -121,6 +121,11 @@ All notable changes to this project are documented here.
   a model checks them against the schema: a member is an entry of its concept, no two fields have the
   same name, a notion is a notion of a concept the schema has.
 
+- `FunctionCategory` has `LIST` and `LAMBDA`: the list functions and those that take a lambda have a
+  generated page each, `docs/functions/list.md` and `docs/functions/lambda.md`, which replace the
+  `other.md` they were first generated into. The function and dialect pages are generated again; they
+  had not been since the list functions came in.
+
 ### Changed
 
 - **Breaking: a column has a concept, and nothing else that says its type or its wording.** The

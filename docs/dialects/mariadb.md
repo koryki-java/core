@@ -66,6 +66,22 @@ What is specific to mariadb: the rendering column is filled in only where this d
 | lead | window | window | overridden | `lead(value, offset)`<br>`lead(value, offset, default) — unsupported` |  |
 | least | math | scalar | standard |  |  |
 | left | string | scalar | standard |  |  |
+| list | list | scalar | unsupported | `—` |  |
+| list_agg | aggregate | aggregate | unsupported | `—` |  |
+| list_all | lambda | scalar | unsupported | `—` |  |
+| list_any | lambda | scalar | unsupported | `—` |  |
+| list_avg | list | scalar | unsupported | `—` |  |
+| list_concat | list | scalar | unsupported | `—` |  |
+| list_contains | list | scalar | unsupported | `—` |  |
+| list_distinct | list | scalar | unsupported | `—` |  |
+| list_filter | lambda | scalar | unsupported | `—` |  |
+| list_max | list | scalar | unsupported | `—` |  |
+| list_min | list | scalar | unsupported | `—` |  |
+| list_reduce | lambda | scalar | unsupported | `—` |  |
+| list_size | list | scalar | unsupported | `—` |  |
+| list_sort | list | scalar | unsupported | `—` |  |
+| list_sum | list | scalar | unsupported | `—` |  |
+| list_transform | lambda | scalar | unsupported | `—` |  |
 | ln | math | scalar | standard |  |  |
 | log | math | scalar | standard |  |  |
 | log10 | math | scalar | standard |  |  |
@@ -142,7 +158,7 @@ What is specific to mariadb: the rendering column is filled in only where this d
 | to_integer | conversion | scalar | standard |  |  |
 | to_number | formatting | scalar | unsupported | `—` |  |
 | to_smallint | conversion | scalar | overridden | `CAST(value AS SIGNED)` |  |
-| to_text | conversion | scalar | overridden | `CAST(value AS CHAR)`<br>`CAST(value AS CHAR)`<br>`CAST(value AS CHAR)`<br>`CAST(value AS CHAR)`<br>`CAST(value AS CHAR)`<br>`CAST(value AS CHAR)`<br>`CAST(value AS CHAR)`<br>`CAST(value AS CHAR)`<br>`CAST(value AS CHAR)`<br>`CAST(value AS CHAR)`<br>`CAST(value AS CHAR)`<br>`CAST(value AS CHAR)` |  |
+| to_text | conversion | scalar | overridden | `CAST(value AS CHAR)`<br>`CAST(value AS CHAR)`<br>`CAST(value AS CHAR)`<br>`CAST(value AS CHAR)`<br>`CAST(value AS CHAR)`<br>`CAST(value AS CHAR)`<br>`CAST(value AS CHAR)`<br>`CAST(value AS CHAR)`<br>`CAST(value AS CHAR)`<br>`CAST(value AS CHAR)`<br>`CAST(value AS CHAR)`<br>`CAST(value AS CHAR)`<br>`CAST(value AS CHAR)`<br>`CAST(value AS CHAR)`<br>`CAST(value AS CHAR)` |  |
 | to_time | conversion | scalar | standard |  |  |
 | to_timestamp | conversion | scalar | overridden | `CAST(value AS DATETIME)` |  |
 | to_utc | datetime | scalar | standard |  |  |

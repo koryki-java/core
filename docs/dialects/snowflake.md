@@ -66,6 +66,22 @@ What is specific to snowflake: the rendering column is filled in only where this
 | lead | window | window | standard |  |  |
 | least | math | scalar | standard |  |  |
 | left | string | scalar | standard |  |  |
+| list | list | scalar | overridden | `list_value(value)` |  |
+| list_agg | aggregate | aggregate | overridden | `list(value) FILTER (WHERE value IS NOT NULL)` |  |
+| list_all | lambda | scalar | overridden | `list_all(…) — dialect-specific rendering` |  |
+| list_any | lambda | scalar | overridden | `list_any(…) — dialect-specific rendering` |  |
+| list_avg | list | scalar | overridden | `list_avg(list)` |  |
+| list_concat | list | scalar | overridden | `COALESCE(ARRAY_CAT(list, other), list, other)` |  |
+| list_contains | list | scalar | overridden | `ARRAY_CONTAINS(value, list)` |  |
+| list_distinct | list | scalar | overridden | `ARRAY_SORT(ARRAY_DISTINCT(ARRAY_COMPACT(list)), TRUE, FALSE)` |  |
+| list_filter | lambda | scalar | overridden | `list_filter(…) — dialect-specific rendering` |  |
+| list_max | list | scalar | overridden | `ARRAY_MAX(list)` |  |
+| list_min | list | scalar | overridden | `ARRAY_MIN(list)` |  |
+| list_reduce | lambda | scalar | overridden | `list_reduce(…) — dialect-specific rendering` |  |
+| list_size | list | scalar | overridden | `ARRAY_SIZE(list)` |  |
+| list_sort | list | scalar | overridden | `list_sort(…) — dialect-specific rendering` |  |
+| list_sum | list | scalar | overridden | `list_sum(list)` |  |
+| list_transform | lambda | scalar | overridden | `list_transform(…) — dialect-specific rendering` |  |
 | ln | math | scalar | standard |  |  |
 | log | math | scalar | standard |  |  |
 | log10 | math | scalar | overridden | `LOG(10, value)` |  |

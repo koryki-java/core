@@ -262,6 +262,12 @@ rootProject.allprojects {
     }
 }
 
+// The version a database reported in an earlier run is not evidence for this one: a dialect that
+// is not reached now would still show it. verify clears them first, and the suites write them anew.
+tasks.register('cleanVerification', Delete) {
+    delete subprojects.collect { it.layout.buildDirectory.dir('verification') }
+}
+
 // ./gradlew verify
 //
 // The test run and the record of it as one task: every module's tests run anew (cleanTest, so no
@@ -273,6 +279,7 @@ tasks.register('verify') {
     group = 'verification'
     description = 'Runs all tests and writes docs/verification/<version>.md from the results.'
 
+    dependsOn 'cleanVerification'
     dependsOn {
         subprojects.collectMany { p ->
             p.tasks.matching { it.name == 'test' }.collect { [it, p.tasks.named('cleanTest')] }.flatten()
@@ -285,6 +292,7 @@ tasks.register('verify') {
 subprojects { p ->
     p.tasks.withType(Test).configureEach { t ->
         t.mustRunAfter { p.tasks.named('cleanTest') }
+        t.mustRunAfter rootProject.tasks.named('cleanVerification')
     }
 }
 

@@ -66,6 +66,22 @@ What is specific to mssql: the rendering column is filled in only where this dia
 | lead | window | window | standard |  |  |
 | least | math | scalar | standard |  |  |
 | left | string | scalar | standard |  |  |
+| list | list | scalar | unsupported | `—` |  |
+| list_agg | aggregate | aggregate | unsupported | `—` |  |
+| list_all | lambda | scalar | unsupported | `—` |  |
+| list_any | lambda | scalar | unsupported | `—` |  |
+| list_avg | list | scalar | unsupported | `—` |  |
+| list_concat | list | scalar | unsupported | `—` |  |
+| list_contains | list | scalar | unsupported | `—` |  |
+| list_distinct | list | scalar | unsupported | `—` |  |
+| list_filter | lambda | scalar | unsupported | `—` |  |
+| list_max | list | scalar | unsupported | `—` |  |
+| list_min | list | scalar | unsupported | `—` |  |
+| list_reduce | lambda | scalar | unsupported | `—` |  |
+| list_size | list | scalar | unsupported | `—` |  |
+| list_sort | list | scalar | unsupported | `—` |  |
+| list_sum | list | scalar | unsupported | `—` |  |
+| list_transform | lambda | scalar | unsupported | `—` |  |
 | ln | math | scalar | overridden | `LOG(value)` |  |
 | log | math | scalar | overridden | `LOG(value, base)` |  |
 | log10 | math | scalar | standard |  |  |
@@ -142,7 +158,7 @@ What is specific to mssql: the rendering column is filled in only where this dia
 | to_integer | conversion | scalar | overridden | `CAST(ROUND(value, 0) AS INT)` |  |
 | to_number | formatting | scalar | unsupported | `—` |  |
 | to_smallint | conversion | scalar | overridden | `CAST(ROUND(value, 0) AS SMALLINT)` |  |
-| to_text | conversion | scalar | overridden | `CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))` |  |
+| to_text | conversion | scalar | overridden | `CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))`<br>`CAST(value AS VARCHAR(MAX))` |  |
 | to_time | conversion | scalar | standard |  |  |
 | to_timestamp | conversion | scalar | overridden | `CAST(value AS DATETIME2)` |  |
 | to_utc | datetime | scalar | standard |  |  |
