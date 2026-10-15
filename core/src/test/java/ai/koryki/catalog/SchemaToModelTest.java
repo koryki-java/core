@@ -23,6 +23,7 @@ import ai.koryki.catalog.domain.Attribute;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Concept;
+import ai.koryki.catalog.schema.Entry;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.schema.Table;
 import java.util.ArrayList;
@@ -89,5 +90,72 @@ class SchemaToModelTest {
         assertNull(attribute.getLabel());
         assertNull(attribute.getComment());
         assertNull(attribute.getDescription());
+    }
+
+    private static Concept leaf(String family, String label) {
+        Concept leaf = new Concept();
+        leaf.setTypeFamily(family);
+        leaf.setLabel(label);
+        return leaf;
+    }
+
+    private static Concept struct(String label, Object... keyAndEntry) {
+        Concept struct = leaf("STRUCT", label);
+        java.util.Map<String, Entry> entries = new java.util.LinkedHashMap<>();
+        for (int i = 0; i < keyAndEntry.length; i += 2) {
+            entries.put((String) keyAndEntry[i], (Entry) keyAndEntry[i + 1]);
+        }
+        struct.setEntries(entries);
+        return struct;
+    }
+
+    /**
+     * The wording of the parts of a nested column is the wording of the members of the draft model,
+     * so a model of another language has something to say again in its own words: the label of a
+     * part is in the schema only in the language the schema was written in.
+     */
+    @Test
+    void theWordingOfThePartsOfAColumnIsTheWordingOfItsMembers() {
+        Concept lat = leaf("FLOAT", "Latitude");
+        lat.setDescription("Degrees north");
+        Column address = new Column("address");
+        address.setConcept(
+                struct(
+                        "Address",
+                        "street",
+                        Entry.of(leaf("TEXT", "Street")),
+                        "geo",
+                        Entry.of(struct("Position", "lat", Entry.of(lat))),
+                        "kind",
+                        Entry.of("VARCHAR")));
+
+        Attribute attribute = attribute(schema(address), "address");
+
+        assertEquals(List.of("street", "geo"), List.copyOf(attribute.getMembers().keySet()));
+        assertEquals("Street", attribute.getMembers().get("street").getLabel());
+        assertNull(attribute.getMembers().get("street").getName());
+        assertEquals("Position", attribute.getMembers().get("geo").getLabel());
+        assertEquals(
+                "Degrees north",
+                attribute.getMembers().get("geo").getMembers().get("lat").getDescription());
+    }
+
+    @Test
+    void aSharedConceptIsANotionAndItsColumnsLeaveTheMembersToIt() {
+        Concept point = struct("Position", "lat", Entry.of(leaf("FLOAT", "Latitude")));
+        point.setComment("a point on earth");
+        Column pos = new Column("pos");
+        pos.setConceptRef("point");
+        Schema schema = schema(pos);
+        schema.setConcepts(new java.util.LinkedHashMap<>(java.util.Map.of("point", point)));
+
+        Model model = SchemaToModel.convert(schema);
+
+        assertEquals("Position", model.getNotions().get("point").getLabel());
+        assertEquals("a point on earth", model.getNotions().get("point").getComment());
+        assertEquals(
+                "Latitude", model.getNotions().get("point").getMembers().get("lat").getLabel());
+        assertNull(attribute(schema, "pos").getMembers());
+        new MemberNames(schema, model).check();
     }
 }
