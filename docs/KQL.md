@@ -15,6 +15,7 @@
 | `KQLFormatter` | Round-trips a KQL parse tree back to formatted KQL text, with optional name translation                         |
 | `Generator` | KQL without a database: validate, format, transpile to SQL, resolve the output columns — what a query generator needs |
 | `Engine` | Top-level runtime façade: a `Generator` that also executes against a database, passing the result to a ResultConsumer |
-| `Translator` | Name-translation contract (domain names → DB names, or identity)                                                |
+| `Translator` | Name-translation contract (domain names → DB names, or identity), for the names of selectors as well as those of entities and attributes |
+| `DictionaryTranslator` | A `Translator` made from two models and the schema: it translates where either model names the entity, attribute or struct field |
 
 
