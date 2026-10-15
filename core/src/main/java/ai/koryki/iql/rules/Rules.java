@@ -47,7 +47,7 @@ public class Rules {
         new HavingRule(query).apply();
         new GroupRule(query, iqlToContext).apply();
         new IdentityRule(blockIdToLeadingTableMap, resolver, iqlToContext).apply(query);
-        new SelectorNamesRule(blockIdToLeadingTableMap, resolver).apply(query);
+        new SelectorNamesRule(resolver).apply(query);
         new PushLogicalExpressionRule().apply(query);
         new PushGroupRule().apply(query);
         new PushOrderRule().apply(query);

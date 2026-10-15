@@ -19,8 +19,6 @@ package ai.koryki.kql;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ai.koryki.catalog.CatalogLoader;
-import ai.koryki.catalog.SchemaToModel;
 import ai.koryki.catalog.domain.Member;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Schema;
@@ -51,8 +49,9 @@ class SelectorNamesTest {
     }
 
     private static LinkResolver german() {
-        Schema schema = CatalogLoader.db(ComplexService.DB);
-        Model model = SchemaToModel.convert(schema);
+        LinkResolver bed = ComplexService.resolver();
+        Schema schema = bed.getSchema();
+        Model model = bed.getModel();
         Member geo = new Member("position");
         geo.setMembers(members("lat", new Member("breitengrad"), "lon", new Member("laengengrad")));
         model.getEntity("check_complex")
@@ -89,6 +88,52 @@ class SelectorNamesTest {
         String actual = sql(expression);
 
         assertTrue(actual.contains(expected), () -> expected + " not in: " + actual);
+    }
+
+    /** The whole SQL of a query, for the cases where the SELECT list is not what is asked. */
+    private static String query(String kql) {
+        return KQLTranspiler.builder(kql, german())
+                .functions(DuckdbBaseDialect.INSTANCE.getFunctionRenderer())
+                .build()
+                .getSql(new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, ZoneId.of("UTC")));
+    }
+
+    @Test
+    void aNameOfTheModelIsFollowedThroughABlock() {
+        String sql =
+                query(
+                        """
+                        WITH b AS (FIND check_complex t FETCH t.nr n, t.address a)
+                        FIND b x FETCH x.a@position@breitengrad
+                        """);
+
+        assertTrue(sql.contains("['geo']['lat']"), sql);
+    }
+
+    @Test
+    void aNameOfTheModelIsFollowedThroughABlockOverABlock() {
+        String sql =
+                query(
+                        """
+                        WITH b AS (FIND check_complex t FETCH t.nr n, t.address a),
+                             c AS (FIND b y FETCH y.n m, y.a z)
+                        FIND c x FETCH x.z@position@breitengrad
+                        """);
+
+        assertTrue(sql.contains("['geo']['lat']"), sql);
+    }
+
+    @Test
+    void aNameOfTheModelIsTranslatedInsideAnExists() {
+        String sql =
+                query(
+                        """
+                        FIND check_complex_items i
+                        FILTER EXISTS (i VIA items_of_check_complex check_complex c FILTER c.address@position@breitengrad > 1)
+                        FETCH i.sku
+                        """);
+
+        assertTrue(sql.contains("['geo']['lat']"), sql);
     }
 
     @Test
