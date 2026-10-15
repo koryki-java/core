@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented here.
 
-## [unreleased]
+## [0.3.0] - 2026-10-15
 
 ### Added
 
@@ -129,9 +129,10 @@ All notable changes to this project are documented here.
   the old fields no longer loads; rewrite it with `MigrateCatalogs`, which is in the history of
   this repository before the fields were removed (find it with `git log -S MigrateCatalogs`; it ran
   as `./gradlew :tools:migrateCatalogs`). `TypeDescriptorParser.parse(Column)` is `parse(where, family, encoding, dialectType)` for a
-  scalar; the containers are typed by `ConceptResolver`. This release needs the catalogs of
-  `koryki-northwind` 0.2.3 and a `koryki-derivation` that reads concepts; with the released
-  derivation or the catalogs of `koryki-northwind` 0.2.1 or older it does not work.
+  scalar; the containers are typed by `ConceptResolver`. This release reads the catalogs of
+  `koryki-northwind` 0.2.2 and later (it is built and tested with 0.3.0) and needs a
+  `koryki-derivation` that reads concepts; with the released derivation, or the catalogs of
+  `koryki-northwind` 0.2.1 or older, it does not work.
 
 - For dialect authors: a step of a selector keeps the name as it was written, `Selector.written()`,
   and says the entry of the schema it goes to, `Selector.key()`, which differs where a model gives a
@@ -338,7 +339,7 @@ and signed in CI with an in-memory PGP key and published to Maven Central throug
 Portal; [`docs/RELEASES.md`](./docs/RELEASES.md) shows how to verify a download against the
 signing key.
 
-[Unreleased]: https://github.com/koryki-java/core/compare/v0.2.1...HEAD
+[0.3.0]: https://github.com/koryki-java/core/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/koryki-java/core/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/koryki-java/core/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/koryki-java/core/releases/tag/v0.1.0
