@@ -89,7 +89,7 @@ public final class ConceptNodes {
      */
     public List<Concept> fields(Concept struct) {
         List<Concept> found = new ArrayList<>();
-        if ("STRUCT".equals(struct.getTypeFamily()) && struct.getEntries() != null) {
+        if (CoreTypeFamily.STRUCT.is(struct.getTypeFamily()) && struct.getEntries() != null) {
             struct.getEntries().values().forEach(entry -> found.add(resolve(entry)));
         }
         return found;
@@ -102,11 +102,11 @@ public final class ConceptNodes {
         boolean json = "JSON".equals(node.getTypeEncoding());
         boolean named = step.getId() != null || step.getName() != null;
         String name = step.key();
-        if ("STRUCT".equals(node.getTypeFamily())) {
+        if (CoreTypeFamily.STRUCT.is(node.getTypeFamily())) {
             return json && !named ? null : field(node, step, named, name);
-        } else if ("ARRAY".equals(node.getTypeFamily())) {
+        } else if (CoreTypeFamily.ARRAY.is(node.getTypeFamily())) {
             return json && named ? null : entry(node, "element").orElse(null);
-        } else if ("MAP".equals(node.getTypeFamily())) {
+        } else if (CoreTypeFamily.MAP.is(node.getTypeFamily())) {
             return json && !named && !integerKeys(node) ? null : entry(node, "value").orElse(null);
         }
         return null;

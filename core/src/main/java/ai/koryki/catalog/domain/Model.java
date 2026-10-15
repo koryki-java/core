@@ -119,19 +119,19 @@ public class Model {
         this.notions = notions;
     }
 
-    public static Model deepCopy(Model Locale) {
+    public static Model deepCopy(Model source) {
         Model copy = new Model();
-        copy.setName(Locale.getName());
-        copy.setLabel(Locale.getLabel());
-        copy.setComment(Locale.getComment());
-        copy.setDescription(Locale.getDescription());
-        copy.setName(Locale.getName());
+        copy.setName(source.getName());
+        copy.setLabel(source.getLabel());
+        copy.setComment(source.getComment());
+        copy.setDescription(source.getDescription());
+        copy.setName(source.getName());
         copy.setEntities(
-                Locale.getEntities().stream().map(Model::deepCopy).collect(Collectors.toList()));
-        copy.setLinks(Locale.getLinks().stream().map(Model::deepCopy).collect(Collectors.toList()));
-        if (Locale.getNotions() != null) {
+                source.getEntities().stream().map(Model::deepCopy).collect(Collectors.toList()));
+        copy.setLinks(source.getLinks().stream().map(Model::deepCopy).collect(Collectors.toList()));
+        if (source.getNotions() != null) {
             Map<String, Notion> notions = new LinkedHashMap<>();
-            Locale.getNotions().forEach((name, notion) -> notions.put(name, deepCopy(notion)));
+            source.getNotions().forEach((name, notion) -> notions.put(name, deepCopy(notion)));
             copy.setNotions(notions);
         }
         return copy;

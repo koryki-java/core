@@ -25,6 +25,7 @@ import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Entry;
 import ai.koryki.catalog.schema.Schema;
+import ai.koryki.catalog.types.CoreTypeFamily;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -81,7 +82,8 @@ public final class MemberNames {
          * order; none for any other concept.
          */
         public List<String> keys() {
-            return concept.getEntries() == null || !"STRUCT".equals(concept.getTypeFamily())
+            return concept.getEntries() == null
+                            || !CoreTypeFamily.STRUCT.is(concept.getTypeFamily())
                     ? List.of()
                     : new ArrayList<>(concept.getEntries().keySet());
         }
@@ -124,16 +126,16 @@ public final class MemberNames {
             String family = concept.getTypeFamily();
             if (name != null) {
                 return physical(name);
-            } else if ("STRUCT".equals(family)) {
+            } else if (CoreTypeFamily.STRUCT.is(family)) {
                 List<String> keys = keys();
                 if (index == null) {
                     return Optional.empty();
                 }
                 int i = index > 0 ? index - 1 : keys.size() + index;
                 return i >= 0 && i < keys.size() ? Optional.of(keys.get(i)) : Optional.empty();
-            } else if ("ARRAY".equals(family)) {
+            } else if (CoreTypeFamily.ARRAY.is(family)) {
                 return Optional.of("element");
-            } else if ("MAP".equals(family)) {
+            } else if (CoreTypeFamily.MAP.is(family)) {
                 return Optional.of("value");
             }
             return Optional.empty();
