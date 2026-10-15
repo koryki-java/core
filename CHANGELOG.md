@@ -132,7 +132,7 @@ All notable changes to this project are documented here.
   this repository before the fields were removed (find it with `git log -S MigrateCatalogs`; it ran
   as `./gradlew :tools:migrateCatalogs`). `TypeDescriptorParser.parse(Column)` is `parse(where, family, encoding, dialectType)` for a
   scalar; the containers are typed by `ConceptResolver`. This release reads the catalogs of
-  `koryki-northwind` 0.2.2 and later (it is built and tested with 0.3.0) and needs a
+  `koryki-northwind` 0.2.2 and later (it is built and tested with 0.2.3) and needs a
   `koryki-derivation` that reads concepts; with the released derivation, or the catalogs of
   `koryki-northwind` 0.2.1 or older, it does not work.
 
