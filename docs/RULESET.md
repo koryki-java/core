@@ -241,51 +241,70 @@ When query blocks (CTEs) are linked to other tables, required join columns must 
 ### Example
 
 ```
-    // find the sum of unit_price * quantity for orders
-    // order by sum and limit result to first row
-    // join with employees and return last_name, first_name and phone number
-    
-    
+    // find the customer with the highest sales: the sum of unit_price * quantity of its orders,
+    // order by sum and limit the result to the first row
+
     WITH sales AS (
     FIND orders o, o order_details d
-    FETCH sum(d.unit_price * d.quantity) sum DESC
+    FETCH sum(d.unit_price * d.quantity) total DESC
     LIMIT 1
     )
-    FIND employees e, e sales s
-    FETCH e.last_name, e.first_name, e.home_phone
+    FIND customers c, c sales s
+    FETCH c.company_name, s.total
 ```
 
-The `sales` query block is linked to `employees`.
-Therefore, the join column `o.employee_id` must be added automatically to the block.
+The `sales` query block is linked to `customers`.
+Therefore, the join column `o.customer_id` must be added automatically to the block.
+
+The column has to be one the model gives the entity as an attribute: the rule adds it as a field of the
+block's leading entity, and a model that leaves the foreign key out (the English northwind model has no
+`employee_id` on `orders`) refuses the query with `schema.unknown-column`, at the entity the block starts
+from. Return such a column in the block yourself, or give the entity the attribute.
 
 ### Expected SQL
 
 ```
-    WITH sales AS (
+    WITH sales (total, customer_id) AS (
     SELECT
-      sum(d.unit_price * d.quantity) AS sum
-    , o.employee_id
+      sum(d.unit_price * d.quantity) AS total
+    , o.customer_id
     FROM
      orders o
       INNER JOIN order_details d ON
        o.order_id = d.order_id
     GROUP BY
-      o.employee_id
+      o.customer_id
     ORDER BY
-      sum DESC
+      sum(d.unit_price * d.quantity) DESC
     FETCH FIRST 1 ROWS ONLY
     )
     SELECT
-      e.last_name
-    , e.first_name
-    , e.home_phone
+      c.company_name
+    , s.total
     FROM
-     employees e
+     customers c
       INNER JOIN sales s ON
-       e.employee_id = s.employee_id
+       c.customer_id = s.customer_id
 ```
 
 Without automatic inference of the join column, the `JOIN` condition in the outer query would be invalid.
+
+---
+
+## 7. Selector Names
+
+**Rule:** `SelectorNamesRule`
+
+A selector names a field of a struct, and a model can give the fields the words of its language:
+`t.address@breitengrad` under the German model is the field `latitude` of the column. The rule runs after
+the `IdentityRule` and rewrites each field name from the language of the model to the key of the column's
+concept, so that the validators and the renderers speak physical keys only.
+
+The base of the selector may be a field of a table, of a block (the rule follows it to the column the
+block projects) or of a source inside an `EXISTS`. A name the model does not know stays as written, and so
+does any other base, a function result or a computed output: a name the language does not translate is a
+physical key, which is what a query wrote before models had member names. See
+[Members and notions](MEMBERS_AND_NOTIONS.md).
 
 ---
 

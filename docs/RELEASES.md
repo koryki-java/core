@@ -38,8 +38,8 @@ with `<verify-signatures>true</verify-signatures>`: add the key to `<trusted-key
 
 ## What a release is tested on
 
-The continuous integration runs without databases, so most dialects are verified by hand before a
-release, and the result is recorded by `./gradlew verify`: [`VERIFICATION.md`](./VERIFICATION.md) says
+The continuous integration runs without databases, so most dialects are verified before a
+release, on a machine that reaches the databases, and the result is recorded by `./gradlew verify`: [`VERIFICATION.md`](./VERIFICATION.md) says
 how, and `verification/<version>.md` is the record of each release.
 
 ## What protects the release path

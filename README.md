@@ -109,6 +109,7 @@ Releases are signed — [`docs/RELEASES.md`](./docs/RELEASES.md) shows how to ve
 ## Sub Projects
 
 - **core**: the koryki core library
+- **kqlcore**: the KQL grammar and parser, which `core` exposes through `api`
 - **duckdb**: DuckDB dialect
 - **mariadb**: MariaDB dialect
 - **mssql**: Microsoft SQL Server dialect

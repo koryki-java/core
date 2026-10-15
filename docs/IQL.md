@@ -38,7 +38,7 @@ Validator                 — Optional semantic validation, throws ValidatExcept
    │                        
    │
    ▼
-VisibilityContext          — Builds scoped alias→Source lookup tables
+IQLVisibilityContext        — Builds scoped alias→Source lookup tables
    │
    ▼
 SqlRenderer               — Renders the bean model to a SQL string
@@ -92,7 +92,7 @@ Query
 | `Lambda` | The parameters and the body of a lambda argument; only ever an argument of a `Function` |
 | `Out` / `Group` / `Order` | SELECT list item / GROUP BY item / ORDER BY item |
 
-Every bean created by `IQL2Bean` is registered in a `Map<Object, RuleContext>` that maps each bean back to its source parse-tree node. This allows all downstream stages (validation, SQL rendering) to produce error messages with precise source-text locations.
+Every bean created by `IQLQueryMapper` is registered in a `Map<Object, RuleContext>` that maps each bean back to its source parse-tree node. This allows all downstream stages (validation, SQL rendering) to produce error messages with precise source-text locations.
 
 ---
 
@@ -131,7 +131,7 @@ All internal analysis passes — alias collection, recursion detection, validati
 
 SQL generation is split across two levels, matching the two levels of the IQL grammar:
 
-**`SqlRenderer`** (interface) — the top-level contract. Accepts the full `Query`, a `LinkResolver`, a `VisibilityContext`, and the parse-node mapping. Implemented by `SqlQueryRenderer`.
+**`SqlRenderer`** (interface) — the top-level contract. Accepts the full `Query`, a `LinkResolver`, an `IQLVisibilityContext`, and the parse-node mapping. Implemented by `SqlQueryRenderer`.
 
 **`SqlQueryRenderer`** — handles the outer structure
 
@@ -182,20 +182,23 @@ The rules pipeline is applied **only on the KQL path** (via `KQLTranspiler`) bef
 | 3 | `HavingRule` | Moves predicates containing aggregate functions from `select.filter` to `select.having` |
 | 4 | `GroupRule` | Auto-generates `GROUP BY` items from non-aggregate `OUT` expressions when aggregates are present |
 | 5 | `IdentityRule` | Replaces the `ID` identity placeholder with the actual primary-key column, resolved from the schema |
-| 6 | `PushLogicalExpressionRule` | Moves filter/having predicates that reference only one source into that source's own `filter`/`having` (critical for correctness of LEFT OUTER JOINs) |
-| 7 | `PushGroupRule` | Moves `select.group` items into the corresponding `source.group` |
-| 8 | `PushOrderRule` | Moves `select.order` items into the corresponding `source.order` |
-| 9 | `CheckOuterJoinFilterRule` | Validates that no predicate on an outer-joined (optional) source remains in the top-level `select.filter`, which would silently convert it to an inner join |
+| 6 | `SelectorNamesRule` | Translates the names of struct fields in selectors from the words of the model to the keys of the column's concept (`t.address@breitengrad` to `t.address@latitude`) |
+| 7 | `PushLogicalExpressionRule` | Moves filter/having predicates that reference only one source into that source's own `filter`/`having` (critical for correctness of LEFT OUTER JOINs) |
+| 8 | `PushGroupRule` | Moves `select.group` items into the corresponding `source.group` |
+| 9 | `PushOrderRule` | Moves `select.order` items into the corresponding `source.order` |
+| 10 | `CheckOuterJoinFilterRule` | Validates that no predicate on an outer-joined (optional) source remains in the top-level `select.filter`, which would silently convert it to an inner join |
 
 
 
 ### Validation (`validate/`)
 
-Semantic validation is run after bean construction and before SQL generation. `Validator` orchestrates two passes via `Walker`:
+Semantic validation is run after bean construction and before SQL generation. `Validator` runs its checks one after the other, each as a `Walker` pass:
 
 **`FunctionValidator`** — detects structurally invalid expressions: an expression that simultaneously contains an aggregate function (e.g., `SUM`, `COUNT`) and a raw column reference is flagged, as this cannot be correctly classified as either a SELECT item or a HAVING predicate.
 
 **`SelectorValidator`** and **`LambdaValidator`** — check selector chains against the type of the value they select from, and lambda parameters, arity and body against the function that takes them (see [Nested values](#nested-values-selections-and-lambdas)).
+
+**`DurationValidator`** and **`DurationValueValidator`** — check interval and duration arithmetic (the second once a dialect is known), and **`NestedSupportValidator`** refuses a use of nested values that the dialect declares it cannot express (see [NESTED.md](NESTED.md)).
 
 **`SchemaValidator`** — verifies all names referenced in the query exist in the configured model/schema:
 - Each `Source` name must correspond to a known entity or a declared CTE block ID
