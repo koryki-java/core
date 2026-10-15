@@ -20,6 +20,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import ai.koryki.catalog.CatalogLoader;
+import ai.koryki.catalog.SchemaToModel;
+import ai.koryki.catalog.WordingAudit;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Concept;
@@ -30,6 +33,7 @@ import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeDescriptorParser;
 import ai.koryki.catalog.types.TypeSyntax;
+import ai.koryki.databases.complex.duckdb.ComplexService;
 import ai.koryki.tools.flatten.FlattenViews.Dialect;
 import ai.koryki.tools.flatten.FlattenViews.View;
 import java.util.ArrayList;
@@ -524,5 +528,40 @@ class FlattenViewsTest {
         assertEquals("Key of the row the element belongs to", key.getDescription());
         assertEquals("INTEGER", key.getTypeFamily());
         assertEquals("INTEGER", key.getDialectType());
+    }
+
+    /**
+     * What a generated view says in the model is what its schema says: the label, comment and
+     * description of each column of the view, taken from the element it flattens. A model drafted
+     * from the catalog and merged with its views leaves no word to the schema.
+     */
+    @Test
+    void theViewsOfTheComplexBedSayInTheModelWhatTheirSchemaSays() {
+        Schema db = CatalogLoader.db(ComplexService.DB);
+        // a field of the elements that has a comment as well as a label
+        db.getTable("check_complex")
+                .orElseThrow()
+                .getColumn("items")
+                .orElseThrow()
+                .getConcept()
+                .getEntries()
+                .get("element")
+                .getConcept()
+                .getEntries()
+                .get("sku")
+                .getConcept()
+                .setComment("The stock keeping unit.");
+        Model model = SchemaToModel.convert(db);
+        List<View> views =
+                FlattenViews.of(db, "check_complex", Dialect.DUCKDB, "tags", "items", "events");
+
+        FlattenViews.merge(db, model, views);
+
+        List<WordingAudit.Gap> missing =
+                WordingAudit.audit(db, model).stream()
+                        .filter(g -> g.kind() == WordingAudit.Kind.MISSING)
+                        .toList();
+        assertEquals(List.of(), missing);
+        assertTrue(views.size() >= 3);
     }
 }

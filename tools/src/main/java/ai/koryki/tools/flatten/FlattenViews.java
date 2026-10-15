@@ -389,6 +389,7 @@ public final class FlattenViews {
         for (Column c : columns) {
             Attribute attribute = new Attribute(c.getName());
             attribute.setLabel(c.getConcept().getLabel());
+            attribute.setComment(c.getConcept().getComment());
             attribute.setDescription(c.getConcept().getDescription());
             attributes.add(attribute);
         }
