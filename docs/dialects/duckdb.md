@@ -70,7 +70,22 @@ What is specific to duckdb: the rendering column is filled in only where this di
 | lead | window | window | standard |  |  |
 | least | math | scalar | standard |  |  |
 | left | string | scalar | standard |  |  |
-| list | other | scalar | native | `[value]` |  |
+| list | other | scalar | overridden | `list_value(value)`<br>`[value]` |  |
+| list_agg | aggregate | aggregate | overridden | `list(value) FILTER (WHERE value IS NOT NULL)` |  |
+| list_all | other | scalar | overridden | `list_all(…) — dialect-specific rendering` |  |
+| list_any | other | scalar | overridden | `list_any(…) — dialect-specific rendering` |  |
+| list_avg | other | scalar | overridden | `list_avg(list)` |  |
+| list_concat | other | scalar | overridden | `CASE WHEN list IS NULL AND other IS NULL THEN NULL ELSE list_concat(list, other) END` |  |
+| list_contains | other | scalar | overridden | `list_contains(list, value)` |  |
+| list_distinct | other | scalar | overridden | `list_sort(list_distinct(list), 'ASC', 'NULLS LAST')` |  |
+| list_filter | other | scalar | overridden | `list_filter(list, function)` |  |
+| list_max | other | scalar | overridden | `list_max(list)` |  |
+| list_min | other | scalar | overridden | `list_min(list)` |  |
+| list_reduce | other | scalar | overridden | `list_reduce(list, function)` |  |
+| list_size | other | scalar | overridden | `len(list)` |  |
+| list_sort | other | scalar | overridden | `list_sort(…) — dialect-specific rendering` |  |
+| list_sum | other | scalar | overridden | `list_sum(list)` |  |
+| list_transform | other | scalar | overridden | `list_transform(list, function)` |  |
 | ln | math | scalar | standard |  |  |
 | log | math | scalar | standard |  |  |
 | log10 | math | scalar | standard |  |  |

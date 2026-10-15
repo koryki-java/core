@@ -66,6 +66,22 @@ What is specific to oracle: the rendering column is filled in only where this di
 | lead | window | window | standard |  |  |
 | least | math | scalar | standard |  |  |
 | left | string | scalar | overridden | `SUBSTR(string, 1, n)` |  |
+| list | other | scalar | overridden | `list_value(value)` |  |
+| list_agg | aggregate | aggregate | overridden | `list(value) FILTER (WHERE value IS NOT NULL)` |  |
+| list_all | other | scalar | overridden | `list_all(…) — dialect-specific rendering` |  |
+| list_any | other | scalar | overridden | `list_any(…) — dialect-specific rendering` |  |
+| list_avg | other | scalar | overridden | `(SELECT CAST(AVG(COLUMN_VALUE) AS BINARY_DOUBLE) FROM TABLE(list))` |  |
+| list_concat | other | scalar | overridden | `CASE WHEN list IS NULL AND other IS NULL THEN NULL ELSE list_concat(list, other) END` |  |
+| list_contains | other | scalar | overridden | `CASE WHEN list IS NULL THEN NULL ELSE ((SELECT COUNT(*) FROM TABLE(list) WHERE COLUMN_VALUE = value) > 0) END` |  |
+| list_distinct | other | scalar | overridden | `list_sort(list_distinct(list), 'ASC', 'NULLS LAST')` |  |
+| list_filter | other | scalar | overridden | `list_filter(…) — dialect-specific rendering` |  |
+| list_max | other | scalar | overridden | `(SELECT MAX(COLUMN_VALUE) FROM TABLE(list))` |  |
+| list_min | other | scalar | overridden | `(SELECT MIN(COLUMN_VALUE) FROM TABLE(list))` |  |
+| list_reduce | other | scalar | unsupported | `—` |  |
+| list_size | other | scalar | overridden | `CASE WHEN list IS NULL THEN NULL ELSE (SELECT COUNT(*) FROM TABLE(list)) END` |  |
+| list_sort | other | scalar | overridden | `list_sort(…) — dialect-specific rendering` |  |
+| list_sum | other | scalar | overridden | `(SELECT SUM(COLUMN_VALUE) FROM TABLE(list))` |  |
+| list_transform | other | scalar | overridden | `list_transform(…) — dialect-specific rendering` |  |
 | ln | math | scalar | standard |  |  |
 | log | math | scalar | standard |  |  |
 | log10 | math | scalar | overridden | `LOG(10, value)` |  |
@@ -143,7 +159,7 @@ What is specific to oracle: the rendering column is filled in only where this di
 | to_interval | other | scalar | native | `to_interval(…) — dialect-specific rendering`<br>`to_interval(…) — dialect-specific rendering` |  |
 | to_number | formatting | scalar | standard |  |  |
 | to_smallint | conversion | scalar | standard |  |  |
-| to_text | conversion | scalar | overridden | `CAST(value AS VARCHAR(4000))`<br>`CAST(value AS VARCHAR(4000))`<br>`CAST(value AS VARCHAR(4000))`<br>`CAST(value AS VARCHAR(4000))`<br>`CAST(value AS VARCHAR(4000))`<br>`CAST(value AS VARCHAR(4000))`<br>`TO_CHAR(value, 'TM9', 'NLS_NUMERIC_CHARACTERS = ''.,''')`<br>`TO_CHAR(value, 'TM9', 'NLS_NUMERIC_CHARACTERS = ''.,''')`<br>`TO_CHAR(value, 'TM9', 'NLS_NUMERIC_CHARACTERS = ''.,''')`<br>`TO_CHAR(value, 'YYYY-MM-DD')`<br>`TO_CHAR(value, 'HH24:MI:SS')`<br>`TO_CHAR(value, 'YYYY-MM-DD HH24:MI:SS')` |  |
+| to_text | conversion | scalar | overridden | `CAST(value AS VARCHAR(4000))`<br>`CAST(value AS VARCHAR(4000))`<br>`CAST(value AS VARCHAR(4000))`<br>`CAST(value AS VARCHAR(4000))`<br>`CAST(value AS VARCHAR(4000))`<br>`CAST(value AS VARCHAR(4000))`<br>`CAST(value AS VARCHAR(4000))`<br>`CAST(value AS VARCHAR(4000))`<br>`CAST(value AS VARCHAR(4000))`<br>`TO_CHAR(value, 'TM9', 'NLS_NUMERIC_CHARACTERS = ''.,''')`<br>`TO_CHAR(value, 'TM9', 'NLS_NUMERIC_CHARACTERS = ''.,''')`<br>`TO_CHAR(value, 'TM9', 'NLS_NUMERIC_CHARACTERS = ''.,''')`<br>`TO_CHAR(value, 'YYYY-MM-DD')`<br>`TO_CHAR(value, 'HH24:MI:SS')`<br>`TO_CHAR(value, 'YYYY-MM-DD HH24:MI:SS')` |  |
 | to_time | conversion | scalar | overridden | `to_time(…) — dialect-specific rendering`<br>`to_time(…) — dialect-specific rendering`<br>`LPAD(hour, 2, '0') \|\| ':' \|\| LPAD(minute, 2, '0') \|\| ':' \|\| LPAD(second, 2, '0')` |  |
 | to_timestamp | conversion | scalar | overridden | `CAST(value AS TIMESTAMP)`<br>`TO_TIMESTAMP(value, format)`<br>`FROM_TZ(TO_TIMESTAMP(value, format), 'UTC') AT TIME ZONE tz`<br>`TO_TIMESTAMP(year \|\| '-' \|\| month \|\| '-' \|\| day \|\| ' ' \|\| hour \|\| ':' \|\| minute \|\| ':' \|\| second, 'YYYY-MM-DD HH24:MI:SS')`<br>`FROM_TZ(TO_TIMESTAMP(year \|\| '-' \|\| month \|\| '-' \|\| day \|\| ' ' \|\| hour \|\| ':' \|\| minute \|\| ':' \|\| second, 'YYYY-MM-DD HH24:MI:SS'), 'UTC') AT TIME ZONE tz` |  |
 | to_utc | datetime | scalar | standard |  |  |

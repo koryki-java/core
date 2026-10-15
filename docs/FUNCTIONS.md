@@ -71,6 +71,7 @@ where it costs nothing in the database.
 | [Aggregate](functions/aggregate.md)               | `count`, `avg`, `sum`, `min`, `max`, `string_agg`                                                 |
 | [Type conversion](functions/conversion.md)        | `to_date`, `to_timestamp`, `to_integer`, `to_decimal`, `to_text`, …                               |
 | [Window functions](functions/window.md)           | `dense_rank`, `lag`, `lead`, `ntile`, `rank`, …                                                   |
+| [Lists](functions/other.md)                       | `list_size`, `list_contains`, `list_sum`, `list_transform`, `list_filter`, `list_agg`, …          |
 
 ## Per-dialect support
 

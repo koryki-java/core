@@ -485,3 +485,16 @@ GROUP BY
 
 Unsupported: **mariadb**, **mssql**, **sqlite**, **trino**
 
+
+## list_agg
+
+`list_agg(value: any)` → argument-dependent *(aggregate)*
+
+Collects the values of the group into a list, NULL values left out. The order is **unspecified**: sort the list to compare it.
+
+Operands: any type.
+
+### Generated SQL
+
+Unsupported: **mariadb**, **mssql**, **sqlite**
+
