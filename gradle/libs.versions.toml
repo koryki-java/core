@@ -11,7 +11,7 @@ koryki-northwind = "0.2.3"
 
 duckdb = "1.5.5.0"
 h2database = "2.5.252"
-postgresql = "42.7.13"
+postgresql = "42.7.14"
 snowflake = "4.4.0"
 oracle = "23.26.3.0.0"
 trino = "483"
