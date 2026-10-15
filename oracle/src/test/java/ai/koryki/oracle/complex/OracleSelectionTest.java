@@ -60,7 +60,8 @@ class OracleSelectionTest {
             delimiter = '|',
             value = {
                 // an element: a scalar subquery over TABLE(), numbered by ROWNUM
-                "t.tags@2|(SELECT E1.V FROM (SELECT COLUMN_VALUE V, ROWNUM RN FROM TABLE(t.tags) Z) E1 WHERE E1.RN = 2)",
+                "t.tags@2|(SELECT E1.V FROM (SELECT COLUMN_VALUE V, ROWNUM RN FROM TABLE(t.tags) Z) E1 WHERE E1.RN = 2 AND t.tags IS NOT NULL)",
+                // the guard keeps an empty collection from answering with an earlier row's element
                 // from the end: the size is COUNT(*), CARDINALITY is for nested tables only
                 "t.tags@-1|E1.RN = (SELECT COUNT(*) FROM TABLE(t.tags)) - 1 + 1",
                 // a range is a collection again, of a generic type, and NULL for a NULL list
@@ -72,8 +73,8 @@ class OracleSelectionTest {
                 "t.address@geo@lat|t.address.geo.lat",
                 "t.odd@'ODD NAME'|t.odd.\"Odd Name\"",
                 // the steps after an element are folded into its subquery
-                "t.items@1@sku|(SELECT E1.V.sku FROM (SELECT VALUE(Z) V, ROWNUM RN FROM TABLE(t.items) Z) E1 WHERE E1.RN = 1)",
-                "t.items@1@opts@2|(SELECT (SELECT E2.V FROM (SELECT COLUMN_VALUE V, ROWNUM RN FROM TABLE(E1.V.opts) Z) E2 WHERE E2.RN = 2) FROM (SELECT VALUE(Z) V, ROWNUM RN FROM TABLE(t.items) Z) E1 WHERE E1.RN = 1)",
+                "t.items@1@sku|(SELECT E1.V.sku FROM (SELECT VALUE(Z) V, ROWNUM RN FROM TABLE(t.items) Z) E1 WHERE E1.RN = 1 AND t.items IS NOT NULL)",
+                "t.items@1@opts@2|(SELECT (SELECT E2.V FROM (SELECT COLUMN_VALUE V, ROWNUM RN FROM TABLE(E1.V.opts) Z) E2 WHERE E2.RN = 2 AND E1.V.opts IS NOT NULL) FROM (SELECT VALUE(Z) V, ROWNUM RN FROM TABLE(t.items) Z) E1 WHERE E1.RN = 1 AND t.items IS NOT NULL)",
                 // JSON: one path, counted from 0, "last" for the end, every step guarded by the
                 // type of what it is applied to (a lax path would unwrap lists and wrap objects)
                 "t.doc@x@y@1|CASE WHEN JSON_VALUE(t.doc, '$.type()') = 'object' AND JSON_VALUE(t.doc, '$.x.type()') = 'object' AND JSON_VALUE(t.doc, '$.x.y.type()') = 'array' THEN JSON_QUERY(t.doc, '$.x.y[0]' RETURNING JSON) END",

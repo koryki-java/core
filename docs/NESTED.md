@@ -65,6 +65,9 @@ postfix one: `it@price`.
   t.scores, x -> x > 5))`.
 * Available where lists are: DuckDB, PostgreSQL, Trino, Snowflake and Oracle. The aggregates of
   Oracle ignore the order a nested table has none of; its `list_avg` is a floating point number.
+  A position on an Oracle collection carries a test of the collection for NULL (`... AND t.tags IS NOT NULL`):
+  measured on Oracle 26ai, a scalar subquery over `TABLE(list)` answers for an *empty* collection with the
+  element of the row before it, and the test ends that.
 
 ## Shaping and making lists
 

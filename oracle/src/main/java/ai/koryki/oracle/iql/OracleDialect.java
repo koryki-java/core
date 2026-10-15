@@ -400,7 +400,18 @@ public class OracleDialect implements SqlDialect {
                     frames.add(
                             new String[] {
                                 "(" + elements(sql, type.element()) + ") " + alias,
-                                alias + ".RN = " + position(sql, step.getIndex())
+                                // The guard is not redundant: without it, an empty collection
+                                // answers with the element of the row before it. Measured on Oracle
+                                // 26ai: a scalar subquery over TABLE(list) whose only correlation
+                                // is
+                                // the collection takes the cached answer of an earlier row for an
+                                // empty one, and a test of the same collection for NULL ends it.
+                                alias
+                                        + ".RN = "
+                                        + position(sql, step.getIndex())
+                                        + " AND "
+                                        + sql
+                                        + " IS NOT NULL"
                             });
                     sql = alias + ".V";
                 } else {
