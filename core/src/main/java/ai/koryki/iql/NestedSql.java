@@ -55,7 +55,7 @@ public final class NestedSql {
             int index = step.getIndex();
             return struct.fieldNames().get(index > 0 ? index - 1 : n + index);
         }
-        String wanted = step.getId() != null ? step.getId() : step.getName();
+        String wanted = step.key();
         return struct.fieldNames().stream()
                 .filter(f -> f.equals(wanted))
                 .findFirst()
@@ -69,7 +69,7 @@ public final class NestedSql {
 
     /** The text key a step names: an identifier or a quoted name. */
     public static String key(Selector step) {
-        return step.getId() != null ? step.getId() : step.getName();
+        return step.key();
     }
 
     /** A name as an identifier: bare where it is plain, double-quoted otherwise. */

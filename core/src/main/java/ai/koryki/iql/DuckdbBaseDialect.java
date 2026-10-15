@@ -545,10 +545,7 @@ public class DuckdbBaseDialect implements SqlDialect {
     private static String subscript(
             String sql, TypeDescriptor type, ai.koryki.iql.query.Selector step) {
         if (step.getId() != null || step.getName() != null) {
-            return sql
-                    + "["
-                    + Literals.quote(step.getId() != null ? step.getId() : step.getName())
-                    + "]";
+            return sql + "[" + Literals.quote(step.key()) + "]";
         } else if (step.getIndex() != null) {
             if (CoreTypeFamily.STRUCT.equals(type.getTypeFamily())) {
                 int n = type.children().size();

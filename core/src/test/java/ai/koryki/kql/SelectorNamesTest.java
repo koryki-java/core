@@ -16,6 +16,7 @@
  */
 package ai.koryki.kql;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -59,6 +60,11 @@ class SelectorNamesTest {
                 .getAttribute("address")
                 .orElseThrow()
                 .setMembers(members("street", new Member("strasse"), "geo", geo));
+        model.getEntity("check_complex")
+                .orElseThrow()
+                .getAttribute("doc")
+                .orElseThrow()
+                .setMembers(members("n", new Member("zahl")));
         return new LinkResolver(Locale.GERMAN, schema, model);
     }
 
@@ -83,6 +89,8 @@ class SelectorNamesTest {
                 "t.address@phones@1|t.address['phones'][1]",
                 "t.address@geo@lat|t.address['geo']['lat']",
                 "t.address@'position'@breitengrad|t.address['geo']['lat']",
+                // a member of a JSON document the catalog declares is named the same way
+                "t.doc@zahl|(t.doc ->> '$.n')",
             })
     void aNameOfTheModelIsTheKeyOfTheSchema(String expression, String expected) {
         String actual = sql(expression);
@@ -134,6 +142,42 @@ class SelectorNamesTest {
                         """);
 
         assertTrue(sql.contains("['geo']['lat']"), sql);
+    }
+
+    @Test
+    void theQueryKeepsTheNamesAsWrittenAndOnlyTheRenderingUsesTheKeys() {
+        KQLTranspiler transpiler =
+                KQLTranspiler.builder(
+                                "FIND check_complex t FETCH t.address@position@breitengrad",
+                                german())
+                        .build();
+
+        String iql = new ai.koryki.iql.IQLSerializer(transpiler.getQuery()).toString();
+
+        assertTrue(iql.contains("@position@breitengrad"), iql);
+        assertTrue(!iql.contains("lat"), iql);
+    }
+
+    @Test
+    void translatingTwiceGivesTheSameKeys() {
+        LinkResolver resolver = german();
+        KQLTranspiler transpiler =
+                KQLTranspiler.builder(
+                                "FIND check_complex t FETCH t.address@position@breitengrad",
+                                resolver)
+                        .build();
+        var selector =
+                ai.koryki.iql.SqlQueryRenderer.collectOut(
+                                ai.koryki.iql.SqlQueryRenderer.select(transpiler.getQuery()))
+                        .get(0)
+                        .getExpression()
+                        .getSelection()
+                        .getSelectors();
+
+        new ai.koryki.iql.rules.SelectorNamesRule(resolver).apply(transpiler.getQuery());
+
+        assertEquals("geo", selector.get(0).key());
+        assertEquals("lat", selector.get(1).key());
     }
 
     @Test

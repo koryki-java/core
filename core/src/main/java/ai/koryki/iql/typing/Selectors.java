@@ -80,7 +80,7 @@ public final class Selectors {
             throw new SelectorException("cannot apply " + text + " to a value without a type");
         }
         if (step.getId() != null || step.getName() != null) {
-            return byName(type, step.getId() != null ? step.getId() : step.getName(), text);
+            return byName(type, step.key(), text);
         } else if (step.getIndex() != null) {
             return byPosition(type, step.getIndex(), text);
         }

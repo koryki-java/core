@@ -177,11 +177,7 @@ public class SelectorNamesRule {
             // only a name the model gave is translated; a field it says nothing about keeps the
             // spelling of the query, as the struct finds it without regard to case
             if (key != null && written != null && level.named(key)) {
-                if (step.getId() != null) {
-                    step.setId(key);
-                } else {
-                    step.setName(key);
-                }
+                step.translateTo(key);
             }
             level = key == null ? null : level.into(key).orElse(null);
         }

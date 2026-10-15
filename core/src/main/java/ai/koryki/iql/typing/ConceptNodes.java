@@ -101,7 +101,7 @@ public final class ConceptNodes {
         }
         boolean json = "JSON".equals(node.getTypeEncoding());
         boolean named = step.getId() != null || step.getName() != null;
-        String name = step.getId() != null ? step.getId() : step.getName();
+        String name = step.key();
         if ("STRUCT".equals(node.getTypeFamily())) {
             return json && !named ? null : field(node, step, named, name);
         } else if ("ARRAY".equals(node.getTypeFamily())) {

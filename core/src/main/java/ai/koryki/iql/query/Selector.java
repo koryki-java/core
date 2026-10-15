@@ -24,6 +24,14 @@ public class Selector {
     private String id;
     private String name;
 
+    /**
+     * The key of the entry in the schema this step goes to, where the name written is that of a
+     * language of the model and not the key itself. Set by a rule, never by the mapping, and not a
+     * bean property: the query keeps what was written, and everything that has to find the entry
+     * asks {@link #key()}.
+     */
+    private String key;
+
     public Integer getIndex() {
         return index;
     }
@@ -54,6 +62,21 @@ public class Selector {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    /** The name as it was written, an identifier or a quoted name; null for a position or range. */
+    public String written() {
+        return id != null ? id : name;
+    }
+
+    /** The key of the entry in the schema: the translated name, else the name as written. */
+    public String key() {
+        return key != null ? key : written();
+    }
+
+    /** Says which entry of the schema the written name stands for. */
+    public void translateTo(String key) {
+        this.key = key;
     }
 
     public String getName() {
