@@ -2,7 +2,173 @@
 
 All notable changes to this project are documented here.
 
-## [unreleased]
+## [0.3.0] - 2026-10-15
+
+### Added
+
+- Nested values: postfix selectors and lambdas for lists, structs, maps and JSON. `t.tags@1`,
+  `t.tags@-1`, `t.tags@2:`, `t.dims@w`, `t.attrs@'a key'`, `t.doc@a@b@1` select from a value of the
+  type the column has (positions count from 1, from the end when negative, NULL where nothing is);
+  `list_transform`, `list_filter` and `list_reduce` take a lambda, `list_transform(t.scores, (x, i)
+  -> x * i)`. The grammar, the type model (ARRAY, STRUCT, MAP and JSON as a tree of types with
+  `TypeSyntax`, `TypePath` and the recursive `Column`), typing, validation and rendering for every dialect
+  are in, with a complex-types test bed per dialect (DuckDB, PostgreSQL, Trino, Snowflake, Oracle;
+  SQL Server, MariaDB and SQLite for JSON). `docs/NESTED.md` says what is promised and what each
+  dialect does. A lambda parameter is used by the name it is declared with, `x -> x * 2`, and a
+  selection from it is `it@price`; where a function argument is a bare name it is the parameter of
+  the lambda that declares it, and otherwise an alias as before. A parameter may not be named like an
+  alias in sight, nor like the parameter of the lambda around it.
+
+- A column says its type in a concept, and a concept says what a container is made of: a STRUCT
+  has `entries` (its fields, in order), an ARRAY the entry `element` (and an `arraySize`), a MAP the
+  entries `key` and `value`. An entry is the spelling of a type (`"VARCHAR"`), the name of a concept
+  of the schema, or a concept of its own, written as an object, that belongs to this entry alone;
+  every part can carry a label, a unit, a quantity, a presentation and an encoding. A container
+  stored as JSON (JSON, JSONB, VARIANT, VARCHAR, TEXT) has the encoding `JSON`. `dialectType` of a
+  container, if it is a spelling, is checked against its entries. A size parameter may be `MAX`
+  (`NVARCHAR(MAX)`) or carry Oracle's unit (`VARCHAR2(10 CHAR)`).
+
+- A model says in its own words what a concept says in the language of the schema: the members of
+  an attribute and the notions of the model carry the label, comment and description of the parts
+  of a nested column and of a shared concept, and `SchemaToModel` drafts them from the schema.
+  Selectors write the names a model gives to the fields of a struct (`t.address@position@lat`),
+  through blocks and inside EXISTS, and `KQLFormatter` translates them between models.
+  `WordingAudit.audit(schema, model)` lists what a model has not said in its own words, as missing
+  or still the words of the schema.
+  `Translator.selectors`, `DictionaryTranslator` with a schema and `LinkResolver.dictionary(from, to,
+  schema)` are the API of that translation. A column that refers to a shared concept is audited like
+  any other, and its parts are the notion's to say unless the attribute has members of its own.
+
+- `./gradlew verify` runs the tests of every module and writes `docs/verification/<version>.md`: the
+  tests, skipped and failed of each module, the version each database says it is, the commit and the
+  northwind pin. A dialect whose server was not reached is "not verified" there, however green the
+  build is. `docs/VERIFICATION.md` explains it; `release.yml` refuses a tag without the record of its
+  version, or with code changed since the commit the record names.
+
+- A selector that does not fit says so in the names of the model: `t.address@hoehe` under the German
+  model is "no field 'hoehe' in STRUCT(strasse:TEXT,position:STRUCT(breitengrad:FLOAT,...),...); its
+  fields are strasse, position, phones", for a column of a table and for one that a block projects.
+  `TypeDescriptor.portable(PartNames)` and `Selectors.apply(type, steps, PartNames)` take the names,
+  `MemberNames.Level.partNames()` gives them; the plain keys are still what a caller without a model
+  gets. A selection from the parameter of a lambda, or from a computed value, has no column to take
+  names from and keeps the keys.
+
+- `docs/MEMBERS_AND_NOTIONS.md`: where a model names the parts of a nested column, what a name does,
+  what is checked and how to find what a translation has left out.
+
+- The bed with a concept that columns share, `check_shared`, on every dialect, in the catalogs of the
+  northwind repository: `home` and `work`, and the elements of `route`, are one concept `point`.
+  `SharedConceptContract` in the `testkit` is the one set of checks every dialect runs against it
+  (the same answers through the English model and through the German names of the notion), and a
+  dialect test extends it.
+
+- The nodes of a nested column carry labels, descriptions, units, quantities and presentations, and
+  `ConceptNodes.node` finds the concept a selector chain ends at, so what a consumer explains a nested
+  result column by is in the catalog (the complex catalogs have it on every part). The flatten views
+  inherit the annotations of the element. A node whose children do not fit its family (an ARRAY with
+  fields) is refused when the catalog is read.
+
+- A JSON column that stores a map (PostgreSQL, Oracle) can say so: `value`, and `key` INTEGER when the
+  keys are integers written as text, make `t.attrs@color` a text and `t.lookup@1` the member `"1"`,
+  as on a dialect with maps. What the catalog declares about JSON also survives `coalesce` and `CASE`
+  when every branch declares the same, and the same elements in a fixed size and in a list reconcile
+  to a list. A lambda that is a predicate (`list_filter`, `list_any`, `list_all`) has to answer yes
+  or no, and the message for a JSON value where a list or a number is wanted says what to do.
+  `NestedSupport.comparable` declares the nested values an engine takes in a comparison, a grouping,
+  an ordering or `min`/`max` (Oracle takes no collection), and a query that does it is a positioned
+  violation instead of an ORA error.
+
+- Typed JSON: a catalog declares the content of a JSON column as a container concept with the
+  encoding `JSON` (`n` INTEGER and `a.b` an array of INTEGER), and a selection that reaches one is
+  that scalar, so `FILTER t.doc@n > 0`, arithmetic, `sum` and `GROUP BY` work without a cast.
+  `TypeDescriptor.shape()` carries the declared content of a JSON type; the complex catalogs
+  declare `doc`.
+
+- A JSON array declared as a list of scalars is a list: the list functions and lambdas apply to
+  `t.doc@a@b` on DuckDB, PostgreSQL, Trino, Snowflake and (without lambdas) Oracle. New
+  `SqlDialect.jsonList` and `declaredScalarType` hooks.
+
+- `SqlDialect.nestedSupport()` declares what an engine can do with nested values (the kinds of value
+  a selector may reach into, JSON positions from the end, a lambda over a list made from a JSON array).
+  A use it cannot express is now a positioned `unsupported` violation of the query
+  (`NestedSupportValidator`) instead of an exception while rendering, and the support table in
+  `docs/NESTED.md` is generated from the declarations (`./gradlew :tools:nestedMatrix`).
+
+- Flatten views: `FlattenViews` (module `tools`, task `flattenViews`) generates, for a list column,
+  the view with one row per element (parent key, `ordinal`, struct fields or `value`) in the SQL of
+  DuckDB, PostgreSQL, Trino, Snowflake and Oracle, plus the catalog and model entries and the relation
+  to the parent. The complex test beds carry three of them; see `docs/NESTED.md`. For SQL Server,
+  MariaDB and SQLite the generator flattens an array declared inside a JSON column (`doc:.a.b`).
+
+- A JSON value can be cast to the scalar it holds: `to_boolean`, `to_float`, `to_double`,
+  `to_integer`, `to_bigint`, `to_smallint`, `to_decimal`, `to_text` and `to_varchar` accept JSON, so
+  `FILTER to_integer(t.doc@n) > 0` and `to_text(t.attrs@color) = 'red'` work on every dialect that
+  has JSON. New `SqlDialect.jsonScalar` and `selectionScalar` hooks; a dialect with JSON implements
+  them.
+
+- What a list answers about itself: `list_size`, `list_contains`, `list_sum`, `list_min`, `list_max`
+  and `list_avg`, on DuckDB, PostgreSQL, Trino, Snowflake and Oracle, and `x IN t.tags` for the
+  membership of a value in a list column. `length(list)` is refused and names `list_size`.
+
+- Shaping and making lists: `list_sort`, `list_distinct`, `list_concat`, `list_any`, `list_all`,
+  `list(a, b, ...)` and the aggregate `list_agg`, on DuckDB, PostgreSQL, Trino, Snowflake and Oracle.
+
+- The parts of a nested column have names in the language of a model: `Attribute.members` and
+  `Member.members` say, by the physical key of the entry, what the language calls a field of a struct
+  and how it is worded (`Member` has a `name`, a label, a comment, a description and members of its
+  own), and `Model.notions` says the same once for a concept the columns refer to by name.
+  `MemberNames` walks the concept and the names together and answers both ways, and the resolver of
+  a model checks them against the schema: a member is an entry of its concept, no two fields have the
+  same name, a notion is a notion of a concept the schema has.
+
+### Changed
+
+- **Breaking: a column has a concept, and nothing else that says its type or its wording.** The
+  fields `label`, `comment`, `description`, `typeFamily`, `typeEncoding`, `dialectType`, `fields`,
+  `element`, `key`, `value`, `length`, `unit`, `quantity` and `presentation` are gone from
+  `ai.koryki.catalog.schema.Column`, which keeps `name`, `nullable`, `pkPos`, `namePos` and either
+  `concept` (its own) or `conceptRef` (the name of a concept in `Schema.concepts`). A `db.json` with
+  the old fields no longer loads; rewrite it with `MigrateCatalogs`, which is in the history of
+  this repository before the fields were removed (find it with `git log -S MigrateCatalogs`; it ran
+  as `./gradlew :tools:migrateCatalogs`). `TypeDescriptorParser.parse(Column)` is `parse(where, family, encoding, dialectType)` for a
+  scalar; the containers are typed by `ConceptResolver`. This release reads the catalogs of
+  `koryki-northwind` 0.2.2 and later (it is built and tested with 0.2.3) and needs a
+  `koryki-derivation` that reads concepts; with the released derivation, or the catalogs of
+  `koryki-northwind` 0.2.1 or older, it does not work.
+
+- For dialect authors: a step of a selector keeps the name as it was written, `Selector.written()`,
+  and says the entry of the schema it goes to, `Selector.key()`, which differs where a model gives a
+  struct field another name. A dialect that reads the name of a step must read `key()`; the helpers
+  of `NestedSql` do. `Selector` has no `key` property in JSON.
+
+- The scripts that create the Northwind database for PostgreSQL, MariaDB, Oracle, SQL Server,
+  Snowflake and SQLite, their `BuildNorthwind` loaders, `Script`, `ExportJson` and the committed
+  `northwind.sqlite` moved to the northwind repository (modules `postgresql`, `mariadb`, `oracle`,
+  `mssql`, `snowflake`, `sqlite`, `loader`), so a change of the Northwind schema is a release of that
+  project only. The SQLite suites now take `northwind.sqlite` from `koryki-northwind-sqlite`; the
+  `*NorthwindScript` Gradle tasks are gone.
+
+### Fixed
+
+- An aggregate over a selection, `sum(t.scores@2)`, was not taken for an aggregate: the other
+  items of the query were not grouped. It is now, like an aggregate over a column.
+- On Oracle an element of a VARRAY could be the element of the first row: `t.route@2@lat`, a scalar
+  subquery over `TABLE(list)` in an inline view numbered by `ROWNUM`, is run once for the whole
+  statement (measured on Oracle Database Free 23.26.2, reproduced without koryki in `docs/NESTED.md`),
+  so every row got the answer of the first, an empty or NULL list included. A position now carries a
+  test of the list for NULL, `... WHERE E1.RN = 2 AND t.route IS NOT NULL`, which makes it a
+  correlated subquery again. The SQL of every position on an Oracle collection changes with it; a
+  golden of your own has to be written again.
+
+## [0.2.1] - 2026-09-30
+
+### Added
+
+- A signature for the SQL: `Engine.withSignature(String)` (and `EngineBuilder`, `Generator`) writes a
+  comment right behind the first `SELECT`, so a statement handed to a database or to an external
+  system, such as a hosted MCP server, can be traced back to whoever produced it. `SqlRenderer`
+  gets `setSignature` as a default that does nothing, so a renderer a caller makes itself keeps
+  working; `SqlQueryRenderer` writes it.
 
 ### Fixed
 
@@ -23,6 +189,12 @@ All notable changes to this project are documented here.
   select's, dropping the parentheses the grammar requires and any outer alias to correlate
   against. It now goes through the same per-select scope (`subSelect`) `EXISTS` already used
   correctly. SQL rendering itself was never affected, only the formatter's KQL round-trip.
+- `docs/functions/aggregate.md` described the aggregate functions as they were before `median`,
+  `quantile_cont` and `quantile_disc`.
+
+### Changed
+
+- `koryki-northwind` 0.2.1, which carries the block-chain fixtures; `jackson-databind` 3.2.3.
 
 ## [0.2.0] - 2026-09-27
 
@@ -53,7 +225,7 @@ All notable changes to this project are documented here.
   operation — `toSql`, `executeKQL`, `validateKQL`, `warningsKQL`, `analyze` — asks it for one
   renderer and uses that one throughout, so an engine built this way can be built once and shared
   between threads. `getRenderer()` returns a new renderer on each call, so what asks it for one —
-  `withInfo`, the visualise engine — is covered too.
+  `withInfo`, the visualize engine — is covered too.
 - The four ready-made services in `koryki-northwind` (`NorthwindService`, `TemporalService`,
   `TypecheckService`, `OraViewService`) take a renderer supplier the same way, in every constructor
   and `build` factory: `NorthwindService.build(database, () -> new SqlQueryRenderer(dialect, zone))`.
@@ -169,6 +341,7 @@ and signed in CI with an in-memory PGP key and published to Maven Central throug
 Portal; [`docs/RELEASES.md`](./docs/RELEASES.md) shows how to verify a download against the
 signing key.
 
-[Unreleased]: https://github.com/koryki-java/core/compare/v0.2.0...HEAD
+[0.3.0]: https://github.com/koryki-java/core/compare/v0.2.1...v0.3.0
+[0.2.1]: https://github.com/koryki-java/core/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/koryki-java/core/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/koryki-java/core/releases/tag/v0.1.0

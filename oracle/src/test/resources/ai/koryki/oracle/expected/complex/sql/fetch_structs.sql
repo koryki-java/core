@@ -1,0 +1,9 @@
+-- Structs: a flat one, one holding another struct and a list, and one whose field name has a
+-- space and capitals. Field order is the declaration order, not alphabetical.
+SELECT
+  t.nr
+, t.dims
+, t.address
+, t.odd
+FROM
+ check_complex t

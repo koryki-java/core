@@ -1,0 +1,4 @@
+"Nr", "width", "height", "first_field", "last_field", "street", "latitude", "first_phone", "odd_name", "odd_name_upper", "odd_x"
+"1", "1.5", "2.5", "1.5", "2.5", "Main St 1", "52.52", "+49 30 1", "1", "1", "2"
+"2", "", "", "", "", "", "", "", "", "", ""
+"3", "", "4", "", "4", "Side Rd 3", "", "", "", "", ""

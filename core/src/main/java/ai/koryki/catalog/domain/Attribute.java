@@ -16,6 +16,8 @@
  */
 package ai.koryki.catalog.domain;
 
+import java.util.Map;
+
 public class Attribute {
 
     private String name;
@@ -23,6 +25,17 @@ public class Attribute {
     private String comment;
     private String description;
     private String column;
+
+    /**
+     * How the parts of the concept of the column are named and described in the language of this
+     * model, by their physical name, the key of the entry in the concept: the fields of a struct
+     * that a query writes after {@code @}, and, under the keys {@code element}, {@code key} and
+     * {@code value}, the parts inside a list or a map. Only a part that needs a name, a label or a
+     * description of its own has an entry. For a concept the column refers to by name the same is
+     * said once in {@link Model#getNotions()}; what is said here wins. Null where there is nothing
+     * to say.
+     */
+    private Map<String, Member> members;
 
     public Attribute() {}
 
@@ -96,5 +109,13 @@ public class Attribute {
 
     public void setColumn(String column) {
         this.column = column;
+    }
+
+    public Map<String, Member> getMembers() {
+        return members;
+    }
+
+    public void setMembers(Map<String, Member> members) {
+        this.members = members;
     }
 }

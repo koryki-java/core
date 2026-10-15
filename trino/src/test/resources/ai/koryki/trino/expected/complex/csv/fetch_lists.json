@@ -1,0 +1,3 @@
+Nr : INTEGER
+Tags : ARRAY(TEXT)
+Scores : ARRAY(INTEGER)

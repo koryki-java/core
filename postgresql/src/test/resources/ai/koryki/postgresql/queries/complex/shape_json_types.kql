@@ -1,0 +1,5 @@
+// Every scalar family a catalog may declare inside JSON (.s TEXT, .b BOOLEAN, .d DECIMAL, next to .n
+// INTEGER): none is in the data, so each is NULL, but each is read as its type, which the database
+// has to accept: a text without the quotes of a JSON string, a decimal that adds up.
+FIND check_complex t
+FETCH t.nr, t.doc@s s, upper(t.doc@s) shouted, t.doc@b b, t.doc@d + 1 d_plus_one, sum(t.doc@d) total

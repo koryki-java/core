@@ -62,6 +62,13 @@ public class TrinoDecoder extends CoreDecoder {
                 return parsed;
             }
         }
+        // a ROW, the struct of the complex types, is the driver's own class, not a java.sql.Struct
+        if (v instanceof io.trino.jdbc.Row row
+                && td != null
+                && CoreTypeFamily.STRUCT.equals(td.getTypeFamily())) {
+            return super.decode(
+                    row.getFields().stream().map(io.trino.jdbc.RowField::getValue).toArray(), info);
+        }
         return super.decode(v, info);
     }
 }

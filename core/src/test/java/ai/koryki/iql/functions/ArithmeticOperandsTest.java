@@ -50,7 +50,11 @@ class ArithmeticOperandsTest {
         CoreTypeFamily.BOOLEAN,
         CoreTypeFamily.BLOB,
         CoreTypeFamily.JSON,
-        CoreTypeFamily.UUID
+        CoreTypeFamily.UUID,
+        // a container is not a number; the arithmetic is on what is inside it
+        CoreTypeFamily.ARRAY,
+        CoreTypeFamily.STRUCT,
+        CoreTypeFamily.MAP
     };
 
     @Test

@@ -400,7 +400,20 @@ public class IQLSerializer {
     private String toStringBody(Expression expression, int indent) {
         StringBuilder b = new StringBuilder();
 
-        if (expression.getField() != null) {
+        if (expression.getLambda() != null) {
+            Lambda lambda = expression.getLambda();
+            String parameters =
+                    lambda.getParameters().size() == 1
+                            ? lambda.getParameters().get(0)
+                            : "(" + String.join(", ", lambda.getParameters()) + ")";
+            b.append(parameters).append(" -> ").append(toString(lambda.getBody(), indent));
+        } else if (expression.getSelection() != null) {
+            // base and steps, attached: c.items@1@sku; a parenthesised base keeps its parens
+            b.append(toString(expression.getSelection().getBase(), indent));
+            expression.getSelection().getSelectors().forEach(s -> b.append(selector(s)));
+        } else if (expression.getParameter() != null) {
+            b.append(expression.getParameter());
+        } else if (expression.getField() != null) {
             b.append(toString(expression.getField(), indent));
         } else if (expression.getText() != null) {
             return expression.getText();
@@ -438,6 +451,21 @@ public class IQLSerializer {
         }
 
         return b.toString();
+    }
+
+    /** A selector as it is written in KQL and IQL, normalised: {@code @1:3}, {@code @'a key'}. */
+    public static String selector(Selector s) {
+        if (s.getId() != null) {
+            return "@" + s.getId();
+        } else if (s.getName() != null) {
+            return "@'" + s.getName().replace("'", "\\'") + "'";
+        } else if (s.getIndex() != null) {
+            return "@" + s.getIndex();
+        }
+        return "@"
+                + (s.getFrom() == null ? "" : s.getFrom())
+                + ":"
+                + (s.getTo() == null ? "" : s.getTo());
     }
 
     private String toString(Function function, int indent) {

@@ -17,6 +17,7 @@
 package ai.koryki.snowflake.tools;
 
 import ai.koryki.catalog.schema.Column;
+import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.schema.Table;
 import ai.koryki.jdbc.Database;
@@ -93,8 +94,10 @@ ORDER BY table_name, ordinal_position;
                         row -> {
                             Column c = new Column();
                             c.setName(row.get(0).toString().toLowerCase());
-                            c.setComment(row.get(1) != null ? row.get(1).toString() : null);
-                            c.setTypeFamily(row.get(2).toString());
+                            Concept concept = new Concept();
+                            concept.setComment(row.get(1) != null ? row.get(1).toString() : null);
+                            concept.setTypeFamily(row.get(2).toString());
+                            c.setConcept(concept);
                             // c.setDbType();
                             // Type t = new Type();
                             // t.setName(row.get(2).toString());

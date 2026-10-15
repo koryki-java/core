@@ -16,6 +16,7 @@
  */
 package ai.koryki.iql;
 
+import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.catalog.types.*;
 import ai.koryki.iql.functions.ConditionalReconciler;
 import ai.koryki.iql.functions.Fixity;
@@ -327,6 +328,85 @@ public interface SqlDialect {
     }
 
     /**
+     * What this engine can do with nested values: the kinds of value a selector may reach into,
+     * whether a JSON position may count from the end, and whether a lambda may be applied to a list
+     * made from a JSON array. Declared rather than discovered, like {@link #intervalSupport()}, so
+     * that a use the engine cannot express is a positioned violation of the query and the support
+     * matrix of {@code docs/NESTED.md} is generated from it.
+     *
+     * @param name the engine as a message names it
+     * @param selectable the families a selector may be applied to: ARRAY, STRUCT, MAP, JSON
+     * @param comparable the families the engine takes as an operand of a comparison, a grouping, an
+     *     ordering or {@code min} / {@code max}: Oracle rejects a collection in all of them
+     * @param jsonFromEnd whether a JSON path can count from the end ({@code t.doc@-1})
+     * @param lambdaOverJsonList whether {@code list_transform} and its kind take a list that is a
+     *     JSON array declared in the catalog
+     */
+    record NestedSupport(
+            String name,
+            java.util.Set<CoreTypeFamily> selectable,
+            java.util.Set<CoreTypeFamily> comparable,
+            boolean jsonFromEnd,
+            boolean lambdaOverJsonList) {
+
+        private static java.util.Set<CoreTypeFamily> all() {
+            return java.util.EnumSet.of(
+                    CoreTypeFamily.ARRAY,
+                    CoreTypeFamily.STRUCT,
+                    CoreTypeFamily.MAP,
+                    CoreTypeFamily.JSON);
+        }
+
+        /** Everything, as DuckDB has it. */
+        public static NestedSupport full(String name) {
+            return new NestedSupport(name, all(), all(), true, true);
+        }
+
+        /** An engine with JSON and no other nested value. */
+        public static NestedSupport jsonOnly(String name, boolean jsonFromEnd) {
+            return new NestedSupport(
+                    name,
+                    java.util.EnumSet.of(CoreTypeFamily.JSON),
+                    java.util.EnumSet.of(CoreTypeFamily.JSON),
+                    jsonFromEnd,
+                    true);
+        }
+
+        public NestedSupport without(CoreTypeFamily family) {
+            java.util.Set<CoreTypeFamily> rest = java.util.EnumSet.copyOf(selectable);
+            rest.remove(family);
+            java.util.Set<CoreTypeFamily> compare = java.util.EnumSet.copyOf(comparable);
+            compare.remove(family);
+            return new NestedSupport(name, rest, compare, jsonFromEnd, lambdaOverJsonList);
+        }
+
+        /**
+         * The engine rejects a value of this kind as an operand of a comparison, a grouping, an
+         * ordering.
+         */
+        public NestedSupport notComparable(CoreTypeFamily family) {
+            java.util.Set<CoreTypeFamily> compare = java.util.EnumSet.copyOf(comparable);
+            compare.remove(family);
+            return new NestedSupport(name, selectable, compare, jsonFromEnd, lambdaOverJsonList);
+        }
+
+        public NestedSupport withoutJsonFromEnd() {
+            return new NestedSupport(name, selectable, comparable, false, lambdaOverJsonList);
+        }
+
+        public NestedSupport withoutLambdaOverJsonList() {
+            return new NestedSupport(name, selectable, comparable, jsonFromEnd, false);
+        }
+    }
+
+    /**
+     * @see NestedSupport
+     */
+    default NestedSupport nestedSupport() {
+        return NestedSupport.full(getClass().getSimpleName());
+    }
+
+    /**
      * A duration's components with year, quarter and month folded into one MONTH step, the day and
      * clock components left as they are.
      *
@@ -521,6 +601,100 @@ public interface SqlDialect {
 
     default String renderFunction(SqlSelectRenderer renderer, Function function, int indent) {
         return null;
+    }
+
+    /**
+     * A lambda argument: its parameters, already renamed, and its body as SQL. Refused by default,
+     * like {@link #selection}.
+     */
+    default String lambda(List<String> parameters, String body) {
+        throw new KorykiaiException(getClass().getSimpleName() + " cannot render lambdas yet");
+    }
+
+    /**
+     * A JSON value as the scalar it holds, for a cast or a function that wants a number or a text:
+     * a JSON string without its quotes, a number as a number, null as NULL. What a JSON object or
+     * list gives is the dialect's: its JSON text, or NULL where the database has no scalar form of
+     * it. Refused by default, like {@link #selection}.
+     */
+    default String jsonScalar(String json) {
+        throw new KorykiaiException(
+                getClass().getSimpleName() + " cannot read a JSON value as a scalar yet");
+    }
+
+    /**
+     * The same for a selection from JSON: a dialect that has an operator or a function that fetches
+     * the scalar at a path in one step answers with that, instead of the JSON at the path made
+     * scalar afterwards.
+     */
+    default String selectionScalar(
+            String base, TypeDescriptor baseType, List<ai.koryki.iql.query.Selector> steps) {
+        return jsonScalar(selection(base, baseType, steps));
+    }
+
+    /**
+     * A JSON array whose elements the catalog declares as scalars, as the dialect's list of {@code
+     * element}: {@code t.doc@a@b} where {@code .a.b[]} is INTEGER. The default leaves the JSON as
+     * it is, which is right for a dialect without lists; it has no list functions to apply to it.
+     *
+     * @param json the SQL of the JSON array
+     * @param element the declared type of its elements, a scalar
+     */
+    default String jsonList(String json, TypeDescriptor element) {
+        return json;
+    }
+
+    /**
+     * A boolean read out of JSON, from the scalar a path gave ({@link #jsonScalar}): JSON {@code
+     * true} and {@code false} arrive as the texts {@code 'true'} and {@code 'false'} on most
+     * engines and as 1 and 0 on SQLite. Not {@code to_boolean}, which reads a number and calls
+     * everything but zero true.
+     */
+    default String jsonBoolean(String scalar) {
+        return "CAST(" + scalar + " AS BOOLEAN)";
+    }
+
+    /**
+     * The SQL name of the scalar types a catalog may declare inside JSON, for a cast: BOOLEAN,
+     * INTEGER, FLOAT, DECIMAL and TEXT. ANSI spelling; a dialect with other names overrides.
+     */
+    default String declaredScalarType(TypeDescriptor type) {
+        CoreTypeFamily family = (CoreTypeFamily) type.getTypeFamily();
+        return switch (family) {
+            case BOOLEAN -> "BOOLEAN";
+            case INTEGER -> "INTEGER";
+            case FLOAT -> "DOUBLE";
+            case DECIMAL -> "DECIMAL(38, 10)";
+            case TEXT -> "VARCHAR";
+            default ->
+                    throw new KorykiaiException(
+                            getClass().getSimpleName()
+                                    + " has no cast to "
+                                    + type.portable()
+                                    + " inside JSON");
+        };
+    }
+
+    /**
+     * A selector chain on a nested value: {@code base@1@name}. Handed over whole, because a dialect
+     * may fold it (a JSON path takes every step in one string) and because what a step means
+     * depends on the type it meets, which {@link ai.koryki.iql.typing.Selectors#step} follows.
+     *
+     * <p>Positions arrive 1-based and may be negative (from the end); a dialect whose collections
+     * count differently adjusts. A dialect that cannot express a step says so here rather than
+     * rendering something close: the default refuses every selector.
+     *
+     * @param base the SQL of the value selected from
+     * @param baseType its type, an ARRAY, STRUCT, MAP or JSON
+     * @param steps at least one, already checked against the type
+     */
+    default String selection(
+            String base, TypeDescriptor baseType, List<ai.koryki.iql.query.Selector> steps) {
+        throw new KorykiaiException(
+                getClass().getSimpleName()
+                        + " cannot render selectors on "
+                        + baseType.portable()
+                        + " yet");
     }
 
     default String renderEncodedArithmetic(

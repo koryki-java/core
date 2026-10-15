@@ -1,0 +1,10 @@
+-- Elements of a fixed-size array and of an array of arrays: matrix@2@1 is the first value of the
+-- second row. The first index selects the row, because DOUBLE[3][2] is two rows of three.
+SELECT
+  t.nr
+, (SELECT E1.V FROM (SELECT COLUMN_VALUE V, ROWNUM RN FROM TABLE(t.vec) Z) E1 WHERE E1.RN = 3 AND t.vec IS NOT NULL) AS vec_last
+, (SELECT E1.V FROM (SELECT COLUMN_VALUE V, ROWNUM RN FROM TABLE(t.matrix) Z) E1 WHERE E1.RN = 1 AND t.matrix IS NOT NULL) AS first_row
+, (SELECT (SELECT E2.V FROM (SELECT COLUMN_VALUE V, ROWNUM RN FROM TABLE(E1.V) Z) E2 WHERE E2.RN = 1 AND E1.V IS NOT NULL) FROM (SELECT COLUMN_VALUE V, ROWNUM RN FROM TABLE(t.matrix) Z) E1 WHERE E1.RN = 2 AND t.matrix IS NOT NULL) AS cell
+, (SELECT (SELECT E2.V FROM (SELECT COLUMN_VALUE V, ROWNUM RN FROM TABLE(E1.V) Z) E2 WHERE E2.RN = (SELECT COUNT(*) FROM TABLE(E1.V)) - 1 + 1 AND E1.V IS NOT NULL) FROM (SELECT COLUMN_VALUE V, ROWNUM RN FROM TABLE(t.matrix) Z) E1 WHERE E1.RN = (SELECT COUNT(*) FROM TABLE(t.matrix)) - 1 + 1 AND t.matrix IS NOT NULL) AS corner
+FROM
+ check_complex t

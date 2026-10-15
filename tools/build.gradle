@@ -72,6 +72,32 @@ tasks.register('argTypeAudit', JavaExec) {
     mainClass = 'ai.koryki.tools.docs.FunctionArgTypeAudit'
 }
 
+// The table of what each dialect declares for nested values, in docs/NESTED.md (see NestedSupportMatrix):
+//   ./gradlew :tools:nestedMatrix
+tasks.register('nestedMatrix', JavaExec) {
+    group = 'documentation'
+    description = 'Rewrites the generated dialect capability table in docs/NESTED.md.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'ai.koryki.tools.docs.NestedSupportMatrix'
+    args rootProject.file('docs/NESTED.md').path
+}
+
+// Views that flatten the list columns of a table into one row per element (see FlattenViews):
+//   ./gradlew :tools:flattenViews -Pflatten.args="duckdb db.json model.json check_complex out items events"
+tasks.register('flattenViews', JavaExec) {
+    group = 'documentation'
+    description = 'Writes the SQL, catalog and model entries of the flatten views of a table.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'ai.koryki.tools.flatten.FlattenViews'
+    doFirst {
+        def given = project.findProperty('flatten.args')
+        if (given == null) {
+            throw new GradleException('give the arguments: -Pflatten.args="dialect db.json model.json table out-directory [column ...]"')
+        }
+        args = given.toString().split(' ').toList()
+    }
+}
+
 publishing {
     publications {
         // Define the publication for this subproject
@@ -82,5 +108,22 @@ publishing {
             // Optionally, override the artifact ID (defaults to project name: 'api')
             artifactId = 'koryki-tools'
         }
+    }
+}
+
+// Run through ./gradlew verify (root build.gradle), which makes the test run it reads and finishes
+// with this task, also when tests failed. Alone it only reads what the last run left behind.
+//
+// Writes docs/verification/<version>.md: the counts of every module, the database each suite ran
+// against as the database says it, the commit and the pins. See docs/VERIFICATION.md.
+tasks.register('verificationRecord', JavaExec) {
+    group = 'verification'
+    description = 'Writes docs/verification/<version>.md from the last test run; use verify.'
+
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'ai.koryki.tools.verification.VerificationRecord'
+    args rootProject.projectDir.path
+    if (project.hasProperty('allowDirty')) {
+        args 'allow-dirty'
     }
 }

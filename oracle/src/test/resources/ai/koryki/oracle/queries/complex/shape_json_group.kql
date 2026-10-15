@@ -1,0 +1,3 @@
+// A declared JSON member is a grouping key and a measure like any column.
+FIND check_complex t
+FETCH t.doc@n n, count(t.nr) rows_per_n, sum(t.doc@a@b@1) total_first

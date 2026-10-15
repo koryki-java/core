@@ -86,7 +86,7 @@ class PromptQueriesTest {
      * The query without its chart clause, because this module cannot parse one.
      *
      * <p>Two grammars carry the name {@code ai.koryki.kql.KQLParser}: {@code koryki-kqlcore}, which
-     * this module resolves, and {@code koryki-kqlvisualise}, which adds {@code VISUALISE} and lives
+     * this module resolves, and {@code koryki-kqlvisualize}, which adds {@code VISUALIZE} and lives
      * one layer out -- it is built on top of core, so putting it on this test's classpath would
      * point core at an artifact of its own consumer. That is not a trade worth making for a test.
      *
@@ -96,7 +96,7 @@ class PromptQueriesTest {
      * itself -- channels, marks, scales -- and that needs a consumer with the other grammar.
      */
     private static String withoutChartClause(String query) {
-        int chart = query.indexOf("\nVISUALISE");
+        int chart = query.indexOf("\nVISUALIZE");
         return chart < 0 ? query : query.substring(0, chart).strip();
     }
 
@@ -120,7 +120,7 @@ class PromptQueriesTest {
      * The guide indents its queries by four spaces instead of fencing them.
      *
      * <p>Only blocks beginning with {@code FIND} or {@code WITH} are taken. The file also shows
-     * fragments -- a single link, a logical expression, a VISUALISE clause with no query above it
+     * fragments -- a single link, a logical expression, a VISUALIZE clause with no query above it
      * -- and those are rightly invalid on their own.
      */
     private static List<String> indentedQueries(String md) {

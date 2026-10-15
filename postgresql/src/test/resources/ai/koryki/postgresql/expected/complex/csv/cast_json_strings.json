@@ -1,0 +1,3 @@
+Nr : INTEGER
+color : TEXT
+size : TEXT

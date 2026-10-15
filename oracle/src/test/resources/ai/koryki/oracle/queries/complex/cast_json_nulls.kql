@@ -1,0 +1,4 @@
+// A cast of what the JSON does not have is NULL, not an error: row 2 has no document, row 1 is an
+// object and has no position 1, row 3 is an array and has no member n.
+FIND check_complex t
+FETCH t.nr, to_integer(t.doc@n) n, to_integer(t.doc@1) first_element

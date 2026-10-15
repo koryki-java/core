@@ -1,0 +1,5 @@
+// A lambda sees the columns of the query: the row's own nr added to every score, and compared with
+// every score.
+FIND check_complex t
+FETCH t.nr, list_transform(t.scores, x -> x + t.nr) shifted,
+      list_filter(t.scores, x -> x > t.nr * 5) above_five_times_nr

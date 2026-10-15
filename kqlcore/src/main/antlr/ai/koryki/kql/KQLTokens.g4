@@ -19,10 +19,10 @@ lexer grammar KQLTokens;
 
 // Only the tokens core actually needs.
 //
-// Not here: the 22 VISUALISE keywords. They live in KQLVizLexer.g4 of the standalone project
-// kqlvisualise (repository ai.koryki.visualise). So the core lexer does not know the word
-// VISUALISE -- such a query already fails at lexing. That is the price of the clean separation:
-// the message does not name 'VISUALISE' but breaks the word up into unknown character sequences.
+// Not here: the 22 VISUALIZE keywords. They live in KQLVizLexer.g4 of the standalone project
+// kqlvisualize (repository ai.koryki.visualize). So the core lexer does not know the word
+// VISUALIZE -- such a query already fails at lexing. That is the price of the clean separation:
+// the message does not name 'VISUALIZE' but breaks the word up into unknown character sequences.
 //
 // Also removed, because no rule on either side references them:
 //   RANGE SEMICOLON COLON LEFT_CURLY RIGHT_CURLY
@@ -124,6 +124,19 @@ SQ_STRING
 : SINGLE_QUOTE ('\\\'' | .)*? SINGLE_QUOTE
 ;
 
+// Postfix selectors on ARRAY/LIST, MAP and STRUCT values. One token each, so no whitespace inside:
+//   @1  @-1  @1:3  @2:  @:3   1-based position or slice, negative counts from the end
+//   @name                     struct field, map key; as a primary expression a lambda parameter
+//   @'Order Id'               field or key that is not a lowercase ID
+SELECTOR_INT: AT ( SEL_IDX (':' SEL_IDX?)? | ':' SEL_IDX );
+SELECTOR_ID: AT ID;
+SELECTOR_NAME: AT SQ_STRING;
+
+fragment SEL_IDX
+: '-'? INT
+;
+
+
 fragment LOWER
 : [a-z_]
 ;
@@ -133,8 +146,11 @@ DOT: '.';
 BAR: '-';
 VIA: 'VIA';
 
+// Lambda arrow. Only ever inside a function argument; the 11 `->` in the fixture corpus are comments.
+ARROW: '->';
 EQUALS: '=';
 HASHMARK: '#';
+AT: '@';
 COMMA: ',';
 PLUS: '+';
 MULT: '*';

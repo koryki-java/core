@@ -36,6 +36,12 @@ with `<verify-signatures>true</verify-signatures>`: add the key to `<trusted-key
 <trusted-key id="DBB344DBC587AA7A8A3B7BB2334E2F44352285EC" group="ai.koryki.core"/>
 ```
 
+## What a release is tested on
+
+The continuous integration runs without databases, so most dialects are verified by hand before a
+release, and the result is recorded by `./gradlew verify`: [`VERIFICATION.md`](./VERIFICATION.md) says
+how, and `verification/<version>.md` is the record of each release.
+
 ## What protects the release path
 
 - **Signed releases from CI only.** Release artifacts are built, signed with PGP and uploaded by the

@@ -1,0 +1,7 @@
+// What a list answers about itself. The size counts NULL elements and is NULL for a list that is NULL
+// (vec in row 2); the aggregates ignore NULL elements and are NULL when nothing is left (row 2 has an
+// empty list, row 3 has two NULLs and a 5); a list that is there either holds the value or it does not.
+FIND check_complex t
+FETCH t.nr, list_size(t.tags) tags, list_size(t.vec) vec, list_contains(t.tags, 'red') has_red,
+      list_sum(t.scores) total, list_min(t.scores) lowest, list_max(t.scores) highest,
+      list_avg(t.scores) average

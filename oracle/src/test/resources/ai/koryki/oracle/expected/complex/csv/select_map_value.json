@@ -1,0 +1,7 @@
+Nr : INTEGER
+color : TEXT
+size : TEXT
+missing : TEXT
+count_a : INTEGER
+one : TEXT
+two : TEXT

@@ -376,7 +376,12 @@ public class TestUtil {
             TypeDescriptor t = info.getTypeDescriptor();
             b.append(info.getHeader())
                     .append(" : ")
-                    .append(t == null ? "unknown" : t.getTypeFamily())
+                    // a container shows its tree: ARRAY(TEXT), STRUCT(w:FLOAT,h:FLOAT); the family
+                    // alone would not notice an element that changed type
+                    .append(
+                            t == null
+                                    ? "unknown"
+                                    : t.isComplex() ? t.portable() : t.getTypeFamily())
                     .append(Text.NL);
         }
         return b.toString();

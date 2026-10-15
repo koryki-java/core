@@ -48,18 +48,3 @@ publishing {
         }
     }
 }
-
-tasks.register('MssqlNorthwindScript', JavaExec) {
-
-    systemProperty "mssql.northwind.url", project.findProperty("mssql.northwind.url")
-    systemProperty "mssql.northwind.user", project.findProperty("mssql.northwind.user")
-    systemProperty "mssql.northwind.password", project.findProperty("mssql.northwind.password")
-
-    group = "application"
-    description = "Build Northwind Database for mssql"
-
-    classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'ai.koryki.mssql.northwind.BuildNorthwind'
-
-    args
-}

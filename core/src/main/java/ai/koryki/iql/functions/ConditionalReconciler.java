@@ -129,6 +129,49 @@ public final class ConditionalReconciler {
             return new Result(TypeDescriptor.NULL, passthrough(branches.size()));
         }
 
+        // 0. Containers do not widen or convert: every branch must be the same structure, and the
+        //    result is that structure. Rebuilding the descriptor from family and physical name, as
+        //    for a scalar below, would drop the element and field types.
+        if (CoreTypeFamily.ARRAY.equals(typed.get(0).getTypeFamily())
+                && typed.stream().allMatch(b -> CoreTypeFamily.ARRAY.equals(b.getTypeFamily()))
+                && typed.stream().map(b -> b.element().portable()).distinct().count() == 1) {
+            // the same elements in a fixed size and in a list are a list: only the size differs,
+            // and no engine takes the size as a type of its own. Elements that differ are not
+            // widened - the engines disagree on whether they may be mixed.
+            int length = typed.get(0).length();
+            for (TypeDescriptor b : typed) {
+                length = length == b.length() ? length : -1;
+            }
+            return new Result(
+                    TypeDescriptor.array(typed.get(0).element(), length),
+                    passthrough(branches.size()));
+        }
+        if (typed.get(0).isComplex()) {
+            for (TypeDescriptor b : typed) {
+                if (!b.portable().equals(typed.get(0).portable())) {
+                    throw new ReconcileException(
+                            ReconcileException.Kind.FAMILY_GROUP,
+                            "cannot bring these values to a common type — different structures: "
+                                    + typed.get(0).portable()
+                                    + " and "
+                                    + b.portable());
+                }
+            }
+            return new Result(typed.get(0), passthrough(branches.size()));
+        }
+
+        // 0b. JSON keeps what the catalog declares about it, if every branch declares the same:
+        //     coalesce(t.doc, t.doc)@n is as typed as t.doc@n. Branches that differ say nothing
+        //     together, and the result is JSON of unknown content.
+        if (CoreTypeFamily.JSON.equals(typed.get(0).getTypeFamily())
+                && typed.stream().allMatch(b -> CoreTypeFamily.JSON.equals(b.getTypeFamily()))) {
+            TypeDescriptor first = typed.get(0);
+            boolean same =
+                    typed.stream()
+                            .allMatch(b -> java.util.Objects.equals(b.shape(), first.shape()));
+            return new Result(same ? first : first.withShape(null), passthrough(branches.size()));
+        }
+
         // 1. Family-group: widen within the group, hard error across groups.
         TypeFamily targetFamily = typed.get(0).getTypeFamily();
         for (TypeDescriptor b : typed) {

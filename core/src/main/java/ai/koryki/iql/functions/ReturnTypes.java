@@ -44,6 +44,34 @@ public class ReturnTypes {
     public static final ReturnTypeInference ARG2 = b -> b.getOperandType(2);
     public static final ReturnTypeInference INTERVAL = b -> TypeDescriptor.INTERVAL;
 
+    /** {@code list_transform}: a list of whatever the lambda returns. */
+    public static final ReturnTypeInference LIST_OF_LAMBDA =
+            b -> {
+                TypeDescriptor element = b.getLambdaType(1);
+                return element == null ? null : TypeDescriptor.array(element);
+            };
+
+    /** {@code list_filter}: a list of the elements of the argument, whatever its fixed size. */
+    public static final ReturnTypeInference LIST_OF_ELEMENT =
+            b -> {
+                TypeDescriptor list = b.getOperandType(0);
+                return list == null || list.getTypeFamily() != CoreTypeFamily.ARRAY
+                        ? null
+                        : TypeDescriptor.array(list.element());
+            };
+
+    /** The type of an element of the list argument: {@code list_sum}, {@code list_max}. */
+    public static final ReturnTypeInference ELEMENT_OF_LIST =
+            b -> {
+                TypeDescriptor list = b.getOperandType(0);
+                return list == null || list.getTypeFamily() != CoreTypeFamily.ARRAY
+                        ? null
+                        : list.element();
+            };
+
+    /** {@code list_reduce}: what the lambda returns. */
+    public static final ReturnTypeInference LAMBDA = b -> b.getLambdaType(1);
+
     /**
      * calendar_distance: an INTERVAL whose "startEpoch;endEpoch" wire form is decoded to a calendar
      * span.
@@ -97,6 +125,24 @@ public class ReturnTypes {
                     types.add(binding.getOperandType(i));
                 }
                 return ConditionalReconciler.reconcile(types).target();
+            };
+
+    /** A list of the type of the first argument: {@code list_agg}. */
+    public static final ReturnTypeInference LIST_OF_ARG0 =
+            binding -> {
+                TypeDescriptor value = binding.getOperandType(0);
+                return value == null ? null : TypeDescriptor.array(value);
+            };
+
+    /** A list of the common type of all the arguments: {@code list(a, b, ...)}. */
+    public static final ReturnTypeInference LIST_OF_COMMON =
+            binding -> {
+                List<TypeDescriptor> types = new ArrayList<>();
+                for (int i = 0; i < binding.getOperandCount(); i++) {
+                    types.add(binding.getOperandType(i));
+                }
+                TypeDescriptor common = ConditionalReconciler.reconcile(types).target();
+                return common == null ? null : TypeDescriptor.array(common);
             };
 
     public static final ReturnTypeInference LEAST_RESTRICTIVE =

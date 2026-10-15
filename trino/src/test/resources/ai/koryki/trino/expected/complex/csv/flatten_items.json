@@ -1,0 +1,4 @@
+Nr : INTEGER
+Ordinal : INTEGER
+Sku : TEXT
+total : DECIMAL

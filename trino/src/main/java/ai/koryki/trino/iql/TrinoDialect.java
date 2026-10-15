@@ -16,11 +16,13 @@
  */
 package ai.koryki.trino.iql;
 
+import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.catalog.types.CoreTypeEncoding;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.Families;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.WallClockEncoding;
+import ai.koryki.iql.NestedSql;
 import ai.koryki.iql.SqlDialect;
 import ai.koryki.iql.SqlSelectRenderer;
 import ai.koryki.iql.functions.FormatMask;
@@ -31,9 +33,11 @@ import ai.koryki.iql.functions.FunctionRenderer;
 import ai.koryki.iql.functions.ReturnTypes;
 import ai.koryki.iql.functions.StandardFunctions;
 import ai.koryki.iql.functions.catalog.DateTimeFunctions;
+import ai.koryki.iql.functions.catalog.ListFunctions;
 import ai.koryki.iql.query.Duration;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
+import ai.koryki.iql.query.Selector;
 import ai.koryki.iql.typing.TimeEncodings;
 import java.util.List;
 import java.util.Optional;
@@ -91,6 +95,212 @@ public class TrinoDialect implements SqlDialect {
                 + " AS TIMESTAMP)";
     }
 
+    private static String listWithLambda(
+            String name, SqlSelectRenderer renderer, Function function, int indent) {
+        String list = renderer.toSql(function.getArguments().get(0), indent);
+        // the position and the fold name the list several times
+        boolean repeated =
+                name.equals("list_reduce")
+                        || function.getArguments().get(1).getLambda().getParameters().size() > 1;
+        return repeated
+                ? NestedSql.bindOnce(
+                        list, ONCE, ref -> lambdaOver(name, renderer, function, ref, indent))
+                : lambdaOver(name, renderer, function, list, indent);
+    }
+
+    private static String lambdaOver(
+            String name, SqlSelectRenderer renderer, Function function, String list, int indent) {
+        return renderer.lambda(
+                function.getArguments().get(1),
+                indent,
+                (names, body) -> {
+                    String head =
+                            names.size() == 1 ? names.get(0) : "(" + String.join(", ", names) + ")";
+                    switch (name) {
+                        case "list_transform":
+                            if (names.size() == 1) {
+                                return "transform(" + list + ", " + head + " -> " + body + ")";
+                            }
+                            // the position: the list zipped with 1..n. sequence(1, 0) counts down
+                            // and fails on an empty list, so the sequence is cut to the length.
+                            return "zip_with("
+                                    + list
+                                    + ", slice(sequence(1, greatest(cardinality("
+                                    + list
+                                    + "), 1)), 1, cardinality("
+                                    + list
+                                    + ")), "
+                                    + head
+                                    + " -> "
+                                    + body
+                                    + ")";
+                        case "list_filter":
+                            if (names.size() != 1) {
+                                throw new KorykiaiException(
+                                        "list_filter with the position as a second parameter is not supported on Trino");
+                            }
+                            return "filter(" + list + ", " + head + " -> " + body + ")";
+                        default:
+                            // reduce(array, initial, (state, element) -> state, state -> state):
+                            // the
+                            // first element is the initial state and the rest the elements, as in
+                            // DuckDB; an empty list has no first element and gives NULL
+                            return "reduce(slice("
+                                    + list
+                                    + ", 2, cardinality("
+                                    + list
+                                    + ")), element_at("
+                                    + list
+                                    + ", 1), "
+                                    + head
+                                    + " -> "
+                                    + body
+                                    + ", s -> s)";
+                    }
+                });
+    }
+
+    private static final java.util.regex.Pattern PLAIN_NAME =
+            java.util.regex.Pattern.compile("[a-z_][a-z0-9_]*");
+
+    /**
+     * Trino has the shapes natively. Lists: {@code element_at}, which counts from 1, from the end
+     * when negative, and is NULL outside the list where a subscript is an error; ranges through
+     * {@code slice(list, start, length)}. Rows (the structs): a field by name or by position, in
+     * parentheses. Maps: {@code element_at}, NULL for a key the map does not have. JSON: {@code
+     * json_extract} with a path counted from 0, which has no position from the end.
+     */
+    @Override
+    public NestedSupport nestedSupport() {
+        return NestedSupport.full("Trino").withoutJsonFromEnd();
+    }
+
+    @Override
+    public String selection(String base, TypeDescriptor baseType, List<Selector> steps) {
+        String sql = base;
+        TypeDescriptor type = baseType;
+        for (int i = 0; i < steps.size(); i++) {
+            Selector step = steps.get(i);
+            if (CoreTypeFamily.ARRAY.equals(type.getTypeFamily())
+                    && needsSize(step)
+                    && !NestedSql.isReference(sql)) {
+                // the size of the list is asked for as well as its elements: evaluate it once
+                int from = i;
+                TypeDescriptor typeHere = type;
+                return NestedSql.bindOnce(
+                        sql,
+                        ONCE,
+                        ref -> selection(ref, typeHere, steps.subList(from, steps.size())));
+            }
+            if (CoreTypeFamily.JSON.equals(type.getTypeFamily())) {
+                return jsonPath(sql, steps.subList(i, steps.size()));
+            } else if (CoreTypeFamily.ARRAY.equals(type.getTypeFamily())) {
+                sql =
+                        step.getIndex() != null
+                                ? "element_at(" + sql + ", " + step.getIndex() + ")"
+                                : slice(sql, step);
+            } else if (CoreTypeFamily.STRUCT.equals(type.getTypeFamily())) {
+                sql = row(sql, type, step);
+            } else if (CoreTypeFamily.MAP.equals(type.getTypeFamily())) {
+                sql = "element_at(" + sql + ", " + mapKey(type, step) + ")";
+            } else {
+                throw new KorykiaiException(
+                        "Trino cannot select from " + type.portable() + " with a selector");
+            }
+            type = ai.koryki.iql.typing.Selectors.step(type, step);
+        }
+        return sql;
+    }
+
+    /** One row holding a value, to name it more than once: see {@link NestedSql#bindOnce}. */
+    private static final String ONCE = "FROM (SELECT {0} AS L) {1}";
+
+    /** A range whose bounds are not both plain positions needs the length of the list. */
+    private static boolean needsSize(Selector step) {
+        return step.getIndex() == null
+                && !(step.getFrom() != null
+                        && step.getTo() != null
+                        && step.getFrom() > 0
+                        && step.getTo() > 0);
+    }
+
+    private static String slice(String list, Selector step) {
+        String length = "cardinality(" + list + ")";
+        Integer from = step.getFrom();
+        Integer to = step.getTo();
+        if (from != null && to != null && from > 0 && to > 0) {
+            return "slice(" + list + ", " + from + ", " + Math.max(to - from + 1, 0) + ")";
+        }
+        // a start before the list is the first element: slice() reads a start of 0 as an error and
+        // a negative one as counting from the end, which would answer the wrong elements
+        String start =
+                from == null
+                        ? "1"
+                        : from > 0
+                                ? String.valueOf(from)
+                                : "greatest(" + length + " + " + (from + 1) + ", 1)";
+        String stop = to == null ? length : to > 0 ? String.valueOf(to) : length + " + " + (to + 1);
+        return "slice("
+                + list
+                + ", "
+                + start
+                + ", greatest("
+                + stop
+                + " - ("
+                + start
+                + ") + 1, 0))";
+    }
+
+    private static String row(String sql, TypeDescriptor type, Selector step) {
+        if (step.getIndex() != null) {
+            int n = type.children().size();
+            return "("
+                    + sql
+                    + ")["
+                    + (step.getIndex() > 0 ? step.getIndex() : n + step.getIndex() + 1)
+                    + "]";
+        }
+        // the name as the type declares it; Trino reads names without regard to case anyway
+        return "(" + sql + ")." + NestedSql.identifier(NestedSql.fieldName(type, step), PLAIN_NAME);
+    }
+
+    private static String mapKey(TypeDescriptor type, Selector step) {
+        if (step.getIndex() != null) {
+            return String.valueOf(step.getIndex());
+        }
+        return NestedSql.literal(INSTANCE, NestedSql.key(step));
+    }
+
+    /**
+     * {@code json_extract_scalar}: the scalar at the path, text without quotes; NULL for a
+     * non-scalar.
+     */
+    @Override
+    public String selectionScalar(String base, TypeDescriptor baseType, List<Selector> steps) {
+        String path =
+                NestedSql.jsonPath(
+                        steps, "$", NestedSql.FromEnd.NONE, NestedSql.Quoting.BRACKET, "Trino");
+        return "json_extract_scalar(" + base + ", " + NestedSql.literal(INSTANCE, path) + ")";
+    }
+
+    /** A JSON array to a Trino array by a cast; anything that is not an array gives NULL. */
+    @Override
+    public String jsonList(String json, TypeDescriptor element) {
+        return "CAST(" + json + " AS ARRAY(" + declaredScalarType(element) + "))";
+    }
+
+    @Override
+    public String jsonScalar(String json) {
+        return "json_extract_scalar(" + json + ", '$')";
+    }
+
+    private static String jsonPath(String sql, List<Selector> steps) {
+        String path =
+                NestedSql.jsonPath(
+                        steps, "$", NestedSql.FromEnd.NONE, NestedSql.Quoting.BRACKET, "Trino");
+        return "json_extract(" + sql + ", " + NestedSql.literal(INSTANCE, path) + ")";
+    }
+
     private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();
 
     @Override
@@ -100,6 +310,67 @@ public class TrinoDialect implements SqlDialect {
 
     private static FunctionRenderer buildFunctionRenderer() {
         FunctionRegistry registry = StandardFunctions.registry();
+
+        // lists with lambdas: transform, filter and reduce are Trino's own, with a lambda of one
+        // parameter; the position as a second parameter and the start from the first element are
+        // spelled out
+        // what a list answers about itself; array_max and array_min give NULL as soon as one
+        // element
+        // is NULL, so the aggregates run over UNNEST, which ignores them
+        registry.register(ListFunctions.supported("list_size").template("cardinality({0})"));
+        registry.register(
+                ListFunctions.supported("list_contains")
+                        .template("(array_position({0}, {1}) > 0)"));
+        registry.register(
+                ListFunctions.supported("list_sum")
+                        .template("(SELECT sum(_e) FROM UNNEST({0}) AS _u(_e))"));
+        registry.register(
+                ListFunctions.supported("list_min")
+                        .template("(SELECT min(_e) FROM UNNEST({0}) AS _u(_e))"));
+        registry.register(
+                ListFunctions.supported("list_max")
+                        .template("(SELECT max(_e) FROM UNNEST({0}) AS _u(_e))"));
+        registry.register(
+                ListFunctions.supported("list_avg")
+                        .template("(SELECT avg(CAST(_e AS DOUBLE)) FROM UNNEST({0}) AS _u(_e))"));
+        registry.register(ListFunctions.supported("list_any"));
+        registry.register(ListFunctions.supported("list_all"));
+        // array_sort puts NULL last; the descending order needs the comparison spelled out for it
+        registry.register(
+                new FunctionDefinition(ListFunctions.supported("list_sort")) {
+                    @Override
+                    protected String renderBody(
+                            SqlSelectRenderer renderer, Function function, int indent) {
+                        String list = renderer.toSql(function.getArguments().get(0), indent);
+                        return ListFunctions.descending(function)
+                                ? "array_sort("
+                                        + list
+                                        + ", (a, b) -> CASE WHEN a IS NULL AND b IS NULL THEN 0"
+                                        + " WHEN a IS NULL THEN 1 WHEN b IS NULL THEN -1"
+                                        + " WHEN a < b THEN 1 WHEN a > b THEN -1 ELSE 0 END)"
+                                : "array_sort(" + list + ")";
+                    }
+                });
+        registry.register(
+                ListFunctions.supported("list_distinct")
+                        .template("array_sort(array_distinct(filter({0}, x -> x IS NOT NULL)))"));
+        registry.register(
+                ListFunctions.supported("list_concat")
+                        .template("coalesce(concat({0}, {1}), {0}, {1})"));
+        registry.register(ListFunctions.supported("list").template("ARRAY[{*}]"));
+        registry.register(
+                ListFunctions.supported("list_agg")
+                        .template("array_agg({0}) FILTER (WHERE {0} IS NOT NULL)"));
+        for (String name : List.of("list_transform", "list_filter", "list_reduce")) {
+            registry.register(
+                    new FunctionDefinition(ListFunctions.supported(name)) {
+                        @Override
+                        protected String renderBody(
+                                SqlSelectRenderer renderer, Function function, int indent) {
+                            return listWithLambda(name, renderer, function, indent);
+                        }
+                    });
+        }
         // to_text is the rolled-out, tested function: keep its dialect cast-type override.
         registry.overrideAll("to_text", "CAST({0} AS VARCHAR)");
         registry.override("trunc", 1, "truncate({0})");

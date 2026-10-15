@@ -19,6 +19,8 @@ package ai.koryki.iql;
 import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.antlr.Range;
 import ai.koryki.antlr.RangeException;
+import ai.koryki.catalog.MemberNames;
+import ai.koryki.catalog.SchemaCopy;
 import ai.koryki.catalog.domain.Attribute;
 import ai.koryki.catalog.domain.Entity;
 import ai.koryki.catalog.domain.Link;
@@ -26,6 +28,7 @@ import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Relation;
 import ai.koryki.catalog.schema.Schema;
+import ai.koryki.catalog.types.ConceptResolver;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeDescriptorParser;
 import ai.koryki.iql.query.JoinColumns;
@@ -79,6 +82,9 @@ public class LinkResolver {
         this.strict = strict;
 
         TypeDescriptorParser parser = new TypeDescriptorParser() {};
+        ConceptResolver concepts = new ConceptResolver(db);
+        // what the model says about the parts of the nested columns has to fit the schema
+        new MemberNames(db, model).check();
 
         db.getTables()
                 .forEach(
@@ -86,7 +92,9 @@ public class LinkResolver {
                             t.getColumns()
                                     .forEach(
                                             c -> {
-                                                TypeDescriptor d = parser.parse(c);
+                                                // a column is typed from its concept, its own or
+                                                // the one it refers to
+                                                TypeDescriptor d = concepts.descriptor(c, parser);
                                                 columnToTypedescriptor.put(c, d);
                                             });
                         });
@@ -337,7 +345,7 @@ public class LinkResolver {
         }
 
         // A copy: this instance is the schema's own and is handed to every other query.
-        Relation flipped = Schema.deepCopy(relation);
+        Relation flipped = SchemaCopy.deepCopy(relation);
         flipped.setStartTable(relation.getEndTable());
         flipped.setEndTable(relation.getStartTable());
         flipped.setStartColumns(relation.getEndColumns());
@@ -497,6 +505,16 @@ public class LinkResolver {
                                         .filter(a -> getDialectColumn(a).equals(column))
                                         .findFirst())
                 .map(Attribute::getName);
+    }
+
+    /**
+     * As {@link #dictionary(Model, Model)}, and the translator also writes the names of struct
+     * fields in selectors in the language of {@code to}; the concepts are those of {@code schema}.
+     */
+    public static DictionaryTranslator dictionary(Model from, Model to, Schema schema) {
+        DictionaryTranslator plain = dictionary(from, to);
+        return new DictionaryTranslator(
+                plain.getLinkDictionary(), plain.getSchemaDictionary(), schema, from, to);
     }
 
     public static DictionaryTranslator dictionary(Model from, Model to) {

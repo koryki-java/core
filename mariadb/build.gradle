@@ -48,18 +48,3 @@ publishing {
         }
     }
 }
-
-tasks.register('MariadbNorthwindScript', JavaExec) {
-
-    systemProperty "mariadb.northwind.url", project.findProperty("mariadb.northwind.url")
-    systemProperty "mariadb.northwind.user", project.findProperty("mariadb.northwind.user")
-    systemProperty "mariadb.northwind.password", project.findProperty("mariadb.northwind.password")
-
-    group = "application"
-    description = "Build Northwind Database for mariadb"
-
-    classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'ai.koryki.mariadb.northwind.BuildNorthwind'
-
-    args
-}

@@ -1,0 +1,6 @@
+// list_agg(x) makes a list out of the rows of a group. It leaves NULLs out and promises no order, so what
+// is shown is sorted: the first tags of the rows are red and x (row 2 has no first tag), the second
+// scores 5 and 20 (row 2 has none).
+FIND check_complex t
+FETCH list_sort(list_agg(t.nr)) all_nrs, list_sort(list_agg(t.tags@1)) first_tags,
+      list_sort(list_agg(t.scores@2)) second_scores

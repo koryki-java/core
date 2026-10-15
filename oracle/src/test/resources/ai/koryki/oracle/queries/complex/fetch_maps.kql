@@ -1,0 +1,3 @@
+// Maps with text keys and with integer keys, text and integer values. An empty map is not NULL.
+FIND check_complex t
+FETCH t.nr, t.attrs, t.counts, t.lookup

@@ -1,0 +1,5 @@
+Nr : INTEGER
+vec_last : FLOAT
+first_row : ARRAY(FLOAT)
+cell : FLOAT
+corner : FLOAT

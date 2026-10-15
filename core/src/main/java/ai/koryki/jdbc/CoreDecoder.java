@@ -16,9 +16,17 @@
  */
 package ai.koryki.jdbc;
 
+import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.catalog.types.*;
+import java.sql.SQLException;
 import java.time.*;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class CoreDecoder implements TypeDecoder {
 
@@ -33,6 +41,16 @@ public class CoreDecoder implements TypeDecoder {
     public Object decode(Object v, ColumnInfo info) {
         TypeDescriptor td = info != null ? info.getTypeDescriptor() : null;
         TypeEncoding enc = td != null ? td.getTypeEncoding() : null;
+
+        // A container: ARRAY, STRUCT and MAP come off the driver as java.sql.Array, java.sql.Struct
+        // or a Map, each holding driver values. Read into plain java.util values, and decode every
+        // leaf by the type it has in the tree, so a nested DECIMAL, DATE or INSTANT is what the
+        // same
+        // column would be at the top level. The value that comes back is a List, or a Map keyed by
+        // field name for a STRUCT, whatever the driver.
+        if (td != null && td.isComplex() && v != null) {
+            return decodeComplex(v, td);
+        }
 
         // INTERVAL family: materialize the portable forms (already-decoded Interval, a
         // java.time amount, a numeric count, or an ISO/clock string) into a koryki
@@ -121,6 +139,108 @@ public class CoreDecoder implements TypeDecoder {
             return LocalDateTime.ofInstant(epochInstant(epoch.getUnit(), n.longValue()), zone);
         }
         return v;
+    }
+
+    private Object decodeComplex(Object v, TypeDescriptor td) {
+        try {
+            if (CoreTypeFamily.ARRAY.equals(td.getTypeFamily())) {
+                List<Object> out = new ArrayList<>();
+                for (Object e : elements(v)) {
+                    out.add(leaf(e, td.element()));
+                }
+                return Collections.unmodifiableList(out);
+            } else if (CoreTypeFamily.STRUCT.equals(td.getTypeFamily())) {
+                Object[] attributes = attributes(v);
+                if (attributes.length != td.children().size()) {
+                    throw new IllegalArgumentException(
+                            "a struct of "
+                                    + attributes.length
+                                    + " fields where "
+                                    + td.portable()
+                                    + " has "
+                                    + td.children().size());
+                }
+                Map<String, Object> out = new LinkedHashMap<>();
+                for (int i = 0; i < attributes.length; i++) {
+                    out.put(td.fieldNames().get(i), leaf(attributes[i], td.children().get(i)));
+                }
+                return Collections.unmodifiableMap(out);
+            } else if (v instanceof Map<?, ?> map) {
+                Map<Object, Object> out = new LinkedHashMap<>();
+                for (Map.Entry<?, ?> e : map.entrySet()) {
+                    out.put(leaf(e.getKey(), td.key()), leaf(e.getValue(), td.value()));
+                }
+                return Collections.unmodifiableMap(out);
+            }
+            throw new IllegalArgumentException(
+                    "a " + v.getClass().getName() + " is not a value of " + td.portable());
+        } catch (SQLException e) {
+            throw new KorykiaiException(e);
+        }
+    }
+
+    private static List<?> elements(Object v) throws SQLException {
+        if (v instanceof java.sql.Array a) {
+            return elementsOf(a.getArray());
+        } else if (v instanceof List<?> list) {
+            return list;
+        }
+        return elementsOf(v);
+    }
+
+    private static List<?> elementsOf(Object array) {
+        if (array instanceof Object[] objects) {
+            return Arrays.asList(objects);
+        } else if (array != null && array.getClass().isArray()) {
+            int n = java.lang.reflect.Array.getLength(array);
+            List<Object> out = new ArrayList<>(n);
+            for (int i = 0; i < n; i++) {
+                out.add(java.lang.reflect.Array.get(array, i));
+            }
+            return out;
+        }
+        throw new IllegalArgumentException(
+                "a " + (array == null ? "null" : array.getClass().getName()) + " is not an array");
+    }
+
+    private static Object[] attributes(Object v) throws SQLException {
+        if (v instanceof java.sql.Struct s) {
+            return s.getAttributes();
+        } else if (v instanceof Map<?, ?> map) {
+            return map.values().toArray();
+        } else if (v instanceof Object[] objects) {
+            return objects;
+        }
+        throw new IllegalArgumentException("a " + v.getClass().getName() + " is not a struct");
+    }
+
+    /** One element, field, key or value: to canonical java.time, then decoded by its own type. */
+    private Object leaf(Object v, TypeDescriptor td) {
+        if (v == null) {
+            return null;
+        }
+        if (v instanceof java.sql.Timestamp ts) {
+            v = ts.toLocalDateTime();
+        } else if (v instanceof java.sql.Date d) {
+            v = d.toLocalDate();
+        } else if (v instanceof java.sql.Time t) {
+            v = t.toLocalTime();
+        } else if (v instanceof OffsetDateTime odt
+                && CoreTypeEncoding.INSTANT.equals(td.getTypeEncoding())) {
+            v = odt.toInstant();
+        }
+        return decode(v, new LeafInfo(td));
+    }
+
+    /** The column description of a leaf inside a container: nothing but its type. */
+    private record LeafInfo(TypeDescriptor type) implements ColumnInfo {
+        @Override
+        public void setHeader(String header) {}
+
+        @Override
+        public TypeDescriptor getTypeDescriptor() {
+            return type;
+        }
     }
 
     private static Instant epochInstant(ChronoUnit unit, long value) {

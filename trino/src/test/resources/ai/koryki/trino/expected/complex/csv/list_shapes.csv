@@ -1,0 +1,4 @@
+"Nr", "sorted_tags", "scores_desc", "distinct_tags", "joined", "vec_twice"
+"1", "[""blue"",""green"",""red""]", "[30,20,10]", "[""blue"",""green"",""red""]", "[10,20,30,100,200,300]", "[1.0,2.0,3.0,1.0,2.0,3.0]"
+"2", "[]", "[]", "[]", "[]", ""
+"3", "[""x"",""z"",null]", "[5,null,null]", "[""x"",""z""]", "[null,5,null,null,50,null]", "[0.0,null,3.0,0.0,null,3.0]"

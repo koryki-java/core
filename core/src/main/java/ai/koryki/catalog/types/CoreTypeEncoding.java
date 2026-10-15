@@ -54,7 +54,14 @@ public enum CoreTypeEncoding implements TypeEncoding {
      * timestamptz, MariaDB/MySQL TIMESTAMP); reads are normalized to the model zone at the
      * boundary.
      */
-    INSTANT(CoreTypeFamily.TIMESTAMP);
+    INSTANT(CoreTypeFamily.TIMESTAMP),
+
+    /**
+     * A container concept (ARRAY, STRUCT, MAP) that is stored as a JSON value, in whatever physical
+     * type its dialect type names: {@code JSON}, {@code JSONB}, {@code VARIANT}, or text. The type
+     * is then JSON, and the container is what the catalog declares about its content.
+     */
+    JSON(CoreTypeFamily.JSON);
 
     private final TypeFamily family;
 

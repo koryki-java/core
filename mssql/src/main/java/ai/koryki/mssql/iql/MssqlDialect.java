@@ -16,12 +16,14 @@
  */
 package ai.koryki.mssql.iql;
 
+import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.catalog.types.CoreTypeEncoding;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.Families;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.WallClockEncoding;
 import ai.koryki.iql.Identifier;
+import ai.koryki.iql.NestedSql;
 import ai.koryki.iql.SqlDialect;
 import ai.koryki.iql.SqlRenderer;
 import ai.koryki.iql.SqlSelectRenderer;
@@ -35,10 +37,12 @@ import ai.koryki.iql.functions.StandardFunctions;
 import ai.koryki.iql.query.Duration;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
+import ai.koryki.iql.query.Selector;
 import ai.koryki.iql.typing.TimeEncodings;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 
 public class MssqlDialect implements SqlDialect {
 
@@ -267,6 +271,64 @@ public class MssqlDialect implements SqlDialect {
     @Override
     public String textLiteral(String quoted) {
         return quoted.chars().anyMatch(ch -> ch > 127) ? "N" + quoted : quoted;
+    }
+
+    // ---- nested values: selectors -------------------------------------------------------------
+
+    /**
+     * SQL Server has no collection, object or map type: the only nested value is JSON, kept as
+     * text. A selector chain is one path, counted from 0. {@code JSON_VALUE} answers a scalar and
+     * {@code JSON_QUERY} an object or a list, each NULL for the other kind, so the two together
+     * answer whatever the path finds, and NULL for what it does not (the default, lax mode). The
+     * path has no position from the end, which is refused. A scalar string comes back as its text
+     * without the quotes: JSON_VALUE does not tell a string from a number.
+     */
+    /**
+     * Already the scalar: JSON_VALUE answers a string without its quotes, and what JSON_QUERY
+     * answers, an object or a list, is its JSON text, which is all a scalar can be of it here.
+     */
+    @Override
+    public String jsonScalar(String json) {
+        return json;
+    }
+
+    /** BIT has no BOOLEAN to cast to; the text 'true' converts to 1. */
+    @Override
+    public String jsonBoolean(String scalar) {
+        return "CAST(" + scalar + " AS BIT)";
+    }
+
+    @Override
+    public NestedSupport nestedSupport() {
+        return NestedSupport.jsonOnly("SQL Server", false);
+    }
+
+    @Override
+    public String selection(String base, TypeDescriptor baseType, List<Selector> steps) {
+        if (!CoreTypeFamily.JSON.equals(baseType.getTypeFamily())) {
+            throw new KorykiaiException(
+                    "SQL Server cannot select from "
+                            + baseType.portable()
+                            + " with a selector: only JSON is a nested value here");
+        }
+        if (!NestedSql.isReference(base)) {
+            // JSON_QUERY and JSON_VALUE both ask for the value
+            return NestedSql.bindOnce(
+                    base, "FROM (SELECT {0} AS L) {1}", ref -> selection(ref, baseType, steps));
+        }
+        String path =
+                NestedSql.jsonPath(
+                        steps, "$", NestedSql.FromEnd.NONE, NestedSql.Quoting.DOT, "SQL Server");
+        String literal = NestedSql.literal(INSTANCE, path);
+        return "COALESCE(JSON_QUERY("
+                + base
+                + ", "
+                + literal
+                + "), JSON_VALUE("
+                + base
+                + ", "
+                + literal
+                + "))";
     }
 
     private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();

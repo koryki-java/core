@@ -56,6 +56,15 @@ public class OracleDecoder extends CoreDecoder {
             if (CoreTypeEncoding.INTERVAL_DAY_SECOND.equals(enc))
                 return IntervalStrings.parseDaySecond(s);
         }
+        // a number inside a collection of SYS.ODCINUMBERLIST arrives as a NUMBER, also where the
+        // type says FLOAT: the value is the same, its spelling is the family's
+        if (v instanceof java.math.BigDecimal n
+                && info != null
+                && info.getTypeDescriptor() != null
+                && ai.koryki.catalog.types.CoreTypeFamily.FLOAT.equals(
+                        info.getTypeDescriptor().getTypeFamily())) {
+            return n.doubleValue();
+        }
         return super.decode(v, info);
     }
 

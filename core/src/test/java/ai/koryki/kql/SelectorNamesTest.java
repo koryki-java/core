@@ -1,0 +1,248 @@
+/*
+ * Copyright 2025-2026 Johannes Zemlin
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package ai.koryki.kql;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import ai.koryki.catalog.domain.Member;
+import ai.koryki.catalog.domain.Model;
+import ai.koryki.catalog.schema.Schema;
+import ai.koryki.databases.complex.duckdb.ComplexService;
+import ai.koryki.iql.DuckdbBaseDialect;
+import ai.koryki.iql.LinkResolver;
+import ai.koryki.iql.SqlQueryRenderer;
+import java.time.ZoneId;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+
+/**
+ * A selector names the fields of a struct in the language of the model: under a German model {@code
+ * t.address@position@breitengrad} reaches {@code geo.lat}. The SQL speaks the physical keys.
+ */
+class SelectorNamesTest {
+
+    private static Map<String, Member> members(Object... keyAndMember) {
+        Map<String, Member> map = new LinkedHashMap<>();
+        for (int i = 0; i < keyAndMember.length; i += 2) {
+            map.put((String) keyAndMember[i], (Member) keyAndMember[i + 1]);
+        }
+        return map;
+    }
+
+    private static LinkResolver german() {
+        LinkResolver bed = ComplexService.resolver();
+        Schema schema = bed.getSchema();
+        Model model = bed.getModel();
+        Member geo = new Member("position");
+        geo.setMembers(members("lat", new Member("breitengrad"), "lon", new Member("laengengrad")));
+        model.getEntity("check_complex")
+                .orElseThrow()
+                .getAttribute("address")
+                .orElseThrow()
+                .setMembers(members("street", new Member("strasse"), "geo", geo));
+        model.getEntity("check_complex")
+                .orElseThrow()
+                .getAttribute("doc")
+                .orElseThrow()
+                .setMembers(members("n", new Member("zahl")));
+        return new LinkResolver(Locale.GERMAN, schema, model);
+    }
+
+    private static String sql(String expression) {
+        String sql =
+                KQLTranspiler.builder("FIND check_complex t FETCH " + expression, german())
+                        .functions(DuckdbBaseDialect.INSTANCE.getFunctionRenderer())
+                        .build()
+                        .getSql(new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, ZoneId.of("UTC")));
+        return sql.substring(sql.indexOf("SELECT") + "SELECT".length(), sql.indexOf("FROM"))
+                .strip();
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            delimiter = '|',
+            value = {
+                "t.address@strasse|t.address['street']",
+                "t.address@position@breitengrad|t.address['geo']['lat']",
+                "t.address@position@'Laengengrad'|t.address['geo']['lon']",
+                // no name of the model: the physical key still works
+                "t.address@phones@1|t.address['phones'][1]",
+                "t.address@geo@lat|t.address['geo']['lat']",
+                "t.address@'position'@breitengrad|t.address['geo']['lat']",
+                // a member of a JSON document the catalog declares is named the same way
+                "t.doc@zahl|(t.doc ->> '$.n')",
+            })
+    void aNameOfTheModelIsTheKeyOfTheSchema(String expression, String expected) {
+        String actual = sql(expression);
+
+        assertTrue(actual.contains(expected), () -> expected + " not in: " + actual);
+    }
+
+    /** The whole SQL of a query, for the cases where the SELECT list is not what is asked. */
+    private static String query(String kql) {
+        return KQLTranspiler.builder(kql, german())
+                .functions(DuckdbBaseDialect.INSTANCE.getFunctionRenderer())
+                .build()
+                .getSql(new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, ZoneId.of("UTC")));
+    }
+
+    @Test
+    void aNameOfTheModelIsFollowedThroughABlock() {
+        String sql =
+                query(
+                        """
+                        WITH b AS (FIND check_complex t FETCH t.nr n, t.address a)
+                        FIND b x FETCH x.a@position@breitengrad
+                        """);
+
+        assertTrue(sql.contains("['geo']['lat']"), sql);
+    }
+
+    @Test
+    void aNameOfTheModelIsFollowedThroughABlockOverABlock() {
+        String sql =
+                query(
+                        """
+                        WITH b AS (FIND check_complex t FETCH t.nr n, t.address a),
+                             c AS (FIND b y FETCH y.n m, y.a z)
+                        FIND c x FETCH x.z@position@breitengrad
+                        """);
+
+        assertTrue(sql.contains("['geo']['lat']"), sql);
+    }
+
+    @Test
+    void aNameOfTheModelIsTranslatedInsideAnExists() {
+        String sql =
+                query(
+                        """
+                        FIND check_complex_items i
+                        FILTER EXISTS (i VIA items_of_check_complex check_complex c FILTER c.address@position@breitengrad > 1)
+                        FETCH i.sku
+                        """);
+
+        assertTrue(sql.contains("['geo']['lat']"), sql);
+    }
+
+    @Test
+    void theQueryKeepsTheNamesAsWrittenAndOnlyTheRenderingUsesTheKeys() {
+        KQLTranspiler transpiler =
+                KQLTranspiler.builder(
+                                "FIND check_complex t FETCH t.address@position@breitengrad",
+                                german())
+                        .build();
+
+        String iql = new ai.koryki.iql.IQLSerializer(transpiler.getQuery()).toString();
+
+        assertTrue(iql.contains("@position@breitengrad"), iql);
+        assertTrue(!iql.contains("lat"), iql);
+    }
+
+    @Test
+    void translatingTwiceGivesTheSameKeys() {
+        LinkResolver resolver = german();
+        KQLTranspiler transpiler =
+                KQLTranspiler.builder(
+                                "FIND check_complex t FETCH t.address@position@breitengrad",
+                                resolver)
+                        .build();
+        var selector =
+                ai.koryki.iql.SqlQueryRenderer.collectOut(
+                                ai.koryki.iql.SqlQueryRenderer.select(transpiler.getQuery()))
+                        .get(0)
+                        .getExpression()
+                        .getSelection()
+                        .getSelectors();
+
+        new ai.koryki.iql.rules.SelectorNamesRule(resolver).apply(transpiler.getQuery());
+
+        assertEquals("geo", selector.get(0).key());
+        assertEquals("lat", selector.get(1).key());
+    }
+
+    /**
+     * The message of the failure of a query, for the cases where it is the message that is asked.
+     */
+    private static String failure(String kql) {
+        return assertThrows(RuntimeException.class, () -> query(kql)).getMessage();
+    }
+
+    @Test
+    void aFieldTheStructDoesNotHaveIsRefusedInTheNamesOfTheModel() {
+        String message = failure("FIND check_complex t FETCH t.address@hoehe");
+
+        // the fields the reader may write, and the type they are in, by the names of the model
+        assertTrue(message.contains("its fields are strasse, position, phones"), message);
+        assertTrue(
+                message.contains(
+                        "STRUCT(strasse:TEXT,position:STRUCT(breitengrad:FLOAT,laengengrad:FLOAT)"),
+                message);
+        assertTrue(!message.contains("street") && !message.contains("geo"), message);
+    }
+
+    @Test
+    void theFieldsOfAStructInsideAreNamedByTheModelToo() {
+        String message = failure("FIND check_complex t FETCH t.address@position@hoehe");
+
+        assertTrue(message.contains("its fields are breitengrad, laengengrad"), message);
+    }
+
+    @Test
+    void aFieldOfABlockIsRefusedInTheNamesOfTheModelToo() {
+        String message =
+                failure(
+                        """
+                        WITH b AS (FIND check_complex t FETCH t.nr n, t.address a)
+                        FIND b x FETCH x.a@hoehe
+                        """);
+
+        assertTrue(message.contains("its fields are strasse, position, phones"), message);
+    }
+
+    @Test
+    void aModelThatNamesNothingIsRefusedInTheKeysOfTheSchema() {
+        String message =
+                assertThrows(
+                                RuntimeException.class,
+                                () ->
+                                        KQLTranspiler.builder(
+                                                        "FIND check_complex t FETCH t.address@hoehe",
+                                                        ComplexService.resolver())
+                                                .functions(
+                                                        DuckdbBaseDialect.INSTANCE
+                                                                .getFunctionRenderer())
+                                                .build()
+                                                .getSql(
+                                                        new SqlQueryRenderer(
+                                                                DuckdbBaseDialect.INSTANCE,
+                                                                ZoneId.of("UTC"))))
+                        .getMessage();
+
+        assertTrue(message.contains("its fields are street, geo, phones"), message);
+    }
+
+    @Test
+    void aNameOfNoLanguageIsStillRefused() {
+        assertThrows(RuntimeException.class, () -> sql("t.address@hoehe"));
+    }
+}

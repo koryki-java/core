@@ -1,0 +1,4 @@
+// Arrays come back as lists: text[], integer[], double precision[], and the two-dimensional matrix as a
+// list of lists. NULL and empty stay apart, and so do NULL elements.
+FIND check_complex t
+FETCH t.nr, t.tags, t.scores, t.vec, t.matrix

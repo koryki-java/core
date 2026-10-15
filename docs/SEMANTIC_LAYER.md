@@ -34,19 +34,34 @@ A single database table.
 | `columns` | `List<Column>` | Columns of this table |
 
 ### `Column`
-A single column within a table.
+A single column within a table. What the type of the column is, and how it is worded, is said by
+its concept.
 
 | Field | Type | Description |
 |---|---|---|
 | `name` | `String` | Column name |
-| `label` | `String` | Human-readable label |
-| `comment` | `String` | Short comment |
-| `description` | `String` | Long description |
-| `typeFamily` | `String` | Logical type family (e.g. `INTEGER`, `DATE`) |
-| `typeEncoding` | `String` | Storage encoding declaration (e.g. `EPOCH:SECONDS`, `SCALED:2`) |
-| `dialectType` | `String` | Raw SQL type as declared in the dialect |
+| `concept` | `Concept` | The concept of this column alone |
+| `conceptRef` | `String` | The name of a concept in `Schema.concepts`, instead of `concept` |
 | `nullable` | `Boolean` | Whether the column allows NULL |
 | `pkPos` | `int` | Primary key position (0 = not part of PK) |
+| `namePos` | `int` | Position in the business name of the row (0 = not part of it) |
+
+### `Concept`
+What a column, or a part of a container, is: its wording and its type.
+
+| Field | Type | Description |
+|---|---|---|
+| `label`, `comment`, `description` | `String` | The wording |
+| `typeFamily` | `String` | Logical type family (e.g. `INTEGER`, `DATE`, `STRUCT`) |
+| `typeEncoding` | `String` | Storage encoding declaration (e.g. `EPOCH:SECONDS`, `SCALED:2`, `JSON`) |
+| `dialectType` | `String` | Raw SQL type as declared in the dialect; for a container, a spelling that is checked against its entries |
+| `unit`, `quantity`, `presentation` | `String` | What the values measure and how they read |
+| `arraySize` | `Integer` | The fixed size of an ARRAY |
+| `entries` | `Map<String, Entry>` | The parts of a container: the fields of a STRUCT, `element` of an ARRAY, `key` and `value` of a MAP |
+
+### `Entry`
+One part of a container: the name of a concept of the schema or a type spelling (`"VARCHAR"`), or a
+`Concept` of its own that belongs to this entry alone. In `db.json` it is a string or an object.
 
 ### `Relation`
 A foreign-key relationship between two tables.
@@ -81,6 +96,7 @@ Top-level container for a domain model.
 | `description` | `String` | Long description |
 | `entities` | `List<Entity>` | All entities in the model |
 | `links` | `List<Link>` | Associations between entities |
+| `notions` | `Map<String, Notion>` | What the model says about the concepts the schema has by name, under the name of the concept |
 
 ### `Entity`
 A named domain concept backed by a physical table.
@@ -104,6 +120,23 @@ A field of an entity, mapped to a physical column.
 | `comment` | `String` | Short comment |
 | `description` | `String` | Long description |
 | `column` | `String` | Physical column this attribute maps to |
+| `members` | `Map<String, Member>` | The parts of the nested value of the column in the language of the model, by the physical key of the entry: the fields of a struct a query writes after `@`, and under `element`, `key` and `value` the parts inside a list or a map |
+
+### `Member`
+How one part of a nested value is named and described in the language of a model.
+
+| Field | Type | Description |
+|---|---|---|
+| `name` | `String` | What a query of this language writes for the part (the physical key when absent) |
+| `label`, `comment`, `description` | `String` | The wording |
+| `members` | `Map<String, Member>` | The parts of this part, when it is a nested value itself |
+
+### `Notion`
+What the model says about a concept the schema has by name, so that it is said once for every column that refers to it: `label`, `comment`, `description` and `members`, as a `Member` has them. It is held in `Model.notions` under the name of the concept. A concept of a column's own is not named, and its parts are in `Attribute.members`; what an attribute says wins over the notion of the concept it refers to.
+
+[`MEMBERS_AND_NOTIONS.md`](./MEMBERS_AND_NOTIONS.md) is the guide: where to say a name, what it does, what is checked.
+
+`ai.koryki.catalog.MemberNames` is the one place that reads them: it walks the concept and the names together and says, for a name written in a query, which entry it is, and what the language calls an entry. `LinkResolver` checks them against the schema: a member is an entry of its concept, no two fields have the same name in the language, a notion is the notion of a concept the schema has.
 
 ### `Link`
 An association between entities, backed by a physical relation.
@@ -257,6 +290,7 @@ Enum of built-in non-native encodings for standard cross-dialect patterns.
 | `INTERVAL_DAY_SECOND` | `INTERVAL` | Day-second interval |
 | `CALENDAR_DISTANCE` | `INTERVAL` | Calendar-based distance |
 | `INSTANT` | `TIMESTAMP` | UTC instant |
+| `JSON` | `JSON` | A container concept (ARRAY, STRUCT, MAP) stored as a JSON value, in whatever type its dialect type names |
 
 ---
 

@@ -1,0 +1,6 @@
+// list_transform becomes a subquery over the positions of the array: the element is the parameter,
+// the second parameter the position from 1. A NULL element stays NULL, a NULL list stays NULL.
+FIND check_complex t
+FETCH t.nr, list_transform(t.tags, x -> upper(x)) shouted,
+      list_transform(t.scores, x -> x * 2) doubled,
+      list_transform(t.scores, (x, i) -> x * i) weighted

@@ -1,0 +1,5 @@
+Nr : INTEGER
+Tags : ARRAY(TEXT)
+Attributes : MAP(TEXT,TEXT)
+Dimensions : STRUCT(w:FLOAT,h:FLOAT)
+Address : STRUCT(street:TEXT,geo:STRUCT(lat:FLOAT,lon:FLOAT),phones:ARRAY(TEXT))

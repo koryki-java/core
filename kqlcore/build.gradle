@@ -5,7 +5,7 @@ plugins {
 }
 
 description = 'The KQL grammar and the ANTLR lexer and parser generated from it -- the core '  +
-        'language, without the VISUALISE clause, which is a separate project. A dependency '  +
+        'language, without the VISUALIZE clause, which is a separate project. A dependency '  +
         'of koryki-core rather than something to depend on directly.'
 
 dependencies {

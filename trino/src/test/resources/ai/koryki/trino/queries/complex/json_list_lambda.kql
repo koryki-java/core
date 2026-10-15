@@ -1,0 +1,4 @@
+// A lambda over a JSON array: its elements are the declared integers.
+FIND check_complex t
+FILTER list_size(t.doc@a@b) > 0
+FETCH t.nr, list_transform(t.doc@a@b, x -> x * 10) tenfold, list_filter(t.doc@a@b, x -> x > 5) big

@@ -16,11 +16,13 @@
  */
 package ai.koryki.oracle.iql;
 
+import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.catalog.types.CoreTypeEncoding;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.Families;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.WallClockEncoding;
+import ai.koryki.iql.NestedSql;
 import ai.koryki.iql.SqlDialect;
 import ai.koryki.iql.SqlSelectRenderer;
 import ai.koryki.iql.functions.FunctionArg;
@@ -29,14 +31,18 @@ import ai.koryki.iql.functions.FunctionRegistry;
 import ai.koryki.iql.functions.FunctionRenderer;
 import ai.koryki.iql.functions.ReturnTypes;
 import ai.koryki.iql.functions.StandardFunctions;
+import ai.koryki.iql.functions.catalog.ListFunctions;
 import ai.koryki.iql.query.Duration;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
+import ai.koryki.iql.query.Selector;
 import ai.koryki.iql.typing.TimeEncodings;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class OracleDialect implements SqlDialect {
@@ -355,6 +361,378 @@ public class OracleDialect implements SqlDialect {
         return leftSql + " " + operator + " " + renderer.toSql(right, indent);
     }
 
+    // ---- nested values: selectors and lambdas -------------------------------------------------
+
+    /**
+     * Oracle's collections (VARRAY, nested table) have no subscript in SQL, only in PL/SQL, so an
+     * element is a scalar subquery over {@code TABLE(list)} numbered by {@code ROWNUM}, which is
+     * the order of a VARRAY. The size is {@code COUNT(*)} over the same, since {@code CARDINALITY}
+     * is for nested tables only. The attributes of an object type are reached by dot notation,
+     * which needs an alias in front, so the steps after an element are folded into its subquery. A
+     * range is a collection again, built with {@code CAST(MULTISET(...))} to one of the generic
+     * {@code SYS.ODCI*LIST} types, as Oracle cannot make a collection without a named type: only
+     * lists of text, numbers and dates, which is what those types hold. A map does not exist here
+     * (it is JSON); a JSON value takes one {@code JSON_QUERY}, whose path has {@code last} for a
+     * position from the end.
+     */
+    @Override
+    public NestedSupport nestedSupport() {
+        return NestedSupport.full("Oracle")
+                .without(CoreTypeFamily.MAP)
+                .notComparable(CoreTypeFamily.ARRAY)
+                .withoutLambdaOverJsonList();
+    }
+
+    @Override
+    public String selection(String base, TypeDescriptor baseType, List<Selector> steps) {
+        String sql = base;
+        TypeDescriptor type = baseType;
+        List<String[]> frames = new ArrayList<>();
+        for (int i = 0; i < steps.size(); i++) {
+            Selector step = steps.get(i);
+            var family = type.getTypeFamily();
+            if (CoreTypeFamily.JSON.equals(family)) {
+                sql = jsonPath(sql, steps.subList(i, steps.size()));
+                break;
+            } else if (CoreTypeFamily.ARRAY.equals(family)) {
+                if (step.getIndex() != null) {
+                    String alias = "E" + (frames.size() + 1);
+                    frames.add(
+                            new String[] {
+                                "(" + elements(sql, type.element()) + ") " + alias,
+                                // The guard is not redundant. A scalar subquery whose only
+                                // reference to the outer row is the argument of TABLE(list), in
+                                // an inline view numbered by ROWNUM, is run once for the whole
+                                // statement on Oracle Database Free 23.26.2: every row gets the
+                                // answer of the first, an empty or NULL list included. Any other
+                                // reference to the row makes it a correlated subquery again (the
+                                // plan then shows a bind variable), and a test of the list
+                                // for NULL is that reference, with no change of meaning.
+                                // Reproduced without koryki and measured: docs/NESTED.md.
+                                alias
+                                        + ".RN = "
+                                        + position(sql, step.getIndex())
+                                        + " AND "
+                                        + sql
+                                        + " IS NOT NULL"
+                            });
+                    sql = alias + ".V";
+                } else {
+                    sql = slice(sql, type, step);
+                }
+            } else if (CoreTypeFamily.STRUCT.equals(family)) {
+                sql = sql + "." + attribute(type, step);
+            } else {
+                throw new KorykiaiException(
+                        "Oracle cannot select from " + type.portable() + " with a selector");
+            }
+            type = ai.koryki.iql.typing.Selectors.step(type, step);
+        }
+        for (int i = frames.size() - 1; i >= 0; i--) {
+            sql =
+                    "(SELECT "
+                            + sql
+                            + " FROM "
+                            + frames.get(i)[0]
+                            + " WHERE "
+                            + frames.get(i)[1]
+                            + ")";
+        }
+        return sql;
+    }
+
+    // No bind-once here, unlike the other dialects: TABLE() over a collection column of a
+    // derived table that refers to the outer query answers no rows (measured, Oracle 26ai), so a
+    // list expression is written wherever it is needed.
+
+    private static String size(String list) {
+        return "(SELECT COUNT(*) FROM TABLE(" + list + "))";
+    }
+
+    /** The elements of a collection with their 1-based position: object types by VALUE. */
+    private static String elements(String list, TypeDescriptor element) {
+        boolean object = CoreTypeFamily.STRUCT.equals(element.getTypeFamily());
+        return "SELECT "
+                + (object ? "VALUE(Z)" : "COLUMN_VALUE")
+                + " V, ROWNUM RN FROM TABLE("
+                + list
+                + ") Z";
+    }
+
+    private static String position(String list, int position) {
+        return position > 0 ? String.valueOf(position) : size(list) + " - " + (-position) + " + 1";
+    }
+
+    private static String slice(String list, TypeDescriptor type, Selector step) {
+        List<String> where = new ArrayList<>();
+        if (step.getFrom() != null) {
+            where.add("E.RN >= " + position(list, step.getFrom()));
+        }
+        if (step.getTo() != null) {
+            where.add("E.RN <= " + position(list, step.getTo()));
+        }
+        return nullIfNull(
+                list,
+                "CAST(MULTISET(SELECT E.V FROM ("
+                        + elements(list, type.element())
+                        + ") E WHERE "
+                        + String.join(" AND ", where)
+                        + " ORDER BY E.RN) AS "
+                        + collectionType(type.element())
+                        + ")");
+    }
+
+    /** A collection made from a NULL list is NULL, not the empty one TABLE() would make of it. */
+    private static String nullIfNull(String list, String built) {
+        return "CASE WHEN " + list + " IS NULL THEN NULL ELSE " + built + " END";
+    }
+
+    /**
+     * Oracle cannot build a collection without a named type. The generic ones of SYS hold text,
+     * numbers and dates, so a list of anything else, objects above all, cannot be made here.
+     */
+    private static String collectionType(TypeDescriptor element) {
+        var family = element.getTypeFamily();
+        if (CoreTypeFamily.TEXT.equals(family)) {
+            return "SYS.ODCIVARCHAR2LIST";
+        } else if (CoreTypeFamily.INTEGER.equals(family)
+                || CoreTypeFamily.DECIMAL.equals(family)
+                || CoreTypeFamily.FLOAT.equals(family)) {
+            return "SYS.ODCINUMBERLIST";
+        } else if (CoreTypeFamily.DATE.equals(family)) {
+            return "SYS.ODCIDATELIST";
+        }
+        throw new KorykiaiException(
+                "Oracle cannot build a list of "
+                        + element.portable()
+                        + ": only lists of text, numbers and dates, which the generic collection types hold");
+    }
+
+    private static final Pattern PLAIN_ATTRIBUTE = Pattern.compile("[a-z][a-z0-9_]*");
+
+    private static String attribute(TypeDescriptor type, Selector step) {
+        return NestedSql.identifier(NestedSql.fieldName(type, step), PLAIN_ATTRIBUTE);
+    }
+
+    /**
+     * One JSON_QUERY for the whole path. Oracle's default (lax) paths treat an object as a list of
+     * one and apply a name to every element of a list, so {@code $[0]} on an object answers the
+     * object and {@code $.a} on a list of objects answers their {@code a}s; DuckDB and the others
+     * answer NULL. Each step is therefore guarded by the {@code type()} of the value it is applied
+     * to: a position needs an array, a name an object. ({@code strict} is not accepted by this
+     * JSON_QUERY form.)
+     */
+    /**
+     * {@code JSON_VALUE}: the scalar at the path, text without quotes; NULL for an object or list.
+     */
+    @Override
+    public String selectionScalar(String base, TypeDescriptor baseType, List<Selector> steps) {
+        return jsonPath(base, steps, true);
+    }
+
+    /**
+     * A JSON array to a collection of the generic result types: the elements through JSON_TABLE, in
+     * their order. Oracle has no boolean column type, so a list of booleans is refused.
+     */
+    @Override
+    public String jsonList(String json, TypeDescriptor element) {
+        boolean text = CoreTypeFamily.TEXT.equals(element.getTypeFamily());
+        if (CoreTypeFamily.BOOLEAN.equals(element.getTypeFamily())) {
+            throw new KorykiaiException("Oracle cannot read a JSON array of booleans as a list");
+        }
+        return "CASE WHEN JSON_VALUE("
+                + json
+                + ", '$.type()') = 'array' THEN CAST(MULTISET(SELECT jt.v FROM JSON_TABLE("
+                + json
+                + ", '$[*]' COLUMNS (ord FOR ORDINALITY, v "
+                + (text ? "VARCHAR2(4000)" : "NUMBER")
+                + " PATH '$')) jt ORDER BY jt.ord) AS "
+                + (text ? "SYS.ODCIVARCHAR2LIST" : "SYS.ODCINUMBERLIST")
+                + ") END";
+    }
+
+    @Override
+    public String jsonScalar(String json) {
+        return "JSON_VALUE(" + json + ", '$')";
+    }
+
+    private static String jsonPath(String sql, List<Selector> steps) {
+        return jsonPath(sql, steps, false);
+    }
+
+    private static String jsonPath(String sql, List<Selector> steps, boolean scalar) {
+        List<String> paths =
+                NestedSql.jsonPaths(
+                        steps, "$", NestedSql.FromEnd.LAST, NestedSql.Quoting.DOT, "Oracle");
+        List<String> guards = new ArrayList<>();
+        for (int i = 0; i < steps.size(); i++) {
+            guards.add(
+                    "JSON_VALUE("
+                            + sql
+                            + ", "
+                            + NestedSql.literal(INSTANCE, paths.get(i) + ".type()")
+                            + ") = '"
+                            + (steps.get(i).getIndex() != null ? "array" : "object")
+                            + "'");
+        }
+        return "CASE WHEN "
+                + String.join(" AND ", guards)
+                + " THEN "
+                + (scalar ? "JSON_VALUE(" : "JSON_QUERY(")
+                + sql
+                + ", "
+                + NestedSql.literal(INSTANCE, paths.get(steps.size()))
+                + (scalar ? "" : " RETURNING JSON")
+                + ") END";
+    }
+
+    /**
+     * Oracle has no lambda, so TRANSFORM and FILTER are a {@code CAST(MULTISET(SELECT ... FROM
+     * TABLE(list)))} to a generic collection type, the element as column {@code X} and its position
+     * as column {@code I} of a derived table named for the depth of the lambda. The parameters of
+     * the lambda are bound to those columns, so the body is rendered with them. REDUCE is declared
+     * unsupported where the functions are registered.
+     */
+    private static String listWithLambda(
+            String name, SqlSelectRenderer renderer, Function function, int indent) {
+        Expression listExpression = function.getArguments().get(0);
+        noAggregateList(listExpression);
+        TypeDescriptor element = renderer.resolveType(listExpression).element();
+        Expression lambda = function.getArguments().get(1);
+        return lambdaOver(
+                name, renderer, lambda, element, renderer.toSql(listExpression, indent), indent);
+    }
+
+    /**
+     * {@code list_agg}: COLLECT leaves NULLs out, answers an empty collection for no rows where the
+     * contract says NULL, and takes an ORDER BY, which {@code list_sort(list_agg(x))} uses: a
+     * COLLECT cannot be read through TABLE() in a subquery (ORA-00934), so it is sorted inside.
+     */
+    private static String collected(
+            SqlSelectRenderer renderer, Expression value, int indent, Boolean descending) {
+        String sql = renderer.toSql(value, indent);
+        return "CASE WHEN COUNT("
+                + sql
+                + ") = 0 THEN NULL ELSE CAST(COLLECT("
+                + sql
+                + (descending == null ? "" : " ORDER BY " + sql + (descending ? " DESC" : ""))
+                + ") AS "
+                + collectionType(renderer.resolveType(value))
+                + ") END";
+    }
+
+    /** What Oracle cannot do with a list that is the result of an aggregate. */
+    private static void noAggregateList(Expression list) {
+        if (ai.koryki.iql.validate.FunctionValidator.isAggregateOfColumnOrIdentity(list)) {
+            throw new KorykiaiException(
+                    "on Oracle the list of list_agg can be shown or sorted with list_sort and"
+                            + " nothing else: TABLE() cannot read an aggregate (ORA-00934)");
+        }
+    }
+
+    /**
+     * {@code list_any} and {@code list_all} count the elements the test lets through, or not, so a
+     * list of objects works as well as one of numbers: the lambda is bound to the element as it is
+     * for a transform, and nothing has to be built.
+     */
+    private static String quantifier(
+            boolean all,
+            SqlSelectRenderer renderer,
+            Expression lambda,
+            TypeDescriptor element,
+            String list,
+            int indent) {
+        refuseJsonList(all ? "list_all" : "list_any", list);
+        String alias = "LA" + renderer.lambdaDepth();
+        return renderer.lambda(
+                lambda,
+                indent,
+                (parameter, position, depth) -> alias + ".X",
+                (names, test) -> {
+                    boolean object = CoreTypeFamily.STRUCT.equals(element.getTypeFamily());
+                    String source =
+                            "(SELECT "
+                                    + (object ? "VALUE(Z)" : "COLUMN_VALUE")
+                                    + " X FROM TABLE("
+                                    + list
+                                    + ") Z) "
+                                    + alias;
+                    String count =
+                            "(SELECT COUNT(*) FROM "
+                                    + source
+                                    + " WHERE "
+                                    + (all ? "(" + test + ") IS NOT TRUE" : test)
+                                    + ")";
+                    return nullIfNull(list, "(" + count + (all ? " = 0)" : " > 0)"));
+                });
+    }
+
+    /**
+     * The lambda functions run over a derived table that reads the list again; a list built from a
+     * JSON array in the same place is a correlated subquery in a derived table, which Oracle
+     * answers with an empty result and no error. Refused rather than rendered.
+     */
+    private static void refuseJsonList(String function, String list) {
+        if (list.contains("JSON_TABLE(")) {
+            throw new KorykiaiException(
+                    function
+                            + " cannot be applied to a JSON array on Oracle: the list is built"
+                            + " inside a derived table, where Oracle returns nothing."
+                            + " The list functions without a lambda work.");
+        }
+    }
+
+    private static String lambdaOver(
+            String name,
+            SqlSelectRenderer renderer,
+            Expression lambda,
+            TypeDescriptor element,
+            String list,
+            int indent) {
+        refuseJsonList(name, list);
+        String alias = "LA" + renderer.lambdaDepth();
+        return renderer.lambda(
+                lambda,
+                indent,
+                (parameter, position, depth) -> alias + (position == 0 ? ".X" : ".I"),
+                (names, b) -> {
+                    boolean object = CoreTypeFamily.STRUCT.equals(element.getTypeFamily());
+                    String source =
+                            "(SELECT "
+                                    + (object ? "VALUE(Z)" : "COLUMN_VALUE")
+                                    + " X, ROWNUM I FROM TABLE("
+                                    + list
+                                    + ") Z) "
+                                    + alias;
+                    if ("list_transform".equals(name)) {
+                        return nullIfNull(
+                                list,
+                                "CAST(MULTISET(SELECT "
+                                        + b
+                                        + " FROM "
+                                        + source
+                                        + " ORDER BY "
+                                        + alias
+                                        + ".I) AS "
+                                        + collectionType(renderer.lambdaBodyType(lambda))
+                                        + ")");
+                    }
+                    return nullIfNull(
+                            list,
+                            "CAST(MULTISET(SELECT "
+                                    + alias
+                                    + ".X FROM "
+                                    + source
+                                    + " WHERE "
+                                    + b
+                                    + " ORDER BY "
+                                    + alias
+                                    + ".I) AS "
+                                    + collectionType(element)
+                                    + ")");
+                });
+    }
+
     private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();
 
     @Override
@@ -364,6 +742,183 @@ public class OracleDialect implements SqlDialect {
 
     private static FunctionRenderer buildFunctionRenderer() {
         FunctionRegistry registry = StandardFunctions.registry();
+
+        // a fold has no form in a scalar position of SQL: declared, so that it is refused with what
+        // to do instead where the query is checked, and listed as unsupported in the documentation
+        registry.register(
+                ListFunctions.supported("list_reduce")
+                        .unsupported()
+                        .unsupportedHint(
+                                "Oracle has no fold over a collection; sum, min, max or listagg over"
+                                        + " TABLE(list) cover the usual cases"));
+        // what a list answers about itself, through TABLE(); a NULL list has no rows, so the size
+        // and the membership say NULL for it explicitly, and the aggregates are NULL on their own
+        registry.register(
+                ListFunctions.supported("list_size")
+                        .template(
+                                "CASE WHEN {0} IS NULL THEN NULL ELSE (SELECT COUNT(*) FROM TABLE({0})) END"));
+        registry.register(
+                ListFunctions.supported("list_contains")
+                        .template(
+                                "CASE WHEN {0} IS NULL THEN NULL ELSE ((SELECT COUNT(*) FROM TABLE({0}) WHERE COLUMN_VALUE = {1}) > 0) END"));
+        registry.register(
+                ListFunctions.supported("list_sum")
+                        .template("(SELECT SUM(COLUMN_VALUE) FROM TABLE({0}))"));
+        registry.register(
+                ListFunctions.supported("list_min")
+                        .template("(SELECT MIN(COLUMN_VALUE) FROM TABLE({0}))"));
+        registry.register(
+                ListFunctions.supported("list_max")
+                        .template("(SELECT MAX(COLUMN_VALUE) FROM TABLE({0}))"));
+        registry.register(
+                ListFunctions.supported("list_avg")
+                        .template(
+                                "(SELECT CAST(AVG(COLUMN_VALUE) AS BINARY_DOUBLE) FROM TABLE({0}))"));
+        // any, all, sort, distinct and concat through TABLE(): a collection of the generic types
+        // for what is a list again, a count for what is a yes or no
+        for (String name : List.of("list_any", "list_all")) {
+            registry.register(
+                    new FunctionDefinition(ListFunctions.supported(name)) {
+                        @Override
+                        protected String renderBody(
+                                SqlSelectRenderer renderer, Function function, int indent) {
+                            Expression listExpression = function.getArguments().get(0);
+                            noAggregateList(listExpression);
+                            return quantifier(
+                                    name.equals("list_all"),
+                                    renderer,
+                                    function.getArguments().get(1),
+                                    renderer.resolveType(listExpression).element(),
+                                    renderer.toSql(listExpression, indent),
+                                    indent);
+                        }
+                    });
+        }
+        registry.register(
+                new FunctionDefinition(ListFunctions.supported("list_sort")) {
+                    @Override
+                    protected String renderBody(
+                            SqlSelectRenderer renderer, Function function, int indent) {
+                        Expression listExpression = function.getArguments().get(0);
+                        if (listExpression.getFunction() != null
+                                && "list_agg".equals(listExpression.getFunction().getFunc())) {
+                            return collected(
+                                    renderer,
+                                    listExpression.getFunction().getArguments().get(0),
+                                    indent,
+                                    ListFunctions.descending(function));
+                        }
+                        noAggregateList(listExpression);
+                        String list = renderer.toSql(listExpression, indent);
+                        return nullIfNull(
+                                list,
+                                "CAST(MULTISET(SELECT COLUMN_VALUE FROM TABLE("
+                                        + list
+                                        + ") ORDER BY COLUMN_VALUE"
+                                        + (ListFunctions.descending(function) ? " DESC" : "")
+                                        + " NULLS LAST) AS "
+                                        + collectionType(
+                                                renderer.resolveType(listExpression).element())
+                                        + ")");
+                    }
+                });
+        registry.register(
+                new FunctionDefinition(ListFunctions.supported("list_distinct")) {
+                    @Override
+                    protected String renderBody(
+                            SqlSelectRenderer renderer, Function function, int indent) {
+                        Expression listExpression = function.getArguments().get(0);
+                        noAggregateList(listExpression);
+                        String list = renderer.toSql(listExpression, indent);
+                        return nullIfNull(
+                                list,
+                                "CAST(MULTISET(SELECT DISTINCT COLUMN_VALUE FROM TABLE("
+                                        + list
+                                        + ") WHERE COLUMN_VALUE IS NOT NULL ORDER BY COLUMN_VALUE) AS "
+                                        + collectionType(
+                                                renderer.resolveType(listExpression).element())
+                                        + ")");
+                    }
+                });
+        registry.register(
+                new FunctionDefinition(ListFunctions.supported("list_concat")) {
+                    @Override
+                    protected String renderBody(
+                            SqlSelectRenderer renderer, Function function, int indent) {
+                        Expression first = function.getArguments().get(0);
+                        noAggregateList(first);
+                        noAggregateList(function.getArguments().get(1));
+                        String a = renderer.toSql(first, indent);
+                        String b = renderer.toSql(function.getArguments().get(1), indent);
+                        return "CASE WHEN "
+                                + a
+                                + " IS NULL AND "
+                                + b
+                                + " IS NULL THEN NULL ELSE CAST(MULTISET(SELECT V FROM (SELECT 1 K,"
+                                + " ROWNUM R, COLUMN_VALUE V FROM TABLE("
+                                + a
+                                + ") UNION ALL SELECT 2, ROWNUM, COLUMN_VALUE FROM TABLE("
+                                + b
+                                + ")) ORDER BY K, R) AS "
+                                + collectionType(renderer.resolveType(first).element())
+                                + ") END";
+                    }
+                });
+        // the generic collection types again: a constructor of the one that holds what the
+        // values are, COLLECT for the rows of a group
+        registry.register(
+                new FunctionDefinition(ListFunctions.supported("list")) {
+                    @Override
+                    protected String renderBody(
+                            SqlSelectRenderer renderer, Function function, int indent) {
+                        TypeDescriptor first = renderer.resolveType(function.getArguments().get(0));
+                        return collectionType(first)
+                                + "("
+                                + function.getArguments().stream()
+                                        .map(a -> renderer.toSql(a, indent))
+                                        .collect(Collectors.joining(", "))
+                                + ")";
+                    }
+                });
+        registry.register(
+                new FunctionDefinition(ListFunctions.supported("list_agg")) {
+                    @Override
+                    protected String renderBody(
+                            SqlSelectRenderer renderer, Function function, int indent) {
+                        return collected(renderer, function.getArguments().get(0), indent, null);
+                    }
+                });
+        // a template of the functions that read a list, with the check that what they read is not
+        // an aggregate, which TABLE() in a subquery cannot hold
+        for (String name :
+                List.of(
+                        "list_size",
+                        "list_contains",
+                        "list_sum",
+                        "list_min",
+                        "list_max",
+                        "list_avg")) {
+            FunctionDefinition template = registry.lookup(name);
+            registry.register(
+                    new FunctionDefinition(template) {
+                        @Override
+                        protected String renderBody(
+                                SqlSelectRenderer renderer, Function function, int indent) {
+                            noAggregateList(function.getArguments().get(0));
+                            return super.renderBody(renderer, function, indent);
+                        }
+                    });
+        }
+        for (String name : List.of("list_transform", "list_filter")) {
+            registry.register(
+                    new FunctionDefinition(ListFunctions.supported(name)) {
+                        @Override
+                        protected String renderBody(
+                                SqlSelectRenderer renderer, Function function, int indent) {
+                            return listWithLambda(name, renderer, function, indent);
+                        }
+                    });
+        }
 
         // to_date(value) | to_date(value, format) | to_date(ts, tz) | to_date(year, month, day)
         // CAST(text AS DATE) reads the string with NLS_DATE_FORMAT, which defaults to DD-MON-RR,

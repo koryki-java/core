@@ -1,0 +1,9 @@
+-- list(a, b, ...) makes a list out of values, in the order they are written: it is a list like any
+-- other, so it is sorted, counted and searched.
+SELECT
+  t.nr
+, CASE WHEN SYS.ODCINUMBERLIST(3, 1, 2) IS NULL THEN NULL ELSE CAST(MULTISET(SELECT COLUMN_VALUE FROM TABLE(SYS.ODCINUMBERLIST(3, 1, 2)) ORDER BY COLUMN_VALUE NULLS LAST) AS SYS.ODCINUMBERLIST) END AS sorted_literal
+, CASE WHEN SYS.ODCINUMBERLIST(1, 2, 3) IS NULL THEN NULL ELSE (SELECT COUNT(*) FROM TABLE(SYS.ODCINUMBERLIST(1, 2, 3))) END AS n_literal
+, CASE WHEN SYS.ODCIVARCHAR2LIST('red', 'x') IS NULL THEN NULL ELSE ((SELECT COUNT(*) FROM TABLE(SYS.ODCIVARCHAR2LIST('red', 'x')) WHERE COLUMN_VALUE = 'red') > 0) END AS has_red
+FROM
+ check_complex t

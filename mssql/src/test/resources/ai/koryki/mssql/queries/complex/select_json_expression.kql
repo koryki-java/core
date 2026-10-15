@@ -1,0 +1,4 @@
+// A JSON value that is an expression, not a column, is evaluated once where the path asks for it
+// more than once.
+FIND check_complex t
+FETCH t.nr, coalesce(t.doc, t.doc)@n n, coalesce(t.doc, t.doc)@a@b@1 inner_first

@@ -51,6 +51,7 @@ public class Util {
      */
     private static final ObjectMapper JSON =
             JsonMapper.builder()
+                    .addModule(new SchemaModule())
                     .changeDefaultPropertyInclusion(
                             inclusion -> inclusion.withValueInclusion(JsonInclude.Include.NON_NULL))
                     .build();

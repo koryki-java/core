@@ -1,0 +1,5 @@
+// x IN list is the membership of a value in a list column: 'red' IN t.tags is list_contains(t.tags, 'red').
+// The value meets the elements, so a number against a list of texts is refused. NOT (...) is the negation.
+FIND check_complex t
+FILTER 'red' IN t.tags AND NOT (4 IN t.scores)
+FETCH t.nr, list_size(t.tags) n

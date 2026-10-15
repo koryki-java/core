@@ -16,9 +16,7 @@
  */
 package ai.koryki.catalog.schema;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -31,6 +29,7 @@ public class Schema {
     private String schemaPrefix;
     private List<Table> tables;
     private List<Relation> relations;
+    private Map<String, Concept> concepts;
 
     public Schema() {
         this(null);
@@ -139,79 +138,15 @@ public class Schema {
         return getRelations().stream().filter(predicate).collect(Collectors.toList());
     }
 
-    public static Schema deepCopy(Schema schema) {
-        Schema copy = new Schema();
-        copy.setName(schema.getName());
-        copy.setLabel(schema.getLabel());
-        copy.setComment(schema.getComment());
-        copy.setDescription(schema.getDescription());
-        copy.setSchemaPrefix(schema.getSchemaPrefix());
-
-        copy.setTables(
-                schema.getTables().stream().map(t -> deepCopy(t)).collect(Collectors.toList()));
-        copy.setRelations(
-                schema.getRelations().stream().map(r -> deepCopy(r)).collect(Collectors.toList()));
-
-        return copy;
-    }
-
-    public static Table deepCopy(Table tabpe) {
-        Table copy = new Table();
-
-        copy.setName(tabpe.getName());
-        copy.setLabel(tabpe.getLabel());
-        copy.setComment(tabpe.getComment());
-        copy.setDescription(tabpe.getDescription());
-        copy.setColumns(
-                tabpe.getColumns().stream().map(c -> deepCopy(c)).collect(Collectors.toList()));
-
-        return copy;
-    }
-
-    public static Column deepCopy(Column tabpe) {
-        Column copy = new Column();
-
-        copy.setName(tabpe.getName());
-        copy.setLabel(tabpe.getLabel());
-        copy.setComment(tabpe.getComment());
-        copy.setDescription(tabpe.getDescription());
-
-        copy.setTypeFamily(tabpe.getTypeFamily());
-        copy.setTypeEncoding(tabpe.getTypeEncoding());
-        copy.setDialectType(tabpe.getDialectType());
-        copy.setNullable(tabpe.getNullable());
-        copy.setPkPos(tabpe.getPkPos());
-        copy.setNamePos(tabpe.getNamePos());
-
-        // Carried too, and not before: a copy that quietly drops the encoding, the unit or the
-        // presentation is not a copy, and the omission only shows up far away as a column that
-        // formats differently or compares against the wrong encoding.
-        copy.setUnit(tabpe.getUnit());
-        copy.setQuantity(tabpe.getQuantity());
-        copy.setPresentation(tabpe.getPresentation());
-
-        return copy;
-    }
-
-    public static Relation deepCopy(Relation relation) {
-        Relation copy = new Relation();
-
-        copy.setName(relation.getName());
-        copy.setComment(relation.getComment());
-        copy.setDescription(relation.getDescription());
-
-        copy.setStartTable(relation.getStartTable());
-        copy.setEndTable(relation.getEndTable());
-        copy.setSymmetric(relation.isSymmetric());
-        copy.setDescription(relation.getDescription());
-
-        copy.setStartColumns(relation.getStartColumns().stream().collect(Collectors.toList()));
-        copy.setEndColumns(relation.getEndColumns().stream().collect(Collectors.toList()));
-
-        return copy;
-    }
-
     public List<Relation> linkRelations(String startTable, String endTable) {
         return linkRelations(startTable, endTable, null);
+    }
+
+    public Map<String, Concept> getConcepts() {
+        return concepts;
+    }
+
+    public void setConcepts(Map<String, Concept> concepts) {
+        this.concepts = concepts;
     }
 }

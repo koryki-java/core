@@ -130,23 +130,23 @@ Das gilt für das, wonach die Abfrage aufgeteilt wird. Spalten, die für sich ge
 — ein Land und eine Stadt, nach denen ein Leser einzeln sortieren oder filtern möchte — bleiben
 getrennte Spalten.
 
-## Diagramme (VISUALISE)
+## Diagramme (VISUALIZE)
 
-Auf den **FETCH**-Abschnitt kann optional ein **VISUALISE**-Abschnitt folgen, der das Ergebnis als
+Auf den **FETCH**-Abschnitt kann optional ein **VISUALIZE**-Abschnitt folgen, der das Ergebnis als
 Diagramm darstellt. Nicht jede Abfrage braucht ein Diagramm — nur ergänzen, wenn eine grafische
-Darstellung sinnvoll ist (Vergleiche, Verteilungen, Zeitreihen, Anteile). Der **VISUALISE**-Abschnitt
+Darstellung sinnvoll ist (Vergleiche, Verteilungen, Zeitreihen, Anteile). Der **VISUALIZE**-Abschnitt
 verändert die zurückgegebenen Daten nicht.
 
-**VISUALISE** verweist auf die Spaltennamen (Aliase) aus dem **FETCH**-Abschnitt, nicht auf die Rohspalten.
+**VISUALIZE** verweist auf die Spaltennamen (Aliase) aus dem **FETCH**-Abschnitt, nicht auf die Rohspalten.
 
     FIND kunden k
     FETCH k.land land, count(k) anzahl
-    VISUALISE land AS x, anzahl AS y
+    VISUALIZE land AS x, anzahl AS y
     DRAW bar
 
 ### Zuordnung und Kanäle
 
-Auf **VISUALISE** folgt eine kommagetrennte Liste von Zuordnungen der Form `spalte AS kanal`.
+Auf **VISUALIZE** folgt eine kommagetrennte Liste von Zuordnungen der Form `spalte AS kanal`.
 Verfügbare Kanäle:
 
 - `x`, `y` — Position (waagerechte / senkrechte Achse)
@@ -185,7 +185,7 @@ Zwei Schichten (Punkte plus Trendlinie):
 
     FIND bestellposition bp
     FETCH bp.preis_je_einheit preis, bp.menge menge
-    VISUALISE preis AS x, menge AS y
+    VISUALIZE preis AS x, menge AS y
     DRAW point
     DRAW smooth
 
@@ -198,7 +198,7 @@ Eine Zeitreihe braucht auf der x-Achse ein **Datum**, keine Zahl. `month_begin`,
      b bestellposition bp
     FETCH month_begin(b.bestelldatum) monat,
      sum(bp.preis_je_einheit * bp.menge) umsatz
-    VISUALISE monat AS x, umsatz AS y
+    VISUALIZE monat AS x, umsatz AS y
     DRAW line
 
 `year_month` liefert dagegen die Zahl `202401`. Als Achse gelesen liegen zwischen Dezember und
@@ -213,7 +213,7 @@ keine Entwicklung. Für "Entwicklung", "Verlauf" oder "über die Zeit" also `mon
 Ein Diagramm kann in der Datenbank aggregieren, auch wenn die Abfrage selbst nicht gruppiert:
 
     FIND kunden k FETCH k.land land
-    VISUALISE land AS x
+    VISUALIZE land AS x
     DRAW bar SETTING aggregate => 'count'
 
 Werte für `aggregate`: `'count'`, `'sum'`, `'avg'`, `'min'`, `'max'` (außer `'count'` wird die `y`-Spalte aggregiert).
@@ -222,7 +222,7 @@ Werte für `aggregate`: `'count'`, `'sum'`, `'avg'`, `'min'`, `'max'` (außer `'
 
 Titel und Achsenbeschriftungen mit **LABEL** setzen (`title` für den Diagrammtitel, sonst der Kanalname):
 
-    VISUALISE monat AS x, umsatz AS y
+    VISUALIZE monat AS x, umsatz AS y
     DRAW line
     LABEL title => 'Umsatz je Monat', x => 'Monat', y => 'Umsatz'
 
@@ -230,7 +230,7 @@ Titel und Achsenbeschriftungen mit **LABEL** setzen (`title` für den Diagrammti
 
 Mit **FACET** je Ausprägung einer Spalte ein eigenes Teildiagramm erzeugen:
 
-    VISUALISE monat AS x, umsatz AS y
+    VISUALIZE monat AS x, umsatz AS y
     DRAW line
     FACET kategorie_name
 
@@ -238,7 +238,7 @@ Mit **FACET** je Ausprägung einer Spalte ein eigenes Teildiagramm erzeugen:
 
 Mit **SCALE** eine Achse anpassen, z. B. logarithmisch:
 
-    VISUALISE produkt AS x, umsatz AS y
+    VISUALIZE produkt AS x, umsatz AS y
     DRAW bar
     SCALE y VIA log
 
@@ -247,7 +247,7 @@ Mit **SCALE** eine Achse anpassen, z. B. logarithmisch:
     FIND bestellungen b, b bestellposition bp, bp produkte p, p kategorien k
     FETCH k.kategorie_name kategorie, month(b.bestelldatum) monat,
         sum(bp.preis_je_einheit * bp.menge) umsatz
-    VISUALISE monat AS x, umsatz AS y, kategorie AS color
+    VISUALIZE monat AS x, umsatz AS y, kategorie AS color
     DRAW line
     LABEL title => 'Umsatz je Kategorie und Monat'
 

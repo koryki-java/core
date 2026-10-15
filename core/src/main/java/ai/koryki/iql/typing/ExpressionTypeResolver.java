@@ -46,11 +46,36 @@ public class ExpressionTypeResolver {
     private final java.util.Map<Expression, TypeDescriptor> cache =
             new java.util.IdentityHashMap<>();
 
+    /** The lambda parameters in scope and what they are, innermost last; empty outside a lambda. */
+    private final java.util.Map<String, TypeDescriptor> parameters;
+
     public ExpressionTypeResolver(
             LinkResolver linkResolver, IQLVisibilityContext visibility, FunctionCatalog catalog) {
+        this(linkResolver, visibility, catalog, java.util.Map.of());
+    }
+
+    private ExpressionTypeResolver(
+            LinkResolver linkResolver,
+            IQLVisibilityContext visibility,
+            FunctionCatalog catalog,
+            java.util.Map<String, TypeDescriptor> parameters) {
         this.linkResolver = linkResolver;
         this.visibility = visibility;
         this.catalog = catalog;
+        this.parameters = parameters;
+    }
+
+    /**
+     * The same resolver inside a lambda: its parameters are known, with the types the function gave
+     * them. A parameter of the same name in an outer lambda is hidden by the inner one.
+     */
+    public ExpressionTypeResolver withParameters(java.util.Map<String, TypeDescriptor> added) {
+        if (added.isEmpty()) {
+            return this;
+        }
+        java.util.Map<String, TypeDescriptor> merged = new java.util.LinkedHashMap<>(parameters);
+        merged.putAll(added);
+        return new ExpressionTypeResolver(linkResolver, visibility, catalog, merged);
     }
 
     public TypeDescriptor resolve(Expression expression) {
@@ -73,6 +98,28 @@ public class ExpressionTypeResolver {
             return TypeDescriptor.TEXT;
         } else if (expression.getLogical() != null) {
             return TypeDescriptor.BOOLEAN;
+        } else if (expression.getSelection() != null) {
+            TypeDescriptor base = resolve(expression.getSelection().getBase());
+            // an unresolved base (a function the catalog does not know) stays unresolved; whoever
+            // reports that has the position
+            if (base == null) {
+                return null;
+            }
+            TypeDescriptor selected =
+                    Selectors.apply(base, expression.getSelection().getSelectors());
+            return catalog != null && catalog.jsonArraysAreLists()
+                    ? Selectors.listOf(base, selected)
+                    : selected;
+        } else if (expression.getLambda() != null) {
+            // a lambda has no type of its own; the function it is passed to types its body
+            return null;
+        } else if (expression.getParameter() != null) {
+            TypeDescriptor type = parameters.get(expression.getParameter());
+            if (type == null) {
+                throw new KorykiaiException(
+                        "lambda parameter " + expression.getParameter() + " is not in scope");
+            }
+            return type;
         } else if (expression.getIdentity() != null) {
             throw new KorykiaiException("identity is not allowed here");
         } else if (expression.getNumber() != null) {
@@ -227,7 +274,63 @@ public class ExpressionTypeResolver {
     }
 
     private TypeDescriptor resolveFunction(Function function) {
-        return catalog.descriptor(new FunctionBinding(function, this::resolve));
+        java.util.Map<Integer, TypeDescriptor> bodies = new java.util.HashMap<>();
+        bindLambdas(function).forEach((i, typing) -> bodies.put(i, typing.bodyType()));
+        return catalog.descriptor(new FunctionBinding(function, this::resolve, bodies));
+    }
+
+    /**
+     * Gives every lambda argument of the call the types of its parameters, which the function
+     * declares from the types of its other arguments, and types its body with them. Nothing is
+     * written to the query model: the renderer, which meets the body later and must know what
+     * {@code x@price} selects from, keeps what is returned here.
+     *
+     * @return the typing of each lambda, by argument position; a lambda that cannot be typed (an
+     *     argument of the wrong type, a parameter count the function does not take) is left out,
+     *     and whoever checks the call reports why
+     */
+    public java.util.Map<Integer, LambdaTyping> bindLambdas(Function function) {
+        java.util.Map<Integer, LambdaTyping> bodies = new java.util.HashMap<>();
+        List<Expression> arguments = function.getArguments();
+        if (arguments.stream().noneMatch(a -> a.getLambda() != null)) {
+            return bodies;
+        }
+        List<TypeDescriptor> argumentTypes = new java.util.ArrayList<>();
+        for (Expression a : arguments) {
+            TypeDescriptor type = null;
+            if (a.getLambda() == null) {
+                try {
+                    type = resolve(a);
+                } catch (RuntimeException unresolved) {
+                    // left null: the list is then untyped and so is the lambda
+                }
+            }
+            argumentTypes.add(type);
+        }
+        for (int i = 0; i < arguments.size(); i++) {
+            Lambda lambda = arguments.get(i).getLambda();
+            if (lambda == null) {
+                continue;
+            }
+            ai.koryki.iql.functions.LambdaSpec spec =
+                    catalog.lambda(function.getFunc(), arguments.size(), i);
+            int n = lambda.getParameters().size();
+            if (spec == null || n < spec.minParameters() || n > spec.maxParameters()) {
+                continue;
+            }
+            List<TypeDescriptor> types = spec.parameterTypes().of(argumentTypes);
+            if (types == null) {
+                continue;
+            }
+            types = List.copyOf(types.subList(0, n));
+            java.util.Map<String, TypeDescriptor> scope = new java.util.LinkedHashMap<>();
+            for (int k = 0; k < n; k++) {
+                scope.put(lambda.getParameters().get(k), types.get(k));
+            }
+            TypeDescriptor body = withParameters(scope).resolve(lambda.getBody());
+            bodies.put(i, new LambdaTyping(types, body));
+        }
+        return bodies;
     }
 
     private ExpressionTypeResolver child(Select select) {

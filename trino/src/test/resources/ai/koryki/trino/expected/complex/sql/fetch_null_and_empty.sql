@@ -1,0 +1,10 @@
+-- NULL and empty are different things. Row 2 has an empty list and an empty map, row 1 neither,
+-- and a struct that is NULL as a whole (dims) next to one whose fields are NULL (address).
+SELECT
+  t.nr
+, t.tags
+, t.attrs
+, t.dims
+, t.address
+FROM
+ check_complex t

@@ -52,6 +52,22 @@ public final class Families {
                             CoreTypeFamily.TEXT));
 
     /**
+     * What the numeric casts and {@code to_text} accept: a number, text, or a JSON value, which is
+     * read as the scalar it holds (a JSON string without its quotes, a number as a number). A JSON
+     * object or list has no scalar; what it gives is up to the dialect, see {@code
+     * SqlDialect#jsonScalar}.
+     */
+    public static final TypeFamily CASTABLE =
+            new FamilyGroup(
+                    "CASTABLE",
+                    Set.of(
+                            CoreTypeFamily.INTEGER,
+                            CoreTypeFamily.DECIMAL,
+                            CoreTypeFamily.FLOAT,
+                            CoreTypeFamily.TEXT,
+                            CoreTypeFamily.JSON));
+
+    /**
      * A date/time value or text — the source domain of the temporal casts (to_date, to_time,
      * to_timestamp).
      */
@@ -156,5 +172,25 @@ public final class Families {
                             CoreTypeFamily.TIMESTAMP,
                             CoreTypeFamily.TEXT,
                             CoreTypeFamily.JSON,
-                            CoreTypeFamily.UUID));
+                            CoreTypeFamily.UUID,
+                            CoreTypeFamily.ARRAY,
+                            CoreTypeFamily.STRUCT,
+                            CoreTypeFamily.MAP));
+
+    /**
+     * The declared type of a lambda argument, {@code x -> x * 2}. A group without members: no
+     * resolved value has this family, so a plain value where a lambda is declared fails the family
+     * check, while the lambda itself, which resolves to no type of its own, passes as a wildcard
+     * and is checked by {@code LambdaValidator}.
+     */
+    public static final TypeFamily LAMBDA = new FamilyGroup("LAMBDA", Set.of());
+
+    /**
+     * The containers: ARRAY, STRUCT and MAP. The operand domain of functions that take a nested
+     * value as a whole; what is inside is the type's children, not a family.
+     */
+    public static final TypeFamily COMPLEX =
+            new FamilyGroup(
+                    "COMPLEX",
+                    Set.of(CoreTypeFamily.ARRAY, CoreTypeFamily.STRUCT, CoreTypeFamily.MAP));
 }

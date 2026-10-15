@@ -1,0 +1,5 @@
+// list(a, b, ...) makes a list out of values, in the order they are written: it is a list like any
+// other, so it is sorted, counted and searched.
+FIND check_complex t
+FETCH t.nr, list_sort(list(3, 1, 2)) sorted_literal, list_size(list(1, 2, 3)) n_literal,
+      list_contains(list('red', 'x'), 'red') has_red

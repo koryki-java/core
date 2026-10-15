@@ -17,7 +17,9 @@
 package ai.koryki.catalog.domain;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -29,6 +31,12 @@ public class Model {
     private String description;
     private List<Entity> entities;
     private List<Link> links;
+
+    /**
+     * The concepts of the schema in the language of this model, by the name of the concept; see
+     * {@link Notion}.
+     */
+    private Map<String, Notion> notions = new LinkedHashMap<>();
 
     public Model() {
         this(null);
@@ -103,16 +111,58 @@ public class Model {
         this.label = label;
     }
 
-    public static Model deepCopy(Model Locale) {
+    public Map<String, Notion> getNotions() {
+        return notions;
+    }
+
+    public void setNotions(Map<String, Notion> notions) {
+        this.notions = notions;
+    }
+
+    public static Model deepCopy(Model source) {
         Model copy = new Model();
-        copy.setName(Locale.getName());
-        copy.setLabel(Locale.getLabel());
-        copy.setComment(Locale.getComment());
-        copy.setDescription(Locale.getDescription());
-        copy.setName(Locale.getName());
+        copy.setName(source.getName());
+        copy.setLabel(source.getLabel());
+        copy.setComment(source.getComment());
+        copy.setDescription(source.getDescription());
+        copy.setName(source.getName());
         copy.setEntities(
-                Locale.getEntities().stream().map(Model::deepCopy).collect(Collectors.toList()));
-        copy.setLinks(Locale.getLinks().stream().map(Model::deepCopy).collect(Collectors.toList()));
+                source.getEntities().stream().map(Model::deepCopy).collect(Collectors.toList()));
+        copy.setLinks(source.getLinks().stream().map(Model::deepCopy).collect(Collectors.toList()));
+        if (source.getNotions() != null) {
+            Map<String, Notion> notions = new LinkedHashMap<>();
+            source.getNotions().forEach((name, notion) -> notions.put(name, deepCopy(notion)));
+            copy.setNotions(notions);
+        }
+        return copy;
+    }
+
+    public static Notion deepCopy(Notion notion) {
+        Notion copy = new Notion();
+        copy.setLabel(notion.getLabel());
+        copy.setComment(notion.getComment());
+        copy.setDescription(notion.getDescription());
+        copy.setMembers(deepCopy(notion.getMembers()));
+        return copy;
+    }
+
+    public static Member deepCopy(Member member) {
+        Member copy = new Member();
+        copy.setName(member.getName());
+        copy.setLabel(member.getLabel());
+        copy.setComment(member.getComment());
+        copy.setDescription(member.getDescription());
+        copy.setMembers(deepCopy(member.getMembers()));
+        return copy;
+    }
+
+    /** An ordered copy of the members of a notion, an attribute or a member; null stays null. */
+    private static Map<String, Member> deepCopy(Map<String, Member> members) {
+        if (members == null) {
+            return null;
+        }
+        Map<String, Member> copy = new LinkedHashMap<>();
+        members.forEach((key, member) -> copy.put(key, deepCopy(member)));
         return copy;
     }
 
@@ -135,6 +185,8 @@ public class Model {
         copy.setLabel(tabpe.getLabel());
         copy.setComment(tabpe.getComment());
         copy.setDescription(tabpe.getDescription());
+        copy.setColumn(tabpe.getColumn());
+        copy.setMembers(deepCopy(tabpe.getMembers()));
         return copy;
     }
 

@@ -147,6 +147,9 @@ public class DuckdbBaseDialect implements SqlDialect {
     private static FunctionRenderer buildFunctionRenderer() {
         FunctionRegistry registry = StandardFunctions.registry();
 
+        // the standard catalog rejects lambdas on lists; DuckDB has them
+        ai.koryki.iql.functions.catalog.ListFunctions.register(registry, true);
+
         // list([x]) — DuckDB array literal
         registry.register(
                 new FunctionDefinition("list", ReturnTypes.TEXT)
@@ -468,6 +471,107 @@ public class DuckdbBaseDialect implements SqlDialect {
     @Override
     public String timestampLiteral(LocalDateTime dateTime) {
         return "TIMESTAMP '" + SqlDialect.plainTimestamp(dateTime) + "'";
+    }
+
+    /**
+     * DuckDB subscripts everything with brackets and counts from 1, like koryki: {@code l[1]},
+     * {@code l[-1]} the last, {@code l[2:3]} inclusive, {@code s['field']}, {@code m['key']},
+     * {@code m[1]} for an integer key. A struct position has no bracket form, it is {@code
+     * struct_extract_at}. JSON is the exception: its paths count from 0, and the whole chain is one
+     * path, {@code (j -> '$.a.b[0]')}, with {@code #-1} for the last element.
+     */
+    @Override
+    public NestedSupport nestedSupport() {
+        return NestedSupport.full("DuckDB");
+    }
+
+    @Override
+    public String selection(
+            String base,
+            TypeDescriptor baseType,
+            java.util.List<ai.koryki.iql.query.Selector> steps) {
+        return select(base, baseType, steps, " -> ");
+    }
+
+    /** The operator {@code ->>} answers the scalar at the path: a string without its quotes. */
+    @Override
+    public String selectionScalar(
+            String base,
+            TypeDescriptor baseType,
+            java.util.List<ai.koryki.iql.query.Selector> steps) {
+        return select(base, baseType, steps, " ->> ");
+    }
+
+    /** A JSON array converts to a list by a cast: {@code CAST(j AS INTEGER[])}. */
+    @Override
+    public String jsonList(String json, TypeDescriptor element) {
+        return "CAST(" + json + " AS " + declaredScalarType(element) + "[])";
+    }
+
+    @Override
+    public String jsonScalar(String json) {
+        return "json_extract_string(" + json + ", '$')";
+    }
+
+    private String select(
+            String base,
+            TypeDescriptor baseType,
+            java.util.List<ai.koryki.iql.query.Selector> steps,
+            String jsonOperator) {
+        String sql = base;
+        TypeDescriptor type = baseType;
+        for (int i = 0; i < steps.size(); i++) {
+            if (CoreTypeFamily.JSON.equals(type.getTypeFamily())) {
+                return "("
+                        + sql
+                        + jsonOperator
+                        + NestedSql.literal(
+                                this,
+                                NestedSql.jsonPath(
+                                        steps.subList(i, steps.size()),
+                                        "$",
+                                        NestedSql.FromEnd.HASH,
+                                        NestedSql.Quoting.DOT,
+                                        "DuckDB"))
+                        + ")";
+            }
+            ai.koryki.iql.query.Selector step = steps.get(i);
+            sql = subscript(sql, type, step);
+            type = ai.koryki.iql.typing.Selectors.step(type, step);
+        }
+        return sql;
+    }
+
+    private static String subscript(
+            String sql, TypeDescriptor type, ai.koryki.iql.query.Selector step) {
+        if (step.getId() != null || step.getName() != null) {
+            return sql + "[" + Literals.quote(step.key()) + "]";
+        } else if (step.getIndex() != null) {
+            if (CoreTypeFamily.STRUCT.equals(type.getTypeFamily())) {
+                int n = type.children().size();
+                int position = step.getIndex() > 0 ? step.getIndex() : n + step.getIndex() + 1;
+                return "struct_extract_at(" + sql + ", " + position + ")";
+            }
+            return sql + "[" + step.getIndex() + "]";
+        }
+        return sql
+                + "["
+                + (step.getFrom() == null ? "" : step.getFrom())
+                + ":"
+                + (step.getTo() == null ? "" : step.getTo())
+                + "]";
+    }
+
+    /**
+     * {@code x -> body}, or {@code (x, i) -> body}; DuckDB's arrow, which also reads JSON paths.
+     */
+    @Override
+    public String lambda(java.util.List<String> parameters, String body) {
+        String head =
+                parameters.size() == 1
+                        ? parameters.get(0)
+                        : "(" + String.join(", ", parameters) + ")";
+        return head + " -> " + body;
     }
 
     @Override

@@ -18,7 +18,6 @@ package ai.koryki.catalog.schema.types;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.TypeDescriptorParser;
@@ -37,10 +36,7 @@ class TypeDescriptorParserTest {
     private static final TypeDescriptorParser PARSER = new TypeDescriptorParser() {};
 
     private static TypeDescriptor parse(String family, String dialectType) {
-        Column column = new Column();
-        column.setTypeFamily(family);
-        column.setDialectType(dialectType);
-        return PARSER.parse(column);
+        return PARSER.parse("column 'c'", family, null, dialectType);
     }
 
     @Test

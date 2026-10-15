@@ -16,11 +16,13 @@
  */
 package ai.koryki.mariadb.iql;
 
+import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.catalog.types.CoreTypeEncoding;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.Families;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.WallClockEncoding;
+import ai.koryki.iql.NestedSql;
 import ai.koryki.iql.SqlDialect;
 import ai.koryki.iql.SqlSelectRenderer;
 import ai.koryki.iql.functions.*;
@@ -28,8 +30,10 @@ import ai.koryki.iql.functions.catalog.DateTimeFunctions;
 import ai.koryki.iql.query.Duration;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
+import ai.koryki.iql.query.Selector;
 import ai.koryki.iql.typing.TimeEncodings;
 import ai.koryki.mariadb.iql.validate.MariadbValidator;
+import java.util.ArrayList;
 import java.util.List;
 
 public class MariadbDialect implements SqlDialect {
@@ -244,6 +248,78 @@ public class MariadbDialect implements SqlDialect {
     @Override
     public String textLiteral(String quoted) {
         return quoted.replace("\\", "\\\\");
+    }
+
+    // ---- nested values: selectors -------------------------------------------------------------
+
+    /**
+     * MariaDB has no collection, object or map type: the only nested value is JSON. A selector
+     * chain is one path, counted from 0, with {@code last} for the end ({@code JSON_EXTRACT} does
+     * not know it, {@code JSON_VALUE} and {@code JSON_QUERY} do). {@code JSON_VALUE} answers a
+     * scalar and {@code JSON_QUERY} an object or a list, each NULL for the other kind, so the two
+     * together answer whatever the path finds. Paths are lax in a way the other engines are not: an
+     * object counts as a list of one ({@code $[0]} answers the object), so each step is guarded by
+     * the {@code JSON_TYPE} of the value it is applied to, a position needing an ARRAY and a name
+     * an OBJECT. A scalar string comes back without its quotes, as JSON_VALUE gives it.
+     */
+    /**
+     * Already the scalar: JSON_VALUE answers a string without its quotes, and what JSON_QUERY
+     * answers, an object or a list, is its JSON text, which is all a scalar can be of it here.
+     */
+    @Override
+    public String jsonScalar(String json) {
+        return json;
+    }
+
+    /**
+     * JSON_VALUE answers the text 'true' or 'false'; comparing a text with 0 would call both true.
+     */
+    @Override
+    public String jsonBoolean(String scalar) {
+        return "(" + scalar + " = 'true')";
+    }
+
+    @Override
+    public NestedSupport nestedSupport() {
+        return NestedSupport.jsonOnly("MariaDB", true);
+    }
+
+    @Override
+    public String selection(String base, TypeDescriptor baseType, List<Selector> steps) {
+        if (!CoreTypeFamily.JSON.equals(baseType.getTypeFamily())) {
+            throw new KorykiaiException(
+                    "MariaDB cannot select from "
+                            + baseType.portable()
+                            + " with a selector: only JSON is a nested value here");
+        }
+        // no bind-once, unlike the other dialects: a derived table in FROM cannot refer to the
+        // outer query here ("Unknown table"), so the base is written wherever it is needed
+        List<String> paths =
+                NestedSql.jsonPaths(
+                        steps, "$", NestedSql.FromEnd.LAST, NestedSql.Quoting.DOT, "MariaDB");
+        List<String> guards = new ArrayList<>();
+        for (int i = 0; i < steps.size(); i++) {
+            guards.add(
+                    "JSON_TYPE(JSON_QUERY("
+                            + base
+                            + ", "
+                            + NestedSql.literal(INSTANCE, paths.get(i))
+                            + ")) = '"
+                            + (steps.get(i).getIndex() != null ? "ARRAY" : "OBJECT")
+                            + "'");
+        }
+        String last = NestedSql.literal(INSTANCE, paths.get(steps.size()));
+        return "CASE WHEN "
+                + String.join(" AND ", guards)
+                + " THEN COALESCE(JSON_QUERY("
+                + base
+                + ", "
+                + last
+                + "), JSON_VALUE("
+                + base
+                + ", "
+                + last
+                + ")) END";
     }
 
     private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();

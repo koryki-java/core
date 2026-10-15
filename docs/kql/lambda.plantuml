@@ -1,0 +1,12 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title lambda
+
+lambda =
+ ("ID" | "(", "ID", {",", "ID"}, ")"), "->", logical_expression
+;
+
+@endebnf

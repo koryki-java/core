@@ -1,0 +1,4 @@
+// A selection is a value like any other: it filters, it compares with a literal.
+FIND check_complex t
+FILTER t.scores@2 > 10 AND t.attrs@color = 'red'
+FETCH t.nr, t.tags@1 first_tag

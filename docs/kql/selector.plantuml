@@ -1,0 +1,14 @@
+@startebnf
+' border and background
+skinparam legendBorderColor transparent
+skinparam legendBackgroundColor white
+
+'title selector
+
+selector =
+ "SELECTOR_INT"
+| "SELECTOR_ID"
+| "SELECTOR_NAME"
+;
+
+@endebnf

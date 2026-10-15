@@ -247,6 +247,12 @@ public class PushLogicalExpressionRule {
                             .filter(Objects::nonNull)
                             .collect(Collectors.toList());
             return aliases.size() == 1 ? aliases.get(0) : null;
+        } else if (expression.getSelection() != null) {
+            // a selection belongs to whatever its base belongs to: t.tags@1 is a value of t
+            return homogenAlias(expression.getSelection().getBase());
+        } else if (expression.getLambda() != null) {
+            // a lambda reads the columns it captures; its own parameters belong to no source
+            return homogenAlias(expression.getLambda().getBody());
         }
         return null;
     }

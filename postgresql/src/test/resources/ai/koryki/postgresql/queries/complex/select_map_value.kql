@@ -1,0 +1,5 @@
+// A name selects the value of a text key, a position the value of an integer key: the same @1 that
+// is a list position on a list. A key the map does not have is NULL, not an error.
+FIND check_complex t
+FETCH t.nr, t.attrs@color color, t.attrs@'size' size, t.attrs@zz missing,
+      t.counts@a count_a, t.lookup@1 one, t.lookup@2 two

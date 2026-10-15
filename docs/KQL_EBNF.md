@@ -321,7 +321,12 @@ defined in the semantic layer; the second is the `alias` used in all subsequent 
 An `expression` is a value-producing term used throughout the query.
 It covers unary negation (`-expr`, `+expr`), arithmetic (`*`, `/`, `+`, `-`), field references,
 function calls, literals (`INT`, `NUMBER`, `SQ_STRING`, `NULL`), `temporal_literal`,
-and sub-selects. Parentheses can be used to group and override arithmetic precedence.
+lambda parameters (a bare `ID`, only meaningful inside a lambda), and sub-selects. Parentheses can be used to group and override arithmetic precedence.
+
+A `selector` after an expression reaches into a nested value: `c.tags@1`, `c.items@1@sku`,
+`c.doc@a@b`. It binds tighter than every prefix and binary operator, so `-c.a@1` is `-(c.a@1)`. A bare
+name in expression position is a lambda parameter (see [Lambda](#kql-lambda-rule)); everywhere else a
+field is `alias.name`.
 
 Unary `-` negates a value; unary `+` is a no-op included for symmetry. Both bind more tightly than
 binary operators, so `-a * b` means `(-a) * b`. Use parentheses to negate a compound expression:
@@ -343,7 +348,7 @@ collapsing them into a single output row.
 
 ![EBNF Railroad diagram for argument rule](kql/argument.png)
 
-An `argument` is a value passed to a `function`. It is an `expression`, a `logical_expression`, or a
+An `argument` is a value passed to a `function`. It is a `lambda`, an `expression`, a `logical_expression`, or a
 bare identifier — allowing functions to accept computed values, conditions, and entity references
 such as `count(o)`.
 
@@ -358,6 +363,37 @@ FIND products p FETCH case(p.unit_price > 10 AND p.units_in_stock > 5, 1, 0) x
 boolean-predicate alternative), so putting `logical_expression` first would swallow every plain
 argument; a genuine predicate like `p.unit_price > 10` is not a viable `expression` and still reaches
 the second alternative.
+
+## KQL Selector Rule
+
+![EBNF Railroad diagram for selector rule](kql/selector.png)
+
+A `selector` is one postfix step into a list, struct, map or JSON value, written as a single token
+with no whitespace inside it:
+
+| Token | Example | Meaning |
+|---|---|---|
+| `SELECTOR_INT` | `@1`, `@-1`, `@2:`, `@:3`, `@1:3` | a position counted from 1 (from the end when negative), or a range with both ends included |
+| `SELECTOR_ID` | `@name` | a struct field, a map key, a JSON member |
+| `SELECTOR_NAME` | `@'Order Id'` | the same for a name that is no lowercase identifier |
+
+The grammar cannot tell a list position from a map key, because `@1` looks the same on every value:
+the **type** of the value decides, and a step that does not fit the type is refused when the query is
+checked. [NESTED.md](NESTED.md) has the full table, the NULL rules and what each dialect does.
+
+## KQL Lambda Rule
+
+![EBNF Railroad diagram for lambda rule](kql/lambda.png)
+
+A `lambda` is `params -> body`, and only ever an `argument` of a function that takes one, never a
+value of its own: `list_transform(c.scores, x -> x * 2)`, `list_filter(c.items, it -> it@qty > 1)`,
+`list_reduce(c.scores, (acc, x) -> acc + x)`.
+
+Parameters are plain identifiers, one or several in parentheses, and are used by the name they are
+declared with. The body is a `logical_expression`, whose last alternative is a plain `expression`, so
+one rule serves a value (`list_transform`) and a predicate (`list_filter`). A selection from a
+parameter is the usual postfix one: `it@price`. A parameter may not be named like an alias in sight,
+nor like the parameter of the lambda around it.
 
 ## KQL Field Rule
 

@@ -23,6 +23,7 @@ import ai.koryki.catalog.domain.Attribute;
 import ai.koryki.catalog.domain.Entity;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Column;
+import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.schema.Table;
 import ai.koryki.iql.LinkResolver;
@@ -202,8 +203,10 @@ class MixedCaseNameOracleTest {
             String physicalTable, String modelColumn, String physicalColumn) {
 
         Column column = new Column(physicalColumn);
-        column.setTypeFamily("DECIMAL");
-        column.setDialectType("DECIMAL(10,2)");
+        Concept concept = new Concept();
+        concept.setTypeFamily("DECIMAL");
+        concept.setDialectType("DECIMAL(10,2)");
+        column.setConcept(concept);
 
         Table table = new Table(physicalTable);
         table.setColumns(new ArrayList<>(List.of(column)));

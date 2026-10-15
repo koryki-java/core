@@ -1,0 +1,6 @@
+Nr : INTEGER
+sorted_tags : ARRAY(TEXT)
+scores_desc : ARRAY(INTEGER)
+distinct_tags : ARRAY(TEXT)
+joined : ARRAY(INTEGER)
+vec_twice : ARRAY(FLOAT)

@@ -39,9 +39,16 @@ class OrderedOperandsTest {
     private static final String[] EQUALITY_OPERATORS = {"=", "<>", "IN", "DISTINCT"};
 
     @Test
-    void orderedFamilyIsAnyWithoutBlobAndJson() {
+    void orderedFamilyIsAnyWithoutBlobJsonAndContainers() {
         for (CoreTypeFamily f : CoreTypeFamily.values()) {
-            boolean orderable = f != CoreTypeFamily.BLOB && f != CoreTypeFamily.JSON;
+            // no portable order for the containers either: DuckDB orders lists and structs, a
+            // Trino MAP and a PostgreSQL composite have none worth relying on
+            boolean orderable =
+                    f != CoreTypeFamily.BLOB
+                            && f != CoreTypeFamily.JSON
+                            && f != CoreTypeFamily.ARRAY
+                            && f != CoreTypeFamily.STRUCT
+                            && f != CoreTypeFamily.MAP;
             assertEquals(
                     orderable,
                     Families.ORDERED.accepts(f),

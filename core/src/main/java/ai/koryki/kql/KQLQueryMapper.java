@@ -474,7 +474,13 @@ public class KQLQueryMapper {
 
     private Expression toExpression(KQLParser.ExpressionContext expression) {
 
-        if (expression.select() != null) {
+        if (expression.selector() != null) {
+            return toSelection(expression);
+        } else if (expression.param() != null) {
+            Expression bean = build(expression, Expression::new);
+            bean.setParameter(expression.param().getText());
+            return bean;
+        } else if (expression.select() != null) {
             Expression bean = build(expression, Expression::new);
             bean.setSelect(toSelect(expression.select()));
             return bean;
@@ -559,6 +565,68 @@ public class KQLQueryMapper {
         }
     }
 
+    /** The parameters of the lambdas around the node being mapped, innermost first. */
+    private final java.util.Deque<java.util.Set<String>> lambdaScopes =
+            new java.util.ArrayDeque<>();
+
+    private boolean isParameter(String name) {
+        return lambdaScopes.stream().anyMatch(scope -> scope.contains(name));
+    }
+
+    private Lambda toLambda(KQLParser.LambdaContext lambda) {
+        Lambda bean = build(lambda, Lambda::new);
+        for (org.antlr.v4.runtime.tree.TerminalNode id : lambda.lambda_params().ID()) {
+            bean.getParameters().add(id.getText());
+        }
+        lambdaScopes.push(new java.util.HashSet<>(bean.getParameters()));
+        try {
+            return toLambdaBody(lambda, bean);
+        } finally {
+            lambdaScopes.pop();
+        }
+    }
+
+    private Lambda toLambdaBody(KQLParser.LambdaContext lambda, Lambda bean) {
+        KQLParser.Logical_expressionContext body = lambda.lambda_body().logical_expression();
+        KQLParser.Unary_logical_expressionContext unary = body.unary_logical_expression();
+        // a body that is only a value is that value; anything with an operator is a predicate
+        if (unary != null
+                && unary.expression().size() == 1
+                && unary.operator() == null
+                && unary.BETWEEN() == null
+                && unary.PLACEHOLDER() == null
+                && unary.EXISTS() == null
+                && unary.logical_expression() == null) {
+            bean.setBody(toExpression(unary.expression(0)));
+        } else {
+            Expression e = build(body, Expression::new);
+            e.setLogical(toLogicalNode(java.util.Map.of(), body));
+            bean.setBody(e);
+        }
+        return bean;
+    }
+
+    /**
+     * {@code c.items@1@sku}: the grammar nests one expression per step, the bean keeps the chain as
+     * one node, base first, steps in the order they are written.
+     */
+    private Expression toSelection(KQLParser.ExpressionContext expression) {
+        java.util.Deque<KQLParser.SelectorContext> steps = new java.util.ArrayDeque<>();
+        KQLParser.ExpressionContext base = expression;
+        while (base.selector() != null) {
+            steps.addFirst(base.selector());
+            base = base.base;
+        }
+        Selection selection = new Selection();
+        selection.setBase(toExpression(base));
+        for (KQLParser.SelectorContext step : steps) {
+            selection.getSelectors().add(ai.koryki.iql.IQLQueryMapper.toSelector(step.getText()));
+        }
+        Expression bean = build(expression, Expression::new);
+        bean.setSelection(selection);
+        return bean;
+    }
+
     private Expression mathFunction(KQLParser.ExpressionContext expression, String name) {
         Expression bean = build(expression, Expression::new);
         Function f = build(expression, Function::new);
@@ -623,12 +691,24 @@ public class KQLQueryMapper {
         f.setFunc(function.ID().getText());
 
         for (KQLParser.ArgumentContext a : function.argument()) {
-            if (a.logical_expression() != null) {
+            if (a.lambda() != null) {
+                Expression e = build(a, Expression::new);
+                e.setLambda(toLambda(a.lambda()));
+                f.getArguments().add(e);
+            } else if (a.logical_expression() != null) {
                 Expression e = build(a, Expression::new);
                 e.setLogical(toLogicalNode(java.util.Map.of(), a.logical_expression()));
                 f.getArguments().add(e);
             } else if (a.expression() != null) {
-                f.getArguments().add(toExpression(a.expression()));
+                KQLParser.ExpressionContext argument = a.expression();
+                if (argument.param() != null && !isParameter(argument.param().getText())) {
+                    // a bare name that is no parameter here is an alias, as it always was
+                    Expression e = build(a, Expression::new);
+                    e.setIdentity(argument.param().getText());
+                    f.getArguments().add(e);
+                } else {
+                    f.getArguments().add(toExpression(argument));
+                }
             } else {
                 Expression e = build(a, Expression::new);
                 e.setIdentity(a.identity.getText());

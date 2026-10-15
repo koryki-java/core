@@ -21,6 +21,7 @@ import ai.koryki.antlr.Range;
 import ai.koryki.antlr.RangeException;
 import ai.koryki.antlr.Text;
 import ai.koryki.catalog.schema.Relation;
+import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.WallClockEncoding;
 import ai.koryki.iql.functions.FunctionRenderer;
@@ -624,7 +625,29 @@ public class SqlSelectRenderer {
                 // A boolean column or other boolean expression standing alone as a predicate.
                 return dialect.booleanPredicate(toSql(left, indent), leftType);
             }
+            if ("IN".equalsIgnoreCase(op) && right.size() == 1 && isList(right.get(0))) {
+                // x IN list is the question list_contains(list, x) asks
+                Function contains = new Function();
+                contains.setFunc("list_contains");
+                contains.getArguments().add(right.get(0));
+                contains.getArguments().add(left);
+                Expression call = new Expression();
+                call.setFunction(contains);
+                String predicateSql = toSqlPredicate(call, indent);
+                return predicateSql != null
+                        ? predicateSql
+                        : dialect.booleanPredicate(toSql(call, indent), TypeDescriptor.BOOLEAN);
+            }
             return dialect.renderComparison(this, left, leftType, op, right, indent);
+        }
+    }
+
+    private boolean isList(Expression expression) {
+        try {
+            TypeDescriptor type = resolveType(expression);
+            return type != null && CoreTypeFamily.ARRAY.equals(type.getTypeFamily());
+        } catch (RuntimeException unresolved) {
+            return false;
         }
     }
 
@@ -930,7 +953,125 @@ public class SqlSelectRenderer {
         return (limit.isCounted() ? limit.getNum() + " " : "") + limit.getName();
     }
 
+    /**
+     * The arguments of the function being rendered that are read as the scalar they hold when they
+     * are JSON: a number or a text is wanted, and a JSON string is its text without quotes.
+     */
+    private final java.util.Set<Expression> jsonScalarArguments =
+            java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+
+    /**
+     * Renders with the JSON arguments of a call as scalars: a cast of {@code t.doc@n} is the number
+     * in it, not its JSON text. Only the arguments themselves, not what is inside them.
+     */
+    public String withJsonScalarArguments(
+            java.util.List<Expression> arguments, java.util.function.Supplier<String> body) {
+        java.util.List<Expression> added = new java.util.ArrayList<>();
+        for (Expression argument : arguments) {
+            if (jsonScalarArguments.add(argument)) {
+                added.add(argument);
+            }
+        }
+        try {
+            return body.get();
+        } finally {
+            jsonScalarArguments.removeAll(added);
+        }
+    }
+
+    /**
+     * Selections whose scalar the catalog declares inside a JSON column ({@code t.doc@n} with
+     * {@code .n: INTEGER}) and that are being rendered as the cast the declaration implies.
+     */
+    private final java.util.Set<Expression> declaredScalars =
+            java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+
+    /**
+     * The conversion function a selection needs when it reaches a scalar the catalog declares
+     * inside JSON: the dialect reads the JSON scalar and casts it, so the value takes part in
+     * comparisons and aggregates like any column. Null for every other selection.
+     */
+    private String declaredJsonScalar(Expression expression) {
+        if (declaredScalars.contains(expression)) {
+            return null;
+        }
+        TypeDescriptor type;
+        TypeDescriptor baseType;
+        try {
+            type = resolveType(expression);
+            baseType = resolveType(expression.getSelection().getBase());
+        } catch (RuntimeException unresolved) {
+            return null;
+        }
+        if (type == null
+                || baseType == null
+                || !CoreTypeFamily.JSON.equals(baseType.getTypeFamily())
+                || baseType.shape() == null
+                || CoreTypeFamily.JSON.equals(type.getTypeFamily())) {
+            return null;
+        }
+        if (CoreTypeFamily.BOOLEAN.equals(type.getTypeFamily())) {
+            return "json_boolean";
+        } else if (CoreTypeFamily.INTEGER.equals(type.getTypeFamily())) {
+            return "to_integer";
+        } else if (CoreTypeFamily.FLOAT.equals(type.getTypeFamily())) {
+            return "to_double";
+        } else if (CoreTypeFamily.DECIMAL.equals(type.getTypeFamily())) {
+            return "to_decimal";
+        } else if (CoreTypeFamily.TEXT.equals(type.getTypeFamily())) {
+            return "to_text";
+        }
+        return null;
+    }
+
+    private static boolean castDecimal(String function) {
+        return "to_decimal".equals(function);
+    }
+
+    private static Expression numberExpression(int number) {
+        Expression e = new Expression();
+        e.setNumber(java.math.BigInteger.valueOf(number));
+        return e;
+    }
+
+    private String jsonScalarSql(Expression expression, int indent) {
+        boolean declared =
+                declaredScalars.contains(expression)
+                        || (expression.getSelection() != null
+                                && declaredJsonScalar(expression) != null);
+        TypeDescriptor type = null;
+        try {
+            type = resolveType(expression);
+        } catch (RuntimeException unresolved) {
+            // no type, no conversion: rendered as it is
+        }
+        if (!declared && (type == null || !CoreTypeFamily.JSON.equals(type.getTypeFamily()))) {
+            return null;
+        }
+        if (expression.getSelection() != null) {
+            Expression base = expression.getSelection().getBase();
+            TypeDescriptor baseType = resolveType(base);
+            // a chain that is JSON from its base on is one path, and the dialect may fetch the
+            // scalar at the end of it in one step; one that gets to JSON through a struct or a map
+            // is read as a scalar afterwards
+            if (baseType != null && CoreTypeFamily.JSON.equals(baseType.getTypeFamily())) {
+                return dialect.selectionScalar(
+                        toSql(base, indent),
+                        baseType,
+                        ai.koryki.iql.typing.Selectors.jsonKeys(
+                                baseType, expression.getSelection().getSelectors()));
+            }
+        }
+        return dialect.jsonScalar(toSqlUnparenthesized(expression, indent));
+    }
+
     public String toSql(Expression expression, int indent) {
+        if (jsonScalarArguments.remove(expression)) {
+            String scalar = jsonScalarSql(expression, indent);
+            if (scalar != null) {
+                return scalar;
+            }
+        }
         if (expression.isParenthesized()) {
             return "(" + toSqlUnparenthesized(expression, indent) + ")";
         }
@@ -970,6 +1111,63 @@ public class SqlSelectRenderer {
             return "NULL";
         } else if (expression.getLogical() != null) {
             return toSqlInline(expression.getLogical(), indent);
+        } else if (expression.getSelection() != null) {
+            Expression base = expression.getSelection().getBase();
+            String cast = declaredJsonScalar(expression);
+            if ("json_boolean".equals(cast)) {
+                // not to_boolean, which reads a number: the dialect says how JSON true is read
+                declaredScalars.add(expression);
+                try {
+                    return dialect.jsonBoolean(jsonScalarSql(expression, indent));
+                } finally {
+                    declaredScalars.remove(expression);
+                }
+            }
+            if ("to_text".equals(cast)) {
+                // a text is the scalar itself: a cast of the JSON would keep the quotes of a string
+                declaredScalars.add(expression);
+                try {
+                    return jsonScalarSql(expression, indent);
+                } finally {
+                    declaredScalars.remove(expression);
+                }
+            }
+            if (cast != null) {
+                Function call = new Function();
+                call.setFunc(cast);
+                call.getArguments().add(expression);
+                if (castDecimal(cast)) {
+                    call.getArguments().add(numberExpression(38));
+                    call.getArguments().add(numberExpression(10));
+                }
+                Expression wrapper = new Expression();
+                wrapper.setFunction(call);
+                declaredScalars.add(expression);
+                try {
+                    return toSql(wrapper, indent);
+                } finally {
+                    declaredScalars.remove(expression);
+                }
+            }
+            TypeDescriptor baseType = resolveType(base);
+            String selected =
+                    dialect.selection(
+                            toSql(base, indent),
+                            baseType,
+                            ai.koryki.iql.typing.Selectors.jsonKeys(
+                                    baseType, expression.getSelection().getSelectors()));
+            TypeDescriptor type = resolveType(expression);
+            if (baseType != null
+                    && CoreTypeFamily.JSON.equals(baseType.getTypeFamily())
+                    && type != null
+                    && CoreTypeFamily.ARRAY.equals(type.getTypeFamily())) {
+                return dialect.jsonList(selected, type.element());
+            }
+            return selected;
+        } else if (expression.getLambda() != null) {
+            return lambdaSql(expression, indent);
+        } else if (expression.getParameter() != null) {
+            return parameterSql(expression.getParameter());
         } else if (expression.getIdentity() != null) {
             throw new KorykiaiException("identity is not allowed here");
         } else {
@@ -1027,12 +1225,167 @@ public class SqlSelectRenderer {
     // identity memo. Subselects get their own renderer (subSelect()), hence their own resolver.
     private ExpressionTypeResolver typeResolver;
 
-    public TypeDescriptor resolveType(Expression expression) {
+    /**
+     * The lambdas being rendered, innermost first: the name each parameter has in the SQL and the
+     * type it was given. A parameter is renamed {@code _l<depth>_<name>}, so that what the author
+     * called it can never be an alias or a column of the query, which is what a bare {@code p}
+     * would be taken for inside a lambda.
+     */
+    private final java.util.Deque<LambdaScope> lambdaScopes = new java.util.ArrayDeque<>();
+
+    private static final class LambdaScope {
+        private final java.util.Map<String, String> names;
+        private final java.util.Map<String, TypeDescriptor> types;
+
+        /**
+         * Set when the body, or a lambda inside it, uses a parameter of a lambda around this one.
+         */
+        private boolean reachesOut;
+
+        LambdaScope(
+                java.util.Map<String, String> names, java.util.Map<String, TypeDescriptor> types) {
+            this.names = names;
+            this.types = types;
+        }
+
+        java.util.Map<String, String> names() {
+            return names;
+        }
+
+        java.util.Map<String, TypeDescriptor> types() {
+            return types;
+        }
+    }
+
+    private ExpressionTypeResolver typeResolver() {
         if (typeResolver == null) {
             typeResolver =
                     new ExpressionTypeResolver(resolver, visibilityContext, functionRenderer);
         }
-        return typeResolver.resolve(expression);
+        // the scopes from the outside in: an inner parameter hides an outer one of its name
+        java.util.Map<String, TypeDescriptor> parameters = new java.util.LinkedHashMap<>();
+        lambdaScopes.descendingIterator().forEachRemaining(s -> parameters.putAll(s.types()));
+        return typeResolver.withParameters(parameters);
+    }
+
+    public TypeDescriptor resolveType(Expression expression) {
+        return typeResolver().resolve(expression);
+    }
+
+    private String lambdaSql(Expression expression, int indent) {
+        return lambda(expression, indent, dialect::lambda);
+    }
+
+    /**
+     * What the calls rendered so far made of their lambdas, by lambda: the types of the parameters
+     * and of the body. Kept here and not on the query model, which stays what was written.
+     */
+    private final java.util.Map<ai.koryki.iql.query.Lambda, ai.koryki.iql.typing.LambdaTyping>
+            lambdaTypings = new java.util.IdentityHashMap<>();
+
+    /** What a lambda argument of a call being rendered returns; null if it could not be typed. */
+    public TypeDescriptor lambdaBodyType(Expression lambda) {
+        ai.koryki.iql.typing.LambdaTyping typing = lambdaTypings.get(lambda.getLambda());
+        return typing != null ? typing.bodyType() : null;
+    }
+
+    /** How many lambdas are being rendered around the point the renderer is at. */
+    public int lambdaDepth() {
+        return lambdaScopes.size();
+    }
+
+    /** The SQL name a parameter has unless a dialect binds it to something else. */
+    public static String parameterName(int depth, String name) {
+        return "_l" + depth + "_" + name;
+    }
+
+    /**
+     * What a lambda parameter reads as in the SQL: a name where the dialect has lambdas, a column
+     * of a derived table or an expression over one where it has not.
+     */
+    @FunctionalInterface
+    public interface ParameterBinding {
+        /**
+         * @param parameter the name the author gave it
+         * @param position 0 for the first parameter
+         * @param depth how many lambdas enclose this one; distinguishes it from the lambdas around
+         */
+        String sql(String parameter, int position, int depth);
+    }
+
+    /**
+     * Renders a lambda argument with its parameters renamed and in scope, and lets the caller shape
+     * the result from the new names and the SQL of the body. The dialect's own {@code x -> body} is
+     * one such shape; a dialect without lambda expressions builds a subquery from the same two
+     * pieces.
+     */
+    public String lambda(
+            Expression expression,
+            int indent,
+            java.util.function.BiFunction<java.util.List<String>, String, String> shape) {
+        return lambda(
+                expression, indent, (name, position, depth) -> parameterName(depth, name), shape);
+    }
+
+    /**
+     * As {@link #lambda(Expression, int, java.util.function.BiFunction)}, with the SQL of each
+     * parameter chosen by the caller: a dialect that cannot name a parameter binds it to a column
+     * or to an expression, and the body is rendered with that, so no text has to be replaced in it
+     * afterwards. The shape receives the bound SQL of the parameters, in order.
+     */
+    public String lambda(
+            Expression expression,
+            int indent,
+            ParameterBinding binding,
+            java.util.function.BiFunction<java.util.List<String>, String, String> shape) {
+        ai.koryki.iql.query.Lambda lambda = expression.getLambda();
+        ai.koryki.iql.typing.LambdaTyping typing = lambdaTypings.get(lambda);
+        if (typing == null || typing.parameterTypes() == null) {
+            throw new KorykiaiException(
+                    "the parameters of the lambda " + lambda.getParameters() + " have no types");
+        }
+        java.util.List<TypeDescriptor> types = typing.parameterTypes();
+        int depth = lambdaScopes.size();
+        java.util.Map<String, String> names = new java.util.LinkedHashMap<>();
+        java.util.Map<String, TypeDescriptor> typed = new java.util.LinkedHashMap<>();
+        for (int i = 0; i < lambda.getParameters().size(); i++) {
+            String name = lambda.getParameters().get(i);
+            names.put(name, binding.sql(name, i, depth));
+            typed.put(name, types.get(i));
+        }
+        lambdaScopes.push(new LambdaScope(names, typed));
+        try {
+            return shape.apply(
+                    new java.util.ArrayList<>(names.values()), toSql(lambda.getBody(), indent));
+        } finally {
+            lambdaScopes.pop();
+        }
+    }
+
+    private String parameterSql(String name) {
+        for (LambdaScope scope : lambdaScopes) {
+            String renamed = scope.names().get(name);
+            if (renamed != null) {
+                // every lambda between the use and the one that declares it reaches outside itself
+                for (LambdaScope inner : lambdaScopes) {
+                    if (inner == scope) {
+                        break;
+                    }
+                    inner.reachesOut = true;
+                }
+                return renamed;
+            }
+        }
+        throw new KorykiaiException("lambda parameter " + name + " is not in scope");
+    }
+
+    /**
+     * Whether the lambda being rendered uses a parameter of a lambda around it. Asked from the
+     * shape of {@link #lambda}, when the body has been rendered: a dialect whose lambdas cannot see
+     * the ones around them refuses it there.
+     */
+    public boolean lambdaReachesOut() {
+        return lambdaScopes.peek().reachesOut;
     }
 
     /**
@@ -1064,6 +1417,11 @@ public class SqlSelectRenderer {
     }
 
     protected String toSql(Function function, int indent) {
+        // the lambdas of the call learn the types of their parameters before they are rendered
+        java.util.List<Expression> arguments = function.getArguments();
+        typeResolver()
+                .bindLambdas(function)
+                .forEach((i, typing) -> lambdaTypings.put(arguments.get(i).getLambda(), typing));
         String sql = functionRenderer.function(this, function, indent);
         return sql;
     }

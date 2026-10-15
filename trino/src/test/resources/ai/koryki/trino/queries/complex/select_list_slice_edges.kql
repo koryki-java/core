@@ -1,0 +1,5 @@
+// A range that starts or ends before the first element, or reaches back further than the list is
+// long, is cut to the list: @-5: on three elements is all of them, @-5:-4 is none. The same on every
+// dialect; Trino's slice() reads a start of 0 as an error and a negative one as counting from the end.
+FIND check_complex t
+FETCH t.nr, t.tags@-5: far_back, t.tags@-2: last_two, t.tags@:-2 all_but_last, t.tags@-5:-4 before_start

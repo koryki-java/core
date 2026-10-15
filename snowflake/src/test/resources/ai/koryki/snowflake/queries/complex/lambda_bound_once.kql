@@ -1,0 +1,9 @@
+// A list that is an expression, not a column, is evaluated once where its size or its elements are
+// asked for more than once: a position from the end, a range with a negative end, the position
+// parameter of a lambda, a fold.
+FIND check_complex t
+FILTER t.nr = 1
+FETCH t.nr, list_filter(t.scores, x -> x > 5)@-1 last_big,
+      list_transform(t.scores, x -> x * 2)@-2: last_two_doubled,
+      list_transform(list_filter(t.scores, x -> x > 5), (x, i) -> x * i) weighted_big,
+      list_reduce(list_filter(t.scores, x -> x > 5), (a, b) -> a + b) total_big

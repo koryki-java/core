@@ -20,6 +20,8 @@ import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.catalog.domain.Link;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Schema;
+import ai.koryki.catalog.types.ConceptResolver;
+import ai.koryki.catalog.types.TypeDescriptorParser;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -27,6 +29,7 @@ import java.util.Locale;
 import java.util.Map;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Loads catalog objects from JSON resources on the classpath: the physical {@link Schema} ({@code
@@ -108,9 +111,22 @@ public class CatalogLoader {
         return mapper.readValue(json, new TypeReference<List<Link>>() {});
     }
 
+    /** The mapper that reads a schema: the entries of a concept are a string or an object. */
+    private static ObjectMapper schemaMapper() {
+        return JsonMapper.builder().addModule(new SchemaModule()).build();
+    }
+
     public static Schema readSchemaJson(String json) {
-        ObjectMapper mapper = new ObjectMapper();
-        return mapper.readValue(json, Schema.class);
+        return checked(schemaMapper().readValue(json, Schema.class));
+    }
+
+    /**
+     * A schema as read: its concepts have to be sound, or the catalog says what is wrong with which
+     * concept, here and not where a type is first needed. A schema without concepts passes.
+     */
+    private static Schema checked(Schema schema) {
+        new ConceptResolver(schema).check(new TypeDescriptorParser() {});
+        return schema;
     }
 
     public static Model readModelJson(InputStream in) {
@@ -129,9 +145,9 @@ public class CatalogLoader {
     public static Schema readSchemaJson(InputStream in) {
 
         try {
-            ObjectMapper mapper = new ObjectMapper();
+            ObjectMapper mapper = schemaMapper();
             try (Reader r = new InputStreamReader(in, StandardCharsets.UTF_8)) {
-                return mapper.readValue(r, Schema.class);
+                return checked(mapper.readValue(r, Schema.class));
             }
         } catch (IOException e) {
             throw new KorykiaiException(e);

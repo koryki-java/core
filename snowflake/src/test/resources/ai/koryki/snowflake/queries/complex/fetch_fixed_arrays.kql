@@ -1,0 +1,4 @@
+// A fixed-size array and an array of arrays. DOUBLE[3][2] is two rows of three values: the outer
+// size is the last bracket. Row 2 has no value at all, which is NULL and not an empty array.
+FIND check_complex t
+FETCH t.nr, t.vec, t.matrix

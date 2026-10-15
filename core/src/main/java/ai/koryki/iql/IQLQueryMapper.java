@@ -309,7 +309,13 @@ public class IQLQueryMapper {
 
     public Expression toExpression(IQLParser.ExpressionContext expression) {
 
-        if (expression.MINUS_SIGN() != null) {
+        if (expression.selector() != null) {
+            return toSelection(expression);
+        } else if (expression.param() != null) {
+            Expression bean = build(expression, Expression::new);
+            bean.setParameter(expression.param().getText());
+            return bean;
+        } else if (expression.MINUS_SIGN() != null) {
             Expression inner = toExpression(expression.expression());
             // As in KQLQueryMapper: a negated duration literal becomes a duration with negative
             // components right away. Both mappings must do the same, or the SQL read back from IQL
@@ -375,6 +381,104 @@ public class IQLQueryMapper {
             return bean;
         } else {
             throw new KorykiaiException();
+        }
+    }
+
+    /** The parameters of the lambdas around the node being mapped, innermost first. */
+    private final java.util.Deque<java.util.Set<String>> lambdaScopes =
+            new java.util.ArrayDeque<>();
+
+    private boolean isParameter(String name) {
+        return lambdaScopes.stream().anyMatch(scope -> scope.contains(name));
+    }
+
+    private Lambda toLambda(IQLParser.LambdaContext lambda) {
+        Lambda bean = build(lambda, Lambda::new);
+        for (org.antlr.v4.runtime.tree.TerminalNode id : lambda.lambda_params().ID()) {
+            bean.getParameters().add(id.getText());
+        }
+        lambdaScopes.push(new java.util.HashSet<>(bean.getParameters()));
+        try {
+            return toLambdaBody(lambda, bean);
+        } finally {
+            lambdaScopes.pop();
+        }
+    }
+
+    private Lambda toLambdaBody(IQLParser.LambdaContext lambda, Lambda bean) {
+        IQLParser.Logical_expressionContext body = lambda.lambda_body().logical_expression();
+        IQLParser.Unary_logical_expressionContext unary = body.unary_logical_expression();
+        // as in KQLQueryMapper: a body that is only a value is that value
+        if (unary != null
+                && unary.expression().size() == 1
+                && unary.operator() == null
+                && unary.BETWEEN() == null
+                && unary.PLACEHOLDER() == null
+                && unary.EXISTS() == null
+                && unary.logical_expression() == null) {
+            bean.setBody(toExpression(unary.expression(0)));
+        } else {
+            Expression e = build(body, Expression::new);
+            e.setLogical(toLogicalNode(body));
+            bean.setBody(e);
+        }
+        return bean;
+    }
+
+    /** The chain of selector steps as one node; see KQLQueryMapper. */
+    private Expression toSelection(IQLParser.ExpressionContext expression) {
+        java.util.Deque<IQLParser.SelectorContext> steps = new java.util.ArrayDeque<>();
+        IQLParser.ExpressionContext base = expression;
+        while (base.selector() != null) {
+            steps.addFirst(base.selector());
+            base = base.base;
+        }
+        Selection selection = new Selection();
+        selection.setBase(toExpression(base));
+        for (IQLParser.SelectorContext step : steps) {
+            selection.getSelectors().add(toSelector(step.getText()));
+        }
+        Expression bean = build(expression, Expression::new);
+        bean.setSelection(selection);
+        return bean;
+    }
+
+    /**
+     * Reads the text of a selector token of the grammar, including its {@code @}. The three lexical
+     * forms are told apart by what follows the {@code @}: a quote, a digit, a minus or a colon, or
+     * a name. Shared with {@code KQLQueryMapper}; the two grammars have the same tokens.
+     */
+    public static Selector toSelector(String token) {
+        if (token == null || token.length() < 2 || token.charAt(0) != '@') {
+            throw new KorykiaiException("not a selector: " + token);
+        }
+        Selector selector = new Selector();
+        String s = token.substring(1);
+        char c = s.charAt(0);
+        if (c == '\'') {
+            // the only escape the grammar knows is \'
+            selector.setName(s.substring(1, s.length() - 1).replace("\\'", "'"));
+        } else if (Character.isDigit(c) || c == '-' || c == ':') {
+            int colon = s.indexOf(':');
+            if (colon < 0) {
+                selector.setIndex(selectorNumber(s, token));
+            } else {
+                String left = s.substring(0, colon);
+                String right = s.substring(colon + 1);
+                selector.setFrom(left.isEmpty() ? null : selectorNumber(left, token));
+                selector.setTo(right.isEmpty() ? null : selectorNumber(right, token));
+            }
+        } else {
+            selector.setId(s);
+        }
+        return selector;
+    }
+
+    private static int selectorNumber(String digits, String token) {
+        try {
+            return Integer.parseInt(digits);
+        } catch (NumberFormatException e) {
+            throw new KorykiaiException("selector index out of range: " + token, e);
         }
     }
 
@@ -457,12 +561,23 @@ public class IQLQueryMapper {
     }
 
     public Expression toExpression(IQLParser.ArgumentContext argument) {
-        if (argument.logical_expression() != null) {
+        if (argument.lambda() != null) {
+            Expression e = build(argument, Expression::new);
+            e.setLambda(toLambda(argument.lambda()));
+            return e;
+        } else if (argument.logical_expression() != null) {
             Expression e = build(argument, Expression::new);
             e.setLogical(toLogicalNode(argument.logical_expression()));
             return e;
         } else if (argument.expression() != null) {
-            return toExpression(argument.expression());
+            IQLParser.ExpressionContext inner = argument.expression();
+            if (inner.param() != null && !isParameter(inner.param().getText())) {
+                // a bare name that is no parameter here is an alias, as it always was
+                Expression e = build(argument, Expression::new);
+                e.setIdentity(inner.param().getText());
+                return e;
+            }
+            return toExpression(inner);
         } else {
             Expression e = build(argument, Expression::new);
             e.setIdentity(argument.identity.getText());

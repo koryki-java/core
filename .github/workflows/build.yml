@@ -29,6 +29,24 @@ jobs:
           distribution: temurin
           java-version: 21
 
+      # While koryki-northwind is pinned to a SNAPSHOT (a branch developed together with northwind),
+      # it is not on Central. The submodule is that very source at the pinned commit, so build it
+      # into the runner's local repository, which settings.gradle reads first for ai.koryki. Once the
+      # pin is a release this step does nothing.
+      - name: Build the pinned northwind SNAPSHOT
+        run: |
+          pin=$(sed -n 's/^koryki-northwind = "\(.*\)"/\1/p' gradle/libs.versions.toml)
+          case "$pin" in
+            *-SNAPSHOT)
+              built=$(sed -n 's/^version=//p' northwind-fixtures/gradle.properties)
+              if [ "$built" != "$pin" ]; then
+                echo "::error::gradle/libs.versions.toml pins northwind $pin, but the northwind-fixtures submodule is at $built: move the submodule to the commit that carries $pin"
+                exit 1
+              fi
+              (cd northwind-fixtures && ./gradlew publishToMavenLocal -x test --no-daemon)
+              ;;
+          esac
+
       - name: Check formatting
         run: ./gradlew spotlessCheck --no-daemon
 

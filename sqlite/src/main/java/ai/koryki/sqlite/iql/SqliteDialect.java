@@ -16,11 +16,13 @@
  */
 package ai.koryki.sqlite.iql;
 
+import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.catalog.types.CoreTypeEncoding;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.Families;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.iql.Identifier;
+import ai.koryki.iql.NestedSql;
 import ai.koryki.iql.SqlDialect;
 import ai.koryki.iql.SqlRenderer;
 import ai.koryki.iql.SqlSelectRenderer;
@@ -34,6 +36,7 @@ import ai.koryki.iql.functions.StandardFunctions;
 import ai.koryki.iql.query.Duration;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
+import ai.koryki.iql.query.Selector;
 import ai.koryki.iql.typing.TimeEncodings;
 import ai.koryki.sqlite.iql.validate.SqliteValidator;
 import java.time.LocalDate;
@@ -55,6 +58,54 @@ public class SqliteDialect implements SqlDialect {
     }
 
     private SqliteDialect() {}
+
+    // ---- nested values: selectors -------------------------------------------------------------
+
+    /**
+     * SQLite has no collection, object or map type: the only nested value is JSON, kept as text and
+     * read by the JSON functions. A selector chain is one {@code ->} path, counted from 0, with
+     * {@code #} for the end ({@code $[#-1]} is the last). The operator answers JSON text, as the
+     * other dialects do: a string keeps its quotes, an object or a list is its text, and NULL is
+     * what the path does not find. ({@code json_extract} would answer a string without its quotes.)
+     */
+    /** {@code ->>}: the SQL value at the path, a string without its quotes. */
+    @Override
+    public String selectionScalar(String base, TypeDescriptor baseType, List<Selector> steps) {
+        String path =
+                NestedSql.jsonPath(
+                        steps, "$", NestedSql.FromEnd.HASH, NestedSql.Quoting.DOT, "SQLite");
+        return "(" + base + " ->> " + NestedSql.literal(INSTANCE, path) + ")";
+    }
+
+    @Override
+    public String jsonScalar(String json) {
+        return "json_extract(" + json + ", '$')";
+    }
+
+    /** {@code ->>} answers 1 and 0 for JSON true and false, and the text for a JSON string. */
+    @Override
+    public String jsonBoolean(String scalar) {
+        return "(" + scalar + " IN (1, 'true'))";
+    }
+
+    @Override
+    public NestedSupport nestedSupport() {
+        return NestedSupport.jsonOnly("SQLite", true);
+    }
+
+    @Override
+    public String selection(String base, TypeDescriptor baseType, List<Selector> steps) {
+        if (!CoreTypeFamily.JSON.equals(baseType.getTypeFamily())) {
+            throw new KorykiaiException(
+                    "SQLite cannot select from "
+                            + baseType.portable()
+                            + " with a selector: only JSON is a nested value here");
+        }
+        String path =
+                NestedSql.jsonPath(
+                        steps, "$", NestedSql.FromEnd.HASH, NestedSql.Quoting.DOT, "SQLite");
+        return "(" + base + " -> " + NestedSql.literal(INSTANCE, path) + ")";
+    }
 
     private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();
 

@@ -108,6 +108,14 @@ public class KQLFormatter {
             public String crit(String crit) {
                 return translator.crit(crit);
             }
+
+            @Override
+            public java.util.List<ai.koryki.iql.query.Selector> selectors(
+                    String source,
+                    String field,
+                    java.util.List<ai.koryki.iql.query.Selector> steps) {
+                return translator.selectors(source, field, steps);
+            }
         };
     }
 
@@ -138,8 +146,8 @@ public class KQLFormatter {
     /**
      * Appendix for clauses an extended grammar knows and this one does not.
      *
-     * <p>Empty in core: the grammar from {@code kqlcore} has no VISUALISE rule, so there is nothing
-     * to append here. The {@code visualise} project overrides the method and prints the clause
+     * <p>Empty in core: the grammar from {@code kqlcore} has no VISUALIZE rule, so there is nothing
+     * to append here. The {@code visualize} project overrides the method and prints the clause
      * <em>verbatim</em> from the parse tree — channel, mark and column names in it are user text,
      * not model vocabulary, and may stay unchanged even under translation.
      */
@@ -524,7 +532,11 @@ public class KQLFormatter {
 
         private String toExpression(KQLParser.ExpressionContext expression, int indent) {
 
-            if (expression.select() != null) {
+            if (expression.selector() != null) {
+                return toSelection(expression, indent);
+            } else if (expression.param() != null) {
+                return expression.param().getText();
+            } else if (expression.select() != null) {
                 return toNestedSelect(expression.select(), indent);
             } else if (expression.LEFT_PAREN() != null) {
                 return "(" + toExpression(expression.expression(0), indent) + ")";
@@ -559,6 +571,109 @@ public class KQLFormatter {
             } else {
                 throw new KorykiaiException();
             }
+        }
+
+        /**
+         * A chain of selectors on a field: the field is translated as any other, the names of
+         * struct fields by what the model says of the column; a chain on anything else is kept as
+         * written, since a key of a nested value is not an entity of the model.
+         */
+        private String toSelection(KQLParser.ExpressionContext expression, int indent) {
+            java.util.Deque<KQLParser.SelectorContext> steps = new java.util.ArrayDeque<>();
+            KQLParser.ExpressionContext base = expression;
+            while (base.selector() != null) {
+                steps.addFirst(base.selector());
+                base = base.base;
+            }
+            String head = toExpression(base, indent);
+            if (base.field() == null) {
+                return head + steps.stream().map(s -> s.getText()).collect(Collectors.joining());
+            }
+            KQLParser.FieldContext field = base.field();
+            KQLParser.SourceContext source = visibilityContext.getSource(field.alias.getText());
+            if (source == null) {
+                return head + steps.stream().map(s -> s.getText()).collect(Collectors.joining());
+            }
+            // a field of a block is the output of the block: the names belong to the column it
+            // projects, found in the entity that column is a column of
+            String[] origin = originOf(source.name.getText(), field.name.getText());
+            java.util.List<KQLParser.SelectorContext> written = java.util.List.copyOf(steps);
+            java.util.List<ai.koryki.iql.query.Selector> translated =
+                    translator.selectors(
+                            origin[0],
+                            origin[1],
+                            written.stream()
+                                    .map(s -> ai.koryki.iql.IQLQueryMapper.toSelector(s.getText()))
+                                    .toList());
+            StringBuilder b = new StringBuilder(head);
+            for (int i = 0; i < translated.size(); i++) {
+                // a step the translation left alone is written as it was typed
+                ai.koryki.iql.query.Selector original =
+                        ai.koryki.iql.IQLQueryMapper.toSelector(written.get(i).getText());
+                b.append(
+                        same(original, translated.get(i))
+                                ? written.get(i).getText()
+                                : ai.koryki.iql.IQLSerializer.selector(translated.get(i)));
+            }
+            return b.toString();
+        }
+
+        /**
+         * The entity and the attribute a field stands for: the field itself for a table, and for
+         * the output of a block the column it projects, through any number of blocks. Where that
+         * cannot be followed (no model to map the query with, a computed output) the leading source
+         * of the block and the field as written, which is what a lookup there has always been
+         * given.
+         */
+        private String[] originOf(String sourceName, String fieldName) {
+            String[] followed = follow(sourceName, fieldName, new java.util.HashSet<>());
+            if (followed != null) {
+                return followed;
+            }
+            Source block = visibilityContext.getLeadingSource(sourceName);
+            return new String[] {block != null ? block.getName() : sourceName, fieldName};
+        }
+
+        private String[] follow(String sourceName, String fieldName, java.util.Set<String> seen) {
+            if (query == null) {
+                return null;
+            }
+            Block block =
+                    query.getBlock().stream()
+                            .filter(b -> b.getId().equals(sourceName))
+                            .findFirst()
+                            .orElse(null);
+            if (block == null) {
+                return new String[] {sourceName, fieldName};
+            }
+            if (!seen.add(block.getId())) {
+                return null;
+            }
+            Select select = ai.koryki.iql.SqlQueryRenderer.select(block.getSet());
+            for (Out out : ai.koryki.iql.SqlQueryRenderer.collectOut(select)) {
+                Expression e = out.getExpression();
+                String called =
+                        out.getHeader() != null
+                                ? out.getHeader()
+                                : e != null && e.getField() != null ? e.getField().getName() : null;
+                if (fieldName.equals(called)) {
+                    if (e.getField() == null || e.getField().getAlias() == null) {
+                        return null;
+                    }
+                    Source inner =
+                            ai.koryki.iql.Visitor.findSourceInSelect(
+                                    select, e.getField().getAlias());
+                    return inner == null
+                            ? null
+                            : follow(inner.getName(), e.getField().getName(), seen);
+                }
+            }
+            return null;
+        }
+
+        private boolean same(ai.koryki.iql.query.Selector a, ai.koryki.iql.query.Selector b) {
+            return java.util.Objects.equals(a.getId(), b.getId())
+                    && java.util.Objects.equals(a.getName(), b.getName());
         }
 
         private String mathFunction(
@@ -680,7 +795,13 @@ public class KQLFormatter {
 
         private String toArgument(KQLParser.ArgumentContext argument, int indent) {
 
-            if (argument.logical_expression() != null) {
+            if (argument.lambda() != null) {
+                // the parameters are the query's own names, the body is formatted like any other
+                return argument.lambda().lambda_params().getText().replace(",", ", ")
+                        + " -> "
+                        + toLogicalNode(
+                                argument.lambda().lambda_body().logical_expression(), indent);
+            } else if (argument.logical_expression() != null) {
                 return toLogicalNode(argument.logical_expression(), indent);
             } else if (argument.expression() != null) {
                 return toExpression(argument.expression(), indent);

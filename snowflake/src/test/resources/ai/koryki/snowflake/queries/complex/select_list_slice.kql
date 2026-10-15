@@ -1,0 +1,4 @@
+// A range selects a list: @1:2 the first two, @2: from the second to the end, @:2 up to the second.
+// Both ends are included. The slice of a fixed-size array is a list.
+FIND check_complex t
+FETCH t.nr, t.tags@1:2 first_two, t.tags@2: from_second, t.tags@:2 up_to_second, t.vec@1:2 vec_head

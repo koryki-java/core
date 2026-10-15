@@ -1,0 +1,3 @@
+Nr : INTEGER
+Vector : ARRAY(FLOAT)
+Matrix : ARRAY(ARRAY(FLOAT))

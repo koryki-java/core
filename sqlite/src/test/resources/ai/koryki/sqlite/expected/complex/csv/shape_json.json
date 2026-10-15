@@ -1,0 +1,4 @@
+Nr : INTEGER
+n_plus_one : INTEGER
+second_doubled : INTEGER
+undeclared : JSON

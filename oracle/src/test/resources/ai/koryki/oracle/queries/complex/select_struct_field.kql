@@ -1,0 +1,7 @@
+// A name selects a struct field, a position the field at that place. @'...' takes a field whose
+// name needs quoting, and finds it regardless of case, as DuckDB does.
+FIND check_complex t
+FETCH t.nr,
+      t.dims@w width, t.dims@h height, t.dims@1 first_field, t.dims@-1 last_field,
+      t.address@street street, t.address@geo@lat latitude, t.address@phones@1 first_phone,
+      t.odd@'Odd Name' odd_name, t.odd@'ODD NAME' odd_name_upper, t.odd@x odd_x

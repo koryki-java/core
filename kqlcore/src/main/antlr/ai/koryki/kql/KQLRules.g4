@@ -18,7 +18,7 @@
 parser grammar KQLRules;
 
 // All query rules EXCEPT `query`. The start rule deliberately does not live here but in each base
-// grammar: it is the only rule that differs between the core and the visualise variant. Were it
+// grammar: it is the only rule that differs between the core and the visualize variant. Were it
 // here and replaced by an override, the core variant would drag the viz rules along as dead code
 // -- measured: the imported rule stays in the parser even when the overriding query no longer
 // calls it.
@@ -154,7 +154,10 @@ fetchItem
 ;
 
 expression
- : LEFT_PAREN expression RIGHT_PAREN
+// Postfix selector, first so it binds tighter than the prefix and the binary operators:
+// `-c.a@1` is `-(c.a@1)`. Which selector fits which base type is a type-resolver matter.
+ : base=expression selector
+| LEFT_PAREN expression RIGHT_PAREN
 | BAR expression
 | PLUS expression
 | left=expression (MULT | DIV) right=expression
@@ -162,11 +165,27 @@ expression
 | temporal_literal
 | field
 | function
+| param
 | INT
 | NUMBER
 | SQ_STRING
 | NULL
 | LEFT_PAREN select RIGHT_PAREN
+;
+
+selector
+ : SELECTOR_INT
+| SELECTOR_ID
+| SELECTOR_NAME
+;
+
+// A lambda parameter, used by the name it was declared with: `x -> x * 2`. A name in expression
+// position is nothing else in the language (a field is `alias.name`, a call `name(`), and a
+// parameter may not be named like an alias, so the name says what it is. As a function argument it
+// also parses where an alias is meant (`count(o)`); the mapper decides by the lambdas around it.
+// A selection from a parameter is the usual postfix one: `x@price`.
+param
+ : ID
 ;
 
 temporal_literal
@@ -202,7 +221,24 @@ argument
 // expression first: a bare expression is now also a valid logical_expression (the boolean
 // predicate alternative), so listing logical_expression first would swallow every plain argument.
 // A genuine predicate like `c.nr > 0` is not a viable expression, so it still picks the second.
- : expression | logical_expression | identity=ID
+ : lambda | expression | logical_expression | identity=ID
+;
+
+// A lambda is only ever a function argument, never a value of its own: list_transform(c.tags, x -> x * 2).
+// Parameters are declared as plain IDs and used by that name (see param); `x.name` stays a field.
+lambda
+ : lambda_params ARROW lambda_body
+;
+
+lambda_params
+ : ID
+| LEFT_PAREN ID (COMMA ID)* RIGHT_PAREN
+;
+
+// logical_expression contains a plain expression as its last alternative, so one body rule serves
+// a value (list_transform) and a predicate (list_filter) alike.
+lambda_body
+ : logical_expression
 ;
 
 field

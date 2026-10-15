@@ -1,0 +1,8 @@
+// Lists made by lists made by lists: each lambda takes the position as well as the element, which
+// names the list it works on more than once, so the SQL must evaluate it once or grow with every
+// nesting. The same on every dialect that can build the list.
+FIND check_complex t
+FETCH t.nr,
+      list_transform(
+          list_transform(list_transform(t.scores, (x, i) -> x + i), (x, i) -> x * 2),
+          (x, i) -> x - i) deep

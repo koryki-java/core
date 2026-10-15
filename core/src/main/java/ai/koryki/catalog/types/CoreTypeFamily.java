@@ -28,5 +28,18 @@ public enum CoreTypeFamily implements TypeFamily {
     TIMESTAMP,
     TEXT,
     JSON,
-    UUID;
+    UUID,
+    ARRAY,
+    STRUCT,
+    MAP;
+
+    /**
+     * Whether a family written as text, as a concept spells it, is this one. A concept keeps its
+     * family as the name, so a test of it reads {@code
+     * CoreTypeFamily.STRUCT.is(concept.getTypeFamily())} and not a string literal that a rename of
+     * the constant would not find.
+     */
+    public boolean is(String family) {
+        return name().equals(family);
+    }
 }

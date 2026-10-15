@@ -1,0 +1,4 @@
+Nr : INTEGER
+first_shouted : TEXT
+first_big : INTEGER
+last_sku : TEXT

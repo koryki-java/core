@@ -100,6 +100,8 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         checkTimeArithmetic(function);
         checkAnchorFirst(function);
         checkConditionalReconciliation(function);
+        checkListSize(function);
+        checkLambdaPredicate(function);
         checkLogicalArguments(function);
         checkProjectionOnly(deque, function);
         checkWindowOnly(function);
@@ -241,6 +243,51 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
                                         + " of '"
                                         + function.getFunc()
                                         + "'"));
+            }
+        }
+    }
+
+    /**
+     * A lambda that is a predicate ({@code list_filter}, {@code list_any}, {@code list_all}) has to
+     * answer yes or no. Its body is typed with the parameters bound, so {@code x -> x * 2} is an
+     * INTEGER where a BOOLEAN is wanted, which the database would reject (or, worse, read as it
+     * pleases). A body that cannot be typed is left to whoever reports why.
+     */
+    private void checkLambdaPredicate(Function function) {
+        if (!typeChecks() || scopes.isEmpty() || functions == null) {
+            return;
+        }
+        List<Expression> args = function.getArguments();
+        for (int i = 0; i < args.size(); i++) {
+            if (args.get(i).getLambda() == null) {
+                continue;
+            }
+            ai.koryki.iql.functions.LambdaSpec spec =
+                    functions.lambda(function.getFunc(), args.size(), i);
+            if (spec == null || !spec.predicate()) {
+                continue;
+            }
+            ExpressionTypeResolver types =
+                    new ExpressionTypeResolver(resolver, scopes.peek(), functions);
+            TypeDescriptor body;
+            try {
+                var typing = types.bindLambdas(function).get(i);
+                body = typing == null ? null : typing.bodyType();
+            } catch (RuntimeException unresolved) {
+                continue;
+            }
+            if (body != null
+                    && body.getTypeFamily() != null
+                    && !ai.koryki.catalog.types.CoreTypeFamily.BOOLEAN.equals(
+                            body.getTypeFamily())) {
+                violations.add(
+                        new Violation(
+                                "type",
+                                args.get(i),
+                                Range.of(iqlToContext, args.get(i)),
+                                function.getFunc()
+                                        + " takes a lambda that answers yes or no, but this one gives "
+                                        + body.portable()));
             }
         }
     }
@@ -557,8 +604,43 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
                                     + "' accepts argument types "
                                     + describe(callFamilies)
                                     + " — candidates: "
-                                    + candidates(arityMatches)));
+                                    + candidates(arityMatches)
+                                    + jsonHint(callFamilies, arityMatches)));
         }
+    }
+
+    /**
+     * What to do when the argument that does not fit is JSON: it is a list only where the catalog
+     * declares the elements of the array, and a number or a text only after a cast or a declared
+     * member. Empty when no JSON argument is the cause.
+     */
+    private static String jsonHint(List<TypeFamily> call, List<FunctionDefinition> candidates) {
+        for (int i = 0; i < call.size(); i++) {
+            if (!ai.koryki.catalog.types.CoreTypeFamily.JSON.equals(call.get(i))) {
+                continue;
+            }
+            if (fits(call, i, ai.koryki.catalog.types.CoreTypeFamily.ARRAY, candidates)) {
+                return ". A JSON value is a list only where the catalog declares the elements of"
+                        + " the array and a selector reaches it (t.doc@a@b); a list of objects"
+                        + " stays JSON";
+            }
+            if (fits(call, i, ai.koryki.catalog.types.CoreTypeFamily.TEXT, candidates)
+                    || fits(call, i, ai.koryki.catalog.types.CoreTypeFamily.INTEGER, candidates)) {
+                return ". A JSON value is no text or number until it is cast (to_text, to_integer)"
+                        + " or the catalog declares the member it comes from";
+            }
+        }
+        return "";
+    }
+
+    private static boolean fits(
+            List<TypeFamily> call,
+            int position,
+            TypeFamily instead,
+            List<FunctionDefinition> candidates) {
+        List<TypeFamily> tried = new java.util.ArrayList<>(call);
+        tried.set(position, instead);
+        return candidates.stream().anyMatch(d -> d.getSignature().matches(tried));
     }
 
     private static String describe(List<TypeFamily> families) {
@@ -930,6 +1012,39 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
                                 + " — compare it with an operator, e.g. `= 'x'` or `> 0`"));
     }
 
+    private static final java.util.Set<String> SIZE_NAMES =
+            java.util.Set.of("length", "len", "size", "cardinality", "array_length", "array_size");
+
+    /**
+     * {@code length(t.tags)} is not in the catalog, so it was passed through to the engine as it is
+     * and meant something different on each: the characters of a text on one, an error on the next.
+     * The number of elements of a list has a name of its own.
+     */
+    private void checkListSize(Function function) {
+        if (functions == null
+                || !typeChecks()
+                || scopes.isEmpty()
+                || function.getArguments().size() != 1
+                || !SIZE_NAMES.contains(function.getFunc().toLowerCase(Locale.ROOT))
+                || !functions.overloads(function.getFunc()).isEmpty()) {
+            return;
+        }
+        ExpressionTypeResolver types =
+                new ExpressionTypeResolver(resolver, scopes.peek(), functions);
+        TypeDescriptor type = resolveOrNull(types, function.getArguments().get(0));
+        if (type != null
+                && ai.koryki.catalog.types.CoreTypeFamily.ARRAY.equals(type.getTypeFamily())) {
+            violations.add(
+                    new Violation(
+                            "function",
+                            function,
+                            Range.of(iqlToContext, function),
+                            function.getFunc()
+                                    + " is not a function of a list; the number of its elements is"
+                                    + " list_size(list)"));
+        }
+    }
+
     /**
      * Comparison operators whose operands must meet in one type; all declare {@code Families.ANY}.
      */
@@ -975,7 +1090,16 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         List<TypeDescriptor> operands = new ArrayList<>();
         operands.add(resolveOrNull(types, node.getLeft()));
         for (Expression e : node.getRight()) {
-            operands.add(resolveOrNull(types, e));
+            TypeDescriptor type = resolveOrNull(types, e);
+            // x IN list: the value meets the elements of the list, the list is not an operand of
+            // its own
+            if ("IN".equalsIgnoreCase(node.getOp().trim())
+                    && node.getRight().size() == 1
+                    && type != null
+                    && ai.koryki.catalog.types.CoreTypeFamily.ARRAY.equals(type.getTypeFamily())) {
+                type = type.element();
+            }
+            operands.add(type);
         }
         // a single typed operand has nothing to reconcile against
         if (operands.stream().filter(java.util.Objects::nonNull).count() < 2) {
@@ -1215,6 +1339,8 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
 
         if (expression.getField() != null) {
             return true;
+        } else if (expression.getSelection() != null) {
+            return isScalarOfColumn(expression.getSelection().getBase());
         } else if (expression.getFunction() != null) {
             return isScalarOfColumn(expression.getFunction());
         } else if (expression.getLogical() != null) {
@@ -1251,6 +1377,10 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
     private static boolean hasColumnOrIdentity(Expression e, boolean aggregate) {
         if (e.getField() != null || e.getIdentity() != null) {
             return true;
+        }
+        if (e.getSelection() != null) {
+            // t.scores@2 is a value of the column t.scores: sum(t.scores@2) aggregates it
+            return hasColumnOrIdentity(e.getSelection().getBase(), aggregate);
         }
         if (e.getFunction() != null && (aggregate || !isAggregate(e.getFunction()))) {
             return hasColumnOrIdentity(e.getFunction(), aggregate);

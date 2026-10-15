@@ -16,7 +16,6 @@
  */
 package ai.koryki.catalog.types;
 
-import ai.koryki.catalog.schema.Column;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -44,23 +43,29 @@ public interface TypeDescriptorParser {
                             "$",
                     Pattern.CASE_INSENSITIVE);
 
-    default TypeDescriptor parse(Column column) {
-        TypeFamily family = TypeFamilyRegistry.of(column.getTypeFamily());
+    /**
+     * The type of a scalar: its family, its encoding if it has one, and the type in the database as
+     * the database spells it ({@code SMALLINT}, {@code DECIMAL(10,2)}, {@code VARCHAR(MAX)}). The
+     * containers are typed from the entries of their concepts, see {@link ConceptResolver}.
+     *
+     * @param where what is typed, for the message of a mistake: {@code column 't.c'}
+     */
+    default TypeDescriptor parse(
+            String where, String typeFamily, String typeEncodingName, String dialectType) {
+        TypeFamily family = TypeFamilyRegistry.of(typeFamily);
 
-        String dialectType = column.getDialectType();
-        TypeEncoding typeEncoding = TypeEncodingRegistry.ofNullable(column.getTypeEncoding());
+        TypeEncoding typeEncoding = TypeEncodingRegistry.ofNullable(typeEncodingName);
 
         // Invariant: an encoding binds to exactly one family, which must be the
-        // column's declared family (see TypeEncoding#family).
+        // declared family (see TypeEncoding#family).
         if (typeEncoding != null && !typeEncoding.family().equals(family)) {
             throw new IllegalArgumentException(
-                    "column '"
-                            + column.getName()
-                            + "': encoding "
+                    where
+                            + ": encoding "
                             + typeEncoding.name()
                             + " is a "
                             + typeEncoding.family().name()
-                            + " but the column declares family "
+                            + " but it declares family "
                             + family.name());
         }
 
@@ -83,7 +88,16 @@ public interface TypeDescriptorParser {
         if (paramGroup != null && !paramGroup.trim().isEmpty()) {
             String[] parts = paramGroup.split(",");
             for (String part : parts) {
-                params.add(Integer.parseInt(part.trim()));
+                if (parts.length > 1 && part.trim().equalsIgnoreCase("MAX")) {
+                    throw new IllegalArgumentException(
+                            "MAX is the only size of a type, not one of several, in dialectType '"
+                                    + dialectType
+                                    + "'");
+                }
+                Integer size = size(part, dialectType);
+                if (size != null) {
+                    params.add(size);
+                }
             }
         }
 
@@ -101,13 +115,116 @@ public interface TypeDescriptorParser {
                 case TEXT -> parseText(dialectType, typeName, typeEncoding, params);
                 case JSON -> parseJson(dialectType, typeName, typeEncoding);
                 case UUID -> parseUuid(dialectType, typeName, typeEncoding);
+                case ARRAY, STRUCT, MAP ->
+                        throw new IllegalArgumentException(
+                                where
+                                        + ": a "
+                                        + core.name()
+                                        + " is typed from its entries, not from a dialect type");
             };
         }
-        return parseExtended(column, family, dialectType, typeName, typeEncoding, params);
+        return parseExtended(where, family, dialectType, typeName, typeEncoding, params);
+    }
+
+    /**
+     * One size parameter of a flat type name: a number, optionally with the unit Oracle puts behind
+     * it ({@code VARCHAR2(10 CHAR)}), or {@code MAX} ({@code NVARCHAR(MAX)}), which is no size: the
+     * type is unbounded. Null for {@code MAX}.
+     */
+    private static Integer size(String part, String dialectType) {
+        String text = part.trim();
+        if (text.equalsIgnoreCase("MAX")) {
+            return null;
+        }
+        java.util.regex.Matcher sized =
+                java.util.regex.Pattern.compile(
+                                "(\\d+)(?:\\s+(?:CHAR|BYTE))?",
+                                java.util.regex.Pattern.CASE_INSENSITIVE)
+                        .matcher(text);
+        if (!sized.matches()) {
+            throw new IllegalArgumentException(
+                    "'" + text + "' is not a size in dialectType '" + dialectType + "'");
+        }
+        return Integer.parseInt(sized.group(1));
+    }
+
+    /**
+     * One scalar inside a nested spelling. It has no declared family, so the family is inferred
+     * from the name, and the scalar rules above ({@code parseDecimal}, {@code parseText}, ...) do
+     * the rest, so precision, scale and the known names stay in one place.
+     */
+    default TypeDescriptor parseLeaf(String spelling, String name, List<Integer> params) {
+        TypeFamily family = inferFamily(name);
+        if (family instanceof CoreTypeFamily core) {
+            return switch (core) {
+                case BLOB -> parseBlob(spelling, null);
+                case BOOLEAN -> parseBoolean(spelling, null);
+                case DATE -> parseDate(spelling, null);
+                case DECIMAL -> parseDecimal(spelling, null, params);
+                case FLOAT -> parseFloat(spelling, name, null);
+                case INTEGER -> parseInteger(spelling, name, null, params);
+                case TIME -> parseTime(spelling, name, null, params);
+                case INTERVAL -> parseInterval(spelling, name, null);
+                case TIMESTAMP -> parseTimestamp(spelling, name, null, params);
+                case TEXT -> parseText(spelling, name, null, params);
+                case JSON -> parseJson(spelling, name, null);
+                case UUID -> parseUuid(spelling, name, null);
+                case ARRAY, STRUCT, MAP ->
+                        throw new IllegalStateException("'" + name + "' is not a scalar");
+            };
+        }
+        throw new IllegalArgumentException(
+                "'" + spelling + "' is a " + family.name() + ", which has no leaf parser");
+    }
+
+    /**
+     * The family of a scalar type name, upper case. The names DuckDB prints, plus the common
+     * spellings of the other dialects; a dialect parser overrides this to add its own.
+     */
+    default TypeFamily inferFamily(String name) {
+        if (name.startsWith("TIMESTAMP") || name.startsWith("DATETIME")) {
+            return CoreTypeFamily.TIMESTAMP;
+        } else if (name.equals("TIME") || name.startsWith("TIME ") || name.equals("TIMETZ")) {
+            return CoreTypeFamily.TIME;
+        } else if (name.startsWith("INTERVAL")) {
+            return CoreTypeFamily.INTERVAL;
+        }
+        return switch (name) {
+            case "TINYINT",
+                    "SMALLINT",
+                    "INTEGER",
+                    "INT",
+                    "BIGINT",
+                    "HUGEINT",
+                    "UTINYINT",
+                    "USMALLINT",
+                    "UINTEGER",
+                    "UBIGINT" ->
+                    CoreTypeFamily.INTEGER;
+            case "DECIMAL", "NUMERIC", "NUMBER" -> CoreTypeFamily.DECIMAL;
+            case "FLOAT", "REAL", "DOUBLE", "DOUBLE PRECISION", "BINARY_DOUBLE", "BINARY_FLOAT" ->
+                    CoreTypeFamily.FLOAT;
+            case "BOOLEAN", "BOOL" -> CoreTypeFamily.BOOLEAN;
+            case "VARCHAR",
+                    "VARCHAR2",
+                    "NVARCHAR2",
+                    "NCHAR",
+                    "TEXT",
+                    "STRING",
+                    "CHAR",
+                    "BPCHAR",
+                    "NVARCHAR" ->
+                    CoreTypeFamily.TEXT;
+            case "DATE" -> CoreTypeFamily.DATE;
+            case "UUID" -> CoreTypeFamily.UUID;
+            case "JSON" -> CoreTypeFamily.JSON;
+            case "BLOB", "BYTEA", "VARBINARY", "BINARY" -> CoreTypeFamily.BLOB;
+            default -> throw new IllegalArgumentException("unknown type name '" + name + "'");
+        };
     }
 
     default TypeDescriptor parseExtended(
-            Column column,
+            String where,
             TypeFamily family,
             String dialectType,
             String typeName,

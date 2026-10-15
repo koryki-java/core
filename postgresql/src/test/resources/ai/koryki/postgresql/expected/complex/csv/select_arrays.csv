@@ -1,0 +1,4 @@
+"Nr", "first_tag", "last_tag", "last_but_one", "fifth_tag", "second_score", "first_two", "from_second", "up_to_second", "vec_last"
+"1", "red", "blue", "green", "", "20", "[""red"",""green""]", "[""green"",""blue""]", "[""red"",""green""]", "3"
+"2", "", "", "", "", "", "[]", "[]", "[]", ""
+"3", "x", "z", "", "", "5", "[""x"",null]", "[null,""z""]", "[""x"",null]", "3"

@@ -108,6 +108,12 @@ public class Validator {
                             bean,
                             new SchemaValidator(
                                     resolver, blockIdToLeadingTableMap, iqlToContext, visibility)));
+            violations.addAll(
+                    Walker.apply(
+                            bean,
+                            new SelectorValidator(iqlToContext, functions, resolver, visibility)));
+            violations.addAll(
+                    Walker.apply(bean, new LambdaValidator(iqlToContext, functions, visibility)));
             violations.addAll(Walker.apply(bean, new DurationValidator(iqlToContext)));
 
             // The dialect last: what it cannot express is only interesting once the query itself
@@ -118,6 +124,7 @@ public class Validator {
                 // Derived from the declaration rather than wired per dialect: the dialect states
                 // what it can do in intervalSupport() and contributes nothing else here.
                 violations.addAll(Walker.apply(bean, new DurationValueValidator(context, dialect)));
+                violations.addAll(Walker.apply(bean, new NestedSupportValidator(context, dialect)));
                 for (Collector<List<Violation>> v : dialect.validators(context)) {
                     violations.addAll(Walker.apply(bean, v));
                 }

@@ -1,0 +1,5 @@
+// An array of composites: an element, a field of it, a list inside the field, and a slice that is an
+// array of composites again.
+FIND check_complex t
+FETCH t.nr, t.items@1@sku first_sku, t.items@1@price first_price, t.items@1@opts@2 second_option,
+      t.items@2@opts empty_options, t.events@1@ts first_event, t.items@2:2 second_item
