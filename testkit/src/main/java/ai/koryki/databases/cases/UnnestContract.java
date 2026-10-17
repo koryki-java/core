@@ -40,6 +40,43 @@ public abstract class UnnestContract {
     /** The engine of this dialect over the catalog of the complex bed. */
     protected abstract Engine<HeaderInfo, ListWithSqlResult<HeaderInfo>> engine();
 
+    /**
+     * Whether the dialect has a position for the elements of a list. Oracle has none for the
+     * elements of a collection in a lateral join; its test says false, and the position is refused.
+     */
+    protected boolean ordinal() {
+        return true;
+    }
+
+    /**
+     * A DECIMAL(10,2) as the dialect gives it: with its two digits, or as a NUMBER, without the
+     * zero at the end (Oracle).
+     */
+    protected String money(String twoDigits) {
+        return twoDigits;
+    }
+
+    /** {@code column, } where the position can be asked for, else nothing. */
+    private String ord(String column) {
+        return ordinal() ? column + ", " : "";
+    }
+
+    /** The expected rows, without the column at {@code index} where there is no position. */
+    private List<List<String>> expected(int index, List<List<String>> rows) {
+        if (ordinal()) {
+            return rows;
+        }
+        return rows.stream()
+                .map(
+                        r -> {
+                            List<String> copy = new java.util.ArrayList<>(r);
+                            copy.remove(index);
+                            return copy;
+                        })
+                .sorted(Comparator.comparing(Object::toString))
+                .toList();
+    }
+
     protected final List<List<String>> rows(String kql) {
         ListWithSqlResult<HeaderInfo> result = engine().executeKQL(kql, ListWithSqlResult::new);
         return result.getRows().stream()
@@ -67,20 +104,27 @@ public abstract class UnnestContract {
     void theElementsOfAListOfStructsAreTheRowsOfTheFlattenView() {
         // the rows of flatten_items.kql, which every dialect answers
         assertEquals(
-                sorted(
-                        row("1", "1", "A-1", "19.98"),
-                        row("1", "2", "B-2", "24.50"),
-                        row("3", "1", "C-3", null)),
+                expected(
+                        1,
+                        sorted(
+                                row("1", "1", "A-1", "19.98"),
+                                row("1", "2", "B-2", money("24.50")),
+                                row("3", "1", "C-3", null))),
                 rows(
                         "FIND check_complex t, t unnest(t.items) i"
-                                + " FETCH t.nr, i.ordinal, i.sku, i.qty * i.price total"));
+                                + " FETCH t.nr, "
+                                + ord("i.ordinal")
+                                + "i.sku, i.qty * i.price total"));
     }
 
     @Test
     void theAnswerThatNeededAViewIsOneQuery() {
         // the rows of flatten_group.kql
         assertEquals(
-                sorted(row("A-1", "1", "19.98"), row("B-2", "1", "24.50"), row("C-3", "1", null)),
+                sorted(
+                        row("A-1", "1", "19.98"),
+                        row("B-2", "1", money("24.50")),
+                        row("C-3", "1", null)),
                 rows(
                         "FIND check_complex t, t unnest(t.items) i"
                                 + " FETCH i.sku, count(i.sku) lines, sum(i.qty * i.price) revenue"));
@@ -89,26 +133,32 @@ public abstract class UnnestContract {
     @Test
     public void aListOfScalarsHasTheColumnValue() {
         assertEquals(
-                sorted(
-                        row("1", "1", "red"),
-                        row("1", "2", "green"),
-                        row("1", "3", "blue"),
-                        row("3", "1", "x"),
-                        row("3", "2", null),
-                        row("3", "3", "z")),
+                expected(
+                        1,
+                        sorted(
+                                row("1", "1", "red"),
+                                row("1", "2", "green"),
+                                row("1", "3", "blue"),
+                                row("3", "1", "x"),
+                                row("3", "2", null),
+                                row("3", "3", "z"))),
                 rows(
                         "FIND check_complex t, t unnest(t.tags) g"
-                                + " FETCH t.nr, g.ordinal, g.value"));
+                                + " FETCH t.nr, "
+                                + ord("g.ordinal")
+                                + "g.value"));
     }
 
     @Test
     void temporalFieldsOfTheElementKeepTheirType() {
         // the rows of flatten_events.kql
         assertEquals(
-                sorted(row("1", "1", "2026-05-17"), row("3", "1", "2026-01-01")),
+                expected(1, sorted(row("1", "1", "2026-05-17"), row("3", "1", "2026-01-01"))),
                 rows(
                         "FIND check_complex t, t unnest(t.events) e"
-                                + " FETCH t.nr, e.ordinal, e.day"));
+                                + " FETCH t.nr, "
+                                + ord("e.ordinal")
+                                + "e.day"));
     }
 
     @Test
@@ -157,7 +207,7 @@ public abstract class UnnestContract {
     }
 
     @Test
-    void theListMayBeWhatALambdaMade() {
+    public void theListMayBeWhatALambdaMade() {
         assertEquals(
                 List.of(row("1", "A-1")),
                 rows(
