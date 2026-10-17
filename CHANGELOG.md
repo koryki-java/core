@@ -2,6 +2,53 @@
 
 All notable changes to this project are documented here.
 
+## [Unreleased]
+
+### Added
+
+- `unnest` makes a list into rows, written as a source after the one the list comes from: `FIND
+  orders o, o unnest(o.items) i FETCH i.sku, sum(i.qty * i.price)`, and `o + unnest(o.items) i` to keep
+  the parent whose list is empty or NULL. The columns of the alias are the fields of the element,
+  `value` for an element that is no struct, and `ordinal`. The list is any expression of a list
+  type: a column, a list in a struct, what a lambda made, or a field of the rows of an earlier unnest
+  (`i unnest(i.opts) o`). The rows are typed from the list when the query is checked, so nothing is
+  added to the catalog, and the model's words name the fields. Every dialect writes a lateral join:
+  `UNNEST` on DuckDB, PostgreSQL and Trino, `LATERAL FLATTEN` on Snowflake, `APPLY TABLE()` on Oracle,
+  and for an array that the catalog declares inside JSON, `json_each`, `JSON_TABLE` and `OPENJSON`
+  on SQLite, MariaDB and SQL Server (`unnest(t.doc@a@b)`). The position is asked of the database only
+  where the query reads it. What a dialect cannot do is refused with a message instead of failing in
+  the database: Oracle has no position for the elements of a collection, and an outer unnest takes no
+  condition on Trino, Snowflake, Oracle and SQL Server; Snowflake `FLATTEN` leaves a NULL element out.
+  `count(i)` is refused (the rows have no key), and so is every other function as a source, `unnest`
+  in an expression, in `EXISTS`, as the first source, with `VIA`, and of JSON that is not declared as
+  an array. [Nested values](docs/NESTED.md#unnest-one-row-per-element) has the table.
+
+- `FunctionCategory` has `LIST` and `LAMBDA`: the list functions and those that take a lambda have a
+  generated page each, `docs/functions/list.md` and `docs/functions/lambda.md`, which replace the
+  `other.md` they were first generated into. The function and dialect pages are generated again; they
+  had not been since the list functions came in.
+
+### Changed
+
+- The grammar: a `source` is an entity or a function call, in KQL and in IQL, and an IQL `join` need
+  not name a criterion where its source is a call (an IQL join to an entity still has to, and the
+  validator says so). `ai.koryki.iql.query.Source` has `call`, and no name, for a list made into
+  rows; the rest of what is known about its rows is kept by the analysis, in
+  `IQLVisibilityContext.rowsOf`, not in the bean.
+
+- For dialect authors: `SqlDialect.unnestJoin` writes the join of a list made into rows, from the
+  keyword on, and takes the condition of an outer join (an engine whose outer join takes none
+  refuses it); `unnestColumn` reads a column of the rows. Both are refused by default. `unnest`
+  is a function of the new kind `FunctionKind.SOURCE`, argument family `Families.LISTABLE`, and a
+  dialect that supports it registers `ListFunctions.supported("unnest")`. `Rules` takes the
+  visibility context as a fifth constructor argument, and `SelectorNamesRule` and `SelectorLevels` the
+  rows of the sources they translate for.
+
+### Fixed
+
+- `./gradlew verify` clears the database versions of an earlier run before it starts, so a server
+  that is not reached cannot show the version of one that was in a record.
+
 ## [0.3.0] - 2026-10-15
 
 ### Added
@@ -120,11 +167,6 @@ All notable changes to this project are documented here.
   `MemberNames` walks the concept and the names together and answers both ways, and the resolver of
   a model checks them against the schema: a member is an entry of its concept, no two fields have the
   same name, a notion is a notion of a concept the schema has.
-
-- `FunctionCategory` has `LIST` and `LAMBDA`: the list functions and those that take a lambda have a
-  generated page each, `docs/functions/list.md` and `docs/functions/lambda.md`, which replace the
-  `other.md` they were first generated into. The function and dialect pages are generated again; they
-  had not been since the list functions came in.
 
 ### Changed
 
@@ -346,6 +388,7 @@ and signed in CI with an in-memory PGP key and published to Maven Central throug
 Portal; [`docs/RELEASES.md`](./docs/RELEASES.md) shows how to verify a download against the
 signing key.
 
+[Unreleased]: https://github.com/koryki-java/core/compare/v0.3.0...HEAD
 [0.3.0]: https://github.com/koryki-java/core/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/koryki-java/core/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/koryki-java/core/compare/v0.1.0...v0.2.0
