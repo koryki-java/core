@@ -405,5 +405,13 @@ What was measured:
   one. It does not change the meaning.
 
 The bed `check_shared` (`SharedConceptOracleTest`) is the regression test: it has a list that is
-empty after one that is not. We have not reported this to Oracle and know of no bug number; the
+empty after one that is not. A second one does not depend on a bed somebody wrote:
+`GeneratedListsOracleEngineTest` makes sixty rows from a seed (lists that are NULL, empty, of one
+element or several, with duplicates, NULL elements and text that is not ASCII), loads them into four
+shapes of table (plain, with a JSON column, with a nested table, with a VARRAY stored as a LOB), and
+asks each position on its own, the elements as rows, and sums and groups over them, comparing the
+answer with what the rows say. Run without the guard, it fails on the plain, the nested table and the
+LOB shape, with the element of the first row in every row, and passes on the table with the JSON
+column: the behaviour above, found without knowing where to look. The same test runs on DuckDB, where
+it passes, which is what keeps the expected answers honest. We have not reported this to Oracle and know of no bug number; the
 reproduction above is what to send.

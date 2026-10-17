@@ -27,9 +27,10 @@ validator accepts `unnest` only. It replaced the two ideas below:
 
 Where the plan said "not measured": Trino, Snowflake, Oracle, SQL Server, MariaDB and SQLite were
 run against the live beds with one shared contract (`UnnestContract`, `UnnestJsonContract`), and
-what they differ in is in the table of [Nested values](../NESTED.md#what-each-dialect-does). Still
-not measured: long lists, skewed values, wide structs, and the generated-data test across engines
-(seeded random rows, with and without a JSON column, which the Oracle fault depended on).
+what they differ in is in the table of [Nested values](../NESTED.md#what-each-dialect-does). The
+generated-data test (seeded random rows in tables of several shapes, with the answers computed from the
+rows) exists for Oracle and DuckDB, in `GeneratedListsContract`; the other dialects can extend it. Still
+not measured: long lists, skewed values, wide structs.
 
 Not built, from this plan: `unnest: false` on a table or column, a setting for the depth, and a
 materialized view as an entry that overrides a generated table (a view stays a table of the
