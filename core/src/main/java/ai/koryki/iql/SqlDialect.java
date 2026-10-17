@@ -341,13 +341,20 @@ public interface SqlDialect {
      * @param jsonFromEnd whether a JSON path can count from the end ({@code t.doc@-1})
      * @param lambdaOverJsonList whether {@code list_transform} and its kind take a list that is a
      *     JSON array declared in the catalog
+     * @param unnestPosition whether a list made into rows has the position of its elements, {@code
+     *     ordinal}: Oracle has none for the elements of a collection in a lateral join
+     * @param unnestCondition whether a condition on the rows of an outer {@code unnest} can be part
+     *     of its join, so that the parent without a passing element is kept: Trino, Snowflake,
+     *     Oracle and SQL Server cannot
      */
     record NestedSupport(
             String name,
             java.util.Set<CoreTypeFamily> selectable,
             java.util.Set<CoreTypeFamily> comparable,
             boolean jsonFromEnd,
-            boolean lambdaOverJsonList) {
+            boolean lambdaOverJsonList,
+            boolean unnestPosition,
+            boolean unnestCondition) {
 
         private static java.util.Set<CoreTypeFamily> all() {
             return java.util.EnumSet.of(
@@ -359,7 +366,7 @@ public interface SqlDialect {
 
         /** Everything, as DuckDB has it. */
         public static NestedSupport full(String name) {
-            return new NestedSupport(name, all(), all(), true, true);
+            return new NestedSupport(name, all(), all(), true, true, true, true);
         }
 
         /** An engine with JSON and no other nested value. */
@@ -369,6 +376,8 @@ public interface SqlDialect {
                     java.util.EnumSet.of(CoreTypeFamily.JSON),
                     java.util.EnumSet.of(CoreTypeFamily.JSON),
                     jsonFromEnd,
+                    true,
+                    true,
                     true);
         }
 
@@ -377,7 +386,14 @@ public interface SqlDialect {
             rest.remove(family);
             java.util.Set<CoreTypeFamily> compare = java.util.EnumSet.copyOf(comparable);
             compare.remove(family);
-            return new NestedSupport(name, rest, compare, jsonFromEnd, lambdaOverJsonList);
+            return new NestedSupport(
+                    name,
+                    rest,
+                    compare,
+                    jsonFromEnd,
+                    lambdaOverJsonList,
+                    unnestPosition,
+                    unnestCondition);
         }
 
         /**
@@ -387,15 +403,60 @@ public interface SqlDialect {
         public NestedSupport notComparable(CoreTypeFamily family) {
             java.util.Set<CoreTypeFamily> compare = java.util.EnumSet.copyOf(comparable);
             compare.remove(family);
-            return new NestedSupport(name, selectable, compare, jsonFromEnd, lambdaOverJsonList);
+            return new NestedSupport(
+                    name,
+                    selectable,
+                    compare,
+                    jsonFromEnd,
+                    lambdaOverJsonList,
+                    unnestPosition,
+                    unnestCondition);
         }
 
         public NestedSupport withoutJsonFromEnd() {
-            return new NestedSupport(name, selectable, comparable, false, lambdaOverJsonList);
+            return new NestedSupport(
+                    name,
+                    selectable,
+                    comparable,
+                    false,
+                    lambdaOverJsonList,
+                    unnestPosition,
+                    unnestCondition);
         }
 
         public NestedSupport withoutLambdaOverJsonList() {
-            return new NestedSupport(name, selectable, comparable, jsonFromEnd, false);
+            return new NestedSupport(
+                    name,
+                    selectable,
+                    comparable,
+                    jsonFromEnd,
+                    false,
+                    unnestPosition,
+                    unnestCondition);
+        }
+
+        /** The engine has no position for the elements of a list made into rows. */
+        public NestedSupport withoutUnnestPosition() {
+            return new NestedSupport(
+                    name,
+                    selectable,
+                    comparable,
+                    jsonFromEnd,
+                    lambdaOverJsonList,
+                    false,
+                    unnestCondition);
+        }
+
+        /** The join of an outer {@code unnest} takes no condition on the rows. */
+        public NestedSupport withoutUnnestCondition() {
+            return new NestedSupport(
+                    name,
+                    selectable,
+                    comparable,
+                    jsonFromEnd,
+                    lambdaOverJsonList,
+                    unnestPosition,
+                    false);
         }
     }
 
@@ -673,6 +734,44 @@ public interface SqlDialect {
                                     + type.portable()
                                     + " inside JSON");
         };
+    }
+
+    /**
+     * A list made into rows, as a join, from the keyword on: one row for each element, named {@code
+     * alias}, with the columns {@link #unnestColumn} reads. Refused by default, like {@link
+     * #selection}.
+     *
+     * @param outer whether the row it comes from is kept when the list has no element
+     * @param list the SQL of the list, which may name the sources to the left (the join is lateral)
+     * @param element the type of an element: a struct whose fields are the columns, or the one
+     *     column {@code value}
+     * @param alias the alias of the rows, as it is written in the SQL
+     * @param ordinal whether the position in the list is wanted: it costs on some engines, and is
+     *     asked for only where the query reads it
+     * @param condition a condition on the rows that belongs to the join, which is the one of an
+     *     outer join (it must not drop the parent), or null
+     */
+    default String unnestJoin(
+            boolean outer,
+            String list,
+            TypeDescriptor element,
+            String alias,
+            boolean ordinal,
+            String condition) {
+        throw new KorykiaiException(
+                getClass().getSimpleName() + " cannot make a list into rows yet");
+    }
+
+    /**
+     * A column of the rows of a list made into rows: a field of the element, {@code value} for an
+     * element that is no struct, or {@code ordinal}.
+     *
+     * @param alias the alias of the rows, as it is written in the SQL
+     * @param column the column as the rows spell it
+     */
+    default String unnestColumn(String alias, TypeDescriptor element, String column) {
+        throw new KorykiaiException(
+                getClass().getSimpleName() + " cannot make a list into rows yet");
     }
 
     /**

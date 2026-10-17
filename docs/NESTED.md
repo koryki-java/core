@@ -89,11 +89,94 @@ postfix one: `it@price`.
 * An expression of constants in a query with an aggregate is a key of the GROUP BY on every dialect;
   Oracle refuses a subquery there, so `list_size(list(1, 2, 3))` is written in a query of its own.
 
-## Flatten views: one row per element
+## Unnest: one row per element
 
-A list cannot be grouped by what is inside it: "revenue by sku" needs one row per element. KQL has no
-UNNEST; the answer is a generated view per list column. The view is an ordinary table of the catalog,
-so it gets an entity, labels, a relation back to its parent, and everything built on them.
+A list cannot be grouped by what is inside it: "revenue by sku" needs one row per element. `unnest`
+makes a list into rows, and is written where a source is, after the source the list comes from:
+
+```
+FIND check_complex t, t unnest(t.items) i
+FETCH i.sku, sum(i.qty * i.price) revenue
+```
+
+Each element is a row of the alias `i`. The columns of the alias are the fields of the element,
+`value` for an element that is no struct (`FIND check_complex t, t unnest(t.tags) g FETCH g.value`),
+and `ordinal`, the position in the list from 1. Nothing is added to the catalog: the rows are typed
+from the list, when the query is checked, so every list works the same.
+
+- **The list is an expression.** A column, `t.items`; a list in a struct, `t.address@phones`; what
+  a lambda made, `unnest(list_filter(t.items, x -> x@qty > 1)) i`; or a list inside the rows of an
+  earlier unnest, a field of its alias: `t unnest(t.items) i, i unnest(i.opts) o`.
+- **An empty or NULL list has no rows,** and the parent is not in the answer. The outer form keeps
+  it, with NULLs for the element: `t + unnest(t.items) i`, as every `+` link does.
+- **The model's words** name the fields: under a model that calls `sku` `artikel`, `i.artikel` is
+  the field, and so is `i.sku`. Headers and labels take the member's label
+  ([Members and notions](MEMBERS_AND_NOTIONS.md)).
+- **A filter on the rows** of an inner unnest keeps the matching elements, as it does on any source.
+  On an outer one the condition belongs to the join, so that the parent without a matching element
+  is kept; where an engine cannot put it there it is refused (see the table).
+- **`count(i)` is refused:** the rows have no key to count. Count a field of the element,
+  `count(i.sku)`.
+- **`ordinal` is asked of the database only where the query reads it,** on DuckDB, PostgreSQL and
+  Trino. On DuckDB `WITH ORDINALITY` made the same query about twenty times slower on two million
+  rows (1,442 against 73 ms, see [the plan](plans/unnest.md)); PostgreSQL showed no difference, and
+  Trino was not measured. The rows are otherwise the same. MariaDB always declares `FOR ORDINALITY`, and the other engines compute the position from
+  what they have (see the table).
+
+What `unnest` refuses, with a position and a message:
+
+| use | message |
+|---|---|
+| another function as a source, `t explode(t.items) i` | only unnest(list) makes a list into rows |
+| anything but one list as its argument: two, a lambda, a condition, a bare alias | unnest takes one list |
+| `FIND unnest(...) i` | write it after the source the list comes from |
+| inside `EXISTS` | unnest cannot start an EXISTS |
+| with `VIA` or columns | a list made into rows is joined to the source it comes from |
+| `unnest(t.nr)`, no list | no overload accepts the argument types |
+| JSON the catalog does not declare as an array | the catalog says where the array is, as in `.a.b[]` |
+| in an expression, `FETCH unnest(t.items)` | it makes a list into rows, so it is written as a source |
+
+### What each dialect does
+
+The SQL is a lateral join of the list, so the list may be a column of a source to its left:
+
+| | inner | outer | position | a condition on the rows of an outer unnest |
+|---|---|---|---|---|
+| DuckDB | `JOIN UNNEST(l) AS i(item) ON TRUE` | `LEFT OUTER JOIN` | `WITH ORDINALITY` | in the ON |
+| PostgreSQL | `JOIN LATERAL unnest(l) AS i(f1, …)` | `LEFT OUTER JOIN LATERAL` | `WITH ORDINALITY` | in the ON |
+| Trino | `CROSS JOIN UNNEST(l) AS i(f1, …)` | `LEFT OUTER JOIN … ON TRUE` | `WITH ORDINALITY` | refused |
+| Snowflake | `, LATERAL FLATTEN(INPUT => l) i` | `OUTER => TRUE` | `INDEX + 1` | refused |
+| Oracle | `CROSS APPLY TABLE(l) i` | `OUTER APPLY` | refused | refused |
+| MariaDB | `JOIN JSON_TABLE(l, '$[*]' COLUMNS (…)) i ON TRUE` | `LEFT OUTER JOIN` | `FOR ORDINALITY` | in the ON |
+| SQLite | `JOIN json_each(l) i ON json_type(l) = 'array'` | `LEFT OUTER JOIN` | `key + 1` | in the ON |
+| SQL Server | `CROSS APPLY OPENJSON(…) i` | `OUTER APPLY` | `[key] + 1` | refused |
+
+Measured, and kept rather than hidden:
+
+- **Trino** accepts `CROSS JOIN UNNEST` and `LEFT JOIN UNNEST … ON TRUE` only, and answers a lateral
+  subquery over `UNNEST` with "correlated subquery is not supported" (Trino 481); a query that
+  fails that way leaves the connection unusable for the next statement, so it is refused before.
+- **Snowflake** `FLATTEN` leaves a NULL element out: `['x', NULL, 'z']` has two rows, and the
+  position of `'z'` is 3.
+- **Oracle** has no position for the elements of a collection in a lateral join: `ROWNUM` numbers
+  the rows of the whole statement, and `ROW_NUMBER()` needs the key of the parent. `ordinal` is
+  refused. A list of objects cannot be filtered by a lambda to be unnested (the generic collection
+  types hold text, numbers and dates), as before.
+- **SQLite, MariaDB and SQL Server** have no lists. They unnest an array inside a JSON column that
+  the catalog declares (`.a.b[]: INTEGER`, [see below](#declaring-what-is-in-a-json-column)):
+  `unnest(t.doc@a@b) b`. The elements are scalars, or objects, whose members are the columns of the rows (read as scalars, so a member that is itself an object or list is not meant for it); a row whose
+  document has no array there has no rows, and JSON that is not declared as an array is refused.
+  Where `unnest` is given a JSON array on a dialect that has lists, the list is the converted one,
+  and the rows are those of any other list.
+
+## Flatten views: a table in the database
+
+`unnest` needs no preparation. A view that flattens a list stays the answer where a table is
+wanted: heavy use of the same rows (a view can be materialized and indexed, an `unnest` is read
+again by every query), a name of its own, or an entity with labels, units and a relation to its
+parent that the semantic layer and the charts work with. The view is an ordinary table of the catalog.
+The JSON engines read the document again for every query, and nothing was measured on long lists
+there.
 
 `FlattenViews` (module `tools`) reads a `db.json`, and writes the DDL and the catalog entries:
 
@@ -118,7 +201,7 @@ declares (`.a.b[]: INTEGER`) is flattened the same way, named by its path:
 ```
 
 gives `check_complex_doc_a_b` (`json_each`, `JSON_TABLE` or `CROSS APPLY OPENJSON`) with the relation
-`doc_a_b_of_check_complex`; the elements are scalars or objects whose members are scalars. A row
+`doc_a_b_of_check_complex`; the elements are scalars or objects, whose scalar members are columns. A row
 whose document has no array there has no elements.
 
 The generator needs a table key. It handles lists of structs and of scalars for DuckDB, PostgreSQL,
@@ -134,16 +217,16 @@ This table is generated from those declarations.
 
 <!-- nested-support:begin (generated: ./gradlew :tools:nestedMatrix) -->
 
-| | list | struct | map | JSON | JSON from the end | lambda over a JSON array | compare a list |
-|---|---|---|---|---|---|---|---|
-| DuckDB | yes | yes | yes | yes | yes | yes | yes |
-| Oracle | yes | yes | no | yes | yes | no | no |
-| Snowflake | yes | yes | yes | yes | no | yes | yes |
-| SQL Server | no | no | no | yes | no | no list | no list |
-| PostgreSQL | yes | yes | no | yes | yes | yes | yes |
-| MariaDB | no | no | no | yes | yes | no list | no list |
-| SQLite | no | no | no | yes | yes | no list | no list |
-| Trino | yes | yes | yes | yes | no | yes | yes |
+| | list | struct | map | JSON | JSON from the end | lambda over a JSON array | compare a list | unnest position | unnest condition |
+|---|---|---|---|---|---|---|---|---|---|
+| DuckDB | yes | yes | yes | yes | yes | yes | yes | yes | yes |
+| Oracle | yes | yes | no | yes | yes | no | no | no | no |
+| Snowflake | yes | yes | yes | yes | no | yes | yes | yes | no |
+| SQL Server | no | no | no | yes | no | no list | no list | yes | no |
+| PostgreSQL | yes | yes | no | yes | yes | yes | yes | yes | yes |
+| MariaDB | no | no | no | yes | yes | no list | no list | yes | yes |
+| SQLite | no | no | no | yes | yes | no list | no list | yes | yes |
+| Trino | yes | yes | yes | yes | no | yes | yes | yes | no |
 
 <!-- nested-support:end -->
 
@@ -324,5 +407,13 @@ What was measured:
   one. It does not change the meaning.
 
 The bed `check_shared` (`SharedConceptOracleTest`) is the regression test: it has a list that is
-empty after one that is not. We have not reported this to Oracle and know of no bug number; the
+empty after one that is not. A second one does not depend on a bed somebody wrote:
+`GeneratedListsOracleEngineTest` makes sixty rows from a seed (lists that are NULL, empty, of one
+element or several, with duplicates, NULL elements and text that is not ASCII), loads them into four
+shapes of table (plain, with a JSON column, with a nested table, with a VARRAY stored as a LOB), and
+asks each position on its own, the elements as rows, and sums and groups over them, comparing the
+answer with what the rows say. Run without the guard, it fails on the plain, the nested table and the
+LOB shape, with the element of the first row in every row, and passes on the table with the JSON
+column: the behaviour above, found without knowing where to look. The same test runs on DuckDB, where
+it passes, which is what keeps the expected answers honest. We have not reported this to Oracle and know of no bug number; the
 reproduction above is what to send.

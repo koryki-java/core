@@ -300,7 +300,7 @@ public class MssqlDialect implements SqlDialect {
 
     @Override
     public NestedSupport nestedSupport() {
-        return NestedSupport.jsonOnly("SQL Server", false);
+        return NestedSupport.jsonOnly("SQL Server", false).withoutUnnestCondition();
     }
 
     @Override
@@ -338,8 +338,80 @@ public class MssqlDialect implements SqlDialect {
         return FUNCTION_RENDERER;
     }
 
+    /** The type a scalar read out of JSON is cast to. */
+    private static String jsonCastType(TypeDescriptor type) {
+        var family = type.getTypeFamily();
+        if (CoreTypeFamily.INTEGER.equals(family)) {
+            return "INT";
+        } else if (CoreTypeFamily.FLOAT.equals(family)) {
+            return "FLOAT";
+        } else if (CoreTypeFamily.DECIMAL.equals(family)) {
+            return "DECIMAL(38, 10)";
+        } else if (CoreTypeFamily.BOOLEAN.equals(family)) {
+            return "BIT";
+        } else if (CoreTypeFamily.TEXT.equals(family)) {
+            return "NVARCHAR(4000)";
+        }
+        throw new KorykiaiException(
+                "a JSON member of " + type.portable() + " is not read as a column");
+    }
+
+    /**
+     * {@code CROSS APPLY OPENJSON(...) i}, or {@code OUTER APPLY} to keep the parent without an
+     * array: a JSON array made into rows. {@code OPENJSON} reads an object as its members, so the
+     * text is given to it only where it is an array. An {@code APPLY} takes no condition, so one on
+     * the rows of an outer join is refused.
+     */
+    @Override
+    public String unnestJoin(
+            boolean outer,
+            String list,
+            TypeDescriptor element,
+            String alias,
+            boolean ordinal,
+            String condition) {
+        if (outer && condition != null) {
+            throw new KorykiaiException(
+                    "SQL Server cannot filter the rows of an outer unnest ("
+                            + alias
+                            + "): OUTER APPLY takes no condition. Filter after the join, or use an"
+                            + " inner join");
+        }
+        return (outer ? "OUTER" : "CROSS")
+                + " APPLY OPENJSON(CASE WHEN LEFT("
+                + list
+                + ", 1) = '[' THEN "
+                + list
+                + " END) "
+                + alias;
+    }
+
+    /**
+     * A column of the rows of {@code OPENJSON}: a member of an object element read with {@code
+     * JSON_VALUE} and cast, the element itself cast for any other, and {@code [key] + 1} for the
+     * position, since {@code [key]} is the index from 0, as text.
+     */
+    @Override
+    public String unnestColumn(String alias, TypeDescriptor element, String column) {
+        if (ai.koryki.iql.typing.UnnestRows.ORDINAL.equals(column)) {
+            return "(CAST(" + alias + ".[key] AS INT) + 1)";
+        }
+        if (CoreTypeFamily.STRUCT.equals(element.getTypeFamily())) {
+            return "CAST(JSON_VALUE("
+                    + alias
+                    + ".value, "
+                    + NestedSql.literal(INSTANCE, NestedSql.jsonMemberPath(column))
+                    + ") AS "
+                    + jsonCastType(element.field(column).orElseThrow())
+                    + ")";
+        }
+        return "CAST(" + alias + ".value AS " + jsonCastType(element) + ")";
+    }
+
     private static FunctionRenderer buildFunctionRenderer() {
         FunctionRegistry registry = StandardFunctions.registry();
+        // a JSON array the catalog declares is made into rows by OPENJSON
+        registry.register(ai.koryki.iql.functions.catalog.ListFunctions.supported("unnest"));
         // to_text is the rolled-out, tested function: keep its dialect cast-type override.
         registry.override("quarter", "DATEPART(quarter, {0})");
         registry.override("week", "DATEPART(iso_week, {0})");

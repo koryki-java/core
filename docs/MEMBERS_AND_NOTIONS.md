@@ -82,6 +82,9 @@ catalog declares has its fields named the same way.
   schema before the query is validated and rendered, so every dialect sees the keys. The match is
   exact, then without regard to case. The step keeps the name as it was written
   (`Selector.written()`) and says the entry it goes to (`Selector.key()`).
+- **It names the fields of an `unnest` row too.** The alias of `unnest(t.items) i` has the fields of the
+  element as columns, and `i.artikel` under a model that calls `sku` `artikel` is `i.sku`; headers take the
+  label of the member.
 - **It works through blocks and `EXISTS`.** The names of a field of a block are those of the column the
   block projects; an output that is computed (a function, a selection) has none.
 - **The key still works** where no other field has taken it as a name: `t.address@street` is accepted

@@ -131,7 +131,7 @@ public class SelectorValidator implements Visitor, Collector<List<Violation>> {
             if (source == null) {
                 return PartNames.PLAIN;
             }
-            return new SelectorLevels(resolver, visibility::getBlock)
+            return new SelectorLevels(resolver, visibility::getBlock, visibility::rowsOf)
                     .of(source, field.getName())
                     .map(MemberNames.Level::partNames)
                     .orElse(PartNames.PLAIN);

@@ -240,4 +240,16 @@ public final class NestedSql {
         List<String> paths = jsonPaths(steps, root, end, quoting, dialect);
         return paths.get(paths.size() - 1);
     }
+
+    /**
+     * The JSON path of one member of an object, {@code $.name} for a plain name and {@code
+     * $."name"} for any other, with the backslash and the quote escaped; the path is text, still to
+     * be written as a literal with {@link #literal}.
+     */
+    public static String jsonMemberPath(String name) {
+        if (JSON_NAME.matcher(name).matches()) {
+            return "$." + name;
+        }
+        return "$.\"" + name.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+    }
 }

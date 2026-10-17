@@ -23,9 +23,12 @@ import ai.koryki.iql.Collector;
 import ai.koryki.iql.SqlDialect;
 import ai.koryki.iql.Visitor;
 import ai.koryki.iql.query.Expression;
+import ai.koryki.iql.query.Field;
 import ai.koryki.iql.query.Function;
+import ai.koryki.iql.query.Join;
 import ai.koryki.iql.query.Select;
 import ai.koryki.iql.query.Selector;
+import ai.koryki.iql.query.Source;
 import ai.koryki.iql.typing.ExpressionTypeResolver;
 import ai.koryki.iql.typing.SelectorException;
 import ai.koryki.iql.typing.Selectors;
@@ -43,6 +46,10 @@ import org.antlr.v4.runtime.RuleContext;
  * where it cannot be built. The dialects keep their own refusals at render time as the backstop;
  * this makes the same refusal a violation of the query, with a position and before any SQL is
  * built.
+ *
+ * <p>The same for a list made into rows: the position of its elements where the engine has none,
+ * and a condition on the rows of an outer {@code unnest}, which belongs to its join and which some
+ * engines do not take.
  *
  * <p>A chain that does not fit its types is {@link SelectorValidator}'s to report, not this one's.
  */
@@ -78,6 +85,55 @@ public class NestedSupportValidator implements Visitor, Collector<List<Violation
                 ? null
                 : new ExpressionTypeResolver(
                         context.resolver(), scopes.peek(), context.functions());
+    }
+
+    /**
+     * An outer {@code unnest} with a condition on its rows, or one below an outer join: the parent
+     * is kept when no element passes, so the condition is the join's, and not every engine takes
+     * one there.
+     */
+    @Override
+    public boolean visit(Deque<Object> deque, Join join) {
+        Source source = join.getSource();
+        if (support.unnestCondition()
+                || source == null
+                || source.getCall() == null
+                || source.getFilter() == null) {
+            return true;
+        }
+        boolean outer =
+                join.isOptional()
+                        || deque.stream().anyMatch(o -> o instanceof Join j && j.isOptional());
+        if (outer) {
+            report(
+                    source,
+                    support.name()
+                            + " cannot filter the rows of an outer unnest ("
+                            + source.getAlias()
+                            + "): its outer join takes no condition. Filter after the join, or use"
+                            + " an inner join");
+        }
+        return true;
+    }
+
+    /** The position of the elements of a list made into rows, where the engine has none. */
+    @Override
+    public boolean visit(Deque<Object> deque, Field field) {
+        if (support.unnestPosition()
+                || scopes.isEmpty()
+                || !ai.koryki.iql.typing.UnnestRows.ORDINAL.equalsIgnoreCase(field.getName())) {
+            return true;
+        }
+        Source source = scopes.peek().getSource(field.getAlias());
+        if (source != null && source.getCall() != null) {
+            report(
+                    field,
+                    support.name()
+                            + " has no position for the elements of a collection in a lateral join:"
+                            + " 'ordinal' is not available on "
+                            + field.getAlias());
+        }
+        return true;
     }
 
     @Override
@@ -228,13 +284,9 @@ public class NestedSupportValidator implements Visitor, Collector<List<Violation
         }
     }
 
-    private void report(Expression expression, String message) {
+    private void report(Object node, String message) {
         violations.add(
-                new Violation(
-                        Violation.UNSUPPORTED,
-                        expression,
-                        Range.of(iqlToContext, expression),
-                        message));
+                new Violation(Violation.UNSUPPORTED, node, Range.of(iqlToContext, node), message));
     }
 
     @Override

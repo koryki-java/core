@@ -54,8 +54,13 @@ join:
 |    LEFT_BRACKET left+=ID EQUALS right+=ID (COMMA left+=ID EQUALS right+=ID)* RIGHT_BRACKET
 ;
 
+// A source is an entity, or a list made into rows: `o unnest(o.items) i`. The second form is any
+// function call to the grammar; only `unnest`, with one argument that is a list, is a source, and
+// the mapper refuses every other name and a window. The argument is an ordinary expression, so a
+// column, a nested list (`i@opts`) or what a lambda made all parse.
 source
  : name=ID alias=ID
+| call=function alias=ID
 ;
 
 filterClause

@@ -87,7 +87,8 @@ public class InferJoinColumnsToBlockRule {
         String msg = left.getName() + (left.getAlias() != null ? " " + left.getAlias() : "");
         String crit = join.getCrit();
         Source right = join.getSource();
-        if (right != null) {
+        // A list made into rows is joined by what its call is given: no columns to add to a block.
+        if (right != null && right.getCall() == null && left.getCall() == null) {
             // boolean invers = join.isInvers();
             // An explicit join carries no criterion, and its direction is fixed by what the
             // author wrote -- there is nothing to invert.

@@ -172,6 +172,7 @@ What is specific to postgresql: the rendering column is filled in only where thi
 | translate | string | scalar | standard |  |  |
 | trim | string | scalar | standard |  |  |
 | trunc | math | scalar | overridden | `trunc(value)`<br>`trunc(CAST(value AS numeric), scale)` |  |
+| unnest | list | source | overridden | `unnest(list)` |  |
 | upper | string | scalar | standard |  |  |
 | week | datetime | scalar | overridden | `EXTRACT(WEEK FROM value)` |  |
 | week_begin | datetime | scalar | standard |  |  |

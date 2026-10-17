@@ -305,7 +305,9 @@ concept, so that the validators and the renderers speak physical keys only.
 The base of the selector may be a field of a table, of a block (the rule follows it to the column the
 block projects) or of a source inside an `EXISTS`. A name the model does not know stays as written, and so
 does any other base, a function result or a computed output: a name the language does not translate is a
-physical key, which is what a query wrote before models had member names. See
+physical key, which is what a query wrote before models had member names. The same holds for the
+fields of the alias of an `unnest` (`i.artikel` for `i.sku`): the rows are typed from the list, and the
+rule translates the word with the concept of the element. See
 [Members and notions](MEMBERS_AND_NOTIONS.md).
 
 ---

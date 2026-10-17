@@ -563,6 +563,41 @@ public class DuckdbBaseDialect implements SqlDialect {
     }
 
     /**
+     * {@code UNNEST(list) AS i(item)}: DuckDB sees the left sources from a join, so the join is
+     * lateral without saying so. {@code WITH ORDINALITY} only when the position is read, since it
+     * costs a great deal on a long list.
+     */
+    @Override
+    public String unnestJoin(
+            boolean outer,
+            String list,
+            TypeDescriptor element,
+            String alias,
+            boolean ordinal,
+            String condition) {
+        return (outer ? "LEFT OUTER" : "INNER")
+                + " JOIN UNNEST("
+                + list
+                + ")"
+                + (ordinal ? " WITH ORDINALITY" : "")
+                + " AS "
+                + alias
+                + (ordinal ? "(item, ordinal)" : "(item)")
+                + " ON "
+                + (condition == null ? "TRUE" : condition);
+    }
+
+    @Override
+    public String unnestColumn(String alias, TypeDescriptor element, String column) {
+        if (ai.koryki.iql.typing.UnnestRows.ORDINAL.equals(column)) {
+            return alias + ".ordinal";
+        }
+        return CoreTypeFamily.STRUCT.equals(element.getTypeFamily())
+                ? alias + ".item[" + Literals.quote(column) + "]"
+                : alias + ".item";
+    }
+
+    /**
      * {@code x -> body}, or {@code (x, i) -> body}; DuckDB's arrow, which also reads JSON paths.
      */
     @Override

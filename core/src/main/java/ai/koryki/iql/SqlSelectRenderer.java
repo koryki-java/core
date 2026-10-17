@@ -96,7 +96,11 @@ public class SqlSelectRenderer {
         return functionRenderer;
     }
 
+    /** The aliases of lists made into rows whose position the select being rendered reads. */
+    private java.util.Set<String> ordinalAliases = java.util.Set.of();
+
     protected String toSql(Select select, int indent) {
+        ordinalAliases = ai.koryki.iql.typing.UnnestColumnUse.ordinalAliases(select);
         StringBuilder b = new StringBuilder();
 
         b.append(selectClause(select, indent));
@@ -169,6 +173,12 @@ public class SqlSelectRenderer {
     }
 
     protected String toSql(Source source, int indent) {
+        if (source.getCall() != null) {
+            throw new KorykiaiException(
+                    "a list made into rows, "
+                            + source.getCall().getFunc()
+                            + ", is not rendered yet");
+        }
         StringBuilder b = new StringBuilder();
 
         b.append(qualified(source, normal(toSql(source))));
@@ -466,6 +476,9 @@ public class SqlSelectRenderer {
 
         b.append(indent(indent));
         if (join.getSource() != null) {
+            if (join.getSource().getCall() != null) {
+                return b.append(unnestJoin(join, underOptional, indent)).toString();
+            }
             if (join.isOptional()) {
                 b.append("LEFT OUTER ");
             } else {
@@ -1216,9 +1229,58 @@ public class SqlSelectRenderer {
             throw new KorykiaiException(
                     "unknown source alias '" + field.getAlias() + "' for field " + field.getName());
         }
+        if (source.getCall() != null) {
+            return unnestColumn(source, field);
+        }
 
         b.append(normal(toSql(source, field)));
         return b.toString();
+    }
+
+    private ai.koryki.iql.typing.RowType rowsOf(Source source) {
+        ai.koryki.iql.typing.RowType rows = visibilityContext.rowsOf(source);
+        if (rows == null) {
+            throw new KorykiaiException(
+                    "the rows of '" + source.getAlias() + "' are not known: its list has no type");
+        }
+        return rows;
+    }
+
+    /**
+     * The join that makes the list of a source into rows, as the dialect writes it. The list is
+     * joined to the row it comes from by the list itself, which the database reads from the sources
+     * to its left, so there is nothing to compare. The dialect takes the condition of an outer join
+     * in its own way, since not every engine allows it in the ON.
+     */
+    private String unnestJoin(Join join, boolean underOptional, int indent) {
+        Source source = join.getSource();
+        ai.koryki.iql.typing.RowType rows = rowsOf(source);
+        String list = toSql(source.getCall().getArguments().get(0), indent);
+        boolean conditional = (join.isOptional() || underOptional) && source.getFilter() != null;
+        String condition = conditional ? toSql(source, source.getFilter(), indent, false) : null;
+        return dialect.unnestJoin(
+                        join.isOptional(),
+                        list,
+                        rows.element(),
+                        normal(source.getAlias()),
+                        ordinalAliases.contains(source.getAlias()),
+                        condition)
+                + SqlRenderer.NL;
+    }
+
+    /** A field of the rows of a list made into rows, as the dialect reads it. */
+    private String unnestColumn(Source source, Field field) {
+        ai.koryki.iql.typing.RowType rows = rowsOf(source);
+        String column = ai.koryki.iql.typing.UnnestRows.column(rows.element(), field.getName());
+        if (column == null) {
+            throw new KorykiaiException(
+                    "unknown column '"
+                            + field.getName()
+                            + "' on the rows of '"
+                            + source.getAlias()
+                            + "'");
+        }
+        return dialect.unnestColumn(normal(source.getAlias()), rows.element(), column);
     }
 
     // One resolver per renderer: fixed (resolver, visibility, functions) scope, with its own

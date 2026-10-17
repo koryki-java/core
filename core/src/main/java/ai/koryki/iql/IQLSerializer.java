@@ -164,7 +164,11 @@ public class IQLSerializer {
 
     private String toString(Source table, int indent, boolean inline) {
         StringBuilder b = new StringBuilder();
-        b.append(indent(inline ? 1 : indent) + table.getName());
+        b.append(
+                indent(inline ? 1 : indent)
+                        + (table.getCall() != null
+                                ? toString(table.getCall(), indent)
+                                : table.getName()));
         if (table.getAlias() != null) {
             b.append(" " + table.getAlias());
         }
@@ -639,6 +643,10 @@ public class IQLSerializer {
     private static String critOrColumns(String crit, JoinColumns columns) {
         if (crit != null) {
             return crit;
+        }
+        if (columns == null) {
+            // a list made into rows: what joins it is what its call is given
+            return "";
         }
         StringBuilder b = new StringBuilder("[");
         for (int i = 0; i < columns.left().size(); i++) {

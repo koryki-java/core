@@ -13,7 +13,8 @@ or what another list function or a lambda made. They ask the list about itself (
 `list_contains`, `list_sum`, `list_min`, `list_max`, `list_avg`), shape it (`list_sort`,
 `list_distinct`, `list_concat`) or make one (`list(a, b, ...)`; `list_agg` is an aggregate and is on
 the [Aggregate](aggregate.md) page). The ones that take a function per element, `list_transform`
-and the like, are on the [Lambda](lambda.md) page.
+and the like, are on the [Lambda](lambda.md) page. `unnest` is used as a source, not in an expression: it
+makes a row of each element (`FIND check_complex t, t unnest(t.items) i FETCH i.sku`).
 
     list_size(t.tags)                     →  3
     list_contains(t.tags, 'red')          →  true      -- or: 'red' IN t.tags
@@ -177,4 +178,15 @@ Operands: any type.
 ### Generated SQL
 
 Unsupported: **mariadb**, **mssql**, **sqlite**
+
+
+## unnest
+
+`unnest(list: list | JSON array)` → argument-dependent
+
+The elements of the list as rows, one for each, written as a source: FIND orders o, o unnest(o.items) i. The fields of an element are the columns of the alias, and an empty or NULL list has no rows (+ keeps the row it comes from).
+
+| Argument | Type | Description |
+|---|---|---|
+| list | list \| JSON array | the list made into rows: a list, or a JSON array the catalog declares |
 

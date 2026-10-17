@@ -169,6 +169,26 @@ public class ExpressionTypeResolver {
 
     private TypeDescriptor resolveField(Field field) {
         Source s = visibility.getSource(field.getAlias());
+        if (s.getCall() != null) {
+            // a field of a list made into rows is a field of its element
+            RowType rows = visibility.rowsOf(s);
+            if (rows == null) {
+                throw new KorykiaiException(
+                        "the rows of '"
+                                + field.getAlias()
+                                + "' are not known: its list has no type");
+            }
+            TypeDescriptor type = UnnestRows.type(rows.element(), field.getName());
+            if (type == null) {
+                throw new KorykiaiException(
+                        "unknown column '"
+                                + field.getName()
+                                + "' on the rows of '"
+                                + field.getAlias()
+                                + "'");
+            }
+            return type;
+        }
         Block block = visibility.getBlock(s.getName());
 
         if (block != null) {

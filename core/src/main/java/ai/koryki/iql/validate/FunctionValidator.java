@@ -105,7 +105,36 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         checkLogicalArguments(function);
         checkProjectionOnly(deque, function);
         checkWindowOnly(function);
+        checkSourceOnly(deque, function);
         return true;
+    }
+
+    /**
+     * A {@link FunctionKind#SOURCE} function, {@code unnest}, makes rows: it is the call of a
+     * source, {@code o unnest(o.items) i}, and means nothing in an expression, where the same name
+     * would otherwise be passed to the database as its own set-returning function and multiply the
+     * rows of a query that was never told so.
+     */
+    private void checkSourceOnly(Deque<Object> deque, Function function) {
+        if (functions == null || deque.peek() instanceof Source) {
+            return;
+        }
+        for (FunctionDefinition d : functions.overloads(function.getFunc())) {
+            if (d.getKind() == FunctionKind.SOURCE) {
+                violations.add(
+                        new Violation(
+                                "function",
+                                function,
+                                Range.of(iqlToContext, function),
+                                "'"
+                                        + function.getFunc()
+                                        + "' makes a list into rows, so it is written as a source,"
+                                        + " not used in an expression: FIND orders o, o "
+                                        + function.getFunc()
+                                        + "(o.items) i"));
+            }
+            return;
+        }
     }
 
     /** Window functions that are meaningless without an ordering inside the frame. */

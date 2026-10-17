@@ -167,6 +167,7 @@ What is specific to trino: the rendering column is filled in only where this dia
 | translate | string | scalar | standard |  |  |
 | trim | string | scalar | standard |  |  |
 | trunc | math | scalar | overridden | `truncate(value)`<br>`truncate(CAST(value AS DECIMAL(38,10)), scale)` |  |
+| unnest | list | source | overridden | `unnest(list)` |  |
 | upper | string | scalar | standard |  |  |
 | week | datetime | scalar | standard |  |  |
 | week_begin | datetime | scalar | standard |  |  |

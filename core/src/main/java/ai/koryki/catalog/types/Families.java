@@ -68,6 +68,13 @@ public final class Families {
                             CoreTypeFamily.JSON));
 
     /**
+     * What a list can be made into rows from: a list, or JSON, whose array the catalog may declare.
+     * Whether a JSON value is such an array is for the type to say ({@code shape}), not the family.
+     */
+    public static final TypeFamily LISTABLE =
+            new FamilyGroup("LISTABLE", Set.of(CoreTypeFamily.ARRAY, CoreTypeFamily.JSON));
+
+    /**
      * A date/time value or text — the source domain of the temporal casts (to_date, to_time,
      * to_timestamp).
      */

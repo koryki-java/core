@@ -180,6 +180,11 @@ public class SchemaValidator implements Collector<List<Violation>> {
     @Override
     public boolean visit(Deque<Object> deque, Source source) {
 
+        if (source.getCall() != null) {
+            // a list made into rows is no table of the catalog: nothing to look up by name, and the
+            // call is checked by the function validator
+            return true;
+        }
         if (recursiveAliasToSourceMap != null
                 && recursiveAliasToSourceMap.containsKey(source.getName())) {
             // recursive source in CTE
@@ -212,6 +217,8 @@ public class SchemaValidator implements Collector<List<Violation>> {
                                     Range.of(iqlToContext, field),
                                     "unknown alias " + field.getAlias())
                             .suggesting(Suggest.closest(field.getAlias(), aliases())));
+        } else if (selectTable.getCall() != null) {
+            checkRowsColumn(field, selectTable);
         } else {
             Select select = blockIdToSelectMap.get(selectTable.getName());
             if (select != null) {
@@ -286,6 +293,36 @@ public class SchemaValidator implements Collector<List<Violation>> {
                                 Range.of(iqlToContext, field),
                                 "unknown column '" + field.getName() + "' on " + entity.getName())
                         .suggesting(columnSuggestions(entity, field.getName())));
+    }
+
+    /**
+     * A field of a list made into rows is a column of its rows: a field of the element, {@code
+     * value} for an element that is no struct, or {@code ordinal}. A list whose type is not known
+     * has no rows to check against; the function validator has said why.
+     */
+    private void checkRowsColumn(Field field, Source source) {
+        ai.koryki.iql.typing.RowType rows = rootVisibility.rowsOf(source);
+        if (rows == null
+                || ai.koryki.iql.typing.UnnestRows.type(rows.element(), field.getName()) != null) {
+            return;
+        }
+        List<String> columns = ai.koryki.iql.typing.UnnestRows.columns(rows.element());
+        List<String> words =
+                rows.level() == null
+                        ? columns
+                        : columns.stream().map(rows.level()::written).toList();
+        violations.add(
+                new Violation(
+                                Violation.UNKNOWN_COLUMN,
+                                field,
+                                Range.of(iqlToContext, field),
+                                "unknown column '"
+                                        + field.getName()
+                                        + "' on the rows of '"
+                                        + field.getAlias()
+                                        + "'; its columns are "
+                                        + String.join(", ", words))
+                        .suggesting(Suggest.closest(field.getName(), words)));
     }
 
     private static boolean match(Field column, Out o) {

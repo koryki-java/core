@@ -18,8 +18,10 @@ package ai.koryki.iql;
 
 import ai.koryki.iql.query.Block;
 import ai.koryki.iql.query.Source;
+import ai.koryki.iql.typing.RowType;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -29,6 +31,13 @@ public class IQLVisibilityContext {
     private final Map<String, Source> blockIdToLeadingSourceMap;
     private final Map<String, Source> aliasToSourceMap;
     private final Map<Object, Map<String, Source>> childToAliasesMap;
+
+    /**
+     * What the rows of each list made into rows are, found when the query is analysed. One map for
+     * the root and every scope below it, by the identity of the source: it is a result of the
+     * analysis of this query, and the beans of the query do not carry it.
+     */
+    private final Map<Source, RowType> rows;
 
     public IQLVisibilityContext(
             Map<String, Block> blockIdToBlockMap,
@@ -48,10 +57,36 @@ public class IQLVisibilityContext {
             Map<Object, Map<String, Source>> childToAliasesMap,
             Map<String, Source> aliasToSourceMap) {
 
+        this(
+                blockIdToBlockMap,
+                blockIdToLeadingSourceMap,
+                childToAliasesMap,
+                aliasToSourceMap,
+                new IdentityHashMap<>());
+    }
+
+    private IQLVisibilityContext(
+            Map<String, Block> blockIdToBlockMap,
+            Map<String, Source> blockIdToLeadingSourceMap,
+            Map<Object, Map<String, Source>> childToAliasesMap,
+            Map<String, Source> aliasToSourceMap,
+            Map<Source, RowType> rows) {
+
         this.blockIdToBlockMap = blockIdToBlockMap;
         this.blockIdToLeadingSourceMap = blockIdToLeadingSourceMap;
         this.childToAliasesMap = childToAliasesMap;
         this.aliasToSourceMap = aliasToSourceMap;
+        this.rows = rows;
+    }
+
+    /** What the rows of a list made into rows are; null for an entity, or a list with no type. */
+    public RowType rowsOf(Source source) {
+        return rows.get(source);
+    }
+
+    /** Records what the rows of a list made into rows are: the result of finding them. */
+    public void putRows(Source source, RowType type) {
+        rows.put(source, type);
     }
 
     public IQLVisibilityContext child(Object child) {
@@ -64,7 +99,7 @@ public class IQLVisibilityContext {
         }
 
         return new IQLVisibilityContext(
-                blockIdToBlockMap, blockIdToLeadingSourceMap, childToAliasesMap, childMap);
+                blockIdToBlockMap, blockIdToLeadingSourceMap, childToAliasesMap, childMap, rows);
     }
 
     public Source getLeadingSource(String source) {

@@ -40,8 +40,11 @@ import ai.koryki.iql.query.Source;
 import ai.koryki.iql.rewrite.DateBetweenRewriter;
 import ai.koryki.iql.rules.Rules;
 import ai.koryki.iql.typing.ExpressionTypeResolver;
+import ai.koryki.iql.typing.RowType;
+import ai.koryki.iql.typing.UnnestElements;
 import ai.koryki.iql.validate.IdentityUseValidator;
 import ai.koryki.iql.validate.PlaceholderValidator;
+import ai.koryki.iql.validate.SourceCallValidator;
 import ai.koryki.iql.validate.ValidateException;
 import ai.koryki.iql.validate.Validator;
 import ai.koryki.iql.validate.Violation;
@@ -157,6 +160,13 @@ public class KQLTranspiler extends AbstractTranspiler<KQLReader, KQLParser.Query
             return new Analysis(q, visibility, iqlToContext, List.copyOf(placeholders));
         }
 
+        // A source that is a call must be unnest of a list, after the source it comes from. Before
+        // the scope violations and the rules: it has no table name for either of them to use.
+        List<Violation> sourceCalls = Walker.apply(q, new SourceCallValidator(iqlToContext));
+        if (!sourceCalls.isEmpty()) {
+            return new Analysis(q, visibility, iqlToContext, List.copyOf(sourceCalls));
+        }
+
         // A broken scope — an invalid reference or an ambiguous alias — makes everything downstream
         // meaningless: the rewrite rules and the validators would trip over the same missing alias
         // and pile confusing secondary failures on top of the real one. Stop here, but *report*
@@ -177,7 +187,14 @@ public class KQLTranspiler extends AbstractTranspiler<KQLReader, KQLParser.Query
             return new Analysis(q, visibility, iqlToContext, List.copyOf(identities));
         }
 
-        new Rules(resolver, blockIdToLeadingSourceMap, q, iqlToContext).apply();
+        // what the rows of a list made into rows are, before the rules that name their fields
+        List<Violation> rows =
+                new UnnestElements(resolver, functions, visibility, iqlToContext).apply(q);
+        if (!rows.isEmpty()) {
+            return new Analysis(q, visibility, iqlToContext, List.copyOf(rows));
+        }
+
+        new Rules(resolver, blockIdToLeadingSourceMap, q, iqlToContext, visibility).apply();
 
         List<Violation> v = new ArrayList<>();
         v.addAll(
@@ -330,6 +347,17 @@ public class KQLTranspiler extends AbstractTranspiler<KQLReader, KQLParser.Query
                                 + out.getExpression().getField().getAlias()
                                 + "."
                                 + out.getExpression().getField().getName());
+            }
+            if (t.getCall() != null) {
+                // a field of a list made into rows: the model's word for it, else its key
+                String key = out.getExpression().getField().getName();
+                RowType rows = visibility.rowsOf(t);
+                return rows != null && rows.level() != null
+                        ? rows.level()
+                                .member(key)
+                                .map(m -> m.getLabel() != null ? m.getLabel() : m.getName())
+                                .orElse(key)
+                        : key;
             }
             schema.getEntity(t.getName())
                     .ifPresent(

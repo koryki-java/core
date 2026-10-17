@@ -80,7 +80,7 @@ Query
 | `Block` | A named CTE (`WITH id AS (...)`) |
 | `Set` | A set operation (UNION/INTERSECT/MINUS) or a single `Select` |
 | `Select` | A full SELECT statement with all its clauses |
-| `Source` | A table/entity reference (name, alias, scoped filters/groups/orders/outs) |
+| `Source` | A table/entity reference (name, alias, scoped filters/groups/orders/outs), or a list made into rows: no name, but the `call` `unnest(t.items)` |
 | `Join` | A link-driven join between two `Source`s |
 | `Exists` | A correlated EXISTS subquery |
 | `Expression` | A tagged union for any scalar value (field, literal, function, subquery) |
@@ -182,7 +182,7 @@ The rules pipeline is applied **only on the KQL path** (via `KQLTranspiler`) bef
 | 3 | `HavingRule` | Moves predicates containing aggregate functions from `select.filter` to `select.having` |
 | 4 | `GroupRule` | Auto-generates `GROUP BY` items from non-aggregate `OUT` expressions when aggregates are present |
 | 5 | `IdentityRule` | Replaces the `ID` identity placeholder with the actual primary-key column, resolved from the schema |
-| 6 | `SelectorNamesRule` | Translates the names of struct fields in selectors from the words of the model to the keys of the column's concept (`t.address@breitengrad` to `t.address@latitude`) |
+| 6 | `SelectorNamesRule` | Translates the names of struct fields in selectors from the words of the model to the keys of the column's concept (`t.address@breitengrad` to `t.address@latitude`), and the fields of the alias of an `unnest` (`i.artikel` to `i.sku`) |
 | 7 | `PushLogicalExpressionRule` | Moves filter/having predicates that reference only one source into that source's own `filter`/`having` (critical for correctness of LEFT OUTER JOINs) |
 | 8 | `PushGroupRule` | Moves `select.group` items into the corresponding `source.group` |
 | 9 | `PushOrderRule` | Moves `select.order` items into the corresponding `source.order` |
@@ -197,6 +197,8 @@ Semantic validation is run after bean construction and before SQL generation. `V
 **`FunctionValidator`** — detects structurally invalid expressions: an expression that simultaneously contains an aggregate function (e.g., `SUM`, `COUNT`) and a raw column reference is flagged, as this cannot be correctly classified as either a SELECT item or a HAVING predicate.
 
 **`SelectorValidator`** and **`LambdaValidator`** — check selector chains against the type of the value they select from, and lambda parameters, arity and body against the function that takes them (see [Nested values](#nested-values-selections-and-lambdas)).
+
+**`SourceCallValidator`** — a source that is a call may only be `unnest`, with one list argument (violations of category `source`); the rows of it are typed on the fly by `UnnestElements` from the type of the list, and kept in the visibility context, not in the beans (see [Nested values](NESTED.md#unnest-one-row-per-element)).
 
 **`DurationValidator`** and **`DurationValueValidator`** — check interval and duration arithmetic (the second once a dialect is known), and **`NestedSupportValidator`** refuses a use of nested values that the dialect declares it cannot express (see [NESTED.md](NESTED.md)).
 

@@ -167,6 +167,7 @@ What is specific to sqlite: the rendering column is filled in only where this di
 | translate | string | scalar | unsupported | `—` |  |
 | trim | string | scalar | standard |  |  |
 | trunc | math | scalar | overridden | `trunc(value)`<br>`(CAST(value * pow(10, scale) AS INTEGER) / pow(10, scale))` |  |
+| unnest | list | source | overridden | `unnest(list)` |  |
 | upper | string | scalar | standard |  | results differ |
 | week | datetime | scalar | overridden | `((CAST(strftime('%j', date(value, '-3 days', 'weekday 4')) AS INTEGER) - 1) / 7 + 1)` |  |
 | week_begin | datetime | scalar | overridden | `date(value, '-6 days', 'weekday 1')` |  |

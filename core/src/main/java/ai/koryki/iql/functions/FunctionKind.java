@@ -34,5 +34,11 @@ public enum FunctionKind {
      * clause. They are <em>not</em> aggregates — they do not collapse rows, so they must never
      * trigger GROUP BY inference (see {@code FunctionValidator.isAggregate}).
      */
-    WINDOW
+    WINDOW,
+
+    /**
+     * Makes rows: {@code unnest}. It is not a value, so it is written as a source, {@code o
+     * unnest(o.items) i}, and nowhere else; {@code FunctionValidator} refuses it in an expression.
+     */
+    SOURCE
 }

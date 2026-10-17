@@ -176,6 +176,7 @@ What is specific to duckdb: the rendering column is filled in only where this di
 | trim | string | scalar | standard |  |  |
 | trunc | math | scalar | standard |  |  |
 | truncate | other | scalar | native | `trunc(value)` |  |
+| unnest | list | source | overridden | `unnest(list)` |  |
 | upper | string | scalar | standard |  |  |
 | week | datetime | scalar | standard |  |  |
 | week_begin | datetime | scalar | standard |  |  |

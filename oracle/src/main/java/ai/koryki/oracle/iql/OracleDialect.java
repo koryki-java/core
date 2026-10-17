@@ -380,7 +380,9 @@ public class OracleDialect implements SqlDialect {
         return NestedSupport.full("Oracle")
                 .without(CoreTypeFamily.MAP)
                 .notComparable(CoreTypeFamily.ARRAY)
-                .withoutLambdaOverJsonList();
+                .withoutLambdaOverJsonList()
+                .withoutUnnestPosition()
+                .withoutUnnestCondition();
     }
 
     @Override
@@ -509,6 +511,49 @@ public class OracleDialect implements SqlDialect {
     }
 
     private static final Pattern PLAIN_ATTRIBUTE = Pattern.compile("[a-z][a-z0-9_]*");
+
+    /**
+     * {@code CROSS APPLY TABLE(list) i}, or {@code OUTER APPLY} to keep the parent whose collection
+     * is empty or NULL: the join is lateral, so the collection may be a column of a source to its
+     * left. An {@code APPLY} takes no condition, so one on the rows of an outer join is refused.
+     * The position is not asked for here: see {@link #unnestColumn}.
+     */
+    @Override
+    public String unnestJoin(
+            boolean outer,
+            String list,
+            TypeDescriptor element,
+            String alias,
+            boolean ordinal,
+            String condition) {
+        if (outer && condition != null) {
+            throw new KorykiaiException(
+                    "Oracle cannot filter the rows of an outer unnest ("
+                            + alias
+                            + "): OUTER APPLY takes no condition. Filter after the join, or use an"
+                            + " inner join");
+        }
+        return (outer ? "OUTER" : "CROSS") + " APPLY TABLE(" + list + ") " + alias;
+    }
+
+    /**
+     * A column of the rows of {@code TABLE()}: the attribute of an object, or {@code COLUMN_VALUE}
+     * for an element that is no object. A collection has no position for its elements in a lateral
+     * join: {@code ROWNUM} numbers the rows of the whole statement, and {@code ROW_NUMBER()} needs
+     * the key of the parent, which a join does not have, so {@code ordinal} is refused.
+     */
+    @Override
+    public String unnestColumn(String alias, TypeDescriptor element, String column) {
+        if (ai.koryki.iql.typing.UnnestRows.ORDINAL.equals(column)) {
+            throw new KorykiaiException(
+                    "Oracle has no position for the elements of a collection in a lateral join:"
+                            + " 'ordinal' is not available on "
+                            + alias);
+        }
+        return CoreTypeFamily.STRUCT.equals(element.getTypeFamily())
+                ? alias + "." + NestedSql.identifier(column, PLAIN_ATTRIBUTE)
+                : alias + ".COLUMN_VALUE";
+    }
 
     private static String attribute(TypeDescriptor type, Selector step) {
         return NestedSql.identifier(NestedSql.fieldName(type, step), PLAIN_ATTRIBUTE);
@@ -774,6 +819,7 @@ public class OracleDialect implements SqlDialect {
                 ListFunctions.supported("list_avg")
                         .template(
                                 "(SELECT CAST(AVG(COLUMN_VALUE) AS BINARY_DOUBLE) FROM TABLE({0}))"));
+        registry.register(ListFunctions.supported("unnest"));
         // any, all, sort, distinct and concat through TABLE(): a collection of the generic types
         // for what is a list again, a count for what is a yes or no
         for (String name : List.of("list_any", "list_all")) {
