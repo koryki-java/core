@@ -264,6 +264,60 @@ public class TrinoDialect implements SqlDialect {
         return "(" + sql + ")." + NestedSql.identifier(NestedSql.fieldName(type, step), PLAIN_NAME);
     }
 
+    /**
+     * {@code UNNEST(list) WITH ORDINALITY AS i(sku, qty, ..., ordinal)}: a row type spreads its
+     * fields into columns, so the alias names one for each field, then the position. Trino reads
+     * the sources to the left from the join itself. {@code ORDINALITY} only where the position is
+     * read.
+     */
+    @Override
+    public String unnestJoin(
+            boolean outer,
+            String list,
+            TypeDescriptor element,
+            String alias,
+            boolean ordinal,
+            String condition) {
+        List<String> names = new java.util.ArrayList<>();
+        if (CoreTypeFamily.STRUCT.equals(element.getTypeFamily())) {
+            element.fieldNames().forEach(f -> names.add(NestedSql.identifier(f, PLAIN_NAME)));
+        } else {
+            names.add("value");
+        }
+        if (ordinal) {
+            names.add("ordinal");
+        }
+        String rows =
+                "UNNEST("
+                        + list
+                        + ")"
+                        + (ordinal ? " WITH ORDINALITY" : "")
+                        + " AS "
+                        + alias
+                        + "("
+                        + String.join(", ", names)
+                        + ")";
+        if (!outer) {
+            // an inner join to UNNEST is the CROSS JOIN, and says nothing in an ON
+            return "CROSS JOIN " + rows;
+        }
+        if (condition == null) {
+            return "LEFT OUTER JOIN " + rows + " ON TRUE";
+        }
+        // an outer join to UNNEST takes only ON TRUE, and a lateral subquery over UNNEST is not
+        // supported ("Given correlated subquery is not supported"): measured on Trino 481
+        throw new ai.koryki.antlr.KorykiaiException(
+                "Trino cannot filter the rows of an outer unnest ("
+                        + alias
+                        + "): its outer join takes no condition. Filter after the join, or use an"
+                        + " inner join");
+    }
+
+    @Override
+    public String unnestColumn(String alias, TypeDescriptor element, String column) {
+        return alias + "." + NestedSql.identifier(column, PLAIN_NAME);
+    }
+
     private static String mapKey(TypeDescriptor type, Selector step) {
         if (step.getIndex() != null) {
             return String.valueOf(step.getIndex());
@@ -333,6 +387,7 @@ public class TrinoDialect implements SqlDialect {
         registry.register(
                 ListFunctions.supported("list_avg")
                         .template("(SELECT avg(CAST(_e AS DOUBLE)) FROM UNNEST({0}) AS _u(_e))"));
+        registry.register(ListFunctions.supported("unnest"));
         registry.register(ListFunctions.supported("list_any"));
         registry.register(ListFunctions.supported("list_all"));
         // array_sort puts NULL last; the descending order needs the comparison spelled out for it

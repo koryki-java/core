@@ -59,6 +59,22 @@ public final class UnnestRows {
         return names;
     }
 
+    /**
+     * The column as the rows spell it, for a name that matches without regard to case, as a struct
+     * finds its fields; null where the rows have none of that name.
+     */
+    public static String column(TypeDescriptor element, String name) {
+        return columns(element).stream()
+                .filter(c -> c.equals(name))
+                .findFirst()
+                .or(
+                        () ->
+                                columns(element).stream()
+                                        .filter(c -> c.equalsIgnoreCase(name))
+                                        .findFirst())
+                .orElse(null);
+    }
+
     /** The type of the column, or null where the rows have none of that name. */
     public static TypeDescriptor type(TypeDescriptor element, String column) {
         if (ORDINAL.equals(column)) {

@@ -676,6 +676,44 @@ public interface SqlDialect {
     }
 
     /**
+     * A list made into rows, as a join, from the keyword on: one row for each element, named {@code
+     * alias}, with the columns {@link #unnestColumn} reads. Refused by default, like {@link
+     * #selection}.
+     *
+     * @param outer whether the row it comes from is kept when the list has no element
+     * @param list the SQL of the list, which may name the sources to the left (the join is lateral)
+     * @param element the type of an element: a struct whose fields are the columns, or the one
+     *     column {@code value}
+     * @param alias the alias of the rows, as it is written in the SQL
+     * @param ordinal whether the position in the list is wanted: it costs on some engines, and is
+     *     asked for only where the query reads it
+     * @param condition a condition on the rows that belongs to the join, which is the one of an
+     *     outer join (it must not drop the parent), or null
+     */
+    default String unnestJoin(
+            boolean outer,
+            String list,
+            TypeDescriptor element,
+            String alias,
+            boolean ordinal,
+            String condition) {
+        throw new KorykiaiException(
+                getClass().getSimpleName() + " cannot make a list into rows yet");
+    }
+
+    /**
+     * A column of the rows of a list made into rows: a field of the element, {@code value} for an
+     * element that is no struct, or {@code ordinal}.
+     *
+     * @param alias the alias of the rows, as it is written in the SQL
+     * @param column the column as the rows spell it
+     */
+    default String unnestColumn(String alias, TypeDescriptor element, String column) {
+        throw new KorykiaiException(
+                getClass().getSimpleName() + " cannot make a list into rows yet");
+    }
+
+    /**
      * A selector chain on a nested value: {@code base@1@name}. Handed over whole, because a dialect
      * may fold it (a JSON path takes every step in one string) and because what a step means
      * depends on the type it meets, which {@link ai.koryki.iql.typing.Selectors#step} follows.

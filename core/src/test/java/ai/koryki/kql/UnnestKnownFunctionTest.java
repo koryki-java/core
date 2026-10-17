@@ -130,16 +130,78 @@ class UnnestKnownFunctionTest {
                                 + " FETCH t.nr"));
     }
 
+    private static String sql(String kql) {
+        return KQLTranspiler.builder(kql, ComplexService.resolver())
+                .functions(DuckdbBaseDialect.INSTANCE.getFunctionRenderer())
+                .build()
+                .getSql(new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, ZoneId.of("UTC")))
+                .replaceAll("\\s+", " ");
+    }
+
     @Test
-    void whatIsNotRenderedYetIsSaidSoWithoutAStackTrace() {
-        try {
-            KQLTranspiler.builder(SOURCE, ComplexService.resolver())
-                    .functions(DuckdbBaseDialect.INSTANCE.getFunctionRenderer())
-                    .build()
-                    .getSql(new SqlQueryRenderer(DuckdbBaseDialect.INSTANCE, ZoneId.of("UTC")));
-            throw new AssertionError("not rendered yet");
-        } catch (ai.koryki.antlr.KorykiaiException e) {
-            assertTrue(e.getMessage().contains("not rendered yet"), e.getMessage());
-        }
+    void anInnerUnnestIsAJoinOfTheListThatNeedsNoComparison() {
+        assertEquals(
+                "SELECT t.nr , i.item['sku'] FROM check_complex t"
+                        + " INNER JOIN UNNEST(t.items) AS i(item) ON TRUE ",
+                sql("FIND check_complex t, t unnest(t.items) i FETCH t.nr, i.sku"));
+    }
+
+    @Test
+    void theOuterFormIsALeftJoin() {
+        assertTrue(
+                sql("FIND check_complex t, t + unnest(t.items) i FETCH t.nr, i.sku")
+                        .contains("LEFT OUTER JOIN UNNEST(t.items) AS i(item) ON TRUE"));
+    }
+
+    @Test
+    void aConditionOnTheRowsOfAnOuterJoinIsInTheJoin() {
+        String sql =
+                sql(
+                        "FIND check_complex t, t + unnest(t.items) i"
+                                + " FILTER i.qty > 1 FETCH t.nr, i.sku");
+
+        assertTrue(
+                sql.contains("AS i(item) ON i.item['qty'] > 1"),
+                "the parent is kept, so the condition is the join's: " + sql);
+        assertTrue(!sql.contains("WHERE"), sql);
+    }
+
+    @Test
+    void thePositionIsAskedOfTheDatabaseOnlyWhereTheQueryReadsIt() {
+        assertTrue(
+                !sql("FIND check_complex t, t unnest(t.items) i FETCH i.sku")
+                        .contains("ORDINALITY"));
+        String with = sql("FIND check_complex t, t unnest(t.items) i FETCH i.ordinal, i.sku");
+        assertTrue(with.contains("WITH ORDINALITY AS i(item, ordinal)"), with);
+        assertTrue(with.contains("i.ordinal"), with);
+    }
+
+    @Test
+    void aListOfScalarsIsItsOwnItem() {
+        assertEquals(
+                "SELECT g.item FROM check_complex t INNER JOIN UNNEST(t.tags) AS g(item) ON TRUE ",
+                sql("FIND check_complex t, t unnest(t.tags) g FETCH g.value"));
+    }
+
+    @Test
+    void theListOfAnUnnestIsReadFromTheRowsOfAnEarlierOne() {
+        String sql =
+                sql(
+                        "FIND check_complex t, t unnest(t.items) i, i unnest(i.opts) o"
+                                + " FETCH t.nr, o.value");
+
+        assertTrue(
+                sql.contains(
+                        "INNER JOIN UNNEST(t.items) AS i(item) ON TRUE"
+                                + " INNER JOIN UNNEST(i.item['opts']) AS o(item) ON TRUE"),
+                sql);
+    }
+
+    @Test
+    void aDialectThatCannotMakeRowsSaysSoWhenItIsAskedToRenderThem() {
+        // the generic dialect has the function registered as unsupported: the violation comes first
+        List<Violation> found = standard(SOURCE);
+
+        assertRefused(found, Violation.UNSUPPORTED, "'unnest' is not supported by this dialect");
     }
 }

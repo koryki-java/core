@@ -249,6 +249,46 @@ public class PostgreSqlDialect implements SqlDialect {
     }
 
     /**
+     * {@code LATERAL unnest(list) WITH ORDINALITY AS i(sku, qty, ..., ordinal)}: an array of a
+     * composite type spreads the fields into columns, so the alias names one for each field, then
+     * the position. {@code ordinality} only where the position is read.
+     */
+    @Override
+    public String unnestJoin(
+            boolean outer,
+            String list,
+            TypeDescriptor element,
+            String alias,
+            boolean ordinal,
+            String condition) {
+        java.util.List<String> names = new java.util.ArrayList<>();
+        if (CoreTypeFamily.STRUCT.equals(element.getTypeFamily())) {
+            element.fieldNames().forEach(f -> names.add(NestedSql.identifier(f, PLAIN_NAME)));
+        } else {
+            names.add("value");
+        }
+        if (ordinal) {
+            names.add("ordinal");
+        }
+        return (outer ? "LEFT OUTER" : "INNER")
+                + " JOIN LATERAL unnest("
+                + list
+                + ")"
+                + (ordinal ? " WITH ORDINALITY" : "")
+                + " AS "
+                + alias
+                + "("
+                + String.join(", ", names)
+                + ") ON "
+                + (condition == null ? "TRUE" : condition);
+    }
+
+    @Override
+    public String unnestColumn(String alias, TypeDescriptor element, String column) {
+        return alias + "." + NestedSql.identifier(column, PLAIN_NAME);
+    }
+
+    /**
      * The declared name of the field, from the type: quoted unless it is a plain lower-case name.
      */
     private static String fieldName(TypeDescriptor type, Selector step) {
@@ -345,6 +385,7 @@ public class PostgreSqlDialect implements SqlDialect {
         registry.register(
                 ListFunctions.supported("list_avg")
                         .template("(SELECT avg(_e::double precision) FROM unnest({0}) AS _u(_e))"));
+        registry.register(ListFunctions.supported("unnest"));
         registry.register(ListFunctions.supported("list_any"));
         registry.register(ListFunctions.supported("list_all"));
         // in order and without duplicates, as an array of the rows of unnest; NULL stays NULL, as
