@@ -57,7 +57,8 @@ public class BlockRecursionDetector implements Collector<Boolean> {
     private void joinColumns(Source left, Join join) {
 
         Source right = join.getSource();
-        if (right != null) {
+        // a source that is a call (unnest) joins to nothing by name: it reads the left side
+        if (right != null && right.getCall() == null && left.getCall() == null) {
             // boolean invers = join.isInvers();
             // An explicit join carries no criterion, and its direction is fixed by what the
             // author wrote -- there is nothing to invert.
