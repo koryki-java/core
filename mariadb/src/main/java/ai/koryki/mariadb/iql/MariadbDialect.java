@@ -372,9 +372,8 @@ public class MariadbDialect implements SqlDialect {
                         backtick(field)
                                 + " "
                                 + jsonTableType(element.field(field).orElseThrow())
-                                + " PATH '$."
-                                + field
-                                + "'");
+                                + " PATH "
+                                + NestedSql.literal(INSTANCE, NestedSql.jsonMemberPath(field)));
             }
         } else {
             columns.add("`value` " + jsonTableType(element) + " PATH '$'");

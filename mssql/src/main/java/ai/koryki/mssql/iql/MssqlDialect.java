@@ -399,9 +399,9 @@ public class MssqlDialect implements SqlDialect {
         if (CoreTypeFamily.STRUCT.equals(element.getTypeFamily())) {
             return "CAST(JSON_VALUE("
                     + alias
-                    + ".value, '$."
-                    + column
-                    + "') AS "
+                    + ".value, "
+                    + NestedSql.literal(INSTANCE, NestedSql.jsonMemberPath(column))
+                    + ") AS "
                     + jsonCastType(element.field(column).orElseThrow())
                     + ")";
         }

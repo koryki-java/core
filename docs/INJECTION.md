@@ -190,6 +190,13 @@ field is matched against the declared names (`NestedSql.fieldName`), and a name 
 have is refused when the query is checked; a field is written as an identifier through
 `NestedSql.identifier`, quoted when it is not plain.
 
+**Fields of an `unnest` element** are a case of their own: the names come from the catalog, not from the
+query, and SQLite, MariaDB and SQL Server write each one into a JSON path literal (`json_extract(i.value,
+'$."a b"')`, `PATH '$."a b"'`, `JSON_VALUE(i.value, '$."a b"')`). They go through
+`NestedSql.jsonMemberPath` (the path's quoting, backslash and `"` escaped) and then `NestedSql.literal`,
+as a member selector does. The first version of the MariaDB and SQL Server code wrote the name into the
+literal unescaped; the catalog is untrusted input (see above), so that was an injection.
+
 A **lambda parameter** is a bare word of the query, `[a-z_][a-z0-9_]*`, so no payload fits in it, but
 the words that are reserved in SQL are legal parameter names. The renderers write a parameter as a
 derived alias (`_l0_x`) or as `LA0.X`, never as the bare word.
@@ -445,7 +452,7 @@ Current coverage:
 | `security/CommentInjectionTest` | core | 4 — CR, LF, CRLF, and `lineComment` itself |
 | `HostileLiteralTest` | tools | 1 and 3, **for all eight dialects**, each read with its own literal syntax; plus the generated-input pass over paths 1 and 4 |
 | `HostileIdentifierTest` | tools | 2, for all eight dialects — spaces, keywords, embedded quotes, the CTE list |
-| `HostileSelectorTest` | tools | 6, for all eight dialects — hostile map keys, struct fields and JSON members, in chains and as function arguments; reserved words as lambda parameters |
+| `HostileSelectorTest` | tools | 6, for all eight dialects — hostile map keys, struct fields and JSON members, in chains and as function arguments; reserved words as lambda parameters, hostile fields of an unnest element on SQLite, MariaDB and SQL Server |
 | `SqlInjectionEngineTest` | duckdb | all four, against a running engine |
 | corpus `hostile_keys`, `hostile_json_keys`, `lambda_reserved_words` | every dialect | 6, against live engines |
 | `HostileNameSnowflakeTest`, `MixedCaseNameOracleTest` | snowflake, oracle | 2, against live engines |

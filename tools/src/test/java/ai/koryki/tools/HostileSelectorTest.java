@@ -226,6 +226,37 @@ class HostileSelectorTest {
                 });
     }
 
+    // ------------------------------------------------------------ unnest of a JSON array
+
+    /**
+     * The members of an object element are named by the catalog, and the JSON dialects write each
+     * one into a path literal of a statement. A name with a quote or a backslash must stay inside
+     * that literal.
+     */
+    @Test
+    void aHostileFieldOfAnUnnestElementStaysInsideItsPathLiteral() {
+        for (String name : List.of("sqlite", "mariadb", "mssql")) {
+            Dialect d = DIALECTS.get(name);
+            for (Map.Entry<String, String> k : KEYS.entrySet()) {
+                if ("unterminated".equals(k.getValue())) {
+                    continue;
+                }
+                ai.koryki.catalog.types.TypeDescriptor element =
+                        ai.koryki.catalog.types.TypeDescriptor.struct(
+                                List.of(k.getKey()),
+                                List.of(ai.koryki.catalog.types.TypeDescriptor.INTEGER));
+                String sql =
+                        "mariadb".equals(name)
+                                ? d.sql().unnestJoin(false, "t.items", element, "i", false, null)
+                                : d.sql().unnestColumn("i", element, k.getKey());
+                String skeleton = skeleton(name + " unnest " + k.getKey(), sql, d);
+                assertTrue(
+                        !skeleton.contains(k.getValue()),
+                        name + ": '" + k.getValue() + "' left its literal in:\n" + sql);
+            }
+        }
+    }
+
     // ------------------------------------------------------------------- lambda parameters
 
     /**

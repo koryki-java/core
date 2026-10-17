@@ -143,14 +143,10 @@ public class SqliteDialect implements SqlDialect {
             return "(" + alias + ".key + 1)";
         }
         if (CoreTypeFamily.STRUCT.equals(element.getTypeFamily())) {
-            String name =
-                    column.matches("[A-Za-z_][A-Za-z0-9_]*")
-                            ? column
-                            : "\"" + column.replace("\"", "\\\"") + "\"";
             return "json_extract("
                     + alias
                     + ".value, "
-                    + NestedSql.literal(INSTANCE, "$." + name)
+                    + NestedSql.literal(INSTANCE, NestedSql.jsonMemberPath(column))
                     + ")";
         }
         return alias + ".value";
