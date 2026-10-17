@@ -37,41 +37,6 @@ A demo application is available at: [demo.koryki.ai](https://demo.koryki.ai "(de
 
 [KQL-Grammar Reference](./docs/KQL_EBNF.md "purpose of the koryki.ai platform")
 
-## Nested values
-
-A column may hold a list, a struct, a map or JSON. KQL reaches into it with a selector, `@`, and
-works on a list with a lambda:
-
-```
-FIND check_complex t
-FETCH t.nr,
-      t.address@geo@lat latitude,
-      t.tags@-1 last_tag,
-      list_size(t.items) lines,
-      list_transform(t.scores, x -> x * 2) doubled
-```
-
-`address@geo@lat` is a field of a struct inside a struct, `tags@-1` the last element of a list,
-`list_size` the length of a list and `list_transform` applies a lambda to each element. Positions
-count from 1, and from the end when negative; an element, a field or a key that is not there is NULL,
-not an error. What each dialect can do is a table in
-[`docs/NESTED.md`](./docs/NESTED.md "selectors, lambdas and the dialects"): lists work on DuckDB,
-PostgreSQL, Trino, Snowflake and Oracle, JSON on all eight, and a use that an engine cannot express is
-refused with its position instead of failing in the database.
-
-Two things to know before relying on it:
-
-- **There is no `UNNEST`.** To ask "revenue per sku" over a list of structs, the list is made into
-  rows by a *flatten view* that the generator in `tools` writes for the dialect and adds to the
-  catalog; the query then joins the view like any entity. See
-  [Flatten views](./docs/NESTED.md#flatten-views-one-row-per-element).
-- **The names are the model's.** A column's type and the wording of its parts are in the catalog, and a
-  model can call the fields of a struct what its language calls them: `FIND check_shared s FETCH
-  s.home@lat` is, under the German model of that bed, `FIND geteilt g FETCH g.heim@breitengrad`, and a
-  selector that does not fit is refused in those names. How a model does that is in
-  [`docs/MEMBERS_AND_NOTIONS.md`](./docs/MEMBERS_AND_NOTIONS.md "members and notions"), and the catalog
-  in [`docs/SEMANTIC_LAYER.md`](./docs/SEMANTIC_LAYER.md "the semantic layer").
-
 ## Installation
 
 Add the core transpiler plus whichever database dialect(s) you need:
@@ -99,8 +64,6 @@ dependencies {
     <version>0.3.0</version>
 </dependency>
 ```
-
-Releases are signed — [`docs/RELEASES.md`](./docs/RELEASES.md) shows how to verify a download. What changed, and what a release breaks, is in the [`CHANGELOG`](./CHANGELOG.md); which dialects a release was tested on is in [`docs/VERIFICATION.md`](./docs/VERIFICATION.md).
 
 ## Demo Chat Application
 
