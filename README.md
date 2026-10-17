@@ -45,8 +45,8 @@ Add the core transpiler plus whichever database dialect(s) you need:
 
 ```kotlin
 dependencies {
-    implementation("ai.koryki.core:koryki-core:0.3.0")
-    implementation("ai.koryki.core:koryki-duckdb:0.3.0") // or postgresql, oracle, snowflake, sqlite, mariadb, mssql, trino
+    implementation("ai.koryki.core:koryki-core:0.4.0")
+    implementation("ai.koryki.core:koryki-duckdb:0.4.0") // or postgresql, oracle, snowflake, sqlite, mariadb, mssql, trino
 }
 ```
 
@@ -56,12 +56,12 @@ dependencies {
 <dependency>
     <groupId>ai.koryki.core</groupId>
     <artifactId>koryki-core</artifactId>
-    <version>0.3.0</version>
+    <version>0.4.0</version>
 </dependency>
 <dependency>
     <groupId>ai.koryki.core</groupId>
     <artifactId>koryki-duckdb</artifactId>
-    <version>0.3.0</version>
+    <version>0.4.0</version>
 </dependency>
 ```
 

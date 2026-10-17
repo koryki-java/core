@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-17
+
 ### Added
 
 - `unnest` makes a list into rows, written as a source after the one the list comes from: `FIND
@@ -44,7 +46,21 @@ All notable changes to this project are documented here.
   visibility context as a fifth constructor argument, and `SelectorNamesRule` and `SelectorLevels` the
   rows of the sources they translate for.
 
+- For dialect authors: the record `NestedSupport` has two more components, `unnestPosition` and
+  `unnestCondition` (the constructor takes seven, not five), and `withoutUnnestPosition()` and
+  `withoutUnnestCondition()` declare what a dialect cannot do; `NestedSupportValidator` refuses it. A
+  violation of a source that is a call has the category `source`.
+
 ### Fixed
+
+- The fields of an `unnest` element were written unescaped into the JSON path literal on MariaDB and
+  SQL Server, and a backslash in a field name was not escaped on SQLite. The catalog is untrusted
+  input, so a field name with a quote could leave its literal. They now go through
+  `NestedSql.jsonMemberPath` and `NestedSql.literal`, as a member selector does, and
+  `HostileSelectorTest` holds the three dialects to it.
+
+- `unnest` in a block (`WITH b AS (FIND t, t unnest(t.items) i ...)`) failed with `unknown link: null`;
+  the check for a block that refers to itself assumed that every join has a criterion.
 
 - `./gradlew verify` clears the database versions of an earlier run before it starts, so a server
   that is not reached cannot show the version of one that was in a record.
@@ -388,7 +404,8 @@ and signed in CI with an in-memory PGP key and published to Maven Central throug
 Portal; [`docs/RELEASES.md`](./docs/RELEASES.md) shows how to verify a download against the
 signing key.
 
-[Unreleased]: https://github.com/koryki-java/core/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/koryki-java/core/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/koryki-java/core/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/koryki-java/core/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/koryki-java/core/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/koryki-java/core/compare/v0.1.0...v0.2.0
