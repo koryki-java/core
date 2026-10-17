@@ -74,8 +74,9 @@ lambda, an expression with a named parameter and an arrow:
 - A position or a key that is not there gives NULL, not an error.
 - Where the catalog declares the members of a JSON column, `o.doc@n > 0` and `sum(o.doc@a@b@1)` work
   without a cast.
-- One row per element, to group by what is inside a list ("revenue by sku"), is a generated view that
-  the semantic layer treats like any other entity.
+- One row per element, to group by what is inside a list ("revenue by sku"), is the `unnest` source:
+  `FIND orders o, o unnest(o.items) i FETCH i.sku, sum(i.qty)`. A generated view does the same for a
+  semantic layer that wants an entity of its own.
 
 [Nested Values](NESTED.md) is the reference: which selector fits which type, the list functions, what
 each database does, and the flatten views.

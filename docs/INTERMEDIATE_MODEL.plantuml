@@ -100,6 +100,7 @@ Select::having -d-* "0..1" LogicalExpression
 
 Join -u-* "0..n" Join
 Join -d-* "1" Source
+Source -r-* "0..1" Function : call
 Join -r-* "0..1" JoinColumns
 
 Exists -u-* "0..n" Join

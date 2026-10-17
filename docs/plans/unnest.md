@@ -26,7 +26,7 @@ validator accepts `unnest` only. It replaced the two ideas below:
   position only where the query reads it.
 
 Where the plan said "not measured": Trino, Snowflake, Oracle, SQL Server, MariaDB and SQLite were
-run against the live beds with one shared contract (`UnnestContract`, `UnnestJsonContract`), and
+run against the live beds with the shared corpus of the northwind fixtures (`unnest`), and
 what they differ in is in the table of [Nested values](../NESTED.md#what-each-dialect-does). The
 generated-data test (seeded random rows in tables of several shapes, with the answers computed from the
 rows) exists for Oracle and DuckDB, in `GeneratedListsContract`; the other dialects can extend it. Still

@@ -117,9 +117,11 @@ from the list, when the query is checked, so every list works the same.
   is kept; where an engine cannot put it there it is refused (see the table).
 - **`count(i)` is refused:** the rows have no key to count. Count a field of the element,
   `count(i.sku)`.
-- **`ordinal` is asked of the database only where the query reads it.** On DuckDB `WITH
-  ORDINALITY` made the same query about thirty times slower on two million rows (measured, see
-  [the plan](plans/unnest.md)), and the rows are otherwise the same.
+- **`ordinal` is asked of the database only where the query reads it,** on DuckDB, PostgreSQL and
+  Trino. On DuckDB `WITH ORDINALITY` made the same query about twenty times slower on two million
+  rows (1,442 against 73 ms, see [the plan](plans/unnest.md)); PostgreSQL showed no difference, and
+  Trino was not measured. The rows are otherwise the same. MariaDB always declares `FOR ORDINALITY`, and the other engines compute the position from
+  what they have (see the table).
 
 What `unnest` refuses, with a position and a message:
 
@@ -162,7 +164,7 @@ Measured, and kept rather than hidden:
   types hold text, numbers and dates), as before.
 - **SQLite, MariaDB and SQL Server** have no lists. They unnest an array inside a JSON column that
   the catalog declares (`.a.b[]: INTEGER`, [see below](#declaring-what-is-in-a-json-column)):
-  `unnest(t.doc@a@b) b`. The elements are scalars, or objects whose members are scalars; a row whose
+  `unnest(t.doc@a@b) b`. The elements are scalars, or objects, whose members are the columns of the rows (read as scalars, so a member that is itself an object or list is not meant for it); a row whose
   document has no array there has no rows, and JSON that is not declared as an array is refused.
   Where `unnest` is given a JSON array on a dialect that has lists, the list is the converted one,
   and the rows are those of any other list.
@@ -199,7 +201,7 @@ declares (`.a.b[]: INTEGER`) is flattened the same way, named by its path:
 ```
 
 gives `check_complex_doc_a_b` (`json_each`, `JSON_TABLE` or `CROSS APPLY OPENJSON`) with the relation
-`doc_a_b_of_check_complex`; the elements are scalars or objects whose members are scalars. A row
+`doc_a_b_of_check_complex`; the elements are scalars or objects, whose scalar members are columns. A row
 whose document has no array there has no elements.
 
 The generator needs a table key. It handles lists of structs and of scalars for DuckDB, PostgreSQL,
