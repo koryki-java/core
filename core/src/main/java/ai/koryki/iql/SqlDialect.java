@@ -341,13 +341,20 @@ public interface SqlDialect {
      * @param jsonFromEnd whether a JSON path can count from the end ({@code t.doc@-1})
      * @param lambdaOverJsonList whether {@code list_transform} and its kind take a list that is a
      *     JSON array declared in the catalog
+     * @param unnestPosition whether a list made into rows has the position of its elements, {@code
+     *     ordinal}: Oracle has none for the elements of a collection in a lateral join
+     * @param unnestCondition whether a condition on the rows of an outer {@code unnest} can be part
+     *     of its join, so that the parent without a passing element is kept: Trino, Snowflake,
+     *     Oracle and SQL Server cannot
      */
     record NestedSupport(
             String name,
             java.util.Set<CoreTypeFamily> selectable,
             java.util.Set<CoreTypeFamily> comparable,
             boolean jsonFromEnd,
-            boolean lambdaOverJsonList) {
+            boolean lambdaOverJsonList,
+            boolean unnestPosition,
+            boolean unnestCondition) {
 
         private static java.util.Set<CoreTypeFamily> all() {
             return java.util.EnumSet.of(
@@ -359,7 +366,7 @@ public interface SqlDialect {
 
         /** Everything, as DuckDB has it. */
         public static NestedSupport full(String name) {
-            return new NestedSupport(name, all(), all(), true, true);
+            return new NestedSupport(name, all(), all(), true, true, true, true);
         }
 
         /** An engine with JSON and no other nested value. */
@@ -369,6 +376,8 @@ public interface SqlDialect {
                     java.util.EnumSet.of(CoreTypeFamily.JSON),
                     java.util.EnumSet.of(CoreTypeFamily.JSON),
                     jsonFromEnd,
+                    true,
+                    true,
                     true);
         }
 
@@ -377,7 +386,14 @@ public interface SqlDialect {
             rest.remove(family);
             java.util.Set<CoreTypeFamily> compare = java.util.EnumSet.copyOf(comparable);
             compare.remove(family);
-            return new NestedSupport(name, rest, compare, jsonFromEnd, lambdaOverJsonList);
+            return new NestedSupport(
+                    name,
+                    rest,
+                    compare,
+                    jsonFromEnd,
+                    lambdaOverJsonList,
+                    unnestPosition,
+                    unnestCondition);
         }
 
         /**
@@ -387,15 +403,60 @@ public interface SqlDialect {
         public NestedSupport notComparable(CoreTypeFamily family) {
             java.util.Set<CoreTypeFamily> compare = java.util.EnumSet.copyOf(comparable);
             compare.remove(family);
-            return new NestedSupport(name, selectable, compare, jsonFromEnd, lambdaOverJsonList);
+            return new NestedSupport(
+                    name,
+                    selectable,
+                    compare,
+                    jsonFromEnd,
+                    lambdaOverJsonList,
+                    unnestPosition,
+                    unnestCondition);
         }
 
         public NestedSupport withoutJsonFromEnd() {
-            return new NestedSupport(name, selectable, comparable, false, lambdaOverJsonList);
+            return new NestedSupport(
+                    name,
+                    selectable,
+                    comparable,
+                    false,
+                    lambdaOverJsonList,
+                    unnestPosition,
+                    unnestCondition);
         }
 
         public NestedSupport withoutLambdaOverJsonList() {
-            return new NestedSupport(name, selectable, comparable, jsonFromEnd, false);
+            return new NestedSupport(
+                    name,
+                    selectable,
+                    comparable,
+                    jsonFromEnd,
+                    false,
+                    unnestPosition,
+                    unnestCondition);
+        }
+
+        /** The engine has no position for the elements of a list made into rows. */
+        public NestedSupport withoutUnnestPosition() {
+            return new NestedSupport(
+                    name,
+                    selectable,
+                    comparable,
+                    jsonFromEnd,
+                    lambdaOverJsonList,
+                    false,
+                    unnestCondition);
+        }
+
+        /** The join of an outer {@code unnest} takes no condition on the rows. */
+        public NestedSupport withoutUnnestCondition() {
+            return new NestedSupport(
+                    name,
+                    selectable,
+                    comparable,
+                    jsonFromEnd,
+                    lambdaOverJsonList,
+                    unnestPosition,
+                    false);
         }
     }
 

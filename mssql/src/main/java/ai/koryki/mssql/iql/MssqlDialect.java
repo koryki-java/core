@@ -300,7 +300,7 @@ public class MssqlDialect implements SqlDialect {
 
     @Override
     public NestedSupport nestedSupport() {
-        return NestedSupport.jsonOnly("SQL Server", false);
+        return NestedSupport.jsonOnly("SQL Server", false).withoutUnnestCondition();
     }
 
     @Override

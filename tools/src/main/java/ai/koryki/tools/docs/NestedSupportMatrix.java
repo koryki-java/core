@@ -40,8 +40,8 @@ public final class NestedSupportMatrix {
     public static String table() {
         StringBuilder b = new StringBuilder();
         b.append(
-                "| | list | struct | map | JSON | JSON from the end | lambda over a JSON array | compare a list |\n");
-        b.append("|---|---|---|---|---|---|---|---|\n");
+                "| | list | struct | map | JSON | JSON from the end | lambda over a JSON array | compare a list | unnest position | unnest condition |\n");
+        b.append("|---|---|---|---|---|---|---|---|---|---|\n");
         for (DocDialects.Doc doc : DocDialects.all()) {
             SqlDialect.NestedSupport s = doc.dialect().nestedSupport();
             b.append("| ").append(doc.title());
@@ -66,6 +66,10 @@ public final class NestedSupportMatrix {
                             s.selectable().contains(CoreTypeFamily.ARRAY)
                                     ? yes(s.comparable().contains(CoreTypeFamily.ARRAY))
                                     : "no list")
+                    .append(" | ")
+                    .append(yes(s.unnestPosition()))
+                    .append(" | ")
+                    .append(yes(s.unnestCondition()))
                     .append(" |\n");
         }
         return b.toString();

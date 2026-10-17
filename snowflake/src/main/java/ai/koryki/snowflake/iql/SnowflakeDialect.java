@@ -106,7 +106,7 @@ public class SnowflakeDialect implements SqlDialect {
      */
     @Override
     public NestedSupport nestedSupport() {
-        return NestedSupport.full("Snowflake").withoutJsonFromEnd();
+        return NestedSupport.full("Snowflake").withoutJsonFromEnd().withoutUnnestCondition();
     }
 
     @Override

@@ -215,16 +215,16 @@ This table is generated from those declarations.
 
 <!-- nested-support:begin (generated: ./gradlew :tools:nestedMatrix) -->
 
-| | list | struct | map | JSON | JSON from the end | lambda over a JSON array | compare a list |
-|---|---|---|---|---|---|---|---|
-| DuckDB | yes | yes | yes | yes | yes | yes | yes |
-| Oracle | yes | yes | no | yes | yes | no | no |
-| Snowflake | yes | yes | yes | yes | no | yes | yes |
-| SQL Server | no | no | no | yes | no | no list | no list |
-| PostgreSQL | yes | yes | no | yes | yes | yes | yes |
-| MariaDB | no | no | no | yes | yes | no list | no list |
-| SQLite | no | no | no | yes | yes | no list | no list |
-| Trino | yes | yes | yes | yes | no | yes | yes |
+| | list | struct | map | JSON | JSON from the end | lambda over a JSON array | compare a list | unnest position | unnest condition |
+|---|---|---|---|---|---|---|---|---|---|
+| DuckDB | yes | yes | yes | yes | yes | yes | yes | yes | yes |
+| Oracle | yes | yes | no | yes | yes | no | no | no | no |
+| Snowflake | yes | yes | yes | yes | no | yes | yes | yes | no |
+| SQL Server | no | no | no | yes | no | no list | no list | yes | no |
+| PostgreSQL | yes | yes | no | yes | yes | yes | yes | yes | yes |
+| MariaDB | no | no | no | yes | yes | no list | no list | yes | yes |
+| SQLite | no | no | no | yes | yes | no list | no list | yes | yes |
+| Trino | yes | yes | yes | yes | no | yes | yes | yes | no |
 
 <!-- nested-support:end -->
 

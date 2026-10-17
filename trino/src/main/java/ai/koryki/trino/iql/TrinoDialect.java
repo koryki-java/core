@@ -172,7 +172,7 @@ public class TrinoDialect implements SqlDialect {
      */
     @Override
     public NestedSupport nestedSupport() {
-        return NestedSupport.full("Trino").withoutJsonFromEnd();
+        return NestedSupport.full("Trino").withoutJsonFromEnd().withoutUnnestCondition();
     }
 
     @Override
