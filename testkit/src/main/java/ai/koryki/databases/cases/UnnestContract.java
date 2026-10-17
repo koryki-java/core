@@ -87,7 +87,7 @@ public abstract class UnnestContract {
     }
 
     @Test
-    void aListOfScalarsHasTheColumnValue() {
+    public void aListOfScalarsHasTheColumnValue() {
         assertEquals(
                 sorted(
                         row("1", "1", "red"),
@@ -176,7 +176,7 @@ public abstract class UnnestContract {
     }
 
     @Test
-    void theOrdinalIsAskedOfTheDatabaseOnlyWhereTheQueryReadsIt() {
+    public void theOrdinalIsAskedOfTheDatabaseOnlyWhereTheQueryReadsIt() {
         String without = sql("FIND check_complex t, t unnest(t.items) i FETCH t.nr, i.sku");
         String with = sql("FIND check_complex t, t unnest(t.items) i FETCH t.nr, i.ordinal");
 

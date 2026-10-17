@@ -148,6 +148,10 @@ public class SnowflakeDialect implements SqlDialect {
         return sql;
     }
 
+    /** A field name that needs no quotes in a path: the key as the type declares it. */
+    private static final java.util.regex.Pattern PLAIN_NAME =
+            java.util.regex.Pattern.compile("[a-z_][a-z0-9_]*");
+
     /** One row holding a value, to name it more than once: see {@link NestedSql#bindOnce}. */
     private static final String ONCE = "FROM (SELECT {0} AS L) {1}";
 
@@ -219,6 +223,81 @@ public class SnowflakeDialect implements SqlDialect {
                                 NestedSql.Quoting.DOT,
                                 "Snowflake"))
                 + ")";
+    }
+
+    /**
+     * {@code , LATERAL FLATTEN(INPUT => list) i}: the comma is the lateral join, which reads the
+     * sources to its left. {@code OUTER => TRUE} gives an empty or NULL list the one row of NULLs
+     * that keeps its parent, which is the outer join; the join then takes no condition, so one on
+     * the rows is refused. The position is {@code INDEX} (from 0) and costs nothing, so {@code
+     * ordinal} is not asked for separately.
+     */
+    @Override
+    public String unnestJoin(
+            boolean outer,
+            String list,
+            TypeDescriptor element,
+            String alias,
+            boolean ordinal,
+            String condition) {
+        if (outer && condition != null) {
+            throw new KorykiaiException(
+                    "Snowflake cannot filter the rows of an outer unnest ("
+                            + alias
+                            + "): its outer FLATTEN takes no condition. Filter after the join, or"
+                            + " use an inner join");
+        }
+        return ", LATERAL FLATTEN(INPUT => "
+                + list
+                + (outer ? ", OUTER => TRUE" : "")
+                + ") "
+                + alias;
+    }
+
+    /**
+     * A column of the rows of a FLATTEN: a field of the element is read from {@code VALUE} and cast
+     * to its type, since VALUE is a VARIANT; the position is {@code INDEX + 1}.
+     */
+    @Override
+    public String unnestColumn(String alias, TypeDescriptor element, String column) {
+        if (ai.koryki.iql.typing.UnnestRows.ORDINAL.equals(column)) {
+            return "(" + alias + ".INDEX + 1)";
+        }
+        if (CoreTypeFamily.STRUCT.equals(element.getTypeFamily())) {
+            return alias
+                    + ".VALUE:"
+                    + NestedSql.identifier(column, PLAIN_NAME)
+                    + "::"
+                    + unnestType(element.field(column).orElseThrow());
+        }
+        return alias + ".VALUE::" + unnestType(element);
+    }
+
+    /** The type a FLATTEN value is cast to: a VARIANT knows its own, but not as a SQL type. */
+    private static String unnestType(TypeDescriptor type) {
+        var family = type.getTypeFamily();
+        if (CoreTypeFamily.INTEGER.equals(family)) {
+            return "INTEGER";
+        } else if (CoreTypeFamily.DECIMAL.equals(family)) {
+            return "NUMBER("
+                    + Math.max(type.getPrecision(), 1)
+                    + ", "
+                    + Math.max(type.getScale(), 0)
+                    + ")";
+        } else if (CoreTypeFamily.FLOAT.equals(family)) {
+            return "DOUBLE";
+        } else if (CoreTypeFamily.BOOLEAN.equals(family)) {
+            return "BOOLEAN";
+        } else if (CoreTypeFamily.DATE.equals(family)) {
+            return "DATE";
+        } else if (CoreTypeFamily.TIMESTAMP.equals(family)) {
+            return "TIMESTAMP_NTZ";
+        } else if (CoreTypeFamily.ARRAY.equals(family)) {
+            return "ARRAY";
+        } else if (CoreTypeFamily.TEXT.equals(family)) {
+            return "VARCHAR";
+        }
+        return "VARIANT";
     }
 
     /** The element type of a structured array, by what the elements are. */
@@ -361,6 +440,7 @@ public class SnowflakeDialect implements SqlDialect {
         // accepted (measured), so the sum and the mean fold the list without its NULLs, and the
         // smallest and largest are the functions Snowflake has. A typed array takes the value to
         // look for as it is.
+        registry.register(ListFunctions.supported("unnest"));
         registry.register(ListFunctions.supported("list_size").template("ARRAY_SIZE({0})"));
         registry.register(
                 ListFunctions.supported("list_contains").template("ARRAY_CONTAINS({1}, {0})"));
