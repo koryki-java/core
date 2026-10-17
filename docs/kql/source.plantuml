@@ -7,5 +7,6 @@ skinparam legendBackgroundColor white
 
 source =
     "ID", "ID"
+  | function, "ID"
 ;
 @endebnf

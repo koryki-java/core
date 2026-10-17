@@ -1,14 +1,46 @@
-# Plan: turning a list into rows (UNNEST) without a grammar change
+# Plan: turning a list into rows (UNNEST)
 
-Status: planned for the next release. Nothing of this is built. Written after `0.3.0` was prepared;
-the measurements are from 2026-10-15.
+Status: **built**, on all eight dialects, in the form described under "What was built". The rest of
+this page is the analysis that came before, kept for its measurements and its reasons; where it
+differs from what was built, this section wins. The user-facing description is [Nested
+values](../NESTED.md#unnest-one-row-per-element).
+
+## What was built
+
+`unnest` is a known function (kind `SOURCE`), written as a source after the source the list comes from:
+`FIND orders o, o unnest(o.items) i`, and `o + unnest(o.items) i` for the outer join. That is the
+grammar change the plan had avoided: a `source` may be a function call, in KQL and in IQL, and the
+validator accepts `unnest` only. It replaced the two ideas below:
+
+- **No virtual tables at load, no names to resolve.** The plan generated a derived table and entity
+  for every list column when the catalog was loaded, and `o items i` meant "a list attribute of
+  `o`" where no entity or link had that name. What was built derives the rows from the *type of the
+  expression* when a query is checked (`UnnestElements`): the element type, and the model's words
+  for its parts. So the list may be a column, a list in a struct, what a lambda made, or a field of
+  the rows of an earlier unnest, with no depth limit, no key on the parent, no generated entities to
+  hide, and no rule for a name that is both an entity and a list column.
+- **The lateral join is the only form.** The plan wrote an inline `SELECT` of the unnest joined to
+  its parent by key, and folded the pair into `FROM parent, UNNEST(...)` as a second step. The
+  measurements below said the fold is the fast form, so each dialect writes the lateral join
+  directly (`unnestJoin`), reads the columns of the rows (`unnestColumn`), and asks for the
+  position only where the query reads it.
+
+Where the plan said "not measured": Trino, Snowflake, Oracle, SQL Server, MariaDB and SQLite were
+run against the live beds with one shared contract (`UnnestContract`, `UnnestJsonContract`), and
+what they differ in is in the table of [Nested values](../NESTED.md#what-each-dialect-does). Still
+not measured: long lists, skewed values, wide structs, and the generated-data test across engines
+(seeded random rows, with and without a JSON column, which the Oracle fault depended on).
+
+Not built, from this plan: `unnest: false` on a table or column, a setting for the depth, and a
+materialized view as an entry that overrides a generated table (a view stays a table of the
+catalog, written by `FlattenViews`).
 
 ## The problem
 
 A list cannot be grouped or joined by what is inside it. "Revenue per sku" over `orders.items`, a list
 of structs, needs one row for each element. Today that takes a *flatten view* that the generator in
 `tools` writes (`FlattenViews`), that a person creates in the database and that is added to the
-catalog by hand ([`NESTED.md`](../NESTED.md#flatten-views-one-row-per-element)). For an analyst it is the
+catalog by hand ([`NESTED.md`](../NESTED.md#flatten-views-a-table-in-the-database)). For an analyst it is the
 most wanted operation, and it is the one that needs a developer.
 
 Per-row questions (an order total from its lines) are already one lambda, `list_sum(list_transform(...))`,

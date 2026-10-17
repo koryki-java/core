@@ -80,7 +80,7 @@ Query
 | `Block` | A named CTE (`WITH id AS (...)`) |
 | `Set` | A set operation (UNION/INTERSECT/MINUS) or a single `Select` |
 | `Select` | A full SELECT statement with all its clauses |
-| `Source` | A table/entity reference (name, alias, scoped filters/groups/orders/outs) |
+| `Source` | A table/entity reference (name, alias, scoped filters/groups/orders/outs), or a list made into rows: no name, but the `call` `unnest(t.items)` |
 | `Join` | A link-driven join between two `Source`s |
 | `Exists` | A correlated EXISTS subquery |
 | `Expression` | A tagged union for any scalar value (field, literal, function, subquery) |

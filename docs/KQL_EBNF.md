@@ -313,6 +313,13 @@ two placements as a `link` does.
 `source` declares which entity to query and how to refer to it within the `select`. The first identifier is the entity name as 
 defined in the semantic layer; the second is the `alias` used in all subsequent references (`link`, `FILTER`, and `FETCH` clauses).
 
+A `source` may also be a list made into rows, `unnest(o.items) i`: a `function` call and an `alias`. The
+grammar takes any call; the function validator accepts `unnest` only, with one list as its argument
+(a column, a selection, what a lambda made, or a field of the rows of an earlier `unnest`), and only as
+a `link` after the source the list comes from: it does not start a `FIND` or an `EXISTS`, and takes no
+`join`. The alias is a source of rows: the fields of the element are its columns, `value` is the column
+of an element that is no struct, and `ordinal` the position. See [Nested values](NESTED.md#unnest-one-row-per-element).
+
 
 ## KQL Expression Rule
 
