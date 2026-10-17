@@ -167,6 +167,7 @@ What is specific to mssql: the rendering column is filled in only where this dia
 | translate | string | scalar | standard |  |  |
 | trim | string | scalar | overridden | `trim(…) — dialect-specific rendering` |  |
 | trunc | math | scalar | overridden | `ROUND(value, 0, 1)`<br>`ROUND(value, scale, 1)` |  |
+| unnest | list | source | overridden | `unnest(list)` |  |
 | upper | string | scalar | standard |  |  |
 | week | datetime | scalar | overridden | `DATEPART(iso_week, value)` |  |
 | week_begin | datetime | scalar | overridden | `DATEADD(day, -(DATEDIFF(day, 0, value) % 7), CAST(value AS DATE))` |  |

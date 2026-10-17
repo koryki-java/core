@@ -167,6 +167,7 @@ What is specific to mariadb: the rendering column is filled in only where this d
 | translate | string | scalar | unsupported | `—` |  |
 | trim | string | scalar | overridden | `TRIM(string)`<br>`trim(string, characters) — unsupported` |  |
 | trunc | math | scalar | overridden | `TRUNCATE(value, 0)`<br>`TRUNCATE(value, scale)` |  |
+| unnest | list | source | overridden | `unnest(list)` |  |
 | upper | string | scalar | standard |  |  |
 | week | datetime | scalar | overridden | `WEEKOFYEAR(value)` |  |
 | week_begin | datetime | scalar | overridden | `(DATE(value) - INTERVAL WEEKDAY(value) DAY)` |  |

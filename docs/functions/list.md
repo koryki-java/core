@@ -178,3 +178,14 @@ Operands: any type.
 
 Unsupported: **mariadb**, **mssql**, **sqlite**
 
+
+## unnest
+
+`unnest(list: list | JSON array)` → argument-dependent
+
+The elements of the list as rows, one for each, written as a source: FIND orders o, o unnest(o.items) i. The fields of an element are the columns of the alias, and an empty or NULL list has no rows (+ keeps the row it comes from).
+
+| Argument | Type | Description |
+|---|---|---|
+| list | list \| JSON array | the list made into rows: a list, or a JSON array the catalog declares |
+

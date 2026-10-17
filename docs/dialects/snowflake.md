@@ -167,6 +167,7 @@ What is specific to snowflake: the rendering column is filled in only where this
 | translate | string | scalar | standard |  |  |
 | trim | string | scalar | standard |  |  |
 | trunc | math | scalar | standard |  |  |
+| unnest | list | source | overridden | `unnest(list)` |  |
 | upper | string | scalar | standard |  |  |
 | week | datetime | scalar | overridden | `WEEKISO(value)` |  |
 | week_begin | datetime | scalar | overridden | `DATEADD(day, -(DAYOFWEEKISO(value) - 1), value)` |  |

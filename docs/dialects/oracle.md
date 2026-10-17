@@ -168,6 +168,7 @@ What is specific to oracle: the rendering column is filled in only where this di
 | translate | string | scalar | standard |  |  |
 | trim | string | scalar | overridden | `trim(…) — dialect-specific rendering` |  |
 | trunc | math | scalar | standard |  |  |
+| unnest | list | source | overridden | `unnest(list)` |  |
 | upper | string | scalar | standard |  |  |
 | week | datetime | scalar | overridden | `TO_NUMBER(TO_CHAR(value, 'IW'))` |  |
 | week_begin | datetime | scalar | overridden | `TRUNC(value, 'IW')` |  |
