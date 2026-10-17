@@ -295,7 +295,8 @@ public class Walker {
                 && visitScoped(
                         table,
                         () ->
-                                table.getOut().stream().allMatch(o -> walk(o, visitor))
+                                walk(table.getCall(), visitor)
+                                        && table.getOut().stream().allMatch(o -> walk(o, visitor))
                                         && walk(table.getFilter(), visitor)
                                         && walk(table.getHaving(), visitor)
                                         && table.getGroup().stream().allMatch(g -> walk(g, visitor))

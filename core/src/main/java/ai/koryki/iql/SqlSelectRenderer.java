@@ -169,6 +169,12 @@ public class SqlSelectRenderer {
     }
 
     protected String toSql(Source source, int indent) {
+        if (source.getCall() != null) {
+            throw new KorykiaiException(
+                    "a list made into rows, "
+                            + source.getCall().getFunc()
+                            + ", is not rendered yet");
+        }
         StringBuilder b = new StringBuilder();
 
         b.append(qualified(source, normal(toSql(source))));

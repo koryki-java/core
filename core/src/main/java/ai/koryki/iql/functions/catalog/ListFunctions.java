@@ -26,6 +26,7 @@ import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.iql.SqlSelectRenderer;
 import ai.koryki.iql.functions.FunctionCategory;
 import ai.koryki.iql.functions.FunctionDefinition;
+import ai.koryki.iql.functions.FunctionKind;
 import ai.koryki.iql.functions.FunctionRegistry;
 import ai.koryki.iql.functions.LambdaSpec;
 import ai.koryki.iql.functions.ReturnTypes;
@@ -86,6 +87,7 @@ public final class ListFunctions {
         all.addAll(valueDefinitions());
         all.addAll(shapeDefinitions());
         all.addAll(buildDefinitions());
+        all.addAll(sourceDefinitions());
         return all;
     }
 
@@ -283,6 +285,23 @@ public final class ListFunctions {
                         .category(FunctionCategory.LIST)
                         .doc(
                                 "The mean of the elements as a floating point number, NULL elements ignored."));
+    }
+
+    /**
+     * What makes a list into rows. Not a value, so of the kind {@link FunctionKind#SOURCE}: it is
+     * written where a source is, {@code o unnest(o.items) i}, and each row is an element, whose
+     * fields are the columns of the alias.
+     */
+    private static List<FunctionDefinition> sourceDefinitions() {
+        return List.of(
+                new FunctionDefinition("unnest", ReturnTypes.ELEMENT_OF_LIST, FunctionKind.SOURCE)
+                        .args(arg("list", CoreTypeFamily.ARRAY, "the list made into rows"))
+                        .category(FunctionCategory.LIST)
+                        .doc(
+                                "The elements of the list as rows, one for each, written as a source:"
+                                        + " FIND orders o, o unnest(o.items) i. The fields of an"
+                                        + " element are the columns of the alias, and an empty or"
+                                        + " NULL list has no rows (+ keeps the row it comes from)."));
     }
 
     private static List<FunctionDefinition> lambdaDefinitions() {

@@ -202,7 +202,16 @@ public class KQLQueryMapper {
             // Only an unwritten join is inferred. Explicit columns ARE the criterion; looking one
             // up
             // would put a name next to them that the IQL form then writes instead.
-            if (join.getCrit() == null && join.getColumns() == null) {
+            // A list made into rows, `o unnest(o.items) i`, is joined to the source it comes from
+            // by what the call is given, not by a link of the catalog: there is none to look up.
+            if (link.source().call != null
+                    && blockIdToSourceMap.get(f) == null
+                    && aliasToTable.get(f) == null) {
+                throw aliasError(
+                        link,
+                        "unknown alias '" + f + "': no source with that alias is in scope here");
+            }
+            if (join.getCrit() == null && join.getColumns() == null && link.source().call == null) {
                 // anonymous criteria must be resolved here
                 Source fromTable = blockIdToSourceMap.get(f);
 
@@ -217,6 +226,15 @@ public class KQLQueryMapper {
                                     + "': no source with that alias is in scope here");
                 }
                 String t = link.source().alias.getText();
+
+                if (fromTable.getCall() != null) {
+                    throw aliasError(
+                            link,
+                            "'"
+                                    + f
+                                    + "' is a list made into rows and has no link to follow: join"
+                                    + " the entity to the source the list comes from");
+                }
 
                 // first test for blockId, as visibilityContext may already contain alias, but this
                 // is the table itself
@@ -369,11 +387,7 @@ public class KQLQueryMapper {
 
         Source fromTable = aliasToTable.get(parentAlias);
 
-        String toTableName = first.source().name.getText();
-        String toAlias = first.source().alias.getText();
-        Source toTable = build(first.source(), Source::new);
-        toTable.setName(toTableName);
-        toTable.setAlias(toAlias);
+        Source toTable = toTable(first.source());
 
         ParsedJoin parsed = parseJoin(first.join());
         e.setCrit(parsed.crit());
@@ -381,7 +395,7 @@ public class KQLQueryMapper {
 
         // Only an unwritten join is inferred. Explicit columns ARE the criterion, so looking one up
         // would overwrite what the author wrote.
-        if (e.getCrit() == null && e.getColumns() == null) {
+        if (e.getCrit() == null && e.getColumns() == null && toTable.getCall() == null) {
             Optional<String> l =
                     resolver.findLink(
                             Range.of(iqlToContext, toTable),
@@ -805,7 +819,7 @@ public class KQLQueryMapper {
 
     private Join toJoin(KQLParser.LinkContext link, Map<String, Source> aliasToTable) {
 
-        String toTableName = link.source().name.getText();
+        String toTableName = link.source().name != null ? link.source().name.getText() : null;
         String toAlias = link.source().alias.getText();
         Join bean = build(link, Join::new);
         ParsedJoin parsed = parseJoin(link.join());
@@ -818,24 +832,22 @@ public class KQLQueryMapper {
 
         Source t = aliasToTable.get(toAlias);
         if (t == null) {
-            t = build(link.source(), Source::new);
-            t.setName(toTableName);
-            t.setAlias(toAlias);
+            t = toTable(link.source());
             aliasToTable.put(toAlias, t);
             bean.setSource(t);
         } else {
             // Re-using an alias is the back-reference syntax — that is how a cycle is written
             // (see the cycle_1 validator fixture) — but only when it names the same table.
             // Rebinding it to a different one would silently resolve to the first source.
-            if (!toTableName.equals(t.getName())) {
+            if (toTableName == null || !toTableName.equals(t.getName())) {
                 throw aliasError(
                         link,
                         "ambiguous alias '"
                                 + toAlias
                                 + "': already bound to "
-                                + t.getName()
+                                + (t.getName() != null ? t.getName() : "a list")
                                 + ", cannot rebind it to "
-                                + toTableName);
+                                + (toTableName != null ? toTableName : "a list"));
             }
             bean.setRef(toAlias);
         }
@@ -858,7 +870,11 @@ public class KQLQueryMapper {
         Source bean = build(table, Source::new);
 
         bean.setAlias(table.alias.getText());
-        bean.setName(table.name.getText());
+        if (table.call != null) {
+            bean.setCall(toFunction(table.call));
+        } else {
+            bean.setName(table.name.getText());
+        }
 
         return bean;
     }

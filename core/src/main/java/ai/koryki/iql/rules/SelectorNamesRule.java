@@ -28,6 +28,7 @@ import ai.koryki.iql.query.Query;
 import ai.koryki.iql.query.Select;
 import ai.koryki.iql.query.Selector;
 import ai.koryki.iql.query.Source;
+import ai.koryki.iql.typing.RowType;
 import ai.koryki.iql.typing.SelectorLevels;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -52,9 +53,21 @@ public class SelectorNamesRule {
     private final Map<String, Block> blocks = new HashMap<>();
     private final SelectorLevels levels;
 
+    private final java.util.function.Function<Source, RowType> rows;
+
+    /** The rule for a query without lists made into rows. */
     public SelectorNamesRule(LinkResolver resolver) {
+        this(resolver, source -> null);
+    }
+
+    /**
+     * @param rows what the rows of a list made into rows are, for the fields of its alias
+     */
+    public SelectorNamesRule(
+            LinkResolver resolver, java.util.function.Function<Source, RowType> rows) {
         this.resolver = resolver;
-        this.levels = new SelectorLevels(resolver, blocks::get);
+        this.rows = rows;
+        this.levels = new SelectorLevels(resolver, blocks::get, rows);
     }
 
     public void apply(Query query) {
@@ -84,6 +97,26 @@ public class SelectorNamesRule {
             NamesVisitor inner = new NamesVisitor(scopes);
             new Walker().walk(exists.getFilter(), inner);
             new Walker().walk(exists.getHaving(), inner);
+            return true;
+        }
+
+        /**
+         * A field of a list made into rows is a field of its element, and is called what the model
+         * calls it: {@code i.artikel} is {@code i.sku}. The steps of a selection from it are
+         * translated with the others, from the name as it was written.
+         */
+        @Override
+        public boolean visit(Deque<Object> deque, Field field) {
+            Source source =
+                    field.getAlias() == null ? null : sourceOf(deque, outer, field.getAlias());
+            RowType type = source == null || source.getCall() == null ? null : rows.apply(source);
+            if (type != null && type.level() != null) {
+                MemberNames.Level element = type.level();
+                String key = element.physical(field.getName()).orElse(null);
+                if (key != null && element.named(key)) {
+                    field.setName(key);
+                }
+            }
             return true;
         }
 

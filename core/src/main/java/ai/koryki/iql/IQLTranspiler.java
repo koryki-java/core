@@ -25,7 +25,9 @@ import ai.koryki.iql.query.Out;
 import ai.koryki.iql.query.Query;
 import ai.koryki.iql.query.Source;
 import ai.koryki.iql.rewrite.DateBetweenRewriter;
+import ai.koryki.iql.typing.UnnestElements;
 import ai.koryki.iql.validate.PlaceholderValidator;
+import ai.koryki.iql.validate.SourceCallValidator;
 import ai.koryki.iql.validate.ValidateException;
 import ai.koryki.iql.validate.Validator;
 import ai.koryki.iql.validate.Violation;
@@ -121,6 +123,20 @@ public class IQLTranspiler extends AbstractTranspiler<IQLReader, IQLParser.Query
         List<Violation> placeholders = Walker.apply(q, new PlaceholderValidator(m.iqlToContext()));
         if (!placeholders.isEmpty()) {
             return new Analysis(visibility, List.copyOf(placeholders));
+        }
+
+        // See KQLTranspiler.analyze: a source that is a call must be unnest of a list.
+        List<Violation> sourceCalls = Walker.apply(q, new SourceCallValidator(m.iqlToContext()));
+        if (!sourceCalls.isEmpty()) {
+            return new Analysis(visibility, List.copyOf(sourceCalls));
+        }
+
+        // See KQLTranspiler.analyze: the rows of a list made into rows, and the alias of one named
+        // as an entity
+        List<Violation> rows =
+                new UnnestElements(resolver, functions, visibility, m.iqlToContext()).apply(q);
+        if (!rows.isEmpty()) {
+            return new Analysis(visibility, List.copyOf(rows));
         }
 
         // See KQLTranspiler.analyze: a broken scope stops the pipeline, but is reported rather than

@@ -235,13 +235,22 @@ public class IQLQueryMapper {
         return bean;
     }
 
+    /** The name or the call, and the alias, of a source as written. */
+    private void setSource(Source source, IQLParser.SourceContext written) {
+        if (written.call != null) {
+            source.setCall(toExpression(written.call).getFunction());
+        } else {
+            source.setName(written.tab.getText());
+        }
+        if (written.alias != null) {
+            source.setAlias(written.alias.getText());
+        }
+    }
+
     public Source toEntity(IQLParser.Join_entityContext entity) {
 
         Source source = build(entity, Source::new);
-        source.setName(entity.source().tab.getText());
-        if (entity.source().alias != null) {
-            source.setAlias(entity.source().alias.getText());
-        }
+        setSource(source, entity.source());
 
         for (IQLParser.OutContext o : entity.out()) {
             source.getOut().add(toOut(o));
@@ -268,10 +277,7 @@ public class IQLQueryMapper {
 
         Source source = build(entity, Source::new);
 
-        source.setName(entity.source().tab.getText());
-        if (entity.source().alias != null) {
-            source.setAlias(entity.source().alias.getText());
-        }
+        setSource(source, entity.source());
 
         LogicalExpression f = Normalizer.normalize(toLogicalNode(entity.filter()));
         source.setFilter(f);

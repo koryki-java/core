@@ -44,13 +44,17 @@ public final class SelectorLevels {
 
     private final LinkResolver resolver;
     private final Function<String, Block> blocks;
+    private final Function<Source, RowType> rows;
 
     /**
      * @param blocks the block of an id, or null where the id is no block
+     * @param rows what the rows of a list made into rows are, or null where it has none
      */
-    public SelectorLevels(LinkResolver resolver, Function<String, Block> blocks) {
+    public SelectorLevels(
+            LinkResolver resolver, Function<String, Block> blocks, Function<Source, RowType> rows) {
         this.resolver = resolver;
         this.blocks = blocks;
+        this.rows = rows;
     }
 
     /** The names of the column the field {@code name} of {@code source} stands for. */
@@ -59,6 +63,17 @@ public final class SelectorLevels {
     }
 
     private Optional<MemberNames.Level> of(Source source, String name, Set<String> seen) {
+        if (source.getCall() != null) {
+            // a field of a list made into rows is a field of its element
+            RowType type = rows.apply(source);
+            if (type == null || type.level() == null) {
+                return Optional.empty();
+            }
+            MemberNames.Level element = type.level();
+            return element.physical(name)
+                    .or(() -> element.keys().contains(name) ? Optional.of(name) : Optional.empty())
+                    .flatMap(element::into);
+        }
         Block block = blocks.apply(source.getName());
         if (block != null) {
             if (!seen.add(block.getId())) {

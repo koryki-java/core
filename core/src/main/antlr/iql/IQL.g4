@@ -59,8 +59,10 @@ exists_entity
 ;
 
 // A join names either a criterion the catalog resolves or the columns themselves; never both.
+// Neither is written where the source is a call, `unnest(t.items) i`: what joins it is what the call
+// is given. That a join to an entity has one is not the grammar's to say, SourceCallValidator does.
 join
-    : OPTIONAL?  (crit=ID | on=joincolumns)
+    : OPTIONAL?  (crit=ID | on=joincolumns)?
         (REF ref=ID
         |
         (
@@ -166,8 +168,10 @@ field
     : alias=ID DOT col=ID
 ;
 
+// An entity, or a list made into rows: `unnest(t.items) i`. See KQLRules.g4.
 source
-    :  tab=ID alias=ID
+    : tab=ID alias=ID
+    | call=function alias=ID
 ;
 
 out

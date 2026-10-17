@@ -273,7 +273,7 @@ public class KQLFormatter {
 
             List<String> findItems = new ArrayList<>();
             findItems.add(toSource(select.source(), indent));
-            String leading = select.source().name.getText();
+            String leading = entityName(select.source());
             select.link().stream().map(l -> toLink(l, leading)).forEach(findItems::add);
             b.append(renderClause(indent, "FIND ", findItems));
             b.append(SqlRenderer.NL);
@@ -471,7 +471,7 @@ public class KQLFormatter {
             b.append(toLink(exists.existslink()));
 
             List<KQLParser.LinkContext> links = exists.link();
-            String existsLeading = exists.existslink().source().name.getText();
+            String existsLeading = entityName(exists.existslink().source());
             String ll =
                     links.stream()
                             .map(l -> toLink(l, existsLeading))
@@ -596,6 +596,11 @@ public class KQLFormatter {
             }
             // a field of a block is the output of the block: the names belong to the column it
             // projects, found in the entity that column is a column of
+            if (source.call != null) {
+                // the fields of a list made into rows are named by its elements, which nothing
+                // translates yet: the steps stay as they were typed
+                return head + steps.stream().map(s -> s.getText()).collect(Collectors.joining());
+            }
             String[] origin = originOf(source.name.getText(), field.name.getText());
             java.util.List<KQLParser.SelectorContext> written = java.util.List.copyOf(steps);
             java.util.List<ai.koryki.iql.query.Selector> translated =
@@ -712,6 +717,11 @@ public class KQLFormatter {
                 throw new RangeException(Range.range(column), "missing source: " + alias);
             }
 
+            if (source.call != null) {
+                // a field of a list made into rows: the element's wording is not translated yet
+                b.append(column.name.getText());
+                return b.toString();
+            }
             Source block = visibilityContext.getLeadingSource(source.name.getText());
             String sourcename = block != null ? block.getName() : source.name.getText();
             String c = translator.field(sourcename, column.name.getText());
@@ -868,7 +878,7 @@ public class KQLFormatter {
         /** The entity an alias stands for, or the alias itself when it is a block id. */
         private String entityOf(String alias) {
             KQLParser.SourceContext src = visibilityContext.getSource(alias);
-            return src != null ? src.name.getText() : alias;
+            return src != null && src.name != null ? src.name.getText() : alias;
         }
 
         private String toLink(KQLParser.ExistslinkContext link) {
@@ -878,12 +888,8 @@ public class KQLFormatter {
             if (link.from != null) {
                 b.append(link.from.getText()).append(" ");
             }
-            b.append(
-                    toJoin(
-                            link.join(),
-                            entityOf(link.from.getText()),
-                            link.source().name.getText()));
-            b.append(translator.source(link.source().name.getText()));
+            b.append(toJoin(link.join(), entityOf(link.from.getText()), entityName(link.source())));
+            b.append(sourceText(link.source()));
             b.append(" ");
             b.append(link.source().alias.getText());
 
@@ -901,9 +907,9 @@ public class KQLFormatter {
                     toJoin(
                             link.join(),
                             link.from != null ? entityOf(link.from.getText()) : leading,
-                            link.source().name.getText()));
+                            entityName(link.source())));
             b.append(link.PLUS() != null ? "+ " : "");
-            b.append(translator.source(link.source().name.getText()));
+            b.append(sourceText(link.source()));
             b.append(" ");
             b.append(link.source().alias.getText());
 
@@ -913,10 +919,22 @@ public class KQLFormatter {
         private String toSource(KQLParser.SourceContext source, int indent) {
 
             StringBuilder b = new StringBuilder();
-            b.append(translator.source(source.name.getText()));
+            b.append(sourceText(source));
             b.append(" ");
             b.append(source.alias.getText());
             return b.toString();
+        }
+
+        /** The name of the entity a source is, or null for a list made into rows. */
+        private String entityName(KQLParser.SourceContext source) {
+            return source.name != null ? source.name.getText() : null;
+        }
+
+        /** An entity in the words of the translator, or the call that makes a list into rows. */
+        private String sourceText(KQLParser.SourceContext source) {
+            return source.call != null
+                    ? toFunction(source.call, 0)
+                    : translator.source(source.name.getText());
         }
     }
 

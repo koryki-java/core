@@ -23,6 +23,13 @@ public class Source {
     private String name;
     private String alias;
 
+    /**
+     * The function call a list is made into rows by, {@code unnest(t.items)}, or null for an
+     * entity. Then {@link #getName()} is null: the source is not a table of the catalog but the
+     * elements of the list the call is given.
+     */
+    private Function call;
+
     private List<Out> out = new ArrayList<>();
     private LogicalExpression filter;
     private List<Group> group = new ArrayList<>();
@@ -35,6 +42,14 @@ public class Source {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public Function getCall() {
+        return call;
+    }
+
+    public void setCall(Function call) {
+        this.call = call;
     }
 
     public String getAlias() {

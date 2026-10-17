@@ -28,12 +28,15 @@ public class Rules {
     private Query query;
     private Map<String, Source> blockIdToLeadingTableMap;
     private Map<Object, RuleContext> iqlToContext;
+    private ai.koryki.iql.IQLVisibilityContext visibility;
 
     public Rules(
             LinkResolver resolver,
             Map<String, Source> blockIdToLeadingTableMap,
             Query query,
-            Map<Object, RuleContext> iqlToContext) {
+            Map<Object, RuleContext> iqlToContext,
+            ai.koryki.iql.IQLVisibilityContext visibility) {
+        this.visibility = visibility;
         this.resolver = resolver;
         this.query = query;
         this.blockIdToLeadingTableMap = blockIdToLeadingTableMap;
@@ -47,7 +50,7 @@ public class Rules {
         new HavingRule(query).apply();
         new GroupRule(query, iqlToContext).apply();
         new IdentityRule(blockIdToLeadingTableMap, resolver, iqlToContext).apply(query);
-        new SelectorNamesRule(resolver).apply(query);
+        new SelectorNamesRule(resolver, visibility::rowsOf).apply(query);
         new PushLogicalExpressionRule().apply(query);
         new PushGroupRule().apply(query);
         new PushOrderRule().apply(query);
