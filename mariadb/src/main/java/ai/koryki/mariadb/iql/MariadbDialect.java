@@ -329,8 +329,76 @@ public class MariadbDialect implements SqlDialect {
         return FUNCTION_RENDERER;
     }
 
+    /** The column type of a scalar read out of JSON by {@code JSON_TABLE}. */
+    private static String jsonTableType(TypeDescriptor type) {
+        var family = type.getTypeFamily();
+        if (CoreTypeFamily.INTEGER.equals(family)) {
+            return "INT";
+        } else if (CoreTypeFamily.FLOAT.equals(family)) {
+            return "DOUBLE";
+        } else if (CoreTypeFamily.DECIMAL.equals(family)) {
+            return "DECIMAL(38, 10)";
+        } else if (CoreTypeFamily.BOOLEAN.equals(family)) {
+            return "TINYINT(1)";
+        } else if (CoreTypeFamily.TEXT.equals(family)) {
+            return "VARCHAR(4000)";
+        }
+        throw new KorykiaiException(
+                "a JSON member of " + type.portable() + " is not read as a column");
+    }
+
+    private static String backtick(String name) {
+        return "`" + name.replace("`", "``") + "`";
+    }
+
+    /**
+     * {@code JOIN JSON_TABLE(list, '$[*]' COLUMNS (...)) i ON TRUE}: a JSON array made into rows,
+     * with the position as {@code ordinal FOR ORDINALITY} and a column of its own, typed, for each
+     * member of an object element, or {@code value} for any other.
+     */
+    @Override
+    public String unnestJoin(
+            boolean outer,
+            String list,
+            TypeDescriptor element,
+            String alias,
+            boolean ordinal,
+            String condition) {
+        List<String> columns = new java.util.ArrayList<>();
+        columns.add("ordinal FOR ORDINALITY");
+        if (CoreTypeFamily.STRUCT.equals(element.getTypeFamily())) {
+            for (String field : element.fieldNames()) {
+                columns.add(
+                        backtick(field)
+                                + " "
+                                + jsonTableType(element.field(field).orElseThrow())
+                                + " PATH '$."
+                                + field
+                                + "'");
+            }
+        } else {
+            columns.add("`value` " + jsonTableType(element) + " PATH '$'");
+        }
+        return (outer ? "LEFT OUTER" : "INNER")
+                + " JOIN JSON_TABLE("
+                + list
+                + ", '$[*]' COLUMNS ("
+                + String.join(", ", columns)
+                + ")) "
+                + alias
+                + " ON "
+                + (condition == null ? "TRUE" : condition);
+    }
+
+    @Override
+    public String unnestColumn(String alias, TypeDescriptor element, String column) {
+        return alias + "." + backtick(column);
+    }
+
     private static FunctionRenderer buildFunctionRenderer() {
         FunctionRegistry registry = StandardFunctions.registry();
+        // a JSON array the catalog declares is made into rows by JSON_TABLE
+        registry.register(ai.koryki.iql.functions.catalog.ListFunctions.supported("unnest"));
         // to_text is the rolled-out, tested function: keep its dialect cast-type override.
         // MariaDB has no IS [NOT] DISTINCT FROM (verified: syntax error); <=> is its null-safe
         // equal, so the distinctness operator is its negation.

@@ -77,7 +77,7 @@ class UnnestKnownFunctionTest {
         assertEquals(FunctionKind.SOURCE, unnest.getKind());
         assertEquals(FunctionCategory.LIST, unnest.getCategory());
         assertEquals(1, unnest.getSignature().args().size());
-        assertEquals("ARRAY", unnest.getSignature().args().get(0).family().name());
+        assertEquals("LISTABLE", unnest.getSignature().args().get(0).family().name());
     }
 
     @Test

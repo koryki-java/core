@@ -143,9 +143,18 @@ public final class UnnestElements {
         public boolean visit(Deque<Object> deque, Source source) {
             Function call = source.getCall();
             if (call != null && call.getArguments().size() == 1 && !scopes.isEmpty()) {
-                RowType type = rows(call.getArguments().get(0), scopes.peek());
+                Expression list = call.getArguments().get(0);
+                RowType type = rows(list, scopes.peek());
                 if (type != null) {
                     root.putRows(source, type);
+                } else if (UnnestRows.undeclaredJson(typeOf(list, scopes.peek()))) {
+                    violations.add(
+                            new Violation(
+                                    "source",
+                                    source,
+                                    Range.of(iqlToContext, source),
+                                    "unnest needs a list, and this JSON is not declared as one:"
+                                            + " the catalog says where the array is, as in .a.b[]"));
                 }
             }
             return true;
@@ -157,13 +166,16 @@ public final class UnnestElements {
         return type == null ? "field" : UnnestRows.columns(type.element()).get(0);
     }
 
-    private RowType rows(Expression list, IQLVisibilityContext scope) {
-        TypeDescriptor type;
+    private TypeDescriptor typeOf(Expression list, IQLVisibilityContext scope) {
         try {
-            type = new ExpressionTypeResolver(resolver, scope, functions).resolve(list);
+            return new ExpressionTypeResolver(resolver, scope, functions).resolve(list);
         } catch (RuntimeException e) {
             return null;
         }
+    }
+
+    private RowType rows(Expression list, IQLVisibilityContext scope) {
+        TypeDescriptor type = typeOf(list, scope);
         TypeDescriptor element = UnnestRows.elementOf(type);
         if (element == null) {
             return null;

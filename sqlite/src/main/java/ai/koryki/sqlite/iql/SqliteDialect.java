@@ -107,6 +107,55 @@ public class SqliteDialect implements SqlDialect {
         return "(" + base + " -> " + NestedSql.literal(INSTANCE, path) + ")";
     }
 
+    /**
+     * {@code JOIN json_each(list) i ON json_type(list) = 'array'}: a JSON array made into rows. The
+     * guard keeps an object, whose members {@code json_each} would walk, out of the rows; it is in
+     * the ON, so an outer join keeps the parent without an array, and a condition on the rows
+     * follows it.
+     */
+    @Override
+    public String unnestJoin(
+            boolean outer,
+            String list,
+            TypeDescriptor element,
+            String alias,
+            boolean ordinal,
+            String condition) {
+        return (outer ? "LEFT OUTER" : "INNER")
+                + " JOIN json_each("
+                + list
+                + ") "
+                + alias
+                + " ON json_type("
+                + list
+                + ") = 'array'"
+                + (condition == null ? "" : " AND (" + condition + ")");
+    }
+
+    /**
+     * A column of the rows of {@code json_each}: a member of an object element from {@code value},
+     * the element itself for any other, and {@code key + 1} for the position, since {@code key} is
+     * the index from 0.
+     */
+    @Override
+    public String unnestColumn(String alias, TypeDescriptor element, String column) {
+        if (ai.koryki.iql.typing.UnnestRows.ORDINAL.equals(column)) {
+            return "(" + alias + ".key + 1)";
+        }
+        if (CoreTypeFamily.STRUCT.equals(element.getTypeFamily())) {
+            String name =
+                    column.matches("[A-Za-z_][A-Za-z0-9_]*")
+                            ? column
+                            : "\"" + column.replace("\"", "\\\"") + "\"";
+            return "json_extract("
+                    + alias
+                    + ".value, "
+                    + NestedSql.literal(INSTANCE, "$." + name)
+                    + ")";
+        }
+        return alias + ".value";
+    }
+
     private static final FunctionRenderer FUNCTION_RENDERER = buildFunctionRenderer();
 
     @Override
@@ -121,6 +170,9 @@ public class SqliteDialect implements SqlDialect {
      */
     private static FunctionRenderer buildFunctionRenderer() {
         FunctionRegistry r = StandardFunctions.registry();
+
+        // a JSON array the catalog declares is made into rows by json_each
+        r.register(ai.koryki.iql.functions.catalog.ListFunctions.supported("unnest"));
 
         r.override("quarter", "((CAST(strftime('%m', {0}) AS INTEGER) + 2) / 3)");
         r.override(

@@ -40,11 +40,30 @@ public final class UnnestRows {
 
     private UnnestRows() {}
 
-    /** The type of an element of the list, or null where it is not a list. */
+    /**
+     * The type of an element of the list, or null where it is not a list. A JSON value is one where
+     * the catalog declares it an array ({@code .a.b[]: INTEGER}), and its elements are what it
+     * declares.
+     */
     public static TypeDescriptor elementOf(TypeDescriptor list) {
-        return list != null && CoreTypeFamily.ARRAY.equals(list.getTypeFamily())
-                ? list.element()
+        if (list == null) {
+            return null;
+        }
+        if (CoreTypeFamily.ARRAY.equals(list.getTypeFamily())) {
+            return list.element();
+        }
+        TypeDescriptor shape =
+                CoreTypeFamily.JSON.equals(list.getTypeFamily()) ? list.shape() : null;
+        return shape != null && CoreTypeFamily.ARRAY.equals(shape.getTypeFamily())
+                ? shape.element()
                 : null;
+    }
+
+    /** Whether the type is JSON that the catalog does not declare as an array. */
+    public static boolean undeclaredJson(TypeDescriptor type) {
+        return type != null
+                && CoreTypeFamily.JSON.equals(type.getTypeFamily())
+                && elementOf(type) == null;
     }
 
     private static boolean struct(TypeDescriptor element) {

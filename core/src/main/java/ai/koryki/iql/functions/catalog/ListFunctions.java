@@ -295,7 +295,12 @@ public final class ListFunctions {
     private static List<FunctionDefinition> sourceDefinitions() {
         return List.of(
                 new FunctionDefinition("unnest", ReturnTypes.ELEMENT_OF_LIST, FunctionKind.SOURCE)
-                        .args(arg("list", CoreTypeFamily.ARRAY, "the list made into rows"))
+                        .args(
+                                arg(
+                                        "list",
+                                        Families.LISTABLE,
+                                        "the list made into rows: a list, or a JSON array the"
+                                                + " catalog declares"))
                         .category(FunctionCategory.LIST)
                         .doc(
                                 "The elements of the list as rows, one for each, written as a source:"
