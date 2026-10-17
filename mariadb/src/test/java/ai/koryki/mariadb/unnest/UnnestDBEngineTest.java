@@ -14,17 +14,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-package ai.koryki.mariadb.complex;
+package ai.koryki.mariadb.unnest;
 
 import ai.koryki.catalog.CatalogLoader;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Schema;
+import ai.koryki.databases.cases.BaseEngineTest;
 import ai.koryki.databases.cases.ListWithSqlResult;
 import ai.koryki.databases.cases.StableFormat;
-import ai.koryki.databases.cases.UnnestJsonContract;
 import ai.koryki.iql.LinkResolver;
-import ai.koryki.kql.Engine;
 import ai.koryki.kql.EngineBuilder;
 import ai.koryki.kql.HeaderInfo;
 import ai.koryki.mariadb.MariadbUnavailable;
@@ -35,23 +33,29 @@ import java.sql.SQLException;
 import java.time.ZoneId;
 import java.util.Locale;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.TestInstance;
 
 /**
- * A JSON array made into rows on Mariadb, over the array its catalog declares; see {@link
- * UnnestJsonContract}.
+ * A list made into rows, {@code t unnest(t.items) i}, on MariaDB: the queries, the rows, the SQL
+ * and what the engine cannot do are the shared fixtures of the schema {@code unnest} in the
+ * northwind project, over the complex bed.
  */
 @MariadbUnavailable
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class UnnestJsonMariadbEngineTest extends UnnestJsonContract {
+public class UnnestDBEngineTest extends BaseEngineTest<HeaderInfo> {
 
-    private Engine<HeaderInfo, ListWithSqlResult<HeaderInfo>> engine;
+    @Override
+    protected String schema() {
+        return "unnest";
+    }
+
+    public UnnestDBEngineTest() {
+        super("mariadb", true);
+    }
 
     @BeforeAll
-    void readComplexCatalog() throws IOException, SQLException {
+    public void readComplexCatalog() throws IOException, SQLException {
         Locale locale = Locale.ENGLISH;
-        Schema db = CatalogLoader.db(ComplexCatalogTest.DB);
-        Model model = CatalogLoader.model(ComplexCatalogTest.MODEL, locale);
+        Schema db = CatalogLoader.db("/ai/koryki/mariadb/databases/complex");
+        Model model = CatalogLoader.model("/ai/koryki/mariadb/databases/complex/model", locale);
         LinkResolver resolver = new LinkResolver(locale, db, model, true);
         engine =
                 EngineBuilder.headers(
@@ -61,10 +65,5 @@ class UnnestJsonMariadbEngineTest extends UnnestJsonContract {
                                 () -> new SqlQueryRenderer(ZoneId.of("UTC")))
                         .valueFormat(new StableFormat(Locale.ROOT))
                         .build();
-    }
-
-    @Override
-    protected Engine<HeaderInfo, ListWithSqlResult<HeaderInfo>> engine() {
-        return engine;
     }
 }

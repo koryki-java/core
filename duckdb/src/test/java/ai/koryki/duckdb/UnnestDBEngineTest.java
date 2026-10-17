@@ -14,52 +14,51 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-package ai.koryki.postgresql.complex;
+package ai.koryki.duckdb;
 
 import ai.koryki.catalog.CatalogLoader;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Schema;
+import ai.koryki.databases.cases.BaseEngineTest;
 import ai.koryki.databases.cases.ListWithSqlResult;
 import ai.koryki.databases.cases.StableFormat;
-import ai.koryki.databases.cases.UnnestContract;
+import ai.koryki.databases.northwind.duckdb.NorthwindDuckdb;
 import ai.koryki.iql.LinkResolver;
-import ai.koryki.kql.Engine;
 import ai.koryki.kql.EngineBuilder;
 import ai.koryki.kql.HeaderInfo;
-import ai.koryki.postgresql.PostgreSQLUnavailable;
-import ai.koryki.postgresql.iql.SqlQueryRenderer;
-import ai.koryki.postgresql.northwind.NorthwindPostgresql;
 import java.io.IOException;
-import java.sql.SQLException;
+import java.time.ZoneId;
 import java.util.Locale;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.TestInstance;
 
-/** A list made into rows on PostgreSQL, over its complex bed; see {@link UnnestContract}. */
-@PostgreSQLUnavailable
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class UnnestPostgreSQLEngineTest extends UnnestContract {
+/**
+ * A list made into rows, {@code t unnest(t.items) i}, on DuckDB: the queries, the rows, the SQL and
+ * what the engine cannot do are the shared fixtures of the schema {@code unnest} in the northwind
+ * project, over the complex bed.
+ */
+public class UnnestDBEngineTest extends BaseEngineTest<HeaderInfo> {
 
-    private Engine<HeaderInfo, ListWithSqlResult<HeaderInfo>> engine;
+    @Override
+    protected String schema() {
+        return "unnest";
+    }
+
+    public UnnestDBEngineTest() {
+        super("duckdb", true);
+    }
 
     @BeforeAll
-    void readComplexCatalog() throws IOException, SQLException {
+    public void readComplexCatalog() throws IOException {
         Locale locale = Locale.ENGLISH;
-        Schema db = CatalogLoader.db("/ai/koryki/postgresql/databases/complex");
-        Model model = CatalogLoader.model("/ai/koryki/postgresql/databases/complex/model", locale);
+        Schema db = CatalogLoader.db("/ai/koryki/duckdb/databases/complex");
+        Model model = CatalogLoader.model("/ai/koryki/duckdb/databases/complex/model", locale);
         LinkResolver resolver = new LinkResolver(locale, db, model, true);
         engine =
                 EngineBuilder.headers(
-                                new NorthwindPostgresql<ListWithSqlResult<HeaderInfo>>(),
+                                NorthwindDuckdb.<ListWithSqlResult<HeaderInfo>>northwind(),
                                 resolver,
-                                () -> new SqlQueryRenderer(java.time.ZoneId.of("UTC")))
+                                () -> new SqlQueryRenderer(ZoneId.of("UTC")))
                         .valueFormat(new StableFormat(Locale.ROOT))
                         .build();
-    }
-
-    @Override
-    protected Engine<HeaderInfo, ListWithSqlResult<HeaderInfo>> engine() {
-        return engine;
     }
 }

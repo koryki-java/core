@@ -14,54 +14,55 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-package ai.koryki.sqlite.complex;
+package ai.koryki.postgresql.unnest;
 
 import ai.koryki.catalog.CatalogLoader;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Schema;
+import ai.koryki.databases.cases.BaseEngineTest;
 import ai.koryki.databases.cases.ListWithSqlResult;
 import ai.koryki.databases.cases.StableFormat;
-import ai.koryki.databases.cases.UnnestJsonContract;
 import ai.koryki.iql.LinkResolver;
-import ai.koryki.kql.Engine;
 import ai.koryki.kql.EngineBuilder;
 import ai.koryki.kql.HeaderInfo;
-import ai.koryki.sqlite.iql.SqlQueryRenderer;
-import ai.koryki.sqlite.northwind.NorthwindSqlite;
+import ai.koryki.postgresql.PostgreSQLUnavailable;
+import ai.koryki.postgresql.iql.SqlQueryRenderer;
+import ai.koryki.postgresql.northwind.NorthwindPostgresql;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.time.ZoneId;
 import java.util.Locale;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.TestInstance;
 
 /**
- * A JSON array made into rows on Sqlite, over the array its catalog declares; see {@link
- * UnnestJsonContract}.
+ * A list made into rows, {@code t unnest(t.items) i}, on PostgreSQL: the queries, the rows, the SQL
+ * and what the engine cannot do are the shared fixtures of the schema {@code unnest} in the
+ * northwind project, over the complex bed.
  */
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class UnnestJsonSqliteEngineTest extends UnnestJsonContract {
+@PostgreSQLUnavailable
+public class UnnestDBEngineTest extends BaseEngineTest<HeaderInfo> {
 
-    private Engine<HeaderInfo, ListWithSqlResult<HeaderInfo>> engine;
+    @Override
+    protected String schema() {
+        return "unnest";
+    }
+
+    public UnnestDBEngineTest() {
+        super("postgresql", true);
+    }
 
     @BeforeAll
-    void readComplexCatalog() throws IOException, SQLException {
+    public void readComplexCatalog() throws IOException, SQLException {
         Locale locale = Locale.ENGLISH;
-        Schema db = CatalogLoader.db(ComplexCatalogTest.DB);
-        Model model = CatalogLoader.model(ComplexCatalogTest.MODEL, locale);
+        Schema db = CatalogLoader.db("/ai/koryki/postgresql/databases/complex");
+        Model model = CatalogLoader.model("/ai/koryki/postgresql/databases/complex/model", locale);
         LinkResolver resolver = new LinkResolver(locale, db, model, true);
         engine =
                 EngineBuilder.headers(
-                                NorthwindSqlite.<ListWithSqlResult<HeaderInfo>>northwind(),
+                                new NorthwindPostgresql<ListWithSqlResult<HeaderInfo>>(),
                                 resolver,
                                 () -> new SqlQueryRenderer(ZoneId.of("UTC")))
                         .valueFormat(new StableFormat(Locale.ROOT))
                         .build();
-    }
-
-    @Override
-    protected Engine<HeaderInfo, ListWithSqlResult<HeaderInfo>> engine() {
-        return engine;
     }
 }
