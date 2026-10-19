@@ -572,7 +572,32 @@ public class OracleDialect implements SqlDialect {
      */
     @Override
     public String selectionScalar(String base, TypeDescriptor baseType, List<Selector> steps) {
-        return jsonPath(base, steps, true);
+        return jsonPath(base, steps, true, null);
+    }
+
+    /**
+     * A JSON number that is wanted as a fractional number is fetched as a NUMBER. As text it would
+     * be cast, and the cast reads the text with the session's decimal separator: on a session whose
+     * separator is a comma, "53.54" is ORA-01722, so the same query answered differently depending
+     * on who connected. A number is not text, so no setting of the session comes into it.
+     */
+    @Override
+    public String selectionScalar(
+            String base, TypeDescriptor baseType, List<Selector> steps, String reader) {
+        return jsonPath(base, steps, true, fractional(reader) ? "NUMBER" : null);
+    }
+
+    @Override
+    public String jsonScalar(String json, String reader) {
+        return fractional(reader)
+                ? "JSON_VALUE(" + json + ", '$' RETURNING NUMBER)"
+                : jsonScalar(json);
+    }
+
+    private static boolean fractional(String reader) {
+        return "to_double".equals(reader)
+                || "to_float".equals(reader)
+                || "to_decimal".equals(reader);
     }
 
     /**
@@ -602,10 +627,11 @@ public class OracleDialect implements SqlDialect {
     }
 
     private static String jsonPath(String sql, List<Selector> steps) {
-        return jsonPath(sql, steps, false);
+        return jsonPath(sql, steps, false, null);
     }
 
-    private static String jsonPath(String sql, List<Selector> steps, boolean scalar) {
+    private static String jsonPath(
+            String sql, List<Selector> steps, boolean scalar, String returning) {
         List<String> paths =
                 NestedSql.jsonPaths(
                         steps, "$", NestedSql.FromEnd.LAST, NestedSql.Quoting.DOT, "Oracle");
@@ -627,7 +653,7 @@ public class OracleDialect implements SqlDialect {
                 + sql
                 + ", "
                 + NestedSql.literal(INSTANCE, paths.get(steps.size()))
-                + (scalar ? "" : " RETURNING JSON")
+                + (scalar ? (returning == null ? "" : " RETURNING " + returning) : " RETURNING JSON")
                 + ") END";
     }
 
