@@ -60,7 +60,13 @@ class ComplexServiceTest {
                     Map.entry(
                             "doc",
                             "JSON(STRUCT(n:INTEGER,a:STRUCT(b:ARRAY(INTEGER)),s:TEXT,b:BOOLEAN,d:DECIMAL))"),
-                    Map.entry("odd", "STRUCT(Odd Name:INTEGER,x:INTEGER)"));
+                    Map.entry("odd", "STRUCT(Odd Name:INTEGER,x:INTEGER)"),
+                    Map.entry(
+                            "branches",
+                            "ARRAY(STRUCT(street:TEXT,city:TEXT,zip:TEXT,geo:STRUCT(lat:FLOAT,lon:FLOAT)))"),
+                    Map.entry(
+                            "branches_json",
+                            "JSON(ARRAY(STRUCT(street:TEXT,city:TEXT,zip:TEXT,geo:STRUCT(lat:FLOAT,lon:FLOAT))))"));
 
     @Test
     void theResolverLoadsInStrictMode() {
