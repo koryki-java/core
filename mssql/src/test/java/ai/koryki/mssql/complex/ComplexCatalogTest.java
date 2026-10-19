@@ -46,6 +46,9 @@ class ComplexCatalogTest {
         EXPECTED.put(
                 "doc",
                 "JSON(STRUCT(n:INTEGER,a:STRUCT(b:ARRAY(INTEGER)),s:TEXT,b:BOOLEAN,d:DECIMAL))");
+        EXPECTED.put(
+                "branches_json",
+                "JSON(ARRAY(STRUCT(street:TEXT,city:TEXT,zip:TEXT,geo:STRUCT(lat:FLOAT,lon:FLOAT))))");
     }
 
     private static LinkResolver resolver() {
