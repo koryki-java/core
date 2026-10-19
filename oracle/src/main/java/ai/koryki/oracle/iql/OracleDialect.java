@@ -653,7 +653,9 @@ public class OracleDialect implements SqlDialect {
                 + sql
                 + ", "
                 + NestedSql.literal(INSTANCE, paths.get(steps.size()))
-                + (scalar ? (returning == null ? "" : " RETURNING " + returning) : " RETURNING JSON")
+                + (scalar
+                        ? (returning == null ? "" : " RETURNING " + returning)
+                        : " RETURNING JSON")
                 + ") END";
     }
 

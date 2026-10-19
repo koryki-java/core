@@ -977,7 +977,8 @@ public class SqlSelectRenderer {
      * The function that reads each of those arguments ({@code to_double}, {@code to_integer} ...):
      * what the scalar is wanted as can decide how a dialect fetches it.
      */
-    private final java.util.Map<Expression, String> jsonScalarReaders = new java.util.IdentityHashMap<>();
+    private final java.util.Map<Expression, String> jsonScalarReaders =
+            new java.util.IdentityHashMap<>();
 
     /**
      * Renders with the JSON arguments of a call as scalars: a cast of {@code t.doc@n} is the number

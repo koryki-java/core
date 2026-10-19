@@ -17,6 +17,7 @@
 package ai.koryki.kql;
 
 import ai.koryki.antlr.AbstractReader;
+import ai.koryki.antlr.FriendlyErrorStrategy;
 import ai.koryki.antlr.Interval;
 import ai.koryki.antlr.MsgErrorListener;
 import java.io.*;
@@ -24,12 +25,25 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.antlr.v4.runtime.BufferedTokenStream;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
 public class KQLReader extends AbstractReader<KQLLexer, KQLParser, KQLParser.QueryContext> {
+
+    /** What a writer calls the grammar's tokens that have no fixed spelling. */
+    private static final Map<String, String> NAMES =
+            Map.of(
+                    "SELECTOR_INT", "@index",
+                    "SELECTOR_ID", "@name",
+                    "SELECTOR_NAME", "@'name'",
+                    "DATE_STRING", "a date",
+                    "TIME_STRING", "a time",
+                    "TIMESTAMP_STRING", "a timestamp",
+                    "DURATION", "a duration",
+                    "PLACEHOLDER", "a #placeholder");
 
     private KQLLexer lexer;
     private KQLParser parser;
@@ -93,6 +107,17 @@ public class KQLReader extends AbstractReader<KQLLexer, KQLParser, KQLParser.Que
         this.script = script;
     }
 
+    /**
+     * What the lexer could not recognize; while there is any, the parser's errors are echoes of it.
+     */
+    private List<Interval> lexerPanic = List.of();
+
+    private void addParserPanic(MsgErrorListener listener) {
+        if (lexerPanic.isEmpty()) {
+            panic.addAll(listener.getPanic());
+        }
+    }
+
     private long lexduration;
     private long parseduration;
 
@@ -104,12 +129,13 @@ public class KQLReader extends AbstractReader<KQLLexer, KQLParser, KQLParser.Que
         // parsing
         parser = new KQLParser(tokens);
         parser.removeErrorListeners();
+        parser.setErrorHandler(new FriendlyErrorStrategy(NAMES));
         MsgErrorListener listener = new MsgErrorListener(abort);
         parser.addErrorListener(listener);
         long start = System.currentTimeMillis();
         script = parser.query();
         parseduration = System.currentTimeMillis() - start;
-        panic.addAll(listener.getPanic());
+        addParserPanic(listener);
     }
 
     private void lex() {
@@ -123,8 +149,12 @@ public class KQLReader extends AbstractReader<KQLLexer, KQLParser, KQLParser.Que
         MsgErrorListener listener = new MsgErrorListener(abort);
         lexer.addErrorListener(listener);
         tokens = new CommonTokenStream(lexer);
+        // Lex everything now, not on demand while parsing: every unrecognized input is then known
+        // before the parser sees a token stream with holes in it.
+        ((CommonTokenStream) tokens).fill();
         lexduration = System.currentTimeMillis() - start;
-        panic.addAll(listener.getPanic());
+        lexerPanic = listener.getPanic();
+        panic.addAll(lexerPanic);
     }
 
     @Override

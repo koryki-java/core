@@ -458,9 +458,9 @@ not silently a piece of text.
 FIND orders o FILTER o.order_date = "2023-01-31" FETCH o.order_id
   →  o.order_date = DATE '2023-01-31'
 FIND orders o FILTER o.order_date = "2023-13-01" FETCH o.order_id
-  →  mismatched input '"2023-13-01"'
+  →  unexpected '"2023-13-01"'
 FIND customers c FILTER c.country = "Germany" FETCH c.company_name
-  →  mismatched input '"Germany"'
+  →  unexpected '"Germany"'
 ```
 
 The lexer decides by shape, before the parser sees the position: `MM` is `'0'[1-9] | '1'[0-2]`, so
@@ -471,7 +471,7 @@ runs the other way in the label position, which is the surprising half:
 FIND customers c FETCH c.country land "2023-13-01"
   →  c.country AS land
 FIND customers c FETCH c.country land "2023-01-31"
-  →  extraneous input '"2023-01-31"'
+  →  unexpected '"2023-01-31"'
 ```
 
 A column label that happens to be a valid date is therefore not writable. That is the price of

@@ -43,8 +43,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 /**
  * The shared fixtures of the schema {@code nested}, from KQL to the reference SQL (DuckDB's base
  * dialect, in UTC) and to IQL and back, over the branches of the complex bed; the queries that must
- * be refused are the ones whose name starts with {@code invalid}. What the engines answer is for the
- * engine tests of each dialect.
+ * be refused are the ones whose name starts with {@code invalid}. What the engines answer is for
+ * the engine tests of each dialect.
  */
 public class NestedTranspilerTest {
 

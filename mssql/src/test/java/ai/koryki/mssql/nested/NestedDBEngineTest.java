@@ -35,9 +35,9 @@ import java.util.Locale;
 import org.junit.jupiter.api.BeforeAll;
 
 /**
- * Selectors, lambdas and a list made into rows over the branches of the complex bed, on SQL Server: the
- * queries, the rows, the SQL and what the engine cannot do are the shared fixtures of the schema
- * {@code nested} in the northwind project.
+ * Selectors, lambdas and a list made into rows over the branches of the complex bed, on SQL Server:
+ * the queries, the rows, the SQL and what the engine cannot do are the shared fixtures of the
+ * schema {@code nested} in the northwind project.
  */
 @MssqlUnavailable
 public class NestedDBEngineTest extends BaseEngineTest<HeaderInfo> {

@@ -694,9 +694,9 @@ public interface SqlDialect {
     }
 
     /**
-     * The same, told which function reads the scalar ({@code to_double}, {@code to_decimal} ...,
-     * or null where that is not known), for a dialect whose way of fetching it depends on what it
-     * is wanted as. The default ignores it.
+     * The same, told which function reads the scalar ({@code to_double}, {@code to_decimal} ..., or
+     * null where that is not known), for a dialect whose way of fetching it depends on what it is
+     * wanted as. The default ignores it.
      */
     default String selectionScalar(
             String base,
@@ -706,7 +706,9 @@ public interface SqlDialect {
         return selectionScalar(base, baseType, steps);
     }
 
-    /** {@link #jsonScalar(String)}, told which function reads the scalar; the default ignores it. */
+    /**
+     * {@link #jsonScalar(String)}, told which function reads the scalar; the default ignores it.
+     */
     default String jsonScalar(String json, String reader) {
         return jsonScalar(json);
     }
