@@ -87,7 +87,9 @@ class NorthwindSqliteTest {
             assertTrue(process.waitFor(90, TimeUnit.SECONDS), "process " + i + " did not finish");
             String output = Files.readString(outputs.get(i).toPath());
             assertEquals(0, process.exitValue(), "process " + i + " died:\n" + output);
-            answers.add(output.trim());
+            // The child's stderr is in the file too, and a JVM may put a line of its own there
+            // ("Picked up JAVA_TOOL_OPTIONS", a CDS warning). The answer is the last line.
+            answers.add(output.stripTrailing().lines().reduce((first, last) -> last).orElse(""));
         }
 
         // what a single, undisturbed start gets: the yardstick for "the same database everywhere"
