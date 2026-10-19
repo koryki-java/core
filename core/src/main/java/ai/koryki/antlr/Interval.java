@@ -16,11 +16,25 @@
  */
 package ai.koryki.antlr;
 
+import java.util.List;
+
+/**
+ * A stretch of tokens the parser could not make sense of, with the message ANTLR gave for it.
+ *
+ * <p>{@code start} and {@code stop} are <b>token indices</b>, which is what highlighting needs and
+ * what nobody reading a message can use. {@link #getLine()} and {@link #getCol()} therefore carry
+ * the position of the offending token in the text the user wrote, 1-based like {@link Position},
+ * and {@link #toString()} leads with them when they are known.
+ */
 public class Interval {
 
     private int start;
     private int stop;
     private String msg;
+    private int line;
+    private int col;
+    private List<String> expected = List.of();
+    private List<String> didYouMean = List.of();
 
     public Interval(int start, int stop, String msg) {
 
@@ -30,6 +44,29 @@ public class Interval {
         this.start = start;
         this.stop = stop;
         this.msg = msg;
+    }
+
+    /**
+     * An interval that also knows where the offending token is.
+     *
+     * @param line 1-based line of the offending token
+     * @param col 1-based column of the offending token
+     * @param expected the keywords and punctuation the grammar would have accepted there
+     * @param didYouMean keywords that were probably meant
+     */
+    public Interval(
+            int start,
+            int stop,
+            String msg,
+            int line,
+            int col,
+            List<String> expected,
+            List<String> didYouMean) {
+        this(start, stop, msg);
+        this.line = line;
+        this.col = col;
+        this.expected = List.copyOf(expected);
+        this.didYouMean = List.copyOf(didYouMean);
     }
 
     public boolean contains(int i) {
@@ -66,6 +103,30 @@ public class Interval {
         return msg;
     }
 
+    /** 1-based line of the offending token, or 0 when unknown. */
+    public int getLine() {
+        return line;
+    }
+
+    /** 1-based column of the offending token, or 0 when unknown. */
+    public int getCol() {
+        return col;
+    }
+
+    public boolean hasPosition() {
+        return line > 0 && col > 0;
+    }
+
+    /** Keywords and punctuation that would have been accepted; empty when none can be named. */
+    public List<String> getExpected() {
+        return expected;
+    }
+
+    /** Keywords that were probably meant; empty when nothing is close. */
+    public List<String> getDidYouMean() {
+        return didYouMean;
+    }
+
     @Override
     public final boolean equals(Object o) {
         if (!(o instanceof Interval)) {
@@ -85,6 +146,9 @@ public class Interval {
 
     @Override
     public String toString() {
+        if (hasPosition()) {
+            return "line " + line + ":" + col + " " + msg;
+        }
         return start + ":" + stop + " " + msg;
     }
 }

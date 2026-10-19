@@ -694,6 +694,26 @@ public interface SqlDialect {
     }
 
     /**
+     * The same, told which function reads the scalar ({@code to_double}, {@code to_decimal} ..., or
+     * null where that is not known), for a dialect whose way of fetching it depends on what it is
+     * wanted as. The default ignores it.
+     */
+    default String selectionScalar(
+            String base,
+            TypeDescriptor baseType,
+            List<ai.koryki.iql.query.Selector> steps,
+            String reader) {
+        return selectionScalar(base, baseType, steps);
+    }
+
+    /**
+     * {@link #jsonScalar(String)}, told which function reads the scalar; the default ignores it.
+     */
+    default String jsonScalar(String json, String reader) {
+        return jsonScalar(json);
+    }
+
+    /**
      * A JSON array whose elements the catalog declares as scalars, as the dialect's list of {@code
      * element}: {@code t.doc@a@b} where {@code .a.b[]} is INTEGER. The default leaves the JSON as
      * it is, which is right for a dialect without lists; it has no list functions to apply to it.

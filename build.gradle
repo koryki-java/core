@@ -40,6 +40,12 @@ rootProject.allprojects {
         // has to be passed through here.
         testTask.systemProperty 'fixtures.write', System.getProperty('fixtures.write', 'false')
 
+        // A failure prints its message, not just "AssertionFailedError at Test.java:96". Without it
+        // a CI log names the failing test and hides why; the reason was only in the HTML report.
+        testTask.testLogging {
+            exceptionFormat 'full'
+        }
+
         // Where the shared test fixtures live. Mandatory -- without it the fixture suites abort
         // with a named message (see Fixtures.root()); a guessed path would be worse, because a run
         // over zero fixtures looks just like a passing one.

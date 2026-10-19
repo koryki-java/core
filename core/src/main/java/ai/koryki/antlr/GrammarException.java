@@ -16,9 +16,14 @@
  */
 package ai.koryki.antlr;
 
+import java.util.List;
+
 public class GrammarException extends PositionException {
 
     private static final long serialVersionUID = -4825677103798201408L;
+
+    private List<String> didYouMean = List.of();
+    private List<String> ruleStack = List.of();
 
     public GrammarException(int line, int pos) {
         super(line, pos);
@@ -32,5 +37,25 @@ public class GrammarException extends PositionException {
     public GrammarException(int line, int pos, String msg, Throwable cause) {
 
         super(line, pos, msg, cause);
+    }
+
+    public GrammarException(int line, int pos, String msg, List<String> didYouMean) {
+
+        super(line, pos, msg);
+        this.didYouMean = List.copyOf(didYouMean);
+    }
+
+    /** Keywords that were probably meant; empty when nothing is close. */
+    public List<String> getDidYouMean() {
+        return didYouMean;
+    }
+
+    /** The grammar rules the parser was in, outermost first; for debugging the grammar. */
+    public List<String> getRuleStack() {
+        return ruleStack;
+    }
+
+    void setRuleStack(List<String> ruleStack) {
+        this.ruleStack = List.copyOf(ruleStack);
     }
 }

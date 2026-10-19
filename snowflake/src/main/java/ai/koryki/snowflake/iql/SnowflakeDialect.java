@@ -296,6 +296,19 @@ public class SnowflakeDialect implements SqlDialect {
             return "ARRAY";
         } else if (CoreTypeFamily.TEXT.equals(family)) {
             return "VARCHAR";
+        } else if (CoreTypeFamily.STRUCT.equals(family) && !type.fieldNames().isEmpty()) {
+            // A struct inside the element keeps its shape, so that a field read from it is typed
+            // and an absent one is an SQL NULL: through a plain VARIANT a missing field came back
+            // as a JSON null, which the driver hands over as the text "null".
+            return "OBJECT("
+                    + type.fieldNames().stream()
+                            .map(
+                                    name ->
+                                            NestedSql.identifier(name, PLAIN_NAME)
+                                                    + " "
+                                                    + unnestType(type.field(name).orElseThrow()))
+                            .collect(java.util.stream.Collectors.joining(", "))
+                    + ")";
         }
         return "VARIANT";
     }

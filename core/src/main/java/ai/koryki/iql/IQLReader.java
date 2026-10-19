@@ -17,6 +17,7 @@
 package ai.koryki.iql;
 
 import ai.koryki.antlr.AbstractReader;
+import ai.koryki.antlr.FriendlyErrorStrategy;
 import ai.koryki.antlr.Interval;
 import ai.koryki.antlr.MsgErrorListener;
 import java.io.*;
@@ -106,6 +107,17 @@ public class IQLReader extends AbstractReader<IQLLexer, IQLParser, IQLParser.Que
         this.script = script;
     }
 
+    /**
+     * What the lexer could not recognize; while there is any, the parser's errors are echoes of it.
+     */
+    private List<Interval> lexerPanic = List.of();
+
+    private void addParserPanic(MsgErrorListener listener) {
+        if (lexerPanic.isEmpty()) {
+            panic.addAll(listener.getPanic());
+        }
+    }
+
     private long lexduration;
     private long parseduration;
 
@@ -117,11 +129,12 @@ public class IQLReader extends AbstractReader<IQLLexer, IQLParser, IQLParser.Que
         // parsing
         parser = new IQLParser(tokens);
         parser.removeErrorListeners();
+        parser.setErrorHandler(new FriendlyErrorStrategy());
         MsgErrorListener listener = new MsgErrorListener(abort);
         parser.addErrorListener(listener);
         long start = System.currentTimeMillis();
         script = parser.query();
-        panic.addAll(listener.getPanic());
+        addParserPanic(listener);
         parseduration = System.currentTimeMillis() - start;
     }
 
@@ -136,8 +149,12 @@ public class IQLReader extends AbstractReader<IQLLexer, IQLParser, IQLParser.Que
         MsgErrorListener listener = new MsgErrorListener(abort);
         lexer.addErrorListener(listener);
         tokens = new CommonTokenStream(lexer);
+        // Lex everything now, not on demand while parsing: every unrecognized input is then known
+        // before the parser sees a token stream with holes in it.
+        ((CommonTokenStream) tokens).fill();
         lexduration = System.currentTimeMillis() - start;
-        panic.addAll(listener.getPanic());
+        lexerPanic = listener.getPanic();
+        panic.addAll(lexerPanic);
     }
 
     @Override

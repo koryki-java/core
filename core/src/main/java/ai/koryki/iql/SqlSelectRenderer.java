@@ -974,21 +974,40 @@ public class SqlSelectRenderer {
             java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
 
     /**
+     * The function that reads each of those arguments ({@code to_double}, {@code to_integer} ...):
+     * what the scalar is wanted as can decide how a dialect fetches it.
+     */
+    private final java.util.Map<Expression, String> jsonScalarReaders =
+            new java.util.IdentityHashMap<>();
+
+    /**
      * Renders with the JSON arguments of a call as scalars: a cast of {@code t.doc@n} is the number
      * in it, not its JSON text. Only the arguments themselves, not what is inside them.
      */
     public String withJsonScalarArguments(
             java.util.List<Expression> arguments, java.util.function.Supplier<String> body) {
+        return withJsonScalarArguments(arguments, null, body);
+    }
+
+    /** As above, naming the function that reads the arguments. */
+    public String withJsonScalarArguments(
+            java.util.List<Expression> arguments,
+            String reader,
+            java.util.function.Supplier<String> body) {
         java.util.List<Expression> added = new java.util.ArrayList<>();
         for (Expression argument : arguments) {
             if (jsonScalarArguments.add(argument)) {
                 added.add(argument);
+                if (reader != null) {
+                    jsonScalarReaders.put(argument, reader);
+                }
             }
         }
         try {
             return body.get();
         } finally {
             jsonScalarArguments.removeAll(added);
+            added.forEach(jsonScalarReaders::remove);
         }
     }
 
@@ -1048,6 +1067,10 @@ public class SqlSelectRenderer {
     }
 
     private String jsonScalarSql(Expression expression, int indent) {
+        return jsonScalarSql(expression, indent, null);
+    }
+
+    private String jsonScalarSql(Expression expression, int indent, String reader) {
         boolean declared =
                 declaredScalars.contains(expression)
                         || (expression.getSelection() != null
@@ -1072,15 +1095,16 @@ public class SqlSelectRenderer {
                         toSql(base, indent),
                         baseType,
                         ai.koryki.iql.typing.Selectors.jsonKeys(
-                                baseType, expression.getSelection().getSelectors()));
+                                baseType, expression.getSelection().getSelectors()),
+                        reader);
             }
         }
-        return dialect.jsonScalar(toSqlUnparenthesized(expression, indent));
+        return dialect.jsonScalar(toSqlUnparenthesized(expression, indent), reader);
     }
 
     public String toSql(Expression expression, int indent) {
         if (jsonScalarArguments.remove(expression)) {
-            String scalar = jsonScalarSql(expression, indent);
+            String scalar = jsonScalarSql(expression, indent, jsonScalarReaders.get(expression));
             if (scalar != null) {
                 return scalar;
             }

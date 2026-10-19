@@ -263,6 +263,7 @@ public class FunctionDefinition {
                 jsonScalarArguments
                         ? renderer.withJsonScalarArguments(
                                 function.getArguments(),
+                                name,
                                 () -> renderBody(renderer, function, indent))
                         : renderBody(renderer, function, indent);
         if (body == null) {

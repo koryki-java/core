@@ -60,6 +60,10 @@ class ComplexColumnTypesTest {
                 "deep", "ARRAY(MAP(TEXT,STRUCT(a:ARRAY(INTEGER),b:MAP(INTEGER,ARRAY(TEXT)))))");
         EXPECTED.put("doc", "JSON");
         EXPECTED.put("odd", "STRUCT(Odd Name:INTEGER,x:INTEGER)");
+        EXPECTED.put(
+                "branches",
+                "ARRAY(STRUCT(street:TEXT,city:TEXT,zip:TEXT,geo:STRUCT(lat:FLOAT,lon:FLOAT)))");
+        EXPECTED.put("branches_json", "JSON");
     }
 
     private static final TypeDescriptorParser PARSER = new TypeDescriptorParser() {};
