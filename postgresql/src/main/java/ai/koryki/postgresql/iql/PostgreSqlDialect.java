@@ -146,6 +146,30 @@ public class PostgreSqlDialect implements SqlDialect {
         return NestedSupport.full("PostgreSQL").without(CoreTypeFamily.MAP);
     }
 
+    /**
+     * A GIN index over a jsonb column answers containment, with either operator class: {@code
+     * jsonb_ops} (the default) and {@code jsonb_path_ops} both serve {@code @>}.
+     */
+    @Override
+    public boolean servesJsonContainment(ai.koryki.catalog.schema.Index index) {
+        String opclass = index.getOpclass();
+        return "gin".equalsIgnoreCase(index.getMethod())
+                && (opclass == null
+                        || "jsonb_ops".equalsIgnoreCase(opclass)
+                        || "jsonb_path_ops".equalsIgnoreCase(opclass));
+    }
+
+    @Override
+    public String jsonContainment(String columnSql, java.util.Map<String, String> entries) {
+        // JSON written by a library, so a quote or a control character in a key or a value is
+        // escaped as JSON; then as an SQL literal, where the only character to double is the quote
+        String json = JSON.writeValueAsString(entries);
+        return columnSql + " @> CAST('" + json.replace("'", "''") + "' AS JSONB)";
+    }
+
+    private static final tools.jackson.databind.ObjectMapper JSON =
+            tools.jackson.databind.json.JsonMapper.builder().build();
+
     @Override
     public String selection(String base, TypeDescriptor baseType, java.util.List<Selector> steps) {
         return select(base, baseType, steps, false);

@@ -19,10 +19,13 @@ package ai.koryki.catalog;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Concept;
 import ai.koryki.catalog.schema.Entry;
+import ai.koryki.catalog.schema.Index;
+import ai.koryki.catalog.schema.IndexKey;
 import ai.koryki.catalog.schema.Relation;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.schema.Table;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -64,7 +67,32 @@ public final class SchemaCopy {
         copy.setDescription(tabpe.getDescription());
         copy.setColumns(
                 tabpe.getColumns().stream().map(c -> deepCopy(c)).collect(Collectors.toList()));
+        if (tabpe.getIndexes() != null) {
+            copy.setIndexes(
+                    tabpe.getIndexes().stream().map(i -> deepCopy(i)).collect(Collectors.toList()));
+        }
 
+        return copy;
+    }
+
+    public static Index deepCopy(Index index) {
+        Index copy = new Index();
+        copy.setName(index.getName());
+        copy.setMethod(index.getMethod());
+        copy.setOpclass(index.getOpclass());
+        copy.setUnique(index.getUnique());
+        copy.setWhere(index.getWhere());
+        copy.setKeys(
+                index.getKeys().stream()
+                        .map(
+                                k ->
+                                        new IndexKey(
+                                                k.getColumn(),
+                                                k.getPath() == null
+                                                        ? null
+                                                        : List.copyOf(k.getPath()),
+                                                k.getAs()))
+                        .collect(Collectors.toList()));
         return copy;
     }
 

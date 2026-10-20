@@ -4,6 +4,27 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- `Table.indexes` in the catalog (`Index`, `IndexKey`): the access paths of a table, optional and
+  stating facts only (method, operator class, keys; a key may be one value inside a JSON column). A
+  catalog without them is read, written and rendered as before.
+- On PostgreSQL a comparison of one key of a map of text with a text (`t.attrs@color = 'red'`) is asked as
+  containment (`attrs @> '{"color":"red"}'`) when the table has a GIN index over the column, and several
+  such comparisons of one column are one containment. Not under a negation or in a value, not for a key
+  with an index of its own, not without `indexes` in the catalog. `SqlDialect.servesJsonContainment`
+  and `jsonContainment` are the dialect's part; the other dialects write the comparison as before.
+- `PostgresqlIndexes` reads the indexes of a table from `pg_index` into catalog `Index` entries.
+
+### Changed
+
+- A syntax error says where it is (line and column, 1-based) and what was meant: a keyword in the wrong
+  case or a mistyped one is named (`use FIND`, `did you mean FILTER?`), the alternatives are listed in
+  the writer's words and not the grammar's (`expected AND, '+', @index` and not `SELECTOR_INT`), and a
+  mistyped word is reported once. Lexer errors are collected as the parser's are and arrive as a
+  `PanicException`; in abort mode the first one still throws. The rule stack is no longer in the message
+  (`GrammarException.getRuleStack()`).
+
 ## [0.4.0] - 2026-10-17
 
 ### Added

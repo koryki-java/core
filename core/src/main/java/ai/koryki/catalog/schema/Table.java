@@ -27,6 +27,7 @@ public class Table {
     private String comment;
     private String description;
     private List<Column> columns;
+    private List<Index> indexes;
 
     public Table() {
         this(null, null, null, new ArrayList<>());
@@ -85,6 +86,29 @@ public class Table {
 
     public Optional<Column> getColumn(String name) {
         return columns.stream().filter(c -> c.getName().equals(name)).findFirst();
+    }
+
+    /**
+     * The access paths of the table, or null when the catalog says nothing about them. Null and not
+     * empty on purpose: a table whose indexes are not known must not be written as one that has
+     * none.
+     */
+    public List<Index> getIndexes() {
+        return indexes;
+    }
+
+    public void setIndexes(List<Index> indexes) {
+        this.indexes = indexes == null ? null : new ArrayList<>(indexes);
+    }
+
+    /** The indexes with a key on this column, whatever the path; empty when none or not known. */
+    public List<Index> indexesOn(String column) {
+        if (indexes == null) {
+            return List.of();
+        }
+        return indexes.stream()
+                .filter(i -> i.getKeys().stream().anyMatch(k -> column.equals(k.getColumn())))
+                .toList();
     }
 
     public String getLabel() {

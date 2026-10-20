@@ -619,6 +619,32 @@ public interface SqlDialect {
         return quoted;
     }
 
+    /**
+     * Whether this index answers "does the JSON value contain this", the question {@link
+     * #jsonContainment} asks. An inverted index over a JSON column does (PostgreSQL's GIN); a btree
+     * does not, and neither does any index on one key inside the column.
+     *
+     * <p>False by default, and false is always safe: it keeps the comparison of the extracted
+     * value, which every dialect renders.
+     */
+    default boolean servesJsonContainment(ai.koryki.catalog.schema.Index index) {
+        return false;
+    }
+
+    /**
+     * The test that a JSON column holds all of these entries, written the way an index of this
+     * dialect can answer it; null when the dialect has no such form.
+     *
+     * <p>Only the equivalent of a comparison {@code col ->> 'key' = 'value'} may be asked for, for
+     * each entry, in a context where an unknown counts as false: see {@link JsonContainment}.
+     *
+     * @param columnSql the column, as the dialect writes it
+     * @param entries key and text value, in the order the query had them
+     */
+    default String jsonContainment(String columnSql, java.util.Map<String, String> entries) {
+        return null;
+    }
+
     default String mapSetOperator(String operator) {
         return operator;
     }
