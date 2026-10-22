@@ -127,6 +127,42 @@ position.
 | `pkPos` | `int` | Primary-key ordinal position. `0` means the column is not part of the primary key; a positive value indicates its 1-based position in a (potentially composite) PK. |
 
 
+### `Index`
+
+An access path of a table: what the database keeps besides the rows, to find some of them without
+reading all. `Table.indexes` is **optional**. A table without it is not a table without indexes, it
+is one the catalog says nothing about, and it is written and rendered exactly as before.
+
+The catalog states facts, and no more: the method, the operator class, the keys. What a method can
+answer (`=`, a range, containment) differs by database and belongs to its dialect. Nothing may depend
+on an index being there for a result to be right: an index only decides between two spellings of the
+same question, so a catalog that is out of date makes a query slower and never wrong.
+
+| Field | Type | Description |
+|---|---|---|
+| `name` | `String` | The index's name in the database. |
+| `method` | `String` | As the database names it: `btree`, `gin`, `hash`, ... |
+| `opclass` | `String` | The operator class of the key where it matters (`jsonb_path_ops`); absent for the default. |
+| `unique` | `Boolean` | Present and `true` for a unique index. |
+| `keys` | `List<IndexKey>` | In index order. |
+| `where` | `String` | The predicate of a partial index. Nothing is rewritten for a partial index. |
+
+An `IndexKey` is a `column`, and for an index on one value inside a JSON column a `path` (the keys that
+lead to it, as the query writes them: `t.attrs@color` is `["color"]`) and `as`, the type that value
+is cast to (`TEXT`, `INTEGER`). An index on `((attrs ->> 'color'))` has the path `["color"]`; an index
+on `attrs` has none.
+
+#### What is done with it
+
+On PostgreSQL, `t.attrs@color = 'red'` on a map of text is asked as `attrs @> '{"color":"red"}'` when
+the table has a GIN index over `attrs`, and several such comparisons of one column are one containment.
+It stays `attrs ->> 'color' = 'red'` when the table has an index of its own on `color`, when the
+comparison is under a negation or inside an expression that is a value, when the key is not one key of
+the map, and always when the catalog has no `indexes`. The reasons are in `JsonContainment`.
+
+`PostgresqlIndexes` reads the indexes of a table from the database into this form. An index with a key
+it does not understand is left out, which is the safe direction.
+
 ### `Relation`
 
 Represents a directional foreign-key relationship between two tables. Tables and columns

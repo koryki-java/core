@@ -525,11 +525,24 @@ public class SqlSelectRenderer {
             if (folded != null) {
                 return prefix + folded;
             }
-            return prefix
-                    + "NOT ("
-                    + toSql(parent, expression.getChildren().get(0), indent + 1, false)
-                    + ")";
+            unknownMatters++;
+            try {
+                return prefix
+                        + "NOT ("
+                        + toSql(parent, expression.getChildren().get(0), indent + 1, false)
+                        + ")";
+            } finally {
+                unknownMatters--;
+            }
         } else if (expression.isValue()) {
+            if (unknownMatters == 0) {
+                String containment =
+                        JsonContainment.render(
+                                this, expression.getUnaryRelationalExpression(), indent + 1);
+                if (containment != null) {
+                    return prefix + containment;
+                }
+            }
             return prefix + toSql(parent, expression.getUnaryRelationalExpression(), indent + 1);
         } else {
             StringBuilder b = new StringBuilder();
@@ -539,13 +552,33 @@ public class SqlSelectRenderer {
                             + indent(indent + 1)
                             + expression.getType().name()
                             + SqlRenderer.NL;
-            b.append(
-                    expression.getChildren().stream()
-                            .map(e -> toSqlChild(parent, expression, e, indent))
-                            .collect(Collectors.joining(delim)));
+            // Comparisons of one map's keys that an index answers as containment are merged into
+            // one; only where an unknown is as good as false (see JsonContainment)
+            Map<Integer, String> merged =
+                    unknownMatters == 0 && expression.getType() == NodeType.AND
+                            ? JsonContainment.merge(this, expression.getChildren(), indent + 1)
+                            : Map.of();
+            List<String> parts = new ArrayList<>();
+            for (int i = 0; i < expression.getChildren().size(); i++) {
+                String replacement = merged.get(i);
+                if (replacement == null) {
+                    parts.add(
+                            toSqlChild(
+                                    parent, expression, expression.getChildren().get(i), indent));
+                } else if (!replacement.isEmpty()) {
+                    parts.add(indent(indent + 2) + replacement);
+                }
+            }
+            b.append(String.join(delim, parts));
             return b.toString();
         }
     }
+
+    /**
+     * How many negations, or places where an unknown is a value and not a missing row, the
+     * expression being rendered is inside. A comparison is only asked as containment at zero.
+     */
+    private int unknownMatters;
 
     /**
      * A negation folded into the negated thing itself — {@code x IS NOT NULL}, {@code x NOT IN
@@ -1216,6 +1249,16 @@ public class SqlSelectRenderer {
      * Inline (single-line) rendering of a boolean logical expression used as a function argument.
      */
     private String toSqlInline(LogicalExpression logical, int indent) {
+        // a boolean that is a value (an argument of if, a column): there an unknown is not a false
+        unknownMatters++;
+        try {
+            return toSqlInlineUnguarded(logical, indent);
+        } finally {
+            unknownMatters--;
+        }
+    }
+
+    private String toSqlInlineUnguarded(LogicalExpression logical, int indent) {
         if (logical.isNot()) {
             return "NOT (" + toSqlInline(logical.getChildren().get(0), indent) + ")";
         }

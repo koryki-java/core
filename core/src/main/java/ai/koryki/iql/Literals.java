@@ -52,10 +52,17 @@ final class Literals {
      * input, at a shape no enumerated case had.
      */
     static String text(String token) {
+        return "'" + value(token).replace("'", "''") + "'";
+    }
+
+    /**
+     * The text a {@code SQ_STRING} token stands for: delimiters off, escapes undone. What a dialect
+     * needs when it puts the value somewhere other than an SQL literal -- inside JSON, say.
+     */
+    static String value(String token) {
         // The lexer cannot produce a token without both delimiters, so this is total.
         String body = token.substring(1, token.length() - 1);
-        String value = body.replace("\\'", "'");
-        return "'" + value.replace("'", "''") + "'";
+        return body.replace("\\'", "'");
     }
 
     /**
