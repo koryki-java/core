@@ -6,6 +6,9 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- `KQLTranspiler.iqlToContext()` and `IQLTranspiler.iqlToContext()`: where in the source each node of
+  `getQuery()` was made from, read-only, for a consumer that analyses the query and points at the text
+  it speaks of (`Range.of(iqlToContext, node)`).
 - `Table.indexes` in the catalog (`Index`, `IndexKey`): the access paths of a table, optional and
   stating facts only (method, operator class, keys; a key may be one value inside a JSON column). A
   catalog without them is read, written and rendered as before.
