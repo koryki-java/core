@@ -15,7 +15,7 @@ postgresql = "42.7.14"
 snowflake = "4.4.0"
 oracle = "23.26.3.0.0"
 trino = "484"
-mariadb = "3.5.10"
+mariadb = "4.0.0"
 # 13.4.0 is the newest stable; 13.5.0 exists only as -preview
 mssql = "13.6.1.jre11"
 sqlite = "3.53.4.0"
