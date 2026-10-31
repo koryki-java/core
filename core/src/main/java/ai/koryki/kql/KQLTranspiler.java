@@ -264,6 +264,16 @@ public class KQLTranspiler extends AbstractTranspiler<KQLReader, KQLParser.Query
         return validAnalysis().visibility();
     }
 
+    /**
+     * The place in the KQL each node of {@link #getQuery()} was made from, by node identity. For a
+     * consumer that analyses the query and wants to point at the text it speaks of ({@link
+     * ai.koryki.antlr.Range#of(Map, Object)}). The map is read-only; a node that a rule created
+     * without {@code Rules.inherit(...)} has no entry.
+     */
+    public Map<Object, RuleContext> iqlToContext() {
+        return java.util.Collections.unmodifiableMap(validAnalysis().iqlToContext());
+    }
+
     public List<Out> getOut() {
 
         return SqlQueryRenderer.collectOut(getQuery());

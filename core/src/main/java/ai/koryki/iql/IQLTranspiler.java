@@ -200,6 +200,14 @@ public class IQLTranspiler extends AbstractTranspiler<IQLReader, IQLParser.Query
         return mapped.get().query();
     }
 
+    /**
+     * The place in the IQL each node of {@link #getQuery()} was made from, by node identity; see
+     * {@link ai.koryki.antlr.Range#of(Map, Object)}. The map is read-only.
+     */
+    public Map<Object, RuleContext> iqlToContext() {
+        return java.util.Collections.unmodifiableMap(mapped.get().iqlToContext());
+    }
+
     public List<Out> getOut() {
 
         return SqlQueryRenderer.collectOut(getQuery());
