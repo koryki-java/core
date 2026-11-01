@@ -1209,8 +1209,7 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         }
 
         boolean rightAggregat =
-                logicalExpression.getRight().stream()
-                        .anyMatch(r -> containsAggregate(r));
+                logicalExpression.getRight().stream().anyMatch(r -> containsAggregate(r));
         if (rightAggregat) {
             return true;
         }
@@ -1346,8 +1345,7 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
 
     public static boolean containsAggregate(Expression expression) {
 
-        if (expression.getFunction() != null
-                && containsAggregate(expression.getFunction())) {
+        if (expression.getFunction() != null && containsAggregate(expression.getFunction())) {
             return true;
         }
         if (expression.getLogical() != null) {

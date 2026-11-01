@@ -43,9 +43,7 @@ public class CountWithoutArgumentTest {
 
     @Test
     void aColumnBesideItIsGrouped() {
-        assertTrue(
-                sql("FIND orders o FETCH o.ship_country, count() n")
-                        .contains("GROUP BY"));
+        assertTrue(sql("FIND orders o FETCH o.ship_country, count() n").contains("GROUP BY"));
     }
 
     @Test
@@ -55,8 +53,7 @@ public class CountWithoutArgumentTest {
 
     @Test
     void aFilterOnItIsAHaving() {
-        assertTrue(
-                sql("FIND orders o FILTER count() > 5 FETCH o.ship_country").contains("HAVING"));
+        assertTrue(sql("FIND orders o FILTER count() > 5 FETCH o.ship_country").contains("HAVING"));
     }
 
     private static String sql(String kql) {
