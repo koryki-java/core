@@ -696,7 +696,7 @@ public class OracleDialect implements SqlDialect {
 
     /** What Oracle cannot do with a list that is the result of an aggregate. */
     private static void noAggregateList(Expression list) {
-        if (ai.koryki.iql.validate.FunctionValidator.isAggregateOfColumnOrIdentity(list)) {
+        if (ai.koryki.iql.validate.FunctionValidator.containsAggregate(list)) {
             throw new KorykiaiException(
                     "on Oracle the list of list_agg can be shown or sorted with list_sort and"
                             + " nothing else: TABLE() cannot read an aggregate (ORA-00934)");

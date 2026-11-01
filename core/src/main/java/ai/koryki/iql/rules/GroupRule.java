@@ -114,6 +114,6 @@ public class GroupRule {
     }
 
     private static boolean isAggregate(Out o) {
-        return FunctionValidator.isAggregateOfColumnOrIdentity(o.getExpression());
+        return FunctionValidator.containsAggregate(o.getExpression());
     }
 }

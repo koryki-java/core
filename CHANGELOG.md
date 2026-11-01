@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- `count()` and other aggregates that read no column count as aggregates: `FETCH o.ship_country,
+  count()` is grouped by `ship_country` (it rendered without a `GROUP BY`, which no database accepts),
+  and a filter on `count()` moves to `HAVING`. `FunctionValidator.isAggregateOfColumnOrIdentity` is
+  now `containsAggregate`.
+
 ### Added
 
 - `KQLTranspiler.iqlToContext()` and `IQLTranspiler.iqlToContext()`: where in the source each node of

@@ -699,7 +699,7 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
                         o -> {
                             Expression e = o.getExpression();
 
-                            boolean a = isAggregateOfColumnOrIdentity(e);
+                            boolean a = containsAggregate(e);
                             boolean scalar = isScalarOfColumn(e);
                             if (a && scalar) {
                                 violations.add(
@@ -1197,7 +1197,7 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
 
     private boolean isAggregate(UnaryLogicalExpression logicalExpression) {
         if (logicalExpression.getLeft() != null) {
-            boolean leftAggregat = isAggregateOfColumnOrIdentity(logicalExpression.getLeft());
+            boolean leftAggregat = containsAggregate(logicalExpression.getLeft());
             if (leftAggregat) {
                 return true;
             }
@@ -1210,7 +1210,7 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
 
         boolean rightAggregat =
                 logicalExpression.getRight().stream()
-                        .anyMatch(r -> isAggregateOfColumnOrIdentity(r));
+                        .anyMatch(r -> containsAggregate(r));
         if (rightAggregat) {
             return true;
         }
@@ -1344,24 +1344,26 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         return false;
     }
 
-    public static boolean isAggregateOfColumnOrIdentity(Expression expression) {
+    public static boolean containsAggregate(Expression expression) {
 
         if (expression.getFunction() != null
-                && isAggregateOfColumnOrIdentity(expression.getFunction())) {
+                && containsAggregate(expression.getFunction())) {
             return true;
         }
         if (expression.getLogical() != null) {
             return logicalOperands(expression.getLogical()).stream()
-                    .anyMatch(FunctionValidator::isAggregateOfColumnOrIdentity);
+                    .anyMatch(FunctionValidator::containsAggregate);
         }
         return false;
     }
 
-    public static boolean isAggregateOfColumnOrIdentity(Function function) {
-        if (isAggregate(function) && hasColumnOrIdentity(function, true)) {
+    public static boolean containsAggregate(Function function) {
+        // count() reads no column and is an aggregate all the same: a plain column beside it
+        // must be grouped
+        if (isAggregate(function)) {
             return true;
         }
-        return function.getArguments().stream().anyMatch(e -> isAggregateOfColumnOrIdentity(e));
+        return function.getArguments().stream().anyMatch(e -> containsAggregate(e));
     }
 
     private boolean isScalarOfColumn(Expression expression) {
