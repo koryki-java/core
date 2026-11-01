@@ -115,7 +115,7 @@ public class HavingRule {
     }
 
     private static boolean isAggregate(LogicalExpression logical) {
-        return FunctionValidator.isAggregateOfColumnOrIdentity(
+        return FunctionValidator.containsAggregate(
                 logical.getUnaryRelationalExpression().getLeft());
     }
 }
