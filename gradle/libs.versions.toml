@@ -18,7 +18,7 @@ trino = "484"
 mariadb = "4.0.0"
 # 13.4.0 is the newest stable; 13.5.0 exists only as -preview
 mssql = "13.6.1.jre11"
-sqlite = "3.53.4.0"
+sqlite = "3.54.1.0"
 
 spotless = "8.10.4"
 google-java-format = "1.36.1"
