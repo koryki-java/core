@@ -2,6 +2,7 @@
 // version instead of each re-declaring it (and risking a different one).
 plugins {
     alias(libs.plugins.spotless) apply false
+    alias(libs.plugins.cyclonedx) apply false
 }
 
 rootProject.allprojects {
@@ -198,9 +199,22 @@ rootProject.allprojects {
             }
         }
 
+        // The SBOM (CycloneDX, JSON) of every published module, published as an artifact of its own
+        // (<artifact>-<version>-cyclonedx.json) and signed with the rest of the publication.
+        // Direct BOM: this module's own runtime dependencies, which is what a consumer of the
+        // artifact gets. The tests' libraries are not in it.
+        apply plugin: 'org.cyclonedx.bom'
+        tasks.named('cyclonedxDirectBom') {
+            includeConfigs = ['runtimeClasspath']
+        }
+
         publishing {
             publications {
                 mavenJava(MavenPublication) {
+                    artifact(tasks.named('cyclonedxDirectBom').flatMap { it.jsonOutput }) {
+                        classifier = 'cyclonedx'
+                        extension = 'json'
+                    }
                     pom {
                         name = "koryki-${project.name}"
                         // Lazy on purpose: 'maven-publish' is applied at the top of each

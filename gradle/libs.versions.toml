@@ -21,12 +21,15 @@ mssql = "13.6.2.jre11"
 sqlite = "3.54.1.0"
 
 spotless = "8.11.0"
+# Writes the SBOM (CycloneDX) that ships next to every published artifact.
+cyclonedx = "3.6.1"
 google-java-format = "1.36.1"
 
 [plugins]
 antlr = { id = "org.gradle.antlr"}
 
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+cyclonedx = { id = "org.cyclonedx.bom", version.ref = "cyclonedx" }
 
 [libraries]
 
