@@ -57,4 +57,8 @@ how, and `verification/<version>.md` is the record of each release.
   credential, and the `Secret scan` workflow runs gitleaks over the whole history on every push and
   once a week.
 - **Stable archives.** Jars are built with fixed timestamps and file order, so the same sources give
-  the same archives.
+  the same archives. The SBOM is the exception: it carries a generation time and a serial number, so
+  two builds of the same sources give different `-cyclonedx.json` files.
+- **SBOM.** Every published module ships a CycloneDX 1.6 bill of materials as
+  `<artifact>-<version>-cyclonedx.json` next to its jar. It lists the module's own runtime
+  dependencies (not the libraries of its tests) and is signed like every other file of the release.
