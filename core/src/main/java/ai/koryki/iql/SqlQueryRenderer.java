@@ -221,9 +221,9 @@ public class SqlQueryRenderer implements SqlRenderer {
         b.append(NL);
 
         if (set.getOperator() != null) {
-            b.append(toSql(resolver, set.getLeft(), indent + 1));
+            b.append(limitedOperand(toSql(resolver, set.getLeft(), indent + 1), set.getLeft()));
             b.append(indent(indent)).append(mapOperator(set)).append(NL);
-            b.append(toSql(resolver, set.getRight(), indent + 1));
+            b.append(limitedOperand(toSql(resolver, set.getRight(), indent + 1), set.getRight()));
         } else {
             b.append(toSql(resolver, set.getSelect(), indent));
         }
@@ -261,7 +261,22 @@ public class SqlQueryRenderer implements SqlRenderer {
         }
     }
 
+    /**
+     * A branch with its own row limit: without wrapping, the limit would end up after the branch
+     * and be read as the limit of the whole compound, or be a syntax error before the operator.
+     */
+    private static boolean hasRowLimit(Set operand) {
+        return operand.getSelect() != null && operand.getSelect().getLimit() > 0;
+    }
+
+    private String limitedOperand(String sql, Set operand) {
+        return hasRowLimit(operand) ? dialect.limitedSetOperand(sql) : sql;
+    }
+
     private String setOperand(String sql, Set parent, Set child, boolean rightSide) {
+        if (hasRowLimit(child)) {
+            return dialect.limitedSetOperand(sql);
+        }
         boolean parens =
                 dialect.uniformSetOperatorPrecedence()
                         // one precedence level, left-assoc: left children are flat by definition

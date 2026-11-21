@@ -761,6 +761,13 @@ public class MssqlDialect implements SqlDialect {
                 + "' AS datetimeoffset)";
     }
 
+    // OFFSET/FETCH is not allowed in an operand of UNION/EXCEPT/INTERSECT, parenthesized or not;
+    // in a derived table it is. The alias is required there.
+    @Override
+    public String limitedSetOperand(String sql) {
+        return "SELECT * FROM (" + SqlRenderer.NL + sql + ") AS limited_branch" + SqlRenderer.NL;
+    }
+
     // T-SQL has no standalone FETCH FIRST. Paging is OFFSET/FETCH, which requires an
     // ORDER BY — synthesize a dummy one (ORDER BY (SELECT NULL)) when the query has none.
     @Override

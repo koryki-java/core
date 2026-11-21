@@ -59,6 +59,13 @@ public class SqliteDialect implements SqlDialect {
 
     private SqliteDialect() {}
 
+    // A parenthesized compound operand is a syntax error, so a branch with a LIMIT is a derived
+    // table
+    @Override
+    public String limitedSetOperand(String sql) {
+        return "SELECT * FROM (" + SqlRenderer.NL + sql + ")" + SqlRenderer.NL;
+    }
+
     // ---- nested values: selectors -------------------------------------------------------------
 
     /**

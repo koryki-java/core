@@ -115,6 +115,7 @@ public class Validator {
             violations.addAll(
                     Walker.apply(bean, new LambdaValidator(iqlToContext, functions, visibility)));
             violations.addAll(Walker.apply(bean, new DurationValidator(iqlToContext)));
+            violations.addAll(Walker.apply(bean, new SetOperationValidator(iqlToContext)));
 
             // The dialect last: what it cannot express is only interesting once the query itself
             // is in order.
