@@ -6,6 +6,11 @@ All notable changes to this project are documented here.
 
 ### Fixed
 
+- A branch of a set operation with a row limit (`FIND … LIMIT 5 UNION FIND …`) is limited by itself:
+  it rendered as `SELECT … FETCH FIRST 5 ROWS ONLY UNION SELECT …`, a syntax error, and in the last
+  branch the limit would have applied to the whole compound. The branch is now in parentheses, or a
+  derived table where the database takes no parenthesized operand (SQLite, SQL Server):
+  `SqlDialect.limitedSetOperand`.
 - `count()` and other aggregates that read no column count as aggregates: `FETCH o.ship_country,
   count()` is grouped by `ship_country` (it rendered without a `GROUP BY`, which no database accepts),
   and a filter on `count()` moves to `HAVING`. `FunctionValidator.isAggregateOfColumnOrIdentity` is
@@ -13,6 +18,9 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- `SetOperationValidator`: the branches of `UNION`, `UNIONALL`, `MINUS` and `INTERSECT` must return
+  the same number of columns. The query is refused with the branch that does not fit, instead of
+  the database's error about the generated SQL. The number is checked, not the types.
 - `KQLTranspiler.iqlToContext()` and `IQLTranspiler.iqlToContext()`: where in the source each node of
   `getQuery()` was made from, read-only, for a consumer that analyses the query and points at the text
   it speaks of (`Range.of(iqlToContext, node)`).

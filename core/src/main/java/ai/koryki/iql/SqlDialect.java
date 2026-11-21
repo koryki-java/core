@@ -610,6 +610,19 @@ public interface SqlDialect {
     }
 
     /**
+     * A branch of a set operation that carries its own row limit, in the form the dialect accepts.
+     * A trailing {@code FETCH FIRST n ROWS ONLY} (or {@code LIMIT}) binds to the whole compound,
+     * not to the branch before the operator: {@code SELECT ... FETCH FIRST 5 ROWS ONLY UNION SELECT
+     * ...} is a syntax error, and {@code A UNION B LIMIT 5} limits the union. The default is the
+     * SQL form, the branch in parentheses; a dialect that does not accept a parenthesized operand
+     * wraps it as a derived table instead. The result ends with a line separator, so the operator
+     * that follows starts a line.
+     */
+    default String limitedSetOperand(String sql) {
+        return "(" + SqlRenderer.NL + sql + ")" + SqlRenderer.NL;
+    }
+
+    /**
      * Final form of a text literal; {@code quoted} arrives already SQL-quoted ({@code 'x'}). SQL
      * Server prefixes non-ASCII literals with {@code N} — a bare {@code '...'} takes the session
      * database's (possibly single-byte) collation, which truncates or mis-counts on the way into
