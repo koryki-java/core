@@ -5,9 +5,9 @@ skinparam legendBackgroundColor white
 
 'title link
 
-link = ["ID"], (["+"], source
-  | join, ["+"], source
-  | ["+"], source, join)
+link = ["ID"], (["+" | "FULL" | "CROSS"], source
+  | join, ["+" | "FULL"], source
+  | ["+" | "FULL"], source, join)
 ;
 
 @endebnf
