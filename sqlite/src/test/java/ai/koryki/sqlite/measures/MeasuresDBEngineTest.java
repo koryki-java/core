@@ -1,0 +1,68 @@
+/*
+ * Copyright 2025-2026 Johannes Zemlin
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package ai.koryki.sqlite.measures;
+
+import ai.koryki.databases.cases.BaseEngineTest;
+import ai.koryki.databases.cases.Fixtures;
+import ai.koryki.databases.cases.ListWithSqlResult;
+import ai.koryki.databases.cases.StableFormat;
+import ai.koryki.databases.northwind.duckdb.NorthwindService;
+import ai.koryki.kql.EngineBuilder;
+import ai.koryki.kql.HeaderInfo;
+import ai.koryki.sqlite.iql.SqlQueryRenderer;
+import ai.koryki.sqlite.northwind.NorthwindSqlite;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.sql.SQLException;
+import java.util.Locale;
+import org.junit.jupiter.api.BeforeAll;
+
+/**
+ * Measures on sqlite: the rewritten queries of the schema {@code measures} (what {@code
+ * AggRewriter} returns for the agg() queries of the northwind project), their rows, and their SQL.
+ */
+public class MeasuresDBEngineTest extends BaseEngineTest<HeaderInfo> {
+
+    @Override
+    protected String schema() {
+        return "measures";
+    }
+
+    /**
+     * The queries of this schema are the rewriter's output, not the queries with agg(): a plain KQL
+     * file per case under {@code expected/kql/measures/rewrite} in the northwind project.
+     */
+    @Override
+    protected Path queriesRoot() {
+        return Fixtures.expected("kql", schema()).resolve("rewrite");
+    }
+
+    public MeasuresDBEngineTest() {
+        super("sqlite", true);
+    }
+
+    @BeforeAll
+    public void readNorthwindDB() throws IOException, SQLException {
+        engine =
+                EngineBuilder.headers(
+                                NorthwindSqlite.<ListWithSqlResult<HeaderInfo>>northwind(),
+                                NorthwindService.resolver(),
+                                () -> new SqlQueryRenderer(java.time.ZoneId.of("UTC")))
+                        .valueFormat(new StableFormat(Locale.ROOT))
+                        .build();
+    }
+}
