@@ -23,8 +23,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * The condition of a {@link Relation} that is not a list of equal columns: a conjunction of
- * comparisons between a column of the relation's start table and a column of its end table.
+ * The condition of a {@link ai.koryki.catalog.schema.Relation} that is not a list of equal columns:
+ * a conjunction of comparisons between a column of the relation's start table and a column of its
+ * end table.
  *
  * <p>Written as text in the catalog: {@code start.sal BETWEEN end.losal AND end.hisal}, or {@code
  * start.mgr = end.empno AND start.sal < end.sal}. A comparison is {@code <ref> <op> <ref>} with
@@ -34,7 +35,7 @@ import java.util.regex.Pattern;
  * keeps a relation something a catalog can be checked for and a cardinality can be reasoned about.
  *
  * <p>The columns are the physical column names of the two tables, as in {@link
- * Relation#getStartColumns()}.
+ * ai.koryki.catalog.schema.Relation#getStartColumns()}.
  */
 public final class RelationCondition {
 
