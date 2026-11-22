@@ -115,8 +115,8 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
 
     /**
      * {@code agg(alias.measure)} reads a measure of the catalog. It is not a function of any
-     * dialect: a rewriter in front of the transpiler turns it into plain KQL. One that reaches
-     * this point was not rewritten, and passed on it would only be a function the database does not
+     * dialect: a rewriter in front of the transpiler turns it into plain KQL. One that reaches this
+     * point was not rewritten, and passed on it would only be a function the database does not
      * have, reported by the database and not at the query. A catalog cannot define a function of
      * that name: the name is reserved.
      */

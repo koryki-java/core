@@ -62,16 +62,17 @@ class JoinKindRefusalTest {
         // the grammar leaves the join out of the CROSS form: a syntax error, not a silent drop
         RuntimeException e =
                 assertThrows(
-                RuntimeException.class,
-                () ->
-                        KQLTranspiler.builder(
-                                        "FIND shippers s, s VIA same_shipper CROSS categories c"
-                                                + " FETCH count() pairs",
-                                        resolver)
-                                .build()
-                                .getSql(
-                                        new SqlQueryRenderer(
-                                                DuckdbBaseDialect.INSTANCE, ZoneId.of("UTC"))));
+                        RuntimeException.class,
+                        () ->
+                                KQLTranspiler.builder(
+                                                "FIND shippers s, s VIA same_shipper CROSS categories c"
+                                                        + " FETCH count() pairs",
+                                                resolver)
+                                        .build()
+                                        .getSql(
+                                                new SqlQueryRenderer(
+                                                        DuckdbBaseDialect.INSTANCE,
+                                                        ZoneId.of("UTC"))));
         assertTrue(e.getMessage().contains("CROSS"), e.getMessage());
     }
 

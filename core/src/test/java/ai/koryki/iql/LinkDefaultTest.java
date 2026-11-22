@@ -46,11 +46,16 @@ class LinkDefaultTest {
 
     /** a and b with two key relations, and optionally a third with a condition. */
     private static Schema schema(boolean withCondition) {
-        String cols = "[ {\"name\": \"id\", \"concept\": {\"typeFamily\": \"INTEGER\", \"dialectType\": \"INTEGER\"}}, {\"name\": \"x\", \"concept\": {\"typeFamily\": \"INTEGER\", \"dialectType\": \"INTEGER\"}},"
-                + " {\"name\": \"y\", \"concept\": {\"typeFamily\": \"INTEGER\", \"dialectType\": \"INTEGER\"}} ]";
+        String cols =
+                "[ {\"name\": \"id\", \"concept\": {\"typeFamily\": \"INTEGER\", \"dialectType\": \"INTEGER\"}}, {\"name\": \"x\", \"concept\": {\"typeFamily\": \"INTEGER\", \"dialectType\": \"INTEGER\"}},"
+                        + " {\"name\": \"y\", \"concept\": {\"typeFamily\": \"INTEGER\", \"dialectType\": \"INTEGER\"}} ]";
         return CatalogLoader.readSchemaJson(
-                "{ \"name\": \"d\", \"tables\": [ { \"name\": \"a\", \"columns\": " + cols + " },"
-                        + " { \"name\": \"b\", \"columns\": " + cols + " } ], \"relations\": ["
+                "{ \"name\": \"d\", \"tables\": [ { \"name\": \"a\", \"columns\": "
+                        + cols
+                        + " },"
+                        + " { \"name\": \"b\", \"columns\": "
+                        + cols
+                        + " } ], \"relations\": ["
                         + rel("fk_x", "x", "id")
                         + ","
                         + rel("fk_y", "y", "id")
@@ -62,8 +67,14 @@ class LinkDefaultTest {
     }
 
     private static String rel(String name, String from, String to) {
-        return "{ \"name\": \"" + name + "\", \"startTable\": \"a\", \"endTable\": \"b\","
-                + " \"startColumns\": [\"" + from + "\"], \"endColumns\": [\"" + to + "\"] }";
+        return "{ \"name\": \""
+                + name
+                + "\", \"startTable\": \"a\", \"endTable\": \"b\","
+                + " \"startColumns\": [\""
+                + from
+                + "\"], \"endColumns\": [\""
+                + to
+                + "\"] }";
     }
 
     private static Link link(String name, String... relations) {

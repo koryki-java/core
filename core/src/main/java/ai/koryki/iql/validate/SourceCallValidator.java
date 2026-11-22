@@ -84,7 +84,9 @@ public class SourceCallValidator implements Visitor, Collector<List<Violation>> 
                 && (join.getCrit() != null || join.getColumns() != null)) {
             report(
                     source,
-                    "a CROSS join to '" + source.getName() + "' has no condition: it takes no VIA"
+                    "a CROSS join to '"
+                            + source.getName()
+                            + "' has no condition: it takes no VIA"
                             + " and no columns");
         }
         return true;

@@ -75,7 +75,9 @@ public final class LinkDefaults {
         return a.compareTo(b) <= 0 ? a + " / " + b : b + " / " + a;
     }
 
-    /** @throws KorykiaiException for the first default that is not allowed */
+    /**
+     * @throws KorykiaiException for the first default that is not allowed
+     */
     public void check() {
         for (Link link : model.getLinks()) {
             if (!link.defaulted()) {
@@ -117,8 +119,8 @@ public final class LinkDefaults {
 
     /**
      * The pairs with more than one link and no default, with the links: a query that joins them
-     * without {@code VIA} cannot be resolved. A list for tooling and a warning to the author, not an
-     * error: a catalog may leave such a pair to be written out every time.
+     * without {@code VIA} cannot be resolved. A list for tooling and a warning to the author, not
+     * an error: a catalog may leave such a pair to be written out every time.
      */
     public Map<String, List<String>> pairsWithoutDefault() {
         Map<String, List<String>> out = new LinkedHashMap<>();
