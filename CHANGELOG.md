@@ -6,6 +6,7 @@ All notable changes to this project are documented here.
 
 ### Fixed
 
+- `Join.setOptional` no longer turns a FULL or CROSS join into INNER or LEFT.
 - Explicit join columns in `EXISTS` are the correlation: `EXISTS (e [city] employees c ...)` rendered
   the relationship between the two tables instead (`e.reports_to = c.employee_id`), because the exists
   path dropped the columns before rendering. It showed only for two tables that have a relationship of
@@ -23,6 +24,13 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- Default links: `Link.default` flags the link a query takes between two entities when it writes no
+  `VIA`, so that adding a second link to a pair no longer breaks the queries that relied on the
+  first. At most one per pair, never over a relation with a condition (checked when the resolver is
+  built; `LinkDefaults`). A relation with a condition is never inferred from its tables alone. The
+  ambiguity error names the candidate links.
+- The relations of a schema are checked when the resolver is built, not only by the loader
+  (`CatalogLoader.checkRelations`), so a schema made in code is checked too.
 - `FULL` and `CROSS` joins. In KQL the marker stands where `+` stands: `e VIA reports_to FULL
   employees m`, `s CROSS categories c` (a CROSS join takes no `VIA` and no columns). `Join.kind`
   (`JoinKind`: INNER, LEFT, FULL, CROSS) replaces the boolean `optional`, which stays as an accessor

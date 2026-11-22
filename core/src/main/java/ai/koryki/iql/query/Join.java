@@ -67,9 +67,17 @@ public class Join {
         return kind == JoinKind.LEFT || kind == JoinKind.FULL;
     }
 
-    /** Sets the kind to LEFT, or back to INNER. */
+    /**
+     * Makes an inner join LEFT, or a LEFT join inner. A FULL or CROSS join is left as it is: it is
+     * not what the flag describes, and turning it into another kind silently would change the rows.
+     * Use {@link #setKind} for those.
+     */
     public void setOptional(boolean optional) {
-        this.kind = optional ? JoinKind.LEFT : JoinKind.INNER;
+        if (optional && kind == JoinKind.INNER) {
+            this.kind = JoinKind.LEFT;
+        } else if (!optional && kind == JoinKind.LEFT) {
+            this.kind = JoinKind.INNER;
+        }
     }
 
     public JoinKind getKind() {

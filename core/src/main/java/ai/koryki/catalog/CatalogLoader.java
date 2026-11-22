@@ -129,15 +129,16 @@ public class CatalogLoader {
      */
     private static Schema checked(Schema schema) {
         new ConceptResolver(schema).check(new TypeDescriptorParser() {});
-        checkConditions(schema);
+        checkRelations(schema);
         return schema;
     }
 
     /**
-     * A relation's condition has to be readable, has to name columns of its two tables, and stands
+     * The relations of a schema, wherever it came from: a schema built in code is not read by this
+     * loader, so the resolver runs this too. A relation's condition has to be readable, has to name columns of its two tables, and stands
      * alone: a relation with one has no start and end columns (see {@link Relation#getCondition}).
      */
-    private static void checkConditions(Schema schema) {
+    public static void checkRelations(Schema schema) {
         for (Relation r : schema.getRelations()) {
             if (r.getCondition() == null) {
                 continue;

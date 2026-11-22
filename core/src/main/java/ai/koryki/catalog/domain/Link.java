@@ -35,6 +35,18 @@ public class Link {
      */
     private String canonical;
 
+    /**
+     * The link a query takes between two entities when it names none ({@code FIND a x, y b}
+     * without {@code VIA}). {@code null} or {@code false}: not the default. At most one link per
+     * pair of tables may be the default, and never one over a relation with a condition (a range
+     * join is always written out). Without a default a pair of tables with several links needs a
+     * {@code VIA}, and the first relation added to a pair that had only one would break every query
+     * that relied on it; the flag is what keeps those queries working.
+     *
+     * <p>Held as the wrapper so that a model without the property is written back without it.
+     */
+    private Boolean defaultLink;
+
     private List<String> relations = new ArrayList<>();
     ;
 
@@ -88,6 +100,20 @@ public class Link {
 
     public String toString() {
         return name;
+    }
+
+    /** The JSON property {@code default}. */
+    public Boolean getDefault() {
+        return defaultLink;
+    }
+
+    public void setDefault(Boolean defaultLink) {
+        this.defaultLink = defaultLink;
+    }
+
+    /** Whether this link is flagged as the default of its table pair. */
+    public boolean defaulted() {
+        return Boolean.TRUE.equals(defaultLink);
     }
 
     public String getCanonical() {

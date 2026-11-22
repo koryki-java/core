@@ -430,3 +430,26 @@ cannot be read, one that names a column the table does not have, and one next to
 
 A link over such a relation is used like any other (`e VIA same_grade salgrade s`), in either direction.
 It joins entities, not blocks. A relation with neither columns nor a condition is a cross join.
+
+
+## Default links
+
+A query that joins two entities without `VIA` (`FIND employees e, orders o`) takes the one link the
+pair has. That stops working the day a second link between the same tables is added: every such query
+becomes ambiguous. A link can therefore be flagged as the default of its pair in the model:
+
+```json
+{ "name": "same_department", "default": true, "relations": ["fk_emp_dept"] }
+```
+
+- No `VIA`: the default link of the pair is used; without one, the pair's only link, as before.
+- At most one default per pair of tables (in either direction), and none over a relation with a
+  condition: a join like that is always written out with `VIA`.
+- A relation with a condition is never found by its tables alone, flagged or not. Adding one to a
+  catalog changes no query that does not name it.
+- A pair with several links and no default is not an error, but `LinkDefaults.pairsWithoutDefault()`
+  lists them. The checks run when the resolver is built (`new LinkResolver(...)`), whichever way the
+  schema and the model were made.
+- The ambiguity error names the links to choose from.
+
+A default is a silent choice. Generated queries should still write `VIA`.

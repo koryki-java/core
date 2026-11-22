@@ -23,6 +23,8 @@ import ai.koryki.catalog.MemberNames;
 import ai.koryki.catalog.SchemaCopy;
 import ai.koryki.catalog.domain.Attribute;
 import ai.koryki.catalog.domain.Entity;
+import ai.koryki.catalog.CatalogLoader;
+import ai.koryki.catalog.LinkDefaults;
 import ai.koryki.catalog.domain.Link;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Column;
@@ -51,6 +53,8 @@ public class LinkResolver {
     private final boolean alignedOnly;
     private final boolean qualifiedOnly;
     private final boolean strict;
+
+    private final LinkDefaults defaults;
 
     public LinkResolver(Locale locale, Schema db, Model model) {
         this(locale, db, model, false);
@@ -86,6 +90,11 @@ public class LinkResolver {
         ConceptResolver concepts = new ConceptResolver(db);
         // what the model says about the parts of the nested columns has to fit the schema
         new MemberNames(db, model).check();
+        // the default links have to be allowed, and the relations of the schema have to hold --
+        // whichever way the schema came here, not only through the loader
+        this.defaults = new LinkDefaults(db, model);
+        defaults.check();
+        CatalogLoader.checkRelations(db);
 
         db.getTables()
                 .forEach(
@@ -113,11 +122,21 @@ public class LinkResolver {
         String first = reverse ? endTable : startTable;
         String second = reverse ? startTable : endTable;
 
+        // A relation with a condition is never found by the tables alone: such a join is written
+        // out with VIA. Otherwise adding one would make every query between its tables ambiguous.
         if (typed) {
-            return db.linkRelations(first, second, crit);
+            return withoutCondition(db.linkRelations(first, second, crit), crit);
         }
         // untyped lookup must not satisfy an explicitly qualified link in strict mode
-        return strict && crit != null ? Collections.emptyList() : db.linkRelations(first, second);
+        return strict && crit != null
+                ? Collections.emptyList()
+                : withoutCondition(db.linkRelations(first, second), crit);
+    }
+
+    private static List<Relation> withoutCondition(List<Relation> relations, String crit) {
+        return crit != null
+                ? relations
+                : relations.stream().filter(r -> r.getCondition() == null).toList();
     }
 
     private boolean compareStart(String start, Relation relation) {
@@ -232,6 +251,17 @@ public class LinkResolver {
     public Optional<String> findLink(
             Range range, String startTable, String endTable, String relation) {
 
+        if (relation == null) {
+            // no VIA: the default of the pair, if the model flags one. Without one, what is found
+            // below, which is only a link when the pair has exactly one.
+            Optional<String> flagged =
+                    defaults.defaultOf(
+                                    getDialectTable(startTable).orElse(startTable),
+                                    getDialectTable(endTable).orElse(endTable));
+            if (flagged.isPresent()) {
+                return flagged;
+            }
+        }
         return findRelation(range, startTable, endTable, relation).map(x -> toLink(x.getName()));
     }
 
@@ -358,6 +388,14 @@ public class LinkResolver {
         return flipped;
     }
 
+    private String linkNameOf(String relation) {
+        return linkMap.entrySet().stream()
+                .filter(entry -> entry.getValue().getRelations().contains(relation))
+                .map(Map.Entry::getKey)
+                .findFirst()
+                .orElse(relation);
+    }
+
     private String toLink(String fk) {
         return linkMap.entrySet().stream()
                 .filter(entry -> entry.getValue().getRelations().contains(fk))
@@ -388,7 +426,13 @@ public class LinkResolver {
                             + " "
                             + endTable
                             + " "
-                            + foreignKey);
+                            + foreignKey
+                            + " -- name the link with VIA ("
+                            + check.stream()
+                                    .map(r -> linkNameOf(r.getName()))
+                                    .distinct()
+                                    .collect(Collectors.joining(", "))
+                            + "), or flag one of them default in the model");
         }
         return null;
     }
