@@ -600,12 +600,6 @@ public interface SqlDialect {
     }
 
     /**
-     * SQL standard: INTERSECT binds tighter than UNION/EXCEPT. SQLite deviates — all compound
-     * operators share one precedence level, associate left, and parenthesized compound operands are
-     * a syntax error — so its renderer must emit left-deep chains flat instead of parenthesizing
-     * lower-precedence children.
-     */
-    /**
      * Whether the database has {@code FULL OUTER JOIN}. MySQL and MariaDB do not; a query that
      * needs one is refused there instead of being emulated.
      */
@@ -613,6 +607,12 @@ public interface SqlDialect {
         return true;
     }
 
+    /**
+     * SQL standard: INTERSECT binds tighter than UNION/EXCEPT. SQLite deviates — all compound
+     * operators share one precedence level, associate left, and parenthesized compound operands are
+     * a syntax error — so its renderer must emit left-deep chains flat instead of parenthesizing
+     * lower-precedence children.
+     */
     default boolean uniformSetOperatorPrecedence() {
         return false;
     }
