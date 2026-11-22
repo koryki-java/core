@@ -21,7 +21,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.koryki.catalog.schema.Relation;
-import ai.koryki.catalog.schema.RelationCondition;
 import ai.koryki.catalog.schema.Schema;
 import java.util.List;
 import org.junit.jupiter.api.Test;

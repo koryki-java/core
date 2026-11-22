@@ -22,14 +22,15 @@ import ai.koryki.antlr.RangeException;
 import ai.koryki.catalog.CatalogLoader;
 import ai.koryki.catalog.LinkDefaults;
 import ai.koryki.catalog.MemberNames;
+import ai.koryki.catalog.RelationCondition;
 import ai.koryki.catalog.SchemaCopy;
+import ai.koryki.catalog.Schemas;
 import ai.koryki.catalog.domain.Attribute;
 import ai.koryki.catalog.domain.Entity;
 import ai.koryki.catalog.domain.Link;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Relation;
-import ai.koryki.catalog.schema.RelationCondition;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.types.ConceptResolver;
 import ai.koryki.catalog.types.TypeDescriptor;
@@ -141,12 +142,12 @@ public class LinkResolver {
         // A relation with a condition is never found by the tables alone: such a join is written
         // out with VIA. Otherwise adding one would make every query between its tables ambiguous.
         if (typed) {
-            return withoutCondition(db.linkRelations(first, second, crit), crit);
+            return withoutCondition(Schemas.linkRelations(db, first, second, crit), crit);
         }
         // untyped lookup must not satisfy an explicitly qualified link in strict mode
         return strict && crit != null
                 ? Collections.emptyList()
-                : withoutCondition(db.linkRelations(first, second), crit);
+                : withoutCondition(Schemas.linkRelations(db, first, second), crit);
     }
 
     private static List<Relation> withoutCondition(List<Relation> relations, String crit) {

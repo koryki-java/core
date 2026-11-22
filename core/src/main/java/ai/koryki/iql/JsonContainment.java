@@ -140,15 +140,15 @@ final class JsonContainment {
 
         SqlDialect dialect = renderer.getDialect();
         boolean answers = false;
-        for (Index index : table.get().indexesOn(column)) {
-            if (!index.coversAllRows()) {
+        for (Index index : ai.koryki.catalog.Tables.indexesOn(table.get(), column)) {
+            if (!ai.koryki.catalog.Indexes.coversAllRows(index)) {
                 continue;
             }
             for (IndexKey k : index.getKeys()) {
                 if (!column.equals(k.getColumn())) {
                     continue;
                 }
-                if (k.hasPath()) {
+                if (ai.koryki.catalog.Indexes.hasPath(k)) {
                     if (k.getPath().equals(List.of(selector.key()))) {
                         return null; // the key has an index of its own: keep the comparison
                     }

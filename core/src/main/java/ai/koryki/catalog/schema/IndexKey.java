@@ -70,12 +70,4 @@ public class IndexKey {
     public void setAs(String as) {
         this.as = as;
     }
-
-    /**
-     * True when the key is one value inside the column and not the column itself. Not an {@code
-     * is...} getter, which a mapper would write out as a property of its own.
-     */
-    public boolean hasPath() {
-        return path != null && !path.isEmpty();
-    }
 }

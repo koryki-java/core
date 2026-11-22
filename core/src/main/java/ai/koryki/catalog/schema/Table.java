@@ -18,7 +18,6 @@ package ai.koryki.catalog.schema;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class Table {
 
@@ -84,10 +83,6 @@ public class Table {
         this.columns.add(column);
     }
 
-    public Optional<Column> getColumn(String name) {
-        return columns.stream().filter(c -> c.getName().equals(name)).findFirst();
-    }
-
     /**
      * The access paths of the table, or null when the catalog says nothing about them. Null and not
      * empty on purpose: a table whose indexes are not known must not be written as one that has
@@ -99,16 +94,6 @@ public class Table {
 
     public void setIndexes(List<Index> indexes) {
         this.indexes = indexes == null ? null : new ArrayList<>(indexes);
-    }
-
-    /** The indexes with a key on this column, whatever the path; empty when none or not known. */
-    public List<Index> indexesOn(String column) {
-        if (indexes == null) {
-            return List.of();
-        }
-        return indexes.stream()
-                .filter(i -> i.getKeys().stream().anyMatch(k -> column.equals(k.getColumn())))
-                .toList();
     }
 
     public String getLabel() {

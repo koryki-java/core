@@ -20,8 +20,8 @@ import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.antlr.Range;
 import ai.koryki.antlr.RangeException;
 import ai.koryki.antlr.Text;
+import ai.koryki.catalog.RelationCondition;
 import ai.koryki.catalog.schema.Relation;
-import ai.koryki.catalog.schema.RelationCondition;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.WallClockEncoding;
@@ -946,7 +946,12 @@ public class SqlSelectRenderer {
                                 t.right().start() ? firstQualifier : secondQualifier);
                 lines.add(
                         dialect.renderComparison(
-                                this, leftExpr, resolveType(leftExpr), t.op(), List.of(rightExpr), indent));
+                                this,
+                                leftExpr,
+                                resolveType(leftExpr),
+                                t.op(),
+                                List.of(rightExpr),
+                                indent));
             }
         }
         b.append(

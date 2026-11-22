@@ -14,8 +14,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package ai.koryki.catalog.schema;
+package ai.koryki.catalog;
 
+import ai.koryki.catalog.schema.Table;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -159,7 +160,13 @@ public final class RelationCondition {
                 if (table.getColumns().stream()
                         .noneMatch(c -> c.getName().equalsIgnoreCase(r.column()))) {
                     problems.add(
-                            "no column '" + r.column() + "' in table " + table.getName() + " (" + r + ")");
+                            "no column '"
+                                    + r.column()
+                                    + "' in table "
+                                    + table.getName()
+                                    + " ("
+                                    + r
+                                    + ")");
                 }
             }
         }

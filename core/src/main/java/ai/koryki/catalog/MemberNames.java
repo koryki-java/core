@@ -228,7 +228,7 @@ public final class MemberNames {
     private Optional<Column> column(Entity entity, Attribute attribute) {
         String table = entity.getTable() != null ? entity.getTable() : entity.getName();
         String column = attribute.getColumn() != null ? attribute.getColumn() : attribute.getName();
-        return schema.getTable(table).flatMap(t -> t.getColumn(column));
+        return schema.getTable(table).flatMap(t -> Tables.column(t, column));
     }
 
     /**

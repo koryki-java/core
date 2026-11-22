@@ -84,13 +84,13 @@ class CatalogIndexesTest {
         assertEquals("btree", indexes.get(0).getMethod());
         assertEquals(List.of("color"), indexes.get(0).getKeys().get(0).getPath());
         assertEquals("TEXT", indexes.get(0).getKeys().get(0).getAs());
-        assertTrue(indexes.get(0).getKeys().get(0).hasPath());
-        assertTrue(indexes.get(0).coversAllRows());
+        assertTrue(ai.koryki.catalog.Indexes.hasPath(indexes.get(0).getKeys().get(0)));
+        assertTrue(ai.koryki.catalog.Indexes.coversAllRows(indexes.get(0)));
         assertEquals("jsonb_path_ops", indexes.get(1).getOpclass());
-        assertFalse(indexes.get(1).getKeys().get(0).hasPath());
-        assertFalse(indexes.get(1).coversAllRows());
-        assertEquals(2, table.indexesOn("attrs").size());
-        assertTrue(table.indexesOn("other").isEmpty());
+        assertFalse(ai.koryki.catalog.Indexes.hasPath(indexes.get(1).getKeys().get(0)));
+        assertFalse(ai.koryki.catalog.Indexes.coversAllRows(indexes.get(1)));
+        assertEquals(2, Tables.indexesOn(table, "attrs").size());
+        assertTrue(Tables.indexesOn(table, "other").isEmpty());
     }
 
     @Test
@@ -101,7 +101,7 @@ class CatalogIndexesTest {
 
         Table table = schema.getTable("t").orElseThrow();
         assertNull(table.getIndexes());
-        assertTrue(table.indexesOn("x").isEmpty());
+        assertTrue(Tables.indexesOn(table, "x").isEmpty());
     }
 
     @Test

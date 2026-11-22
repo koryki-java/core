@@ -33,8 +33,8 @@ public class Relation {
 
     /**
      * What a join over this relation compares instead of equal columns, as text: {@code start.sal
-     * BETWEEN end.losal AND end.hisal}. See {@link RelationCondition} for the form. {@code null}
-     * for an ordinary relation.
+     * BETWEEN end.losal AND end.hisal}. See {@link ai.koryki.catalog.RelationCondition} for the
+     * form. {@code null} for an ordinary relation.
      *
      * <p>A relation with a condition has <em>no</em> start and end columns: the condition carries
      * every comparison, equalities included ({@code start.a = end.b}). That is deliberate. A reader

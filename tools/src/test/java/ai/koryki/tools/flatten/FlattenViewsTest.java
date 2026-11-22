@@ -539,9 +539,7 @@ class FlattenViewsTest {
     void theViewsOfTheComplexBedSayInTheModelWhatTheirSchemaSays() {
         Schema db = CatalogLoader.db(ComplexService.DB);
         // a field of the elements that has a comment as well as a label
-        db.getTable("check_complex")
-                .orElseThrow()
-                .getColumn("items")
+        ai.koryki.catalog.Tables.column(db.getTable("check_complex").orElseThrow(), "items")
                 .orElseThrow()
                 .getConcept()
                 .getEntries()

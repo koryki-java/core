@@ -165,14 +165,13 @@ class MemberNamesTest {
     private static Schema shared() {
         Schema schema = schema();
         Concept concept =
-                schema.getTable("check_complex")
-                        .orElseThrow()
-                        .getColumn("address")
+                Tables.column(schema.getTable("check_complex").orElseThrow(), "address")
                         .orElseThrow()
                         .getConcept();
         schema.setConcepts(new LinkedHashMap<>(Map.of("address_type", concept)));
         var column =
-                schema.getTable("check_complex").orElseThrow().getColumn("address").orElseThrow();
+                Tables.column(schema.getTable("check_complex").orElseThrow(), "address")
+                        .orElseThrow();
         column.setConcept(null);
         column.setConceptRef("address_type");
         return schema;
@@ -214,18 +213,14 @@ class MemberNamesTest {
     void anEntryThatNamesAConceptTakesItsNamesFromTheNotionOfThatConcept() {
         Schema schema = schema();
         Concept position =
-                schema.getTable("check_complex")
-                        .orElseThrow()
-                        .getColumn("address")
+                Tables.column(schema.getTable("check_complex").orElseThrow(), "address")
                         .orElseThrow()
                         .getConcept()
                         .getEntries()
                         .get("geo")
                         .getConcept();
         schema.setConcepts(new LinkedHashMap<>(Map.of("position", position)));
-        schema.getTable("check_complex")
-                .orElseThrow()
-                .getColumn("address")
+        Tables.column(schema.getTable("check_complex").orElseThrow(), "address")
                 .orElseThrow()
                 .getConcept()
                 .getEntries()
@@ -330,9 +325,7 @@ class MemberNamesTest {
     @Test
     void aColumnWithoutAConceptHasNoPartsToName() {
         Schema schema = schema();
-        schema.getTable("check_complex")
-                .orElseThrow()
-                .getColumn("address")
+        Tables.column(schema.getTable("check_complex").orElseThrow(), "address")
                 .orElseThrow()
                 .setConcept(null);
         Model model = model(schema);
