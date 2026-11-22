@@ -211,7 +211,11 @@ public class KQLQueryMapper {
                         link,
                         "unknown alias '" + f + "': no source with that alias is in scope here");
             }
-            if (join.getCrit() == null && join.getColumns() == null && link.source().call == null) {
+            // A CROSS join has no condition: nothing to look up and nothing to infer.
+            if (join.getKind() != JoinKind.CROSS
+                    && join.getCrit() == null
+                    && join.getColumns() == null
+                    && link.source().call == null) {
                 // anonymous criteria must be resolved here
                 Source fromTable = blockIdToSourceMap.get(f);
 
@@ -826,8 +830,12 @@ public class KQLQueryMapper {
         bean.setCrit(parsed.crit());
         bean.setColumns(parsed.columns());
 
-        if (link.PLUS() != null) {
-            bean.setOptional(true);
+        if (link.kind != null) {
+            switch (link.kind.getType()) {
+                case KQLParser.PLUS -> bean.setKind(JoinKind.LEFT);
+                case KQLParser.FULL -> bean.setKind(JoinKind.FULL);
+                default -> bean.setKind(JoinKind.CROSS);
+            }
         }
 
         Source t = aliasToTable.get(toAlias);

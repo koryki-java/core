@@ -19,7 +19,10 @@ package ai.koryki.catalog;
 import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.catalog.domain.Link;
 import ai.koryki.catalog.domain.Model;
+import ai.koryki.catalog.schema.Relation;
+import ai.koryki.catalog.schema.RelationCondition;
 import ai.koryki.catalog.schema.Schema;
+import ai.koryki.catalog.schema.Table;
 import ai.koryki.catalog.types.ConceptResolver;
 import ai.koryki.catalog.types.TypeDescriptorParser;
 import java.io.*;
@@ -126,7 +129,42 @@ public class CatalogLoader {
      */
     private static Schema checked(Schema schema) {
         new ConceptResolver(schema).check(new TypeDescriptorParser() {});
+        checkConditions(schema);
         return schema;
+    }
+
+    /**
+     * A relation's condition has to be readable, has to name columns of its two tables, and stands
+     * alone: a relation with one has no start and end columns (see {@link Relation#getCondition}).
+     */
+    private static void checkConditions(Schema schema) {
+        for (Relation r : schema.getRelations()) {
+            if (r.getCondition() == null) {
+                continue;
+            }
+            String where = "relation " + r.getName() + ": ";
+            if (!r.getStartColumns().isEmpty() || !r.getEndColumns().isEmpty()) {
+                throw new KorykiaiException(
+                        where
+                                + "a condition replaces the start and end columns -- write the"
+                                + " equalities into the condition");
+            }
+            RelationCondition condition;
+            try {
+                condition = RelationCondition.parse(r.getCondition());
+            } catch (IllegalArgumentException e) {
+                throw new KorykiaiException(where + e.getMessage());
+            }
+            Table start = schema.getTable(r.getStartTable()).orElse(null);
+            Table end = schema.getTable(r.getEndTable()).orElse(null);
+            if (start == null || end == null) {
+                throw new KorykiaiException(where + "unknown start or end table");
+            }
+            List<String> problems = condition.check(start, end);
+            if (!problems.isEmpty()) {
+                throw new KorykiaiException(where + String.join("; ", problems));
+            }
+        }
     }
 
     public static Model readModelJson(InputStream in) {

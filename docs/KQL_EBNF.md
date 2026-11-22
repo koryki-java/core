@@ -161,6 +161,26 @@ Literal `+` produces an optional `link` (LEFT OUTER JOIN), preserving rows
 even when no matching counterpart is found in target `source`. A link without `+` produces a
 mandatory link (INNER JOIN); rows are only returned when matching data exists in both sources.
 
+The marker says how rows without a partner are treated, and stands where `+` stands, before the
+target `source`:
+
+| Marker | Join | Rows kept |
+|---|---|---|
+| none | INNER | only rows with a partner |
+| `+` | LEFT OUTER | all rows of the side written first |
+| `FULL` | FULL OUTER | all rows of both sides |
+| `CROSS` | CROSS | every row with every row; takes no `VIA` and no columns |
+
+`FIND employees e, e VIA reports_to FULL employees m` keeps the employee without a supervisor and
+every employee nobody reports to. `FIND shippers s, s CROSS categories c` pairs each shipper with
+each category. `FULL` and `CROSS` are keywords, written in capitals like `VIA`; identifiers are
+lower case, so they cannot clash with a name. A database without `FULL OUTER JOIN` (MariaDB) refuses
+a query that uses it.
+
+A filter on an alias that is joined optionally or with `FULL` is rendered in the ON clause of the join,
+as for `+`. A `FILTER` on the side written first of a `FULL` join stays in WHERE, which turns the
+join back into a LEFT one for those rows: filter the side that may be missing.
+
 A `link` may name the columns it joins on — that is the `join`. It is **required** when two sources
 share more than one relationship, because nothing else could say which one is meant, and it is
 **always permitted**: `FIND orders o, [order_id] order_details od` is valid even though that pair has

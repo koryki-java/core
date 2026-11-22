@@ -145,6 +145,8 @@ SINGLE_QUOTE: '\'';
 DOT: '.';
 BAR: '-';
 VIA: 'VIA';
+FULL: 'FULL';
+CROSS: 'CROSS';
 
 // Lambda arrow. Only ever inside a function argument; the 11 `->` in the fixture corpus are comments.
 ARROW: '->';

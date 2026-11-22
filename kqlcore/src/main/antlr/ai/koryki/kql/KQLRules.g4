@@ -38,9 +38,11 @@ select
  : FIND source (COMMA link)* filterClause? fetchClause? limitClause?
 ;
 
-link : from=ID? (PLUS)? source
-| from=ID? join  PLUS? source
-| from=ID? PLUS? source join
+// The marker says how rows without a partner are treated: `+` keeps those of the side written
+// first (LEFT), FULL keeps both sides, CROSS pairs every row with every row and takes no join.
+link : from=ID? kind=(PLUS | FULL | CROSS)? source
+| from=ID? join  kind=(PLUS | FULL)? source
+| from=ID? kind=(PLUS | FULL)? source join
 ;
 
 existslink : from=ID source

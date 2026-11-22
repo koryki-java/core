@@ -126,6 +126,7 @@ public class Validator {
                 // what it can do in intervalSupport() and contributes nothing else here.
                 violations.addAll(Walker.apply(bean, new DurationValueValidator(context, dialect)));
                 violations.addAll(Walker.apply(bean, new NestedSupportValidator(context, dialect)));
+                violations.addAll(Walker.apply(bean, new JoinKindValidator(context, dialect)));
                 for (Collector<List<Violation>> v : dialect.validators(context)) {
                     violations.addAll(Walker.apply(bean, v));
                 }

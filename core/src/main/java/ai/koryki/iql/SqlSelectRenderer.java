@@ -21,6 +21,7 @@ import ai.koryki.antlr.Range;
 import ai.koryki.antlr.RangeException;
 import ai.koryki.antlr.Text;
 import ai.koryki.catalog.schema.Relation;
+import ai.koryki.catalog.schema.RelationCondition;
 import ai.koryki.catalog.types.CoreTypeFamily;
 import ai.koryki.catalog.types.TypeDescriptor;
 import ai.koryki.catalog.types.WallClockEncoding;
@@ -479,17 +480,48 @@ public class SqlSelectRenderer {
             if (join.getSource().getCall() != null) {
                 return b.append(unnestJoin(join, underOptional, indent)).toString();
             }
-            if (join.isOptional()) {
-                b.append("LEFT OUTER ");
-            } else {
-                b.append("INNER ");
+            JoinKind kind = join.getKind();
+            // A CROSS join has no condition. A relation without columns and without a condition
+            // is the same thing written in the catalog.
+            String on = kind == JoinKind.CROSS ? "" : joinColumns(left, join, indent + 1);
+            if (on.isBlank() && kind == JoinKind.INNER) {
+                kind = JoinKind.CROSS;
+            }
+            switch (kind) {
+                case LEFT -> b.append("LEFT OUTER ");
+                case FULL -> {
+                    if (!dialect.supportsFullJoin()) {
+                        throw new RangeException(
+                                Range.of(iqlToContext, join),
+                                "FULL JOIN is not supported by this database: "
+                                        + join.getSource().getName());
+                    }
+                    b.append("FULL OUTER ");
+                }
+                case CROSS -> b.append("CROSS ");
+                default -> b.append("INNER ");
             }
             b.append("JOIN ");
             b.append(toSql(join.getSource(), indent));
+            if (kind == JoinKind.CROSS) {
+                if ((underOptional || join.isOptional()) && join.getSource().getFilter() != null) {
+                    throw new RangeException(
+                            Range.of(iqlToContext, join),
+                            "a CROSS join below an optional join cannot carry a filter: "
+                                    + join.getSource().getName());
+                }
+                b.append(SqlRenderer.NL);
+                return b.toString();
+            }
+            if (on.isBlank()) {
+                throw new RangeException(
+                        Range.of(iqlToContext, join),
+                        "an outer join needs a condition: " + join.getSource().getName());
+            }
             b.append(" ON");
             b.append(SqlRenderer.NL);
 
-            b.append(joinColumns(left, join, indent + 1));
+            b.append(on);
             b.append(SqlRenderer.NL);
 
             // an optional join's filter belongs in its ON clause (WHERE would defeat LEFT
@@ -891,6 +923,31 @@ public class SqlSelectRenderer {
             lines.add(
                     dialect.renderComparison(
                             this, leftExpr, leftType, "=", List.of(rightExpr), indent));
+        }
+        if (r.getCondition() != null) {
+            if (startBlock != null || endBlock != null) {
+                throw new RangeException(
+                        range,
+                        "relation "
+                                + r.getName()
+                                + " has a condition and joins a block: only entities can be"
+                                + " joined that way");
+            }
+            for (RelationCondition.Term t : RelationCondition.parse(r.getCondition()).terms()) {
+                Expression leftExpr =
+                        joinColumnExpression(
+                                null,
+                                t.left().column(),
+                                t.left().start() ? firstQualifier : secondQualifier);
+                Expression rightExpr =
+                        joinColumnExpression(
+                                null,
+                                t.right().column(),
+                                t.right().start() ? firstQualifier : secondQualifier);
+                lines.add(
+                        dialect.renderComparison(
+                                this, leftExpr, resolveType(leftExpr), t.op(), List.of(rightExpr), indent));
+            }
         }
         b.append(
                 lines.stream()

@@ -31,6 +31,19 @@ public class Relation {
     private List<String> startColumns;
     private List<String> endColumns;
 
+    /**
+     * What a join over this relation compares instead of equal columns, as text: {@code start.sal
+     * BETWEEN end.losal AND end.hisal}. See {@link RelationCondition} for the form. {@code null}
+     * for an ordinary relation.
+     *
+     * <p>A relation with a condition has <em>no</em> start and end columns: the condition carries
+     * every comparison, equalities included ({@code start.a = end.b}). That is deliberate. A reader
+     * that does not know this property ignores it, and a relation without columns renders as a join
+     * without a condition, which the database refuses -- the failure is loud. Equality columns next
+     * to a condition would instead be rendered alone and give wrong rows without a sign.
+     */
+    private String condition;
+
     public Relation() {
         this(null);
     }
@@ -103,6 +116,14 @@ public class Relation {
 
     public void addEndColumn(String endColumn) {
         this.endColumns.add(endColumn);
+    }
+
+    public String getCondition() {
+        return condition;
+    }
+
+    public void setCondition(String condition) {
+        this.condition = condition;
     }
 
     public boolean isSymmetric() {

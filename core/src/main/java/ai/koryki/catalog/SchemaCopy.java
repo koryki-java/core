@@ -156,6 +156,7 @@ public final class SchemaCopy {
 
         copy.setStartColumns(relation.getStartColumns().stream().collect(Collectors.toList()));
         copy.setEndColumns(relation.getEndColumns().stream().collect(Collectors.toList()));
+        copy.setCondition(relation.getCondition());
 
         return copy;
     }

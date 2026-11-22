@@ -27,6 +27,7 @@ import ai.koryki.catalog.domain.Link;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Column;
 import ai.koryki.catalog.schema.Relation;
+import ai.koryki.catalog.schema.RelationCondition;
 import ai.koryki.catalog.schema.Schema;
 import ai.koryki.catalog.types.ConceptResolver;
 import ai.koryki.catalog.types.TypeDescriptor;
@@ -350,6 +351,10 @@ public class LinkResolver {
         flipped.setEndTable(relation.getStartTable());
         flipped.setStartColumns(relation.getEndColumns());
         flipped.setEndColumns(relation.getStartColumns());
+        if (relation.getCondition() != null) {
+            // the roles swap with the tables: what compared start with end now compares end with start
+            flipped.setCondition(RelationCondition.parse(relation.getCondition()).flipped().text());
+        }
         return flipped;
     }
 

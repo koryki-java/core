@@ -88,7 +88,10 @@ public class InferJoinColumnsToBlockRule {
         String crit = join.getCrit();
         Source right = join.getSource();
         // A list made into rows is joined by what its call is given: no columns to add to a block.
-        if (right != null && right.getCall() == null && left.getCall() == null) {
+        if (right != null
+                && right.getCall() == null
+                && left.getCall() == null
+                && join.getKind() != ai.koryki.iql.query.JoinKind.CROSS) {
             // boolean invers = join.isInvers();
             // An explicit join carries no criterion, and its direction is fixed by what the
             // author wrote -- there is nothing to invert.
@@ -136,6 +139,13 @@ public class InferJoinColumnsToBlockRule {
             r = o.get();
         }
 
+        if (r.getCondition() != null && (!b1 || !b2)) {
+            throw new KorykiaiException(
+                    "relation "
+                            + r.getName()
+                            + " has a condition and joins a block: only entities can be joined"
+                            + " that way");
+        }
         if (!b1) {
             enhanceReferencedBlock(block, startBlockId, s, r.getStartColumns());
         }

@@ -605,6 +605,14 @@ public interface SqlDialect {
      * a syntax error — so its renderer must emit left-deep chains flat instead of parenthesizing
      * lower-precedence children.
      */
+    /**
+     * Whether the database has {@code FULL OUTER JOIN}. MySQL and MariaDB do not; a query that
+     * needs one is refused there instead of being emulated.
+     */
+    default boolean supportsFullJoin() {
+        return true;
+    }
+
     default boolean uniformSetOperatorPrecedence() {
         return false;
     }

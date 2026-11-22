@@ -401,3 +401,32 @@ Inside schema definition we will write:
       }
 
 Depending on database dialect we also need to care about upper/lower case or quoting.
+
+
+## Relations with a condition
+
+A relation joins two tables on equal columns (`startColumns`, `endColumns`). A relation can instead
+carry a `condition`, for a join on a range or any comparison of columns:
+
+```json
+{
+  "name": "fk_emp_salgrade",
+  "startTable": "emp",
+  "endTable": "salgrade",
+  "startColumns": [],
+  "endColumns": [],
+  "condition": "start.sal BETWEEN end.losal AND end.hisal"
+}
+```
+
+The condition is a conjunction of comparisons, `start.<column> <op> end.<column>` with `op` one of `=`,
+`<>`, `<`, `<=`, `>`, `>=`, and `BETWEEN` as shorthand for two of them. It names the columns of the two
+tables and nothing else: no `OR`, no functions, no literals. A relation with a condition has no start and
+end columns: the equalities, if any, are written into the condition (`start.mgr = end.empno AND ...`).
+That is on purpose. A reader that does not know `condition` ignores it, and a relation without columns
+renders as a join without a condition, which the database refuses; equality columns next to a condition
+would be rendered alone and give wrong rows without a sign. The catalog loader refuses a condition that
+cannot be read, one that names a column the table does not have, and one next to start or end columns.
+
+A link over such a relation is used like any other (`e VIA same_grade salgrade s`), in either direction.
+It joins entities, not blocks. A relation with neither columns nor a condition is a cross join.

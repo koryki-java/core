@@ -908,7 +908,7 @@ public class KQLFormatter {
                             link.join(),
                             link.from != null ? entityOf(link.from.getText()) : leading,
                             entityName(link.source())));
-            b.append(link.PLUS() != null ? "+ " : "");
+            b.append(link.kind != null ? link.kind.getText() + " " : "");
             b.append(sourceText(link.source()));
             b.append(" ");
             b.append(link.source().alias.getText());

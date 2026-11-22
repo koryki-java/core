@@ -21,7 +21,7 @@ import java.util.List;
 
 public class Join {
     private String crit;
-    private boolean optional;
+    private JoinKind kind = JoinKind.INNER;
     private String ref;
 
     private Source source;
@@ -59,12 +59,25 @@ public class Join {
         this.ref = ref;
     }
 
+    /**
+     * Whether the joined source may be missing from a row: a LEFT join (KQL {@code +}) and a FULL
+     * join. The filter of such a source belongs in the ON clause, not in WHERE.
+     */
     public boolean isOptional() {
-        return optional;
+        return kind == JoinKind.LEFT || kind == JoinKind.FULL;
     }
 
+    /** Sets the kind to LEFT, or back to INNER. */
     public void setOptional(boolean optional) {
-        this.optional = optional;
+        this.kind = optional ? JoinKind.LEFT : JoinKind.INNER;
+    }
+
+    public JoinKind getKind() {
+        return kind;
+    }
+
+    public void setKind(JoinKind kind) {
+        this.kind = kind == null ? JoinKind.INNER : kind;
     }
 
     /**

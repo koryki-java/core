@@ -23,6 +23,15 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- `FULL` and `CROSS` joins. In KQL the marker stands where `+` stands: `e VIA reports_to FULL
+  employees m`, `s CROSS categories c` (a CROSS join takes no `VIA` and no columns). `Join.kind`
+  (`JoinKind`: INNER, LEFT, FULL, CROSS) replaces the boolean `optional`, which stays as an accessor
+  (`isOptional()` is true for LEFT and FULL). IQL writes `JOIN FULL`, `JOIN CROSS`. FULL is refused
+  where the database has no `FULL OUTER JOIN` (`SqlDialect.supportsFullJoin`, false for MariaDB).
+- A relation can have a `condition`: a conjunction of comparisons between a column of its start
+  table and a column of its end table, e.g. `start.sal BETWEEN end.losal AND end.hisal`, for a join
+  that is not an equality of columns. See docs/CATALOG.md. A relation without columns and without a
+  condition joins as a CROSS JOIN. Conditioned relations join entities, not blocks.
 - `SetOperationValidator`: the branches of `UNION`, `UNIONALL`, `MINUS` and `INTERSECT` must return
   the same number of columns. The query is refused with the branch that does not fit, instead of
   the database's error about the generated SQL. The number is checked, not the types.
