@@ -780,7 +780,20 @@ public class SqlSelectRenderer {
 
         Source first = invers ? right : left;
         Source second = invers ? left : right;
-        return joinColumns(indent, first, second, crit, msg, right);
+        // Explicit columns are the correlation. Dropping them here made the renderer look the
+        // relation up instead, and for two tables with a relationship of their own (employees and
+        // employees, reports_to) it answered a different question than the one that was written.
+        return joinColumns(
+                Range.of(iqlToContext, first),
+                indent,
+                first.getName(),
+                first.getAlias(),
+                second.getName(),
+                second.getAlias(),
+                crit,
+                msg,
+                right,
+                exists.getColumns());
     }
 
     private String joinColumns(Source left, Join join, int indent) {

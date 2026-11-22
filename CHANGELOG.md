@@ -6,6 +6,11 @@ All notable changes to this project are documented here.
 
 ### Fixed
 
+- Explicit join columns in `EXISTS` are the correlation: `EXISTS (e [city] employees c ...)` rendered
+  the relationship between the two tables instead (`e.reports_to = c.employee_id`), because the exists
+  path dropped the columns before rendering. It showed only for two tables that have a relationship of
+  their own and a different pair of columns written out; an explicit join that matched the relationship
+  gave the same SQL either way.
 - A branch of a set operation with a row limit (`FIND … LIMIT 5 UNION FIND …`) is limited by itself:
   it rendered as `SELECT … FETCH FIRST 5 ROWS ONLY UNION SELECT …`, a syntax error, and in the last
   branch the limit would have applied to the whole compound. The branch is now in parentheses, or a
