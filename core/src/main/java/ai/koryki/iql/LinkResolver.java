@@ -19,12 +19,12 @@ package ai.koryki.iql;
 import ai.koryki.antlr.KorykiaiException;
 import ai.koryki.antlr.Range;
 import ai.koryki.antlr.RangeException;
+import ai.koryki.catalog.CatalogLoader;
+import ai.koryki.catalog.LinkDefaults;
 import ai.koryki.catalog.MemberNames;
 import ai.koryki.catalog.SchemaCopy;
 import ai.koryki.catalog.domain.Attribute;
 import ai.koryki.catalog.domain.Entity;
-import ai.koryki.catalog.CatalogLoader;
-import ai.koryki.catalog.LinkDefaults;
 import ai.koryki.catalog.domain.Link;
 import ai.koryki.catalog.domain.Model;
 import ai.koryki.catalog.schema.Column;
@@ -55,6 +55,22 @@ public class LinkResolver {
     private final boolean strict;
 
     private final LinkDefaults defaults;
+
+    private volatile ai.koryki.kql.QueryRewriter queryRewriter = ai.koryki.kql.QueryRewriter.NONE;
+
+    /**
+     * The rewriter every query of this catalog goes through before it is transpiled; see {@link
+     * ai.koryki.kql.QueryRewriter}. By default it rewrites nothing.
+     */
+    public ai.koryki.kql.QueryRewriter queryRewriter() {
+        return queryRewriter;
+    }
+
+    /** Attaches the rewriter; returns this resolver. */
+    public LinkResolver queryRewriter(ai.koryki.kql.QueryRewriter rewriter) {
+        this.queryRewriter = rewriter == null ? ai.koryki.kql.QueryRewriter.NONE : rewriter;
+        return this;
+    }
 
     public LinkResolver(Locale locale, Schema db, Model model) {
         this(locale, db, model, false);
@@ -256,8 +272,8 @@ public class LinkResolver {
             // below, which is only a link when the pair has exactly one.
             Optional<String> flagged =
                     defaults.defaultOf(
-                                    getDialectTable(startTable).orElse(startTable),
-                                    getDialectTable(endTable).orElse(endTable));
+                            getDialectTable(startTable).orElse(startTable),
+                            getDialectTable(endTable).orElse(endTable));
             if (flagged.isPresent()) {
                 return flagged;
             }
@@ -382,7 +398,8 @@ public class LinkResolver {
         flipped.setStartColumns(relation.getEndColumns());
         flipped.setEndColumns(relation.getStartColumns());
         if (relation.getCondition() != null) {
-            // the roles swap with the tables: what compared start with end now compares end with start
+            // the roles swap with the tables: what compared start with end now compares end with
+            // start
             flipped.setCondition(RelationCondition.parse(relation.getCondition()).flipped().text());
         }
         return flipped;
