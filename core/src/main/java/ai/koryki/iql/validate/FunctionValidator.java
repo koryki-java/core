@@ -94,6 +94,7 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
 
     @Override
     public boolean visit(Deque<Object> deque, Function function) {
+        checkReserved(function);
         if (functions != null) {
             validateCall(function);
         }
@@ -107,6 +108,29 @@ public class FunctionValidator implements Visitor, Collector<List<Violation>> {
         checkWindowOnly(function);
         checkSourceOnly(deque, function);
         return true;
+    }
+
+    /** The name of the call that reads a measure; see {@link #checkReserved}. */
+    public static final String MEASURE_CALL = "agg";
+
+    /**
+     * {@code agg(alias.measure)} reads a measure of the catalog. It is not a function of any
+     * dialect: a rewriter in front of the transpiler turns it into plain KQL. One that reaches
+     * this point was not rewritten, and passed on it would only be a function the database does not
+     * have, reported by the database and not at the query. A catalog cannot define a function of
+     * that name: the name is reserved.
+     */
+    private void checkReserved(Function function) {
+        if (MEASURE_CALL.equalsIgnoreCase(function.getFunc())) {
+            violations.add(
+                    new Violation(
+                            "function",
+                            function,
+                            Range.of(iqlToContext, function),
+                            "'agg' reads a measure and is not a function of the database: the"
+                                    + " query has to be rewritten by the measures project before it"
+                                    + " is transpiled"));
+        }
     }
 
     /**
