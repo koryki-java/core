@@ -27,9 +27,8 @@ import java.util.Optional;
  * Rendering support for column-level BOOLEAN encodings, the comparison dual of {@code
  * booleanPredicate}. A boolean column may physically hold 0/1 ({@code BOOLEAN_FROM_INTEGER}) or
  * 'Y'/'N' ({@code BOOLEAN_FROM_TEXT}); a {@code TRUE} or {@code FALSE} literal compared with it
- * must be written the way the column stores it, so both operands share one physical
- * representation: {@code c.flag = TRUE} is {@code c.flag = 1} on the first and {@code c.flag =
- * 'Y'} on the second.
+ * must be written the way the column stores it, so both operands share one physical representation:
+ * {@code c.flag = TRUE} is {@code c.flag = 1} on the first and {@code c.flag = 'Y'} on the second.
  *
  * <p>A native boolean column gives empty: the dialect writes the literal itself.
  */

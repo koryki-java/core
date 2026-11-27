@@ -33,7 +33,9 @@ public class Expression {
     private LocalTime localTime;
     private boolean isNull;
 
-    /** A boolean literal, {@code TRUE} or {@code FALSE}; null when the expression is something else. */
+    /**
+     * A boolean literal, {@code TRUE} or {@code FALSE}; null when the expression is something else.
+     */
     private Boolean bool;
 
     private Duration duration;

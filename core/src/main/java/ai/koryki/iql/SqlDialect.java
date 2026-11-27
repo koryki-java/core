@@ -643,9 +643,9 @@ public interface SqlDialect {
 
     /**
      * The SQL for a {@code TRUE} or {@code FALSE} literal. ANSI has the keywords; an engine with no
-     * boolean value (SQL Server's BIT, Oracle before 23ai, SQLite) writes 1 and 0. Against a
-     * column stored as 0/1 or 'Y'/'N' the renderer does not ask: it writes the column's own
-     * encoding (see {@code BooleanEncodings}).
+     * boolean value (SQL Server's BIT, Oracle before 23ai, SQLite) writes 1 and 0. Against a column
+     * stored as 0/1 or 'Y'/'N' the renderer does not ask: it writes the column's own encoding (see
+     * {@code BooleanEncodings}).
      */
     default String booleanLiteral(boolean value) {
         return value ? "TRUE" : "FALSE";
