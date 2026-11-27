@@ -24,6 +24,11 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- Boolean literals `TRUE` and `FALSE` in KQL and IQL (`Expression.getBool`). They are typed BOOLEAN and
+  written the way the other operand stores a boolean: 1/0 or 'Y'/'N' against an encoded column
+  (`BooleanEncodings`), the keywords where the engine has them, 1/0 on SQL Server, SQLite and Oracle
+  (`SqlDialect.booleanLiteral`, `booleanLiteralPredicate`). A literal on the left of a comparison with
+  an encoded column is not adapted; write the column first.
 - Default links: `Link.default` flags the link a query takes between two entities when it writes no
   `VIA`, so that adding a second link to a pair no longer breaks the queries that relied on the
   first. At most one per pair, never over a relation with a condition (checked when the resolver is

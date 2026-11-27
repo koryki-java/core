@@ -956,6 +956,12 @@ public class MssqlDialect implements SqlDialect {
         return base.equals(sql) ? sql + " = 1" : base;
     }
 
+    /** BIT has no TRUE and FALSE keywords; 1 and 0 are its values. */
+    @Override
+    public String booleanLiteral(boolean value) {
+        return value ? "1" : "0";
+    }
+
     /** T-SQL division truncates when both operands are integers. */
     @Override
     public String castToDecimal(String sql) {

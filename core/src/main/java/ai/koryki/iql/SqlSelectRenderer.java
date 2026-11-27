@@ -698,6 +698,9 @@ public class SqlSelectRenderer {
                     return predicateSql;
                 }
             }
+            if (bare && left.getBool() != null) {
+                return dialect.booleanLiteralPredicate(left.getBool());
+            }
             TypeDescriptor leftType = resolveType(left);
             if (bare) {
                 // A boolean column or other boolean expression standing alone as a predicate.
@@ -1254,6 +1257,8 @@ public class SqlSelectRenderer {
             return wallClockWrapped(col, expression);
         } else if (expression.isNull()) {
             return "NULL";
+        } else if (expression.getBool() != null) {
+            return dialect.booleanLiteral(expression.getBool());
         } else if (expression.getLogical() != null) {
             return toSqlInline(expression.getLogical(), indent);
         } else if (expression.getSelection() != null) {

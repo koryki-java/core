@@ -89,6 +89,12 @@ public class SqliteDialect implements SqlDialect {
         return "json_extract(" + json + ", '$')";
     }
 
+    /** SQLite has no boolean values: true and false are 1 and 0, and a bare 1 is a condition. */
+    @Override
+    public String booleanLiteral(boolean value) {
+        return value ? "1" : "0";
+    }
+
     /** {@code ->>} answers 1 and 0 for JSON true and false, and the text for a JSON string. */
     @Override
     public String jsonBoolean(String scalar) {

@@ -20,6 +20,8 @@ expression =
 | "NUMBER"
 | "SQ_STRING"
 | "NULL"
+| "TRUE"
+| "FALSE"
 | "(", select, ")"
 ;
 

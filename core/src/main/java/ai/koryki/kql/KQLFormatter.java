@@ -568,6 +568,10 @@ public class KQLFormatter {
                 return expression.SQ_STRING().getText();
             } else if (expression.NULL() != null) {
                 return "NULL";
+            } else if (expression.TRUE() != null) {
+                return "TRUE";
+            } else if (expression.FALSE() != null) {
+                return "FALSE";
             } else {
                 throw new KorykiaiException();
             }

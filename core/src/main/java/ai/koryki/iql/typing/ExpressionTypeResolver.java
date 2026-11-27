@@ -145,6 +145,8 @@ public class ExpressionTypeResolver {
             return TypeDescriptor.TIME;
         } else if (expression.getDuration() != null) {
             return TypeDescriptor.INTERVAL;
+        } else if (expression.getBool() != null) {
+            return TypeDescriptor.BOOLEAN;
         } else if (expression.isNull()) {
             return TypeDescriptor.NULL;
         } else {

@@ -177,6 +177,10 @@ expression
 | NUMBER
 | SQ_STRING
 | NULL
+// A boolean literal. It is typed BOOLEAN; against a column stored as 0/1 or 'Y'/'N' the renderer
+// writes it in the column's encoding, and where the engine has no boolean literal as 1/0.
+| TRUE
+| FALSE
 | LEFT_PAREN select RIGHT_PAREN
 ;
 
