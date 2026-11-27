@@ -347,7 +347,7 @@ of an element that is no struct, and `ordinal` the position. See [Nested values]
 
 An `expression` is a value-producing term used throughout the query.
 It covers unary negation (`-expr`, `+expr`), arithmetic (`*`, `/`, `+`, `-`), field references,
-function calls, literals (`INT`, `NUMBER`, `SQ_STRING`, `NULL`), `temporal_literal`,
+function calls, literals (`INT`, `NUMBER`, `SQ_STRING`, `NULL`, `TRUE`, `FALSE`), `temporal_literal`,
 lambda parameters (a bare `ID`, only meaningful inside a lambda), and sub-selects. Parentheses can be used to group and override arithmetic precedence.
 
 A `selector` after an expression reaches into a nested value: `c.tags@1`, `c.items@1@sku`,
@@ -359,7 +359,13 @@ Unary `-` negates a value; unary `+` is a no-op included for symmetry. Both bind
 binary operators, so `-a * b` means `(-a) * b`. Use parentheses to negate a compound expression:
 `-(a * b)`.
 
-Literal values are written as integers (`42`), decimal numbers (`3.14`), single-quoted strings (`'text'`), `NULL`, or date literals.
+Literal values are written as integers (`42`), decimal numbers (`3.14`), single-quoted strings (`'text'`), `NULL`, the boolean literals `TRUE` and `FALSE`, or date literals.
+
+A boolean literal is typed BOOLEAN. Compared with a boolean column it is written the way the column
+stores it: `c.flag = TRUE` is `c.flag = 1` for a column held as 0/1 and `c.flag = 'Y'` for one held as
+'Y'/'N'. Where the engine has no boolean value (SQL Server, SQLite, Oracle) it is 1 or 0, and standing
+alone as a condition (`FILTER TRUE`) Oracle and SQL Server say it as a comparison. Upper case only: a
+lower-case `true` is an identifier, not the literal.
 Negative literals are written with a leading unary minus: `-3.14`.
 
 ## KQL Function Rule

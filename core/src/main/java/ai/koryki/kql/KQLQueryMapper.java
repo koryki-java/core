@@ -578,6 +578,10 @@ public class KQLQueryMapper {
             Expression bean = build(expression, Expression::new);
             bean.setNull(true);
             return bean;
+        } else if (expression.TRUE() != null || expression.FALSE() != null) {
+            Expression bean = build(expression, Expression::new);
+            bean.setBool(expression.TRUE() != null);
+            return bean;
         } else {
             throw new KorykiaiException();
         }

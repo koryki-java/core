@@ -453,6 +453,8 @@ public class IQLSerializer {
             return expression.getDuration().toString();
         } else if (expression.isNull()) {
             b.append("NULL");
+        } else if (expression.getBool() != null) {
+            b.append(expression.getBool() ? "TRUE" : "FALSE");
         } else {
             throw new KorykiaiException();
         }

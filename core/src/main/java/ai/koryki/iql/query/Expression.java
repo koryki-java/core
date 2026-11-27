@@ -33,6 +33,9 @@ public class Expression {
     private LocalTime localTime;
     private boolean isNull;
 
+    /** A boolean literal, {@code TRUE} or {@code FALSE}; null when the expression is something else. */
+    private Boolean bool;
+
     private Duration duration;
 
     /** A value with postfix selectors: {@code c.tags@1}, {@code c.items@1@sku}. */
@@ -130,6 +133,14 @@ public class Expression {
 
     public void setNull(boolean aNull) {
         isNull = aNull;
+    }
+
+    public Boolean getBool() {
+        return bool;
+    }
+
+    public void setBool(Boolean bool) {
+        this.bool = bool;
     }
 
     public Duration getDuration() {

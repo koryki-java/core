@@ -102,6 +102,8 @@ expression
     | NUMBER
     | SQ_STRING
     | NULL
+    | TRUE
+    | FALSE
     | LEFT_PAREN select RIGHT_PAREN
 ;
 
@@ -421,6 +423,14 @@ HAVING
 
 NULL
     : 'NULL'
+;
+
+TRUE
+    : 'TRUE'
+;
+
+FALSE
+    : 'FALSE'
 ;
 
 AND

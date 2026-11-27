@@ -174,6 +174,9 @@ BETWEEN: 'BETWEEN';
 ISNULL: 'ISNULL';
 IN: 'IN';
 NULL: 'NULL';
+// Boolean literals. Upper case like NULL, so they can never collide with ID (lower case only).
+TRUE: 'TRUE';
+FALSE: 'FALSE';
 
 PLACEHOLDER :
 HASHMARK (LOWER | DIGIT)+

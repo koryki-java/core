@@ -180,6 +180,7 @@ final class JsonContainment {
                 || e.getLambda() != null
                 || e.getParameter() != null
                 || e.getIdentity() != null
+                || e.getBool() != null
                 || e.isNull()) {
             return null;
         }
