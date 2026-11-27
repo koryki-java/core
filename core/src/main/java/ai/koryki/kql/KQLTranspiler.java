@@ -71,7 +71,10 @@ public class KQLTranspiler extends AbstractTranspiler<KQLReader, KQLParser.Query
     private final FunctionCatalog functions;
     private final ai.koryki.iql.SqlDialect dialect;
 
-    private final Lazy<Analysis> analysis = Lazy.of(this::analyze);
+    private final QueryRewriter rewriter;
+    private final Lazy<QueryRewriter.Rewrite> rewrite = Lazy.of(this::rewriteQuery);
+
+    private final Lazy<Analysis> analysis = Lazy.of(this::analyzeRewritten);
 
     /**
      * Output of the single analysis stage. The rules mutate the query tree inside this stage only;
@@ -113,11 +116,30 @@ public class KQLTranspiler extends AbstractTranspiler<KQLReader, KQLParser.Query
             LinkResolver resolver,
             FunctionCatalog functions,
             ai.koryki.iql.SqlDialect dialect) {
+        this(kql, resolver, functions, dialect, resolver.queryRewriter());
+    }
+
+    /**
+     * @param rewriter turns an extension of KQL into plain KQL before anything reads the query; see
+     *     {@link QueryRewriter}. The ranges of violations and exceptions are those of {@code kql},
+     *     the query as it was asked
+     */
+    public KQLTranspiler(
+            String kql,
+            LinkResolver resolver,
+            FunctionCatalog functions,
+            ai.koryki.iql.SqlDialect dialect,
+            QueryRewriter rewriter) {
 
         this.kql = kql;
         this.resolver = resolver;
         this.functions = functions;
         this.dialect = dialect;
+        this.rewriter = rewriter == null ? QueryRewriter.NONE : rewriter;
+    }
+
+    private QueryRewriter.Rewrite rewriteQuery() {
+        return rewriter.rewrite(kql);
     }
 
     /** Fluent assembly; see {@link KQLTranspilerBuilder}. */
@@ -133,7 +155,46 @@ public class KQLTranspiler extends AbstractTranspiler<KQLReader, KQLParser.Query
 
     @Override
     protected KQLReader newReader() throws IOException {
-        return new KQLReader(kql, false);
+        return new KQLReader(rewrite.get().kql(), false);
+    }
+
+    /**
+     * The analysis, with its ranges in the query that was asked. A refusal of the rewriter is a
+     * result like any violation, so that {@code validateKQL} can hand it back instead of raising.
+     */
+    private Analysis analyzeRewritten() {
+        QueryRewriter.Rewrite rw;
+        try {
+            rw = rewrite.get();
+        } catch (ValidateException refused) {
+            return new Analysis(null, null, Map.of(), List.copyOf(refused.getViolations()));
+        }
+        Analysis a = analyze();
+        if (rw.map() != null) {
+            for (Violation v : a.violations()) {
+                if (v.getRange() != null) {
+                    v.setRange(rw.map().toOriginal(v.getRange()));
+                }
+                if (v.getRelated() != null) {
+                    v.setRelated(rw.map().toOriginal(v.getRelated()));
+                }
+            }
+        }
+        return a;
+    }
+
+    /** Carries the range of an exception raised on the rewritten query back to the original. */
+    private <T> T inOriginal(Supplier<T> work) {
+        try {
+            return work.get();
+        } catch (ai.koryki.antlr.RangeException e) {
+            QueryRewriter.Rewrite rw = rewrite.get();
+            if (rw.map() == null || e.getRange() == null) {
+                throw e;
+            }
+            throw new ai.koryki.antlr.RangeException(
+                    rw.map().toOriginal(e.getRange()), e.getMessage(), e);
+        }
     }
 
     private Analysis analyze() {
@@ -212,6 +273,10 @@ public class KQLTranspiler extends AbstractTranspiler<KQLReader, KQLParser.Query
     }
 
     public String getSql(SqlRenderer renderer) {
+        return inOriginal(() -> render(renderer));
+    }
+
+    private String render(SqlRenderer renderer) {
 
         Analysis a = validAnalysis();
         Query q = a.query();
@@ -281,6 +346,15 @@ public class KQLTranspiler extends AbstractTranspiler<KQLReader, KQLParser.Query
 
     public String getKql() {
 
+        if (rewrite.get().map() != null) {
+            // the query that was asked, not the blocks it was made into
+            try {
+                KQLReader original = new KQLReader(kql, false);
+                return new KQLFormatter(original.getCtx(), original.getDescription()).format();
+            } catch (IOException e) {
+                throw new ai.koryki.antlr.KorykiaiException(e);
+            }
+        }
         return new KQLFormatter(getCtx(), getDescription()).format();
     }
 

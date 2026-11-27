@@ -38,6 +38,7 @@ public final class KQLTranspilerBuilder {
     private final LinkResolver resolver;
     private FunctionCatalog functions;
     private ai.koryki.iql.SqlDialect dialect;
+    private QueryRewriter rewriter;
 
     KQLTranspilerBuilder(String kql, LinkResolver resolver) {
         this.kql = kql;
@@ -66,7 +67,21 @@ public final class KQLTranspilerBuilder {
         return this;
     }
 
+    /**
+     * The rewriter to apply instead of the one of the resolver; {@link QueryRewriter#NONE} reads
+     * the query as it is, for what needs the text the user wrote (formatting it).
+     */
+    public KQLTranspilerBuilder rewriter(QueryRewriter rewriter) {
+        this.rewriter = rewriter;
+        return this;
+    }
+
     public KQLTranspiler build() {
-        return new KQLTranspiler(kql, resolver, functions, dialect);
+        return new KQLTranspiler(
+                kql,
+                resolver,
+                functions,
+                dialect,
+                rewriter != null ? rewriter : resolver.queryRewriter());
     }
 }

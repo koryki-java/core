@@ -122,6 +122,18 @@ public class OracleDialect implements SqlDialect {
                     "view",
                     "whenever");
 
+    /** Before 23ai Oracle has no boolean value; 1 and 0 are what a flag column holds. */
+    @Override
+    public String booleanLiteral(boolean value) {
+        return value ? "1" : "0";
+    }
+
+    /** ... and a bare 1 is no condition there: say it as a comparison. */
+    @Override
+    public String booleanLiteralPredicate(boolean value) {
+        return value ? "1 = 1" : "1 = 0";
+    }
+
     @Override
     public boolean isReserved(String name) {
         return SqlDialect.super.isReserved(name)

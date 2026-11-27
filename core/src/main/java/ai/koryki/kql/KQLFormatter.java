@@ -568,6 +568,10 @@ public class KQLFormatter {
                 return expression.SQ_STRING().getText();
             } else if (expression.NULL() != null) {
                 return "NULL";
+            } else if (expression.TRUE() != null) {
+                return "TRUE";
+            } else if (expression.FALSE() != null) {
+                return "FALSE";
             } else {
                 throw new KorykiaiException();
             }
@@ -908,7 +912,7 @@ public class KQLFormatter {
                             link.join(),
                             link.from != null ? entityOf(link.from.getText()) : leading,
                             entityName(link.source())));
-            b.append(link.PLUS() != null ? "+ " : "");
+            b.append(link.kind != null ? link.kind.getText() + " " : "");
             b.append(sourceText(link.source()));
             b.append(" ");
             b.append(link.source().alias.getText());

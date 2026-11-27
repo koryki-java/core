@@ -208,6 +208,11 @@ public class MariadbDialect implements SqlDialect {
                     "zerofill");
 
     @Override
+    public boolean supportsFullJoin() {
+        return false;
+    }
+
+    @Override
     public boolean isReserved(String name) {
         return SqlDialect.super.isReserved(name)
                 || RESERVED.contains(name.toLowerCase(java.util.Locale.ROOT));

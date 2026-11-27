@@ -62,7 +62,7 @@ exists_entity
 // Neither is written where the source is a call, `unnest(t.items) i`: what joins it is what the call
 // is given. That a join to an entity has one is not the grammar's to say, SourceCallValidator does.
 join
-    : OPTIONAL?  (crit=ID | on=joincolumns)?
+    : kind=(OPTIONAL | FULL | CROSS)?  (crit=ID | on=joincolumns)?
         (REF ref=ID
         |
         (
@@ -102,6 +102,8 @@ expression
     | NUMBER
     | SQ_STRING
     | NULL
+    | TRUE
+    | FALSE
     | LEFT_PAREN select RIGHT_PAREN
 ;
 
@@ -363,6 +365,14 @@ OWNER
     : 'OWNER'
 ;
 
+FULL
+    : 'FULL'
+    ;
+
+CROSS
+    : 'CROSS'
+    ;
+
 OPTIONAL
     : 'OPTIONAL'
 ;
@@ -413,6 +423,14 @@ HAVING
 
 NULL
     : 'NULL'
+;
+
+TRUE
+    : 'TRUE'
+;
+
+FALSE
+    : 'FALSE'
 ;
 
 AND

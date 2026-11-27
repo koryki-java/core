@@ -59,7 +59,7 @@ class PostgresqlIndexesTest {
         assertEquals("btree", i.getMethod());
         assertEquals(true, i.getUnique());
         assertEquals("nr", i.getKeys().get(0).getColumn());
-        assertFalse(i.getKeys().get(0).hasPath());
+        assertFalse(ai.koryki.catalog.Indexes.hasPath(i.getKeys().get(0)));
     }
 
     @Test
@@ -133,7 +133,7 @@ class PostgresqlIndexesTest {
                                 "CREATE INDEX p ON public.t USING btree (nr) WHERE (nr > 1)")
                         .orElseThrow();
 
-        assertFalse(i.coversAllRows());
+        assertFalse(ai.koryki.catalog.Indexes.coversAllRows(i));
         assertEquals("(nr > 1)", i.getWhere());
     }
 

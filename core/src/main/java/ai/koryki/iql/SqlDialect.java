@@ -27,6 +27,7 @@ import ai.koryki.iql.functions.StandardFunctions;
 import ai.koryki.iql.query.Duration;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
+import ai.koryki.iql.typing.BooleanEncodings;
 import ai.koryki.iql.typing.EpochEncodings;
 import ai.koryki.iql.typing.InstantEncodings;
 import ai.koryki.iql.typing.IntervalEncodings;
@@ -600,6 +601,14 @@ public interface SqlDialect {
     }
 
     /**
+     * Whether the database has {@code FULL OUTER JOIN}. MySQL and MariaDB do not; a query that
+     * needs one is refused there instead of being emulated.
+     */
+    default boolean supportsFullJoin() {
+        return true;
+    }
+
+    /**
      * SQL standard: INTERSECT binds tighter than UNION/EXCEPT. SQLite deviates — all compound
      * operators share one precedence level, associate left, and parenthesized compound operands are
      * a syntax error — so its renderer must emit left-deep chains flat instead of parenthesizing
@@ -630,6 +639,24 @@ public interface SqlDialect {
      */
     default String textLiteral(String quoted) {
         return quoted;
+    }
+
+    /**
+     * The SQL for a {@code TRUE} or {@code FALSE} literal. ANSI has the keywords; an engine with no
+     * boolean value (SQL Server's BIT, Oracle before 23ai, SQLite) writes 1 and 0. Against a column
+     * stored as 0/1 or 'Y'/'N' the renderer does not ask: it writes the column's own encoding (see
+     * {@code BooleanEncodings}).
+     */
+    default String booleanLiteral(boolean value) {
+        return value ? "TRUE" : "FALSE";
+    }
+
+    /**
+     * A boolean literal standing alone as a condition, {@code FILTER TRUE}: the literal run through
+     * {@link #booleanPredicate}, which is how an engine that needs a comparison there gets one.
+     */
+    default String booleanLiteralPredicate(boolean value) {
+        return booleanPredicate(booleanLiteral(value), TypeDescriptor.BOOLEAN);
     }
 
     /**
@@ -1389,6 +1416,7 @@ public interface SqlDialect {
                 || e.getLocalDate() != null
                 || e.getLocalTime() != null
                 || e.getLocalDateTime() != null
+                || e.getBool() != null
                 || e.isNull();
     }
 
@@ -1492,6 +1520,12 @@ public interface SqlDialect {
             TypeDescriptor leftType,
             TypeDescriptor rightType,
             int indent) {
+        // BOOLEAN column vs TRUE/FALSE: write the literal the way the column stores it (1/0 or
+        // 'Y'/'N'); a native column falls through to the dialect's own literal.
+        java.util.Optional<String> bool = BooleanEncodings.literalOperand(leftType, expression);
+        if (bool.isPresent()) {
+            return bool.get();
+        }
         // INTERVAL column vs duration literal: render the duration in the column's encoding
         // (numeric count / ISO string), so both operands share one physical representation.
         java.util.Optional<String> interval =

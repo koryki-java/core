@@ -145,6 +145,8 @@ SINGLE_QUOTE: '\'';
 DOT: '.';
 BAR: '-';
 VIA: 'VIA';
+FULL: 'FULL';
+CROSS: 'CROSS';
 
 // Lambda arrow. Only ever inside a function argument; the 11 `->` in the fixture corpus are comments.
 ARROW: '->';
@@ -172,6 +174,9 @@ BETWEEN: 'BETWEEN';
 ISNULL: 'ISNULL';
 IN: 'IN';
 NULL: 'NULL';
+// Boolean literals. Upper case like NULL, so they can never collide with ID (lower case only).
+TRUE: 'TRUE';
+FALSE: 'FALSE';
 
 PLACEHOLDER :
 HASHMARK (LOWER | DIGIT)+

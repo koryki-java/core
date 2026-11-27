@@ -145,6 +145,8 @@ public class ExpressionTypeResolver {
             return TypeDescriptor.TIME;
         } else if (expression.getDuration() != null) {
             return TypeDescriptor.INTERVAL;
+        } else if (expression.getBool() != null) {
+            return TypeDescriptor.BOOLEAN;
         } else if (expression.isNull()) {
             return TypeDescriptor.NULL;
         } else {
@@ -234,8 +236,9 @@ public class ExpressionTypeResolver {
                                                             + tableName
                                                             + "' is not in this schema"));
 
-            if (dbtable.getColumn(field.getName()).isPresent()) {
-                ai.koryki.catalog.schema.Column column = dbtable.getColumn(field.getName()).get();
+            if (ai.koryki.catalog.Tables.column(dbtable, field.getName()).isPresent()) {
+                ai.koryki.catalog.schema.Column column =
+                        ai.koryki.catalog.Tables.column(dbtable, field.getName()).get();
                 return linkResolver.getTypeDescriptor(column);
             } else {
                 Attribute attr =
@@ -257,7 +260,7 @@ public class ExpressionTypeResolver {
                                 .map(a -> a.getColumn() != null ? a.getColumn() : a.getName())
                                 .orElseGet(
                                         () ->
-                                                dbtable.getColumn(attrCol)
+                                                ai.koryki.catalog.Tables.column(dbtable, attrCol)
                                                         .orElseThrow(
                                                                 () ->
                                                                         new KorykiaiException(
@@ -275,7 +278,7 @@ public class ExpressionTypeResolver {
                                                         .getName());
 
                 ai.koryki.catalog.schema.Column column =
-                        dbtable.getColumn(col)
+                        ai.koryki.catalog.Tables.column(dbtable, col)
                                 .orElseThrow(
                                         () ->
                                                 new KorykiaiException(

@@ -24,6 +24,7 @@ import ai.koryki.iql.query.Exists;
 import ai.koryki.iql.query.Expression;
 import ai.koryki.iql.query.Function;
 import ai.koryki.iql.query.Join;
+import ai.koryki.iql.query.JoinKind;
 import ai.koryki.iql.query.Select;
 import ai.koryki.iql.query.Source;
 import java.util.ArrayList;
@@ -71,11 +72,22 @@ public class SourceCallValidator implements Visitor, Collector<List<Violation>> 
         Source source = join.getSource();
         if (source != null
                 && source.getCall() == null
+                && join.getKind() != JoinKind.CROSS
                 && join.getCrit() == null
                 && join.getColumns() == null) {
             report(
                     source,
                     "a join to '" + source.getName() + "' names no criterion and no columns");
+        }
+        if (source != null
+                && join.getKind() == JoinKind.CROSS
+                && (join.getCrit() != null || join.getColumns() != null)) {
+            report(
+                    source,
+                    "a CROSS join to '"
+                            + source.getName()
+                            + "' has no condition: it takes no VIA"
+                            + " and no columns");
         }
         return true;
     }

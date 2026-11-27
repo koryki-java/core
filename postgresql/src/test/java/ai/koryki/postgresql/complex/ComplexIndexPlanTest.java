@@ -73,13 +73,26 @@ import org.junit.jupiter.params.provider.CsvSource;
 @PostgreSQLUnavailable
 class ComplexIndexPlanTest {
 
+    /**
+     * The catalog told nothing about indexes. The shipped catalog does say, since the northwind
+     * repository added them to it, so they are taken out here: this resolver is the baseline the
+     * cases below compare against (a key of a map is compared, not asked as containment), and
+     * {@link #withIndexes} puts back what each case is about.
+     */
     private static final LinkResolver RESOLVER =
             new LinkResolver(
                     Locale.ENGLISH,
-                    CatalogLoader.db("/ai/koryki/postgresql/databases/complex"),
+                    withoutIndexes(
+                            SchemaCopy.deepCopy(
+                                    CatalogLoader.db("/ai/koryki/postgresql/databases/complex"))),
                     CatalogLoader.model(
                             "/ai/koryki/postgresql/databases/complex/model", Locale.ENGLISH),
                     true);
+
+    private static Schema withoutIndexes(Schema db) {
+        db.getTables().forEach(t -> t.setIndexes(null));
+        return db;
+    }
 
     /**
      * The catalog told about the GIN indexes of the bed (and not about the btree ones): the

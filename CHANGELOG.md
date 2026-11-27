@@ -6,6 +6,12 @@ All notable changes to this project are documented here.
 
 ### Fixed
 
+- `Join.setOptional` no longer turns a FULL or CROSS join into INNER or LEFT.
+- Explicit join columns in `EXISTS` are the correlation: `EXISTS (e [city] employees c ...)` rendered
+  the relationship between the two tables instead (`e.reports_to = c.employee_id`), because the exists
+  path dropped the columns before rendering. It showed only for two tables that have a relationship of
+  their own and a different pair of columns written out; an explicit join that matched the relationship
+  gave the same SQL either way.
 - A branch of a set operation with a row limit (`FIND … LIMIT 5 UNION FIND …`) is limited by itself:
   it rendered as `SELECT … FETCH FIRST 5 ROWS ONLY UNION SELECT …`, a syntax error, and in the last
   branch the limit would have applied to the whole compound. The branch is now in parentheses, or a
@@ -18,6 +24,27 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- Boolean literals `TRUE` and `FALSE` in KQL and IQL (`Expression.getBool`). They are typed BOOLEAN and
+  written the way the other operand stores a boolean: 1/0 or 'Y'/'N' against an encoded column
+  (`BooleanEncodings`), the keywords where the engine has them, 1/0 on SQL Server, SQLite and Oracle
+  (`SqlDialect.booleanLiteral`, `booleanLiteralPredicate`). A literal on the left of a comparison with
+  an encoded column is not adapted; write the column first.
+- Default links: `Link.default` flags the link a query takes between two entities when it writes no
+  `VIA`, so that adding a second link to a pair no longer breaks the queries that relied on the
+  first. At most one per pair, never over a relation with a condition (checked when the resolver is
+  built; `LinkDefaults`). A relation with a condition is never inferred from its tables alone. The
+  ambiguity error names the candidate links.
+- The relations of a schema are checked when the resolver is built, not only by the loader
+  (`CatalogLoader.checkRelations`), so a schema made in code is checked too.
+- `FULL` and `CROSS` joins. In KQL the marker stands where `+` stands: `e VIA reports_to FULL
+  employees m`, `s CROSS categories c` (a CROSS join takes no `VIA` and no columns). `Join.kind`
+  (`JoinKind`: INNER, LEFT, FULL, CROSS) replaces the boolean `optional`, which stays as an accessor
+  (`isOptional()` is true for LEFT and FULL). IQL writes `JOIN FULL`, `JOIN CROSS`. FULL is refused
+  where the database has no `FULL OUTER JOIN` (`SqlDialect.supportsFullJoin`, false for MariaDB).
+- A relation can have a `condition`: a conjunction of comparisons between a column of its start
+  table and a column of its end table, e.g. `start.sal BETWEEN end.losal AND end.hisal`, for a join
+  that is not an equality of columns. See docs/CATALOG.md. A relation without columns and without a
+  condition joins as a CROSS JOIN. Conditioned relations join entities, not blocks.
 - `SetOperationValidator`: the branches of `UNION`, `UNIONALL`, `MINUS` and `INTERSECT` must return
   the same number of columns. The query is refused with the branch that does not fit, instead of
   the database's error about the generated SQL. The number is checked, not the types.

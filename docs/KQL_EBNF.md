@@ -161,6 +161,26 @@ Literal `+` produces an optional `link` (LEFT OUTER JOIN), preserving rows
 even when no matching counterpart is found in target `source`. A link without `+` produces a
 mandatory link (INNER JOIN); rows are only returned when matching data exists in both sources.
 
+The marker says how rows without a partner are treated, and stands where `+` stands, before the
+target `source`:
+
+| Marker | Join | Rows kept |
+|---|---|---|
+| none | INNER | only rows with a partner |
+| `+` | LEFT OUTER | all rows of the side written first |
+| `FULL` | FULL OUTER | all rows of both sides |
+| `CROSS` | CROSS | every row with every row; takes no `VIA` and no columns |
+
+`FIND employees e, e VIA reports_to FULL employees m` keeps the employee without a supervisor and
+every employee nobody reports to. `FIND shippers s, s CROSS categories c` pairs each shipper with
+each category. `FULL` and `CROSS` are keywords, written in capitals like `VIA`; identifiers are
+lower case, so they cannot clash with a name. A database without `FULL OUTER JOIN` (MariaDB) refuses
+a query that uses it.
+
+A filter on an alias that is joined optionally or with `FULL` is rendered in the ON clause of the join,
+as for `+`. A `FILTER` on the side written first of a `FULL` join stays in WHERE, which turns the
+join back into a LEFT one for those rows: filter the side that may be missing.
+
 A `link` may name the columns it joins on — that is the `join`. It is **required** when two sources
 share more than one relationship, because nothing else could say which one is meant, and it is
 **always permitted**: `FIND orders o, [order_id] order_details od` is valid even though that pair has
@@ -327,7 +347,7 @@ of an element that is no struct, and `ordinal` the position. See [Nested values]
 
 An `expression` is a value-producing term used throughout the query.
 It covers unary negation (`-expr`, `+expr`), arithmetic (`*`, `/`, `+`, `-`), field references,
-function calls, literals (`INT`, `NUMBER`, `SQ_STRING`, `NULL`), `temporal_literal`,
+function calls, literals (`INT`, `NUMBER`, `SQ_STRING`, `NULL`, `TRUE`, `FALSE`), `temporal_literal`,
 lambda parameters (a bare `ID`, only meaningful inside a lambda), and sub-selects. Parentheses can be used to group and override arithmetic precedence.
 
 A `selector` after an expression reaches into a nested value: `c.tags@1`, `c.items@1@sku`,
@@ -339,7 +359,13 @@ Unary `-` negates a value; unary `+` is a no-op included for symmetry. Both bind
 binary operators, so `-a * b` means `(-a) * b`. Use parentheses to negate a compound expression:
 `-(a * b)`.
 
-Literal values are written as integers (`42`), decimal numbers (`3.14`), single-quoted strings (`'text'`), `NULL`, or date literals.
+Literal values are written as integers (`42`), decimal numbers (`3.14`), single-quoted strings (`'text'`), `NULL`, the boolean literals `TRUE` and `FALSE`, or date literals.
+
+A boolean literal is typed BOOLEAN. Compared with a boolean column it is written the way the column
+stores it: `c.flag = TRUE` is `c.flag = 1` for a column held as 0/1 and `c.flag = 'Y'` for one held as
+'Y'/'N'. Where the engine has no boolean value (SQL Server, SQLite, Oracle) it is 1 or 0, and standing
+alone as a condition (`FILTER TRUE`) Oracle and SQL Server say it as a comparison. Upper case only: a
+lower-case `true` is an identifier, not the literal.
 Negative literals are written with a leading unary minus: `-3.14`.
 
 ## KQL Function Rule

@@ -213,7 +213,8 @@ public class Generator<I extends ColumnInfo> {
         // formatting needs only the parse tree. Whoever hands in a query with an unknown function
         // should get it back readable rather than fail validation -- that is precisely the query
         // one wants to see formatted, in order to find the mistake.
-        KQLTranspiler transpiler = KQLTranspiler.builder(kql, resolver).build();
+        KQLTranspiler transpiler =
+                KQLTranspiler.builder(kql, resolver).rewriter(QueryRewriter.NONE).build();
 
         KQLFormatter formatter =
                 new KQLFormatter(transpiler.getCtx(), transpiler.getDescription())

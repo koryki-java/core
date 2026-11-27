@@ -207,7 +207,13 @@ public class IQLQueryMapper {
         if (join.ref != null) {
             bean.setRef(join.ref.getText());
         }
-        bean.setOptional(join.OPTIONAL() != null);
+        if (join.kind != null) {
+            switch (join.kind.getType()) {
+                case IQLParser.OPTIONAL -> bean.setKind(JoinKind.LEFT);
+                case IQLParser.FULL -> bean.setKind(JoinKind.FULL);
+                default -> bean.setKind(JoinKind.CROSS);
+            }
+        }
         if (join.join_entity() != null) {
             bean.setSource(toEntity(join.join_entity()));
         }
@@ -384,6 +390,10 @@ public class IQLQueryMapper {
         } else if (expression.NULL() != null) {
             Expression bean = build(expression, Expression::new);
             bean.setNull(true);
+            return bean;
+        } else if (expression.TRUE() != null || expression.FALSE() != null) {
+            Expression bean = build(expression, Expression::new);
+            bean.setBool(expression.TRUE() != null);
             return bean;
         } else {
             throw new KorykiaiException();

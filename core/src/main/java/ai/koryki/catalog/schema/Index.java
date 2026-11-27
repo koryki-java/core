@@ -29,6 +29,11 @@ import java.util.List;
  * right: an index only decides between spellings of the same question, so a catalog that is out of
  * date makes a query slower and never wrong.
  *
+ * <p>One exception, which is why it is stated: a <em>unique</em> index over all rows (see {@link
+ * ai.koryki.catalog.Tables#isKey}) is relied on to prove that a join meets at most one row, and the
+ * measures rewriter writes a plainer query on that proof. A unique index that the database has
+ * since dropped makes such a query count a row twice. Only enforced uniqueness belongs here.
+ *
  * <p>A table without {@code indexes} behaves exactly as before.
  */
 public class Index {
@@ -103,10 +108,5 @@ public class Index {
 
     public void setWhere(String where) {
         this.where = where;
-    }
-
-    /** True when the index covers all rows. */
-    public boolean coversAllRows() {
-        return where == null || where.isBlank();
     }
 }

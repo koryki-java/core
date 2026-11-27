@@ -109,19 +109,17 @@ class SharedConceptTest {
 
         for (String column : List.of("home", "work")) {
             var c =
-                    resolver.getSchema()
-                            .getTable("check_shared")
-                            .orElseThrow()
-                            .getColumn(column)
+                    ai.koryki.catalog.Tables.column(
+                                    resolver.getSchema().getTable("check_shared").orElseThrow(),
+                                    column)
                             .orElseThrow();
             assertEquals("point", c.getConceptRef(), column);
             assertEquals("STRUCT(lat:FLOAT,lon:FLOAT)", resolver.getTypeDescriptor(c).portable());
         }
         var route =
-                resolver.getSchema()
-                        .getTable("check_shared")
-                        .orElseThrow()
-                        .getColumn("route")
+                ai.koryki.catalog.Tables.column(
+                                resolver.getSchema().getTable("check_shared").orElseThrow(),
+                                "route")
                         .orElseThrow();
         assertEquals(
                 "ARRAY(STRUCT(lat:FLOAT,lon:FLOAT))", resolver.getTypeDescriptor(route).portable());

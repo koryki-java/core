@@ -144,8 +144,11 @@ public class IQLSerializer {
     private String toString(Source left, Join join, int indent) {
         StringBuilder b = new StringBuilder();
         b.append(indent(indent) + "JOIN ");
-        if (join.isOptional()) {
-            b.append("OPTIONAL ");
+        switch (join.getKind()) {
+            case LEFT -> b.append("OPTIONAL ");
+            case FULL -> b.append("FULL ");
+            case CROSS -> b.append("CROSS ");
+            default -> {}
         }
         b.append(critOrColumns(join.getCrit(), join.getColumns()));
 
@@ -450,6 +453,8 @@ public class IQLSerializer {
             return expression.getDuration().toString();
         } else if (expression.isNull()) {
             b.append("NULL");
+        } else if (expression.getBool() != null) {
+            b.append(expression.getBool() ? "TRUE" : "FALSE");
         } else {
             throw new KorykiaiException();
         }

@@ -17,8 +17,6 @@
 package ai.koryki.catalog.schema;
 
 import java.util.*;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 public class Schema {
 
@@ -126,20 +124,6 @@ public class Schema {
 
     public Optional<Relation> getRelation(String name) {
         return relations.stream().filter(r -> r.getName().equals(name)).findFirst();
-    }
-
-    public List<Relation> linkRelations(String startTable, String endTable, String foreignKey) {
-        Predicate<Relation> predicate =
-                (r) ->
-                        r.getStartTable().equals(startTable)
-                                && r.getEndTable().equals(endTable)
-                                && (foreignKey == null || r.getName().equals(foreignKey));
-
-        return getRelations().stream().filter(predicate).collect(Collectors.toList());
-    }
-
-    public List<Relation> linkRelations(String startTable, String endTable) {
-        return linkRelations(startTable, endTable, null);
     }
 
     public Map<String, Concept> getConcepts() {
