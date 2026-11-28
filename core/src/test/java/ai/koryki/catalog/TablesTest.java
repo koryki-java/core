@@ -16,6 +16,7 @@
  */
 package ai.koryki.catalog;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -107,5 +108,51 @@ class TablesTest {
         assertTrue(Tables.hasKeyInformation(knownToHaveNone));
 
         assertTrue(Tables.hasKeyInformation(table("id")));
+    }
+
+    private static Table notNull(Table t, String... names) {
+        for (String n : names) {
+            t.getColumns().stream()
+                    .filter(c -> c.getName().equals(n))
+                    .forEach(c -> c.setNullable(false));
+        }
+        return t;
+    }
+
+    @Test
+    void theIdentityIsThePrimaryKeyThenTheUniqueKeysOfColumnsThatAreNotNull() {
+        Table t = notNull(table("id"), "a", "b");
+        t.setIndexes(List.of(unique("a", "b"), unique("b")));
+        assertEquals(
+                List.of(List.of("id"), List.of("b"), List.of("a", "b")), Tables.identifying(t));
+    }
+
+    @Test
+    void aUniqueKeyOverANullableColumnIsNoIdentity() {
+        Table t = table();
+        t.setIndexes(List.of(unique("a")));
+        assertEquals(List.of(), Tables.identifying(t), "NULLs are equal in a DISTINCT");
+        notNull(t, "a");
+        assertEquals(List.of(List.of("a")), Tables.identifying(t));
+    }
+
+    @Test
+    void aKeyThatRepeatsAnEarlierOneIsLeftOut() {
+        Table t = notNull(table("id"), "id");
+        t.setIndexes(List.of(unique("id")));
+        assertEquals(List.of(List.of("id")), Tables.identifying(t));
+    }
+
+    @Test
+    void aTableThatStatesNoKeyHasNoIdentity() {
+        Table t = notNull(table(), "a");
+        assertEquals(List.of(), Tables.identifying(t));
+        Index partial = unique("a");
+        partial.setWhere("deleted = false");
+        Index inside = new Index();
+        inside.setUnique(true);
+        inside.setKeys(List.of(new IndexKey("a", List.of("x"), "TEXT")));
+        t.setIndexes(List.of(partial, inside));
+        assertEquals(List.of(), Tables.identifying(t));
     }
 }
